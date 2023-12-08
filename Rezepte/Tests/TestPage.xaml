@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Rezepte.Tests"
+             x:Class="Rezepte.Tests.TestPage"
+             Title="Testergebnisse">
+
+    <ScrollView Orientation="Vertical">
+        <CollectionView 
+        Margin="0"
+        ItemsSource="{Binding TestResults}"
+        ItemsLayout="VerticalList">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:TestResultViewModel">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="50"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="30"/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <CheckBox IsChecked="{Binding Result,Mode=OneWay}" />
+                        <Label Grid.Column="1" Text="{Binding Description}" VerticalOptions="Center"/>
+                        <Label Grid.Column="1" Grid.Row="1" IsVisible="{Binding HasError}" Text="{Binding Error}" TextColor="Red" VerticalOptions="Center"/>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </ScrollView>
+
+</ContentPage>
