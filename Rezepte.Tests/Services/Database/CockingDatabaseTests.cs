@@ -17,7 +17,7 @@ namespace Rezepte.Tests.Services.Database
                 if (string.IsNullOrWhiteSpace(rootFolder))
                 {
                     string folder = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-                    folder = Path.Combine(folder, "VideoPlayer", "Tests");
+                    folder = Path.Combine(folder, "Rezepte", "Tests");
                     if (!Directory.Exists(folder))
                         Directory.CreateDirectory(folder);
                     rootFolder = folder;
@@ -30,7 +30,7 @@ namespace Rezepte.Tests.Services.Database
         {
             get
             {
-                return Path.Combine(RootFolder, "MediaLibraryTests.db3");
+                return Path.Combine(RootFolder, "RezepteTests.db3");
             }
         }
 
