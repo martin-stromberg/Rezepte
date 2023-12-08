@@ -124,5 +124,11 @@ namespace Rezepte.Tests
             }
         }
 
+        protected void CheckIsNotNull(object value, string message = "")
+        {
+            if (value == null)
+                throw new TestResultException($"Object is null. {message}".Trim());
+        }
+
     }
 }

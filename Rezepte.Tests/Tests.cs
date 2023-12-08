@@ -1,4 +1,5 @@
 ﻿using Rezepte.Tests.Models;
+using Rezepte.Tests.Services.Chefkoch;
 using Rezepte.Tests.Services.Database;
 using System;
 using System.Linq;
@@ -19,6 +20,7 @@ namespace Rezepte.Tests
                 try
                 {
                     RunTest(new CockingDatabaseTests());
+                    RunTest(new ChefkochSiteTests());
                 }
                 finally
                 {

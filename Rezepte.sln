@@ -5,9 +5,9 @@ VisualStudioVersion = 17.8.34302.71
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rezepte", "Rezepte\Rezepte.csproj", "{FFDC4FE0-29B5-4310-BDB6-9EDEDD7A0B56}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Tests", "Rezepte.Tests\Rezepte.Tests.csproj", "{08EE297B-BE5A-4AEA-9892-FA03010A7AB3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rezepte.Tests", "Rezepte.Tests\Rezepte.Tests.csproj", "{08EE297B-BE5A-4AEA-9892-FA03010A7AB3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RezepteMaui", "RezepteMaui\RezepteMaui.csproj", "{19270651-0BF6-4F4A-B4F1-0426B9616327}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RezepteMaui", "RezepteMaui\RezepteMaui.csproj", "{19270651-0BF6-4F4A-B4F1-0426B9616327}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
