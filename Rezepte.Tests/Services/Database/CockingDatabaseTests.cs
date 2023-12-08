@@ -69,6 +69,11 @@ namespace Rezepte.Tests.Services.Database
                     Init,
                     Cleanup,
                     TestAddReceipt_WithIdNotZero_ThrowsException);
+            AddTest($"Updating a receipt with undefined primary key throws exception",
+                    Init,
+                    Cleanup,
+                    TestUpdateReceipt_WithIdZero_ThrowsException);
+            AddTest($"Updating a receipt", Init, Cleanup, TestUpdateReceipt_ForExistingReceipt_UpdatesRecord);
         }
 
         private void TestCreateDatabase()
@@ -108,6 +113,39 @@ namespace Rezepte.Tests.Services.Database
 
                 var actual = Database.GetAll<Receipt>();
                 CheckAreEqual(0, actual.Count(), $"Record count does not match expectation");
+            }
+        }
+
+        private void TestUpdateReceipt_WithIdZero_ThrowsException()
+        {
+            CockingDatabaseSettings Settings = new CockingDatabaseSettings() { FilePath = DatabaseFilePath };
+            using (CockingDatabase Database = new CockingDatabase(Settings))
+            {
+                var expected = new Receipt() { Id = 0, Name = "TestUpdateReceipt_WithIdZero_ThrowsException" };
+
+                Database.Open();
+                CheckThrows<ArgumentException>(() => { Database.Update(expected); });
+
+                var actual = Database.GetAll<Receipt>();
+                CheckAreEqual(0, actual.Count(), $"Record count does not match expectation");
+            }
+        }
+
+        private void TestUpdateReceipt_ForExistingReceipt_UpdatesRecord()
+        {
+            CockingDatabaseSettings Settings = new CockingDatabaseSettings() { FilePath = DatabaseFilePath };
+            using (CockingDatabase Database = new CockingDatabase(Settings))
+            {
+                var expected = new Receipt() { Id = 0, Name = "TestUpdateReceipt_WithIdZero_ThrowsException" };
+
+                Database.Open();
+                Database.Add(expected);
+
+                expected.Name = $"{expected.Name}_New";
+                Database.Update(expected);
+
+                var actual = Database.Get<Receipt>(expected.Id);
+                CheckAreEqual(expected, actual);
             }
         }
 
