@@ -89,7 +89,7 @@ namespace Rezepte.Tests.Services.Database
             CockingDatabaseSettings Settings = new CockingDatabaseSettings() { FilePath = DatabaseFilePath };
             using (CockingDatabase Database = new CockingDatabase(Settings))
             {
-                var expected = new Receipt() { Name = "TestAddReceipt" };
+                var expected = new Receipt() { Title = "TestAddReceipt" };
 
                 Database.Open();
                 Database.Add(expected);
@@ -106,7 +106,7 @@ namespace Rezepte.Tests.Services.Database
             CockingDatabaseSettings Settings = new CockingDatabaseSettings() { FilePath = DatabaseFilePath };
             using (CockingDatabase Database = new CockingDatabase(Settings))
             {
-                var expected = new Receipt() { Id = 1, Name = "TestAddReceipt" };
+                var expected = new Receipt() { Id = 1, Title = "TestAddReceipt" };
 
                 Database.Open();
                 CheckThrows<ArgumentException>(() => { Database.Add(expected); });
@@ -121,7 +121,7 @@ namespace Rezepte.Tests.Services.Database
             CockingDatabaseSettings Settings = new CockingDatabaseSettings() { FilePath = DatabaseFilePath };
             using (CockingDatabase Database = new CockingDatabase(Settings))
             {
-                var expected = new Receipt() { Id = 0, Name = "TestUpdateReceipt_WithIdZero_ThrowsException" };
+                var expected = new Receipt() { Id = 0, Title = "TestUpdateReceipt_WithIdZero_ThrowsException" };
 
                 Database.Open();
                 CheckThrows<ArgumentException>(() => { Database.Update(expected); });
@@ -136,12 +136,12 @@ namespace Rezepte.Tests.Services.Database
             CockingDatabaseSettings Settings = new CockingDatabaseSettings() { FilePath = DatabaseFilePath };
             using (CockingDatabase Database = new CockingDatabase(Settings))
             {
-                var expected = new Receipt() { Id = 0, Name = "TestUpdateReceipt_WithIdZero_ThrowsException" };
+                var expected = new Receipt() { Id = 0, Title = "TestUpdateReceipt_WithIdZero_ThrowsException" };
 
                 Database.Open();
                 Database.Add(expected);
 
-                expected.Name = $"{expected.Name}_New";
+                expected.Title = $"{expected.Title}_New";
                 Database.Update(expected);
 
                 var actual = Database.Get<Receipt>(expected.Id);

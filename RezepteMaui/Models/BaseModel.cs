@@ -120,5 +120,69 @@ namespace Rezepte.Models
             return dataModel;
         }
 
+        protected virtual void Update(BaseDataModel record)
+        {
+            var ownType = GetType();
+            var dataModelType = record.GetType();
+            foreach (var prop in ownType.GetProperties().Where(p => p.CanWrite))
+            {
+                string refFieldName = string.Empty;
+                var dataModelProp = dataModelType.GetProperty(prop.Name);
+                if (dataModelProp == null)
+                {
+                    var fieldRefAttr = prop.GetCustomAttribute(typeof(FieldModelReferenceAttribute)) as FieldModelReferenceAttribute;
+                    refFieldName = fieldRefAttr?.FieldName ?? string.Empty;
+                    var sourceRefFieldName = fieldRefAttr?.ReferenceFieldName ?? string.Empty;
+                    dataModelProp = dataModelType.GetProperty(sourceRefFieldName);
+                }
+                if (dataModelProp == null)
+                    continue;
+                if (!dataModelProp.CanRead)
+                    continue;
+                var sourceValue = dataModelProp.GetValue(record);
+                if (sourceValue != null)
+                {
+                    if ((prop.PropertyType == typeof(StreamImageSource)) && (sourceValue != null))
+                    {
+                        byte[] bytes = Convert.FromBase64String((string)sourceValue);
+                        MemoryStream stream = new MemoryStream(bytes);
+                        sourceValue = StreamImageSource.FromStream(() => stream);
+                    }
+                    if (!string.IsNullOrWhiteSpace(refFieldName))
+                    {
+                        var propField = prop.PropertyType.GetProperty(refFieldName);
+                        if (!sourceValue.Equals(Activator.CreateInstance(propField.PropertyType)))
+                        {
+                            var propFieldObj = Activator.CreateInstance(prop.PropertyType);
+                            propField.SetValue(propFieldObj, sourceValue);
+                            sourceValue = propFieldObj;
+                        }
+                        else
+                            sourceValue = null;
+                    }
+                }
+                prop.SetValue(this, sourceValue);
+            }
+        }
+
+        public static BaseModel CreateFromDataModel(BaseDataModel record)
+        {
+            var dataModelType = record.GetType();
+            var baseType = typeof(BaseModel);
+            var modelType = baseType.Assembly
+                                    .GetTypes()
+                                    .Where(t => t.IsAssignableTo(baseType))
+                                    .FirstOrDefault(t =>
+                                    {
+                                        var attr = t.GetCustomAttribute(typeof(DataModelReferenceAttribute)) as DataModelReferenceAttribute;
+                                        return (attr != null) && (attr.DataModelType == dataModelType);
+                                    });
+            if (modelType == null)
+                return null;
+            var modelObject = Activator.CreateInstance(modelType) as BaseModel;
+            modelObject.Update(record);
+            return modelObject;
+        }
+
     }
 }

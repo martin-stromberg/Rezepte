@@ -56,6 +56,7 @@ namespace Rezepte.Services.Database
             try
             {
                 Connection.CreateTable<Receipt>();
+                Connection.CreateTable<ReceiptIngredient>();
                 initialized = true;
             }
             finally
@@ -128,7 +129,7 @@ namespace Rezepte.Services.Database
 
         public T AddOrUpdate<T>(T record) where T: BaseDataModel, new()
         {
-            var existing = Connection.Table<T>().FirstOrDefault(rec => (rec as BaseDataModel).Id == record.Id) as BaseDataModel;
+            var existing = Get<T>(record.Id);
             if (existing == null)
                 return Add(record);
             else

@@ -1,41 +1,63 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Rezepte.MainPage">
+             xmlns:vm="clr-namespace:Rezepte.ViewModels;assembly=RezepteMaui"
+             x:Class="Rezepte.MainPage"
+             x:DataType="vm:HomePageViewModel">
 
-    <ScrollView>
-        <VerticalStackLayout
-            Spacing="25"
-            Padding="30,0"
-            VerticalOptions="Center">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <Image
-                Source="dotnet_bot.png"
-                SemanticProperties.Description="Cute dot net bot waving hi to you!"
-                HeightRequest="200"
-                HorizontalOptions="Center" />
+        <Image
+            Grid.Row="0"
+            Source="rezepte.png"
+            SemanticProperties.Description="Cute dot net bot waving hi to you!"
+            HorizontalOptions="Center" />
 
-            <Label
-                Text="Hello, World!"
-                SemanticProperties.HeadingLevel="Level1"
-                FontSize="32"
-                HorizontalOptions="Center" />
+        <HorizontalStackLayout 
+            Grid.Row="1"
+            HorizontalOptions="End" 
+            IsVisible="{Binding IsGeneralMode}">
+            <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addReceipt"/>
+        </HorizontalStackLayout>
 
-            <Label
-                Text="Welcome to .NET Multi-platform App UI"
-                SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="Welcome to dot net Multi platform App U I"
-                FontSize="18"
-                HorizontalOptions="Center" />
+        <HorizontalStackLayout 
+            Grid.Row="1"
+            HorizontalOptions="End" 
+            IsVisible="{Binding IsAddingMode}">
+            <Entry Text="{Binding NewReceiptUri}"/>
+            <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addURI"/>
+        </HorizontalStackLayout>
 
-            <Button
-                x:Name="CounterBtn"
-                Text="Click me"
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnCounterClicked"
-                HorizontalOptions="Center" />
+        <ScrollView Grid.Row="2">
+            <VerticalStackLayout
+                Spacing="25"
+                Padding="30,0"
+                VerticalOptions="Start">
+                <FlexLayout
+                    AlignContent="Start"
+                    AlignItems="Start"
+                    AlignSelf="Start"
+                    BindableLayout.ItemsSource="{Binding Items}"
+                    Direction="Row"
+                    JustifyContent="Start"
+                    Wrap="Wrap">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ReceiptListItemViewModel">
+                            <Label Text="{Binding Name}"/>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
 
-        </VerticalStackLayout>
-    </ScrollView>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>   
 
 </ContentPage>

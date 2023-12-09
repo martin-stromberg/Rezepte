@@ -45,7 +45,7 @@ namespace Rezepte.Services
         {
             if (receipt.Id != 0)
                 throw new ArgumentException($"Existing receipt cannot be added.");
-            var dataItem = receipt.ToDataModel();
+            var dataItem = receipt.ToDataModel() as Database.Models.Receipt;
             _Database.AddOrUpdate(dataItem);
             receipt.Id = dataItem.Id;
         }
@@ -57,6 +57,14 @@ namespace Rezepte.Services
             var dataItem = receipt.ToDataModel();
             _Database.AddOrUpdate(dataItem);
             receipt.Id = dataItem.Id;
+        }
+
+        public IEnumerable<Receipt> GetRange(int offset, int count)
+        {
+            return _Database.GetAll<Database.Models.Receipt>()
+                            .Skip(offset)
+                            .Take(count)
+                            .Select(record => BaseModel.CreateFromDataModel(record) as Receipt);
         }
 
     }

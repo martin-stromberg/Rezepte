@@ -1,4 +1,6 @@
-﻿using Rezepte.Tests;
+﻿using Microsoft.Extensions.Logging;
+using Rezepte.Services;
+using Rezepte.Tests;
 using System.Reflection;
 
 namespace Rezepte
@@ -22,10 +24,11 @@ namespace Rezepte
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-                });
+                })
+                .RegisterServices();
 
             #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
             #endif
 
             return builder.Build();
@@ -43,7 +46,7 @@ namespace Rezepte
                 });
 
             #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
             #endif
 
             return builder.Build();

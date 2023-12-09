@@ -7,7 +7,7 @@ namespace Rezepte.Services.Database.Models
     public class Receipt: BaseDataModel
     {
 
-        public string Name { get; set; }
+        public string Title { get; set; }
 
         public int Quantity { get; set; }
 

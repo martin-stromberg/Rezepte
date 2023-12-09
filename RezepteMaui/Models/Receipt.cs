@@ -21,6 +21,7 @@ namespace Rezepte.Models
         public override BaseDataModel ToDataModel()
         {
             var obj = base.ToDataModel() as Rezepte.Services.Database.Models.Receipt;
+            obj.Title = Title;
             obj.Quantity = Ingredients.Quantity;
             obj.Ingredients = Ingredients.Ingredients
                                          .Select(i => i.ToDataModel())
@@ -32,6 +33,13 @@ namespace Rezepte.Models
                                          })
                                          .ToArray();
             return obj;
+        }
+
+        protected override void Update(BaseDataModel record)
+        {
+            base.Update(record);
+            var receiptRecord = record as Rezepte.Services.Database.Models.Receipt;
+            Title = receiptRecord?.Title;
         }
 
     }

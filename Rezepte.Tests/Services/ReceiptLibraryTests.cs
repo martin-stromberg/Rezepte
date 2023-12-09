@@ -114,7 +114,7 @@ namespace Rezepte.Tests.Services
                 new Rezepte.Services.Database.Models.Receipt()
                 {
                     Id = 1,
-                    Name = "Rezept.1",
+                    Title = "Rezept.1",
                     Quantity = 1,
                     Ingredients = new Rezepte.Services.Database.Models.ReceiptIngredient[0]
                 } };
@@ -183,7 +183,7 @@ namespace Rezepte.Tests.Services
                 new Rezepte.Services.Database.Models.Receipt()
                 {
                     Id = 1,
-                    Name = "Rezept.2",
+                    Title = "Rezept.2",
                     Quantity = 1,
                     Ingredients = new Rezepte.Services.Database.Models.ReceiptIngredient[0]
                 } };
