@@ -1,10 +1,16 @@
-﻿using System;
+﻿using Rezepte.Extensions;
+using Rezepte.Services.Database.Models;
+using System;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace Rezepte.Models
 {
     public class BaseModel
     {
+
+        public long Id { get; set; }
 
         public override bool Equals(object obj)
         {
@@ -20,6 +26,28 @@ namespace Rezepte.Models
                     return false;
                 if ((ownValue == null) && (compareValue != null))
                     return false;
+
+                if (prop.PropertyType.IsArray)
+                {
+                    var ownArray = ownValue as Array;
+                    var compareArray = compareValue as Array;
+                    if (ownArray.Length != compareArray.Length)
+                        return false;
+                    for (int idx = 0; idx < ownArray.Length; idx++)
+                    {
+                        ownValue = ownArray.GetValue(idx);
+                        compareValue = compareArray.GetValue(idx);
+
+                        if ((ownValue != null) && (compareValue == null))
+                            return false;
+                        if ((ownValue == null) && (compareValue != null))
+                            return false;
+                        if (!ownValue.Equals(compareValue))
+                            return false;
+                    }
+                    return true;
+                }
+
                 if (!ownValue.Equals(compareValue))
                     return false;
             }
@@ -38,6 +66,58 @@ namespace Rezepte.Models
                 }
                 return hashcode;
             }
+        }
+
+        public virtual BaseDataModel ToDataModel()
+        {
+            var ownType = GetType();
+            var dataModelType = (ownType.GetCustomAttribute(typeof(DataModelReferenceAttribute)) as DataModelReferenceAttribute).DataModelType;
+            var dataModel = Activator.CreateInstance(dataModelType) as BaseDataModel;
+            foreach (var prop in ownType.GetProperties()
+                                        .Where(p => p.CanRead)
+                                        .Where(p => !p.GetCustomAttributes().Any(a => a is IgnoreDataMemberAttribute)))
+            {
+                var refFieldName = string.Empty;
+                var dataModelProp = dataModelType.GetProperty(prop.Name);
+                if (dataModelProp == null)
+                {
+                    var fieldRefAttr = prop.GetCustomAttribute(typeof(FieldModelReferenceAttribute)) as FieldModelReferenceAttribute;
+                    refFieldName = fieldRefAttr?.FieldName ?? string.Empty;
+                    var sourceRefFieldName = fieldRefAttr?.ReferenceFieldName ?? string.Empty;
+                    dataModelProp = dataModelType.GetProperty(sourceRefFieldName);
+                }
+                if (dataModelProp == null)
+                    continue;
+                if (!dataModelProp.CanWrite)
+                    continue;
+                var ownValue = prop.GetValue(this);
+                if ((prop.PropertyType == typeof(StreamImageSource)) && (ownValue != null))
+                {
+                    StreamImageSource img = (StreamImageSource)ownValue;
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        img.Stream(CancellationToken.None).Wait<Stream>().CopyTo(memoryStream);
+                        byte[] bytes = memoryStream.ToArray();
+                        ownValue = Convert.ToBase64String(bytes);
+                    }
+                }
+                if (prop.PropertyType.IsEnum)
+                {
+                    ownValue = (int)ownValue;
+                }
+                if (!string.IsNullOrWhiteSpace(refFieldName))
+                {
+                    var propField = prop.PropertyType.GetProperty(refFieldName);
+                    if (ownValue is not null)
+                    {
+                        ownValue = propField.GetValue(ownValue);
+                    }
+                    else
+                        ownValue = null;
+                }
+                dataModelProp.SetValue(dataModel, ownValue);
+            }
+            return dataModel;
         }
 
     }

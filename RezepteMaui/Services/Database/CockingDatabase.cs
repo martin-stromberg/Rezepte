@@ -5,7 +5,22 @@ using System.Linq;
 
 namespace Rezepte.Services.Database
 {
-    public class CockingDatabase: IDisposable
+    public interface ICockingDatabase
+    {
+
+        T Add<T>(T record) where T: BaseDataModel, new();
+
+        T Update<T>(T record) where T: BaseDataModel, new();
+
+        T AddOrUpdate<T>(T record) where T: BaseDataModel, new();
+
+        IEnumerable<T> GetAll<T>() where T: BaseDataModel, new();
+
+        T Get<T>(long id) where T: BaseDataModel, new();
+
+    }
+
+    public class CockingDatabase: ICockingDatabase, IDisposable
     {
 
         private SQLiteConnection connection;

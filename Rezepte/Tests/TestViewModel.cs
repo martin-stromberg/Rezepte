@@ -15,7 +15,7 @@ namespace Rezepte.Tests
         private void RunTests()
         {
             Tests Tests = new Tests();
-            Tests.Result += (sender, e) => { TestResults.Add(new TestResultViewModel(e.Result)); };
+            Tests.Testing += (sender, e) => { TestResults.Add(new TestResultViewModel(e.Result)); };
             Tests.Result += (sender, e) =>
             {
                 var vm = TestResults.FirstOrDefault(vm => vm.Description == e.Result.Description);

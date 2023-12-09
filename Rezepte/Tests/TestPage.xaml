@@ -21,7 +21,7 @@
                             <RowDefinition Height="30"/>
                             <RowDefinition/>
                         </Grid.RowDefinitions>
-                        <CheckBox IsChecked="{Binding Result,Mode=OneWay}" />
+                        <CheckBox IsChecked="{Binding Result}" />
                         <Label Grid.Column="1" Text="{Binding Description}" VerticalOptions="Center"/>
                         <Label Grid.Column="1" Grid.Row="1" IsVisible="{Binding HasError}" Text="{Binding Error}" TextColor="Red" VerticalOptions="Center"/>
                     </Grid>

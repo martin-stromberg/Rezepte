@@ -1,4 +1,5 @@
 ﻿using Rezepte.Models;
+using Rezepte.Services.Database;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -8,11 +9,14 @@ namespace Rezepte.Services
     public class ReceiptLibrary
     {
 
-        private ConcurrentBag<IReceiptSource> _sources = new ConcurrentBag<IReceiptSource>();
+        private ConcurrentBag<IReceiptSource> _Sources = new ConcurrentBag<IReceiptSource>();
+        private readonly ICockingDatabase _Database;
 
-        public ReceiptLibrary(IReceiptSource[] sources)
+        public ReceiptLibrary(ICockingDatabase database, IReceiptSource[] sources)
         {
-            AddSources(sources);
+            _Database = database;
+            if (sources != null)
+                AddSources(sources);
         }
 
         public void AddSources(params IReceiptSource[] sources)
@@ -23,18 +27,36 @@ namespace Rezepte.Services
 
         private void AddSource(IReceiptSource source)
         {
-            _sources.Add(source);
+            _Sources.Add(source);
         }
 
         public async Task<Receipt> CreateFromUri(string uri)
         {
-            foreach (var source in _sources)
+            foreach (var source in _Sources)
             {
                 var receipt = await source.FromUriAsync(uri);
                 if (receipt != null)
                     return receipt.ToModel();
             }
             return null;
+        }
+
+        public void Add(Receipt receipt)
+        {
+            if (receipt.Id != 0)
+                throw new ArgumentException($"Existing receipt cannot be added.");
+            var dataItem = receipt.ToDataModel();
+            _Database.AddOrUpdate(dataItem);
+            receipt.Id = dataItem.Id;
+        }
+
+        public void Update(Receipt receipt)
+        {
+            if (receipt.Id == 0)
+                throw new ArgumentException($"New receipt cannot be updated.");
+            var dataItem = receipt.ToDataModel();
+            _Database.AddOrUpdate(dataItem);
+            receipt.Id = dataItem.Id;
         }
 
     }

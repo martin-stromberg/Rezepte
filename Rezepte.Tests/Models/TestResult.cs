@@ -12,6 +12,12 @@ namespace Rezepte.Tests.Models
 
         public Exception Error { get; set; }
 
+        public Action ActionMethod { get; set; }
+
+        public Action InitMethod { get; set; }
+
+        public Action CleanupMethod { get; set; }
+
     }
 
     public class TestResultEventArgs: EventArgs

@@ -68,6 +68,9 @@ namespace Rezepte.Tests
             }
             finally
             {
+                result.InitMethod = testInit;
+                result.CleanupMethod = testCleanup;
+                result.ActionMethod = testAction;
                 OnResult(new TestResultEventArgs(result));
                 try
                 {
@@ -124,7 +127,23 @@ namespace Rezepte.Tests
             if (expectedType != actualType)
                 throw new TestResultException($"expected type {expectedType} differs from actual type {actualType}. {message}".Trim());
 
-            if (!expectedType.Equals(actualType))
+            if (actualType.IsArray)
+            {
+                var actualArray = actual as Array;
+                var expectedArray = expected as Array;
+                if (actualArray.Length != expectedArray.Length)
+                    throw new TestResultException($"arrays have not the same count of elements. {message}".Trim());
+                for (int idx = 0; idx < actualArray.Length; idx++)
+                {
+                    actual = actualArray.GetValue(idx);
+                    expected = expectedArray.GetValue(idx);
+                    if (!expected.Equals(actual))
+                        throw new TestResultException($"objects are not equal. {message}".Trim());
+                }
+                return;
+            }
+
+            if (!expected.Equals(actual))
                 throw new TestResultException($"objects are not equal. {message}".Trim());
         }
 
