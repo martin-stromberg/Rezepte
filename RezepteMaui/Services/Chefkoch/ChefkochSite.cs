@@ -17,14 +17,22 @@ namespace Rezepte.Services.Chefkoch
 
             responseContent = FindTagValue(responseContent, "body", "main");
             var articles = CollectTags(responseContent, "article");
+            if (articles.Length == 0)
+                return null;
             receipt.Ingredients = FindIngredients(articles);
+            if (receipt.Ingredients == null)
+                return null;
             receipt.Instructions = FindInstructions(articles);
+            if (receipt.Instructions == null)
+                return null;
             return receipt;
         }
 
         private string FindInstructions(string[] articles)
         {
             var instructionArticle = articles.FirstOrDefault(article => article.Contains("Zubereitung"));
+            if (instructionArticle == null)
+                return null;
             var box = FindTagValue(instructionArticle, "div");
             return box;
         }
@@ -93,6 +101,8 @@ namespace Rezepte.Services.Chefkoch
         {
             ReceiptIngredients ingredients = new ReceiptIngredients();
             var ingredientsArticle = articles.FirstOrDefault(article => article.Contains("recipe-ingredients"));
+            if (ingredientsArticle == null)
+                return null;
             var ingredientTable = FindTag(ingredientsArticle, false, "table", "tbody");
             var rows = CollectTags(ingredientTable, "tr");
 

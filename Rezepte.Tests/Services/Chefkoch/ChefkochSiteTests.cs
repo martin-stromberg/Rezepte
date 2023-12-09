@@ -10,6 +10,10 @@ namespace Rezepte.Tests.Services.Chefkoch
         protected override void Process()
         {
             AddTest($"Load chefkoch receipt", Init, Cleanup, LoadReceipt);
+            AddTest($"Load chefkoch receipt from wrong page.",
+                    Init,
+                    Cleanup,
+                    LoadReceipt_FromNonReceiptPage_ReturnsNull);
         }
 
         private void LoadReceipt()
@@ -24,6 +28,24 @@ namespace Rezepte.Tests.Services.Chefkoch
             CheckIsFalse(string.IsNullOrWhiteSpace(receipt.Result.Instructions));
             CheckIsTrue(receipt.Result.Ingredients.Quantity > 0);
             CheckIsTrue(receipt.Result.Ingredients.Items.Length > 0);
+        }
+
+        private void LoadReceipt_FromNonReceiptPage_ReturnsNull()
+        {
+            string[] uris = new string[]
+            {
+                "https://www.chefkoch.de/",
+                "https://www.chefkoch.de/rezepte/was-backe-ich-heute/",
+                "https://www.chefkoch.de/magazin/artikel/14840/Chefkoch/gut-organisiert-der-perfekte-vorrat-rezepte.html#recipe-slider-14836_1"
+            };
+
+            ChefkochSite site = new ChefkochSite();
+            foreach (var uri in uris)
+            {
+                var receipt = site.LoadReceipt(uri);
+                receipt.Wait();
+                CheckIsNull(receipt.Result);
+            }
         }
 
     }
