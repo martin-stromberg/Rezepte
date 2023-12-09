@@ -41,6 +41,7 @@ namespace Rezepte.Tests
             TestResult result = new TestResult() { Description = description, Result = false };
             try
             {
+                OnTesting(new TestResultEventArgs(result));
                 testInit();
                 testAction();
                 result.Result = true;
@@ -78,6 +79,13 @@ namespace Rezepte.Tests
         }
 
         public event EventHandler<TestResultEventArgs> Result;
+
+        private void OnTesting(TestResultEventArgs e)
+        {
+            Testing?.Invoke(this, e);
+        }
+
+        public event EventHandler<TestResultEventArgs> Testing;
 
         protected void CheckIsTrue(bool actual, string message = "")
         {

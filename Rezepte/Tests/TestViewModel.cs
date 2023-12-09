@@ -16,6 +16,14 @@ namespace Rezepte.Tests
         {
             Tests Tests = new Tests();
             Tests.Result += (sender, e) => { TestResults.Add(new TestResultViewModel(e.Result)); };
+            Tests.Result += (sender, e) =>
+            {
+                var vm = TestResults.FirstOrDefault(vm => vm.Description == e.Result.Description);
+                if (vm == null)
+                    TestResults.Add(new TestResultViewModel(e.Result));
+                else
+                    vm.Update(e.Result);
+            };
             Tests.Run();
         }
 

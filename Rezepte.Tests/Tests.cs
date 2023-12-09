@@ -35,6 +35,7 @@ namespace Rezepte.Tests
 
         private void RunTest(BaseTest test)
         {
+            test.Testing += Test_Testing;
             test.Result += Test_Result;
             test.Init();
             try
@@ -47,12 +48,19 @@ namespace Rezepte.Tests
             }
         }
 
+        private void Test_Testing(object sender, TestResultEventArgs e)
+        {
+            Testing?.Invoke(sender, e);
+        }
+
         private void Test_Result(object sender, TestResultEventArgs e)
         {
             Result?.Invoke(sender, e);
         }
 
         public event EventHandler<TestResultEventArgs> Result;
+
+        public event EventHandler<TestResultEventArgs> Testing;
 
     }
 }
