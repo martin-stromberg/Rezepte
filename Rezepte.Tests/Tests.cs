@@ -1,4 +1,5 @@
 ﻿using Rezepte.Tests.Models;
+using Rezepte.Tests.Services;
 using Rezepte.Tests.Services.Chefkoch;
 using Rezepte.Tests.Services.Database;
 using System;
@@ -21,6 +22,7 @@ namespace Rezepte.Tests
                 {
                     RunTest(new CockingDatabaseTests());
                     RunTest(new ChefkochSiteTests());
+                    RunTest(new ReceiptLibraryTests());
                 }
                 finally
                 {
@@ -41,6 +43,9 @@ namespace Rezepte.Tests
             try
             {
                 test.Run();
+                if (test.ChildTests != null)
+                    foreach (var child in test.ChildTests)
+                        RunTest(child);
             }
             finally
             {

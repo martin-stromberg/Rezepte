@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Rezepte.Services.Chefkoch
 {
-    public class ChefkochSite
+    public class ChefkochSite: IReceiptSource
     {
 
         public async Task<Receipt> LoadReceipt(string uri)
@@ -122,6 +122,11 @@ namespace Rezepte.Services.Chefkoch
                                     .ToArray();
 
             return ingredients;
+        }
+
+        public async Task<ISourceReceipt> FromUriAsync(string uri)
+        {
+            return await LoadReceipt(uri);
         }
 
     }

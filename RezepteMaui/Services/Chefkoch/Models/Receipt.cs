@@ -3,23 +3,42 @@ using System.Linq;
 
 namespace Rezepte.Services.Chefkoch.Models
 {
-    public class Receipt
+    public class Receipt: ISourceReceipt
     {
 
-        public string Title { get; internal set; }
+        public string Title { get; set; }
 
-        public ReceiptIngredients Ingredients { get; internal set; }
+        public ReceiptIngredients Ingredients { get; set; }
 
         public string Instructions { get; set; }
+
+        public Rezepte.Models.Receipt ToModel()
+        {
+            return new Rezepte.Models.Receipt()
+            {
+                Title = Title,
+                Ingredients = Ingredients.ToModel(),
+                Instructions = Instructions
+            };
+        }
 
     }
 
     public class ReceiptIngredients
     {
 
-        public ReceiptIngredient[] Items { get; internal set; }
+        public ReceiptIngredient[] Items { get; set; }
 
         public int Quantity { get; set; }
+
+        public Rezepte.Models.ReceiptIngredients ToModel()
+        {
+            return new Rezepte.Models.ReceiptIngredients()
+            {
+                Quantity = Quantity,
+                Ingredients = Items.Select(item => item.ToModel()).ToArray()
+            };
+        }
 
     }
 
@@ -56,6 +75,11 @@ namespace Rezepte.Services.Chefkoch.Models
                     value = value.Replace("  ", " ");
                 name = value;
             }
+        }
+
+        public Rezepte.Models.ReceiptIngredient ToModel()
+        {
+            return new Rezepte.Models.ReceiptIngredient() { Quantity = Quantity, Name = Name };
         }
 
     }

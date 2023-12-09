@@ -1,4 +1,5 @@
 ﻿using Rezepte.Services.Chefkoch;
+using Rezepte.Tests.Services.Chefkoch.Models;
 using System;
 using System.Linq;
 
@@ -6,6 +7,9 @@ namespace Rezepte.Tests.Services.Chefkoch
 {
     internal class ChefkochSiteTests: BaseTest
     {
+
+        public ChefkochSiteTests()
+            : base(new ChefkochReceiptTests()) { }
 
         protected override void Process()
         {

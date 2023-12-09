@@ -18,6 +18,18 @@ namespace Rezepte.Tests
     internal abstract class BaseTest
     {
 
+        public BaseTest() { }
+
+        public BaseTest(params BaseTest[] childTests)
+            : this()
+        {
+            _childTests = childTests;
+        }
+
+        private BaseTest[] _childTests;
+
+        public IEnumerable<BaseTest> ChildTests => _childTests;
+
         protected abstract void Process();
 
         public virtual void Init() { }
