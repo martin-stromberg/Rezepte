@@ -220,24 +220,39 @@ namespace Rezepte.Services.Chefkoch
             var ingredientsArticle = articles.FirstOrDefault(article => article.Contains("recipe-ingredients"));
             if (ingredientsArticle == null)
                 return null;
-            var ingredientTable = FindTag(ingredientsArticle, false, "table", "tbody");
-            var rows = CollectTags(ingredientTable, "tr");
-
             ingredients.Quantity = int.Parse(FindTagValue(ingredientsArticle, "div", "form", "input"));
+            var ingredientTable = FindTag(ingredientsArticle, false, "table");
+            var rows = CollectTags(ingredientTable, "tr");
             ingredients.Items = rows.Select(row =>
             {
+                var header = CollectTags(row, "th");
                 var cells = CollectTags(row, "td");
-                var ingredient = new ReceiptIngredient()
+                if (cells.Length > 0)
                 {
-                    Quantity = FindTagValue(cells.First(), "span"),
-                    Name = FindTagValue(cells.Last(), "span", "a")
-                };
-                if (string.IsNullOrWhiteSpace(ingredient.Name))
-                    ingredient.Name = FindTagValue(cells.Last(), "span");
-                return ingredient;
+                    var ingredient = new ReceiptIngredient()
+                    {
+                        Quantity = FindTagValue(cells.First(), "span"),
+                        Name = FindTagValue(cells.Last(), "span", "a")
+                    };
+                    if (string.IsNullOrWhiteSpace(ingredient.Name))
+                        ingredient.Name = FindTagValue(cells.Last(), "span");
+                    return ingredient;
+                }
+                if (header.Length > 0)
+                {
+                    var ingredient = new ReceiptIngredient()
+                    {
+                        Quantity = string.Empty,
+                        Name = FindTagValue(header.Last(), "h3", "a")
+                    };
+                    if (string.IsNullOrWhiteSpace(ingredient.Name))
+                        ingredient.Name = FindTagValue(header.Last(), "h3");
+                    return ingredient;
+                }
+                return null;
             })
+                                    .Where(i => i is not null)
                                     .ToArray();
-
             return ingredients;
         }
 
