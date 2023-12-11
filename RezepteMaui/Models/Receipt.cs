@@ -21,7 +21,7 @@ namespace Rezepte.Models
         [IgnoreDataMember]
         public byte[][] Pictures { get; set; }
 
-        public string[] PictureHashes { get; internal set; }
+        public string[] PictureHashes { get; set; }
 
         public override BaseDataModel ToDataModel()
         {
@@ -47,6 +47,20 @@ namespace Rezepte.Models
             base.Update(record);
             var receiptRecord = record as Rezepte.Services.Database.Models.Receipt;
             Title = receiptRecord?.Title;
+            Ingredients = new ReceiptIngredients()
+            {
+                Id = Id,
+                Quantity = receiptRecord.Quantity,
+                Ingredients = receiptRecord.Ingredients?.Select(ing =>
+                                                                new ReceiptIngredient()
+                    {
+                        Id = ing.Id,
+                        Name = ing.Name,
+                        Quantity = ing.Quantity
+                    })
+                                                        .ToArray()
+            };
+            PictureHashes = receiptRecord.Pictures?.Select(pic => pic.HashValue).ToArray();
         }
 
     }

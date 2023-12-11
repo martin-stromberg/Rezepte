@@ -11,6 +11,8 @@ namespace Rezepte.Services.Database.Models
 
         public int Quantity { get; set; }
 
+        public string Instructions { get; set; }
+
         [Ignore]
         public ReceiptIngredient[] Ingredients { get; set; }
 

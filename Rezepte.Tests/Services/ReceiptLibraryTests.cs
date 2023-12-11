@@ -140,7 +140,7 @@ namespace Rezepte.Tests.Services
             {
                 Title = "Rezept.1",
                 Ingredients = new ReceiptIngredients() { Quantity = 1, Ingredients = new ReceiptIngredient[0] },
-                Instructions = string.Empty,
+                Instructions = "Alles zusammenrühren.",
                 Pictures = pictures
             };
             library.Add(receipt);
@@ -162,7 +162,8 @@ namespace Rezepte.Tests.Services
                             ReceiptId = 1,
                             HashValue = "5D7585B6D0C102329261E920AC4A92ABA72C3DE68CED39623D646726492B48F6",
                             Id = 1
-                        } }
+                        } },
+                    Instructions = "Alles zusammenrühren."
                 } };
 
             CheckAreEqual(expected, actual);
@@ -237,6 +238,7 @@ namespace Rezepte.Tests.Services
                     Id = 1,
                     Title = "Rezept.2",
                     Quantity = 1,
+                    Instructions = string.Empty,
                     Ingredients = new Rezepte.Services.Database.Models.ReceiptIngredient[0]
                 } };
             CheckAreEqual(expected, actual);

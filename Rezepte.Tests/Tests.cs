@@ -23,6 +23,7 @@ namespace Rezepte.Tests
                     RunTest(new CockingDatabaseTests());
                     RunTest(new ChefkochSiteTests());
                     RunTest(new ReceiptLibraryTests());
+                    RunTest(new ReceiptTests());
                 }
                 finally
                 {

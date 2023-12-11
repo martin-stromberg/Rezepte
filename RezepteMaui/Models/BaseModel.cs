@@ -31,6 +31,12 @@ namespace Rezepte.Models
                 {
                     var ownArray = ownValue as Array;
                     var compareArray = compareValue as Array;
+                    if ((ownArray == null) && (compareArray == null))
+                        return true;
+                    if ((ownArray == null) && (compareArray != null))
+                        return false;
+                    if ((ownArray != null) && (compareArray == null))
+                        return false;
                     if (ownArray.Length != compareArray.Length)
                         return false;
                     for (int idx = 0; idx < ownArray.Length; idx++)
@@ -124,7 +130,9 @@ namespace Rezepte.Models
         {
             var ownType = GetType();
             var dataModelType = record.GetType();
-            foreach (var prop in ownType.GetProperties().Where(p => p.CanWrite))
+            foreach (var prop in ownType.GetProperties()
+                                        .Where(p => p.CanWrite)
+                                        .Where(p => p.GetCustomAttribute(typeof(IgnoreDataMemberAttribute)) == null))
             {
                 string refFieldName = string.Empty;
                 var dataModelProp = dataModelType.GetProperty(prop.Name);

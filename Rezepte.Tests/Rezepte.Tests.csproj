@@ -19,7 +19,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Services\Database\Models\ReceiptTests1.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <ProjectReference Include="..\RezepteMaui\RezepteMaui.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Services\Database\Models\" />
 	</ItemGroup>
 
 </Project>
