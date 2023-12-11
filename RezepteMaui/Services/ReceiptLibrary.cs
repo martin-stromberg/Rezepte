@@ -1,19 +1,25 @@
 ﻿using Rezepte.Models;
 using Rezepte.Services.Database;
+using Rezepte.Services.PictureStorage;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Rezepte.Services
 {
+
     public class ReceiptLibrary
     {
 
         private ConcurrentBag<IReceiptSource> _Sources = new ConcurrentBag<IReceiptSource>();
         private readonly ICockingDatabase _Database;
+        private readonly IPictureStorage _PictureSource;
 
-        public ReceiptLibrary(ICockingDatabase database, IReceiptSource[] sources)
+        public ReceiptLibrary(ICockingDatabase database, IPictureStorage pictureSource, IReceiptSource[] sources)
         {
+            _PictureSource = pictureSource;
             _Database = database;
             if (sources != null)
                 AddSources(sources);
@@ -45,9 +51,33 @@ namespace Rezepte.Services
         {
             if (receipt.Id != 0)
                 throw new ArgumentException($"Existing receipt cannot be added.");
+            SavePictures(receipt);
+
             var dataItem = receipt.ToDataModel() as Database.Models.Receipt;
             _Database.AddOrUpdate(dataItem);
+
             receipt.Id = dataItem.Id;
+        }
+
+        private void SavePictures(Receipt receipt)
+        {
+            if (receipt.Pictures != null)
+                foreach (var picture in receipt.Pictures)
+                    SavePicture(receipt, picture);
+        }
+
+        private void SavePicture(Receipt receipt, byte[] picture)
+        {
+            StringBuilder sb = new StringBuilder();
+            using (HashAlgorithm algorithm = SHA256.Create())
+                foreach (byte b in algorithm.ComputeHash(picture))
+                    sb.Append(b.ToString("X2"));
+            var hashValue = sb.ToString();
+
+            if (_PictureSource.Exists(hashValue))
+                return;
+            var existingImage = _PictureSource.Add(hashValue, picture);
+            receipt.PictureHashes = new string[] { hashValue }.Concat(receipt.PictureHashes ?? new string[0]).ToArray();
         }
 
         public void Update(Receipt receipt)

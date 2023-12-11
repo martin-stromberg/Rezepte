@@ -12,13 +12,16 @@ namespace Rezepte.Services.Chefkoch.Models
 
         public string Instructions { get; set; }
 
+        public byte[][] Pictures { get; set; }
+
         public Rezepte.Models.Receipt ToModel()
         {
             return new Rezepte.Models.Receipt()
             {
                 Title = Title,
                 Ingredients = Ingredients.ToModel(),
-                Instructions = Instructions
+                Instructions = Instructions,
+                Pictures = Pictures
             };
         }
 

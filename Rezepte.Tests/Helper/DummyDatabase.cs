@@ -29,7 +29,31 @@ namespace Rezepte.Tests.Helper
                 throw new ArgumentException("record.Id must be 0");
             _tables[recordType].Add(record);
             record.Id = ++_primaryKeys[recordType];
+            SaveAssosiatedRecords(record);
             return record;
+        }
+
+        private void SaveAssosiatedRecords<T>(T record) where T: BaseDataModel, new()
+        {
+            foreach (var value in record.GetType()
+                                        .GetProperties()
+                                        .Where(prop => prop.PropertyType.IsAssignableTo(typeof(BaseDataModel)))
+                                        .Select(prop => prop.GetValue(record) as BaseDataModel)
+                                        .Where(value => value is not null))
+            {
+                AddOrUpdate<BaseDataModel>(value);
+            }
+
+            foreach (var value in record.GetType()
+                                        .GetProperties()
+                                        .Where(prop => prop.PropertyType.IsArray)
+                                        .Select(prop => prop.GetValue(record) as Array)
+                                        .Where(value => value is not null)
+                                        .Where(value => value.Length > 0)
+                                        .SelectMany(value => value.OfType<BaseDataModel>()))
+            {
+                AddOrUpdate<BaseDataModel>(value);
+            }
         }
 
         public T AddOrUpdate<T>(T record) where T: BaseDataModel, new()
@@ -62,6 +86,7 @@ namespace Rezepte.Tests.Helper
                 throw new ArgumentException("record.Id must be 0");
             var existing = _tables[recordType].Cast<T>().First(rec => rec.Id == record.Id);
             existing.Update(record);
+            SaveAssosiatedRecords(record);
             return existing;
         }
 

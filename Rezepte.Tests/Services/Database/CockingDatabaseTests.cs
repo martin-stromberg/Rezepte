@@ -65,6 +65,7 @@ namespace Rezepte.Tests.Services.Database
         {
             AddTest($"Creating a new database", Init, Cleanup, TestCreateDatabase);
             AddTest($"Adding a new receipt", Init, Cleanup, TestAddReceipt_WithNewReceipt_AddsReceipt);
+            AddTest($"Adding two new receipts", Init, Cleanup, TestAddReceipt_WithTwoNewReceipts_AddsReceipts);
             AddTest($"Adding a receipt with defined primary key throws exception",
                     Init,
                     Cleanup,
@@ -89,15 +90,70 @@ namespace Rezepte.Tests.Services.Database
             CockingDatabaseSettings Settings = new CockingDatabaseSettings() { FilePath = DatabaseFilePath };
             using (CockingDatabase Database = new CockingDatabase(Settings))
             {
-                var expected = new Receipt() { Title = "TestAddReceipt" };
+                var expected = new Receipt()
+                {
+                    Title = "TestAddReceipt",
+                    Quantity = 1,
+                    Pictures = new ReceiptPicture[]
+                    {
+                        new ReceiptPicture { HashValue = "564836494749" } },
+                    Ingredients = new ReceiptIngredient[]
+                    {
+                        new ReceiptIngredient() { Name = "Zucker", Quantity = "1 kg" },
+                        new ReceiptIngredient() { Name = "Zimt", Quantity = "2 kg" } }
+                };
 
                 Database.Open();
                 Database.Add(expected);
 
                 expected.Id = 1;
-                var actual = Database.GetAll<Receipt>();
+                var actual = Database.GetAll<Receipt>().ToArray();
                 CheckAreEqual(1, actual.Count(), $"Record count does not match expectation");
                 CheckAreEqual(expected, actual.FirstOrDefault());
+            }
+        }
+
+        private void TestAddReceipt_WithTwoNewReceipts_AddsReceipts()
+        {
+            CockingDatabaseSettings Settings = new CockingDatabaseSettings() { FilePath = DatabaseFilePath };
+            using (CockingDatabase Database = new CockingDatabase(Settings))
+            {
+                var expected = new Receipt()
+                {
+                    Title = "TestAddReceipt-1",
+                    Quantity = 1,
+                    Pictures = new ReceiptPicture[]
+                    {
+                        new ReceiptPicture { HashValue = "564836494749" } },
+                    Ingredients = new ReceiptIngredient[]
+                    {
+                        new ReceiptIngredient() { Name = "Zucker", Quantity = "1 kg" },
+                        new ReceiptIngredient() { Name = "Zimt", Quantity = "2 kg" } }
+                };
+
+                Database.Open();
+                Database.Add(expected);
+                expected.Id = 1;
+
+                var expected2 = new Receipt()
+                {
+                    Title = "TestAddReceipt-2",
+                    Quantity = 2,
+                    Pictures = new ReceiptPicture[]
+                    {
+                        new ReceiptPicture { HashValue = "8473945750" } },
+                    Ingredients = new ReceiptIngredient[]
+                    {
+                        new ReceiptIngredient() { Name = "Mehl", Quantity = "1 kg" },
+                        new ReceiptIngredient() { Name = "Salz", Quantity = "2 kg" } }
+                };
+                Database.Add(expected2);
+                expected2.Id = 2;
+
+                var actual = Database.GetAll<Receipt>().ToArray();
+                CheckAreEqual(2, actual.Count(), $"Record count does not match expectation");
+                CheckAreEqual(expected, actual.FirstOrDefault());
+                CheckAreEqual(expected2, actual.LastOrDefault());
             }
         }
 

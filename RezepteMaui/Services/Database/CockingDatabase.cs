@@ -2,6 +2,7 @@
 using SQLite;
 using System;
 using System.Linq;
+using System.Reflection;
 
 namespace Rezepte.Services.Database
 {
@@ -47,6 +48,7 @@ namespace Rezepte.Services.Database
         private bool initialized = false;
         private bool initializing = false;
         private bool disposedValue;
+        private Type baseType = typeof(BaseDataModel);
 
         private void InitOrUpgrade()
         {
@@ -57,6 +59,7 @@ namespace Rezepte.Services.Database
             {
                 Connection.CreateTable<Receipt>();
                 Connection.CreateTable<ReceiptIngredient>();
+                Connection.CreateTable<ReceiptPicture>();
                 initialized = true;
             }
             finally
@@ -111,11 +114,35 @@ namespace Rezepte.Services.Database
             GC.SuppressFinalize(this);
         }
 
+        private void SaveAssosiatedRecords<T>(T record) where T: BaseDataModel, new()
+        {
+            foreach (var value in record.GetType()
+                                        .GetProperties()
+                                        .Where(prop => prop.PropertyType.IsAssignableTo(typeof(BaseDataModel)))
+                                        .Select(prop => prop.GetValue(record) as BaseDataModel)
+                                        .Where(value => value is not null))
+            {
+                AddOrUpdate<BaseDataModel>(value);
+            }
+
+            foreach (var value in record.GetType()
+                                        .GetProperties()
+                                        .Where(prop => prop.PropertyType.IsArray)
+                                        .Select(prop => prop.GetValue(record) as Array)
+                                        .Where(value => value is not null)
+                                        .Where(value => value.Length > 0)
+                                        .SelectMany(value => value.OfType<BaseDataModel>()))
+            {
+                AddOrUpdate<BaseDataModel>(value);
+            }
+        }
+
         public T Add<T>(T record) where T: BaseDataModel, new()
         {
             if (record.Id != 0)
                 throw new ArgumentException($"record with defined primary key cannot be added.");
             Connection.Insert(record);
+            SaveAssosiatedRecords(record);
             return record;
         }
 
@@ -124,12 +151,13 @@ namespace Rezepte.Services.Database
             if (record.Id == 0)
                 throw new ArgumentException($"record with undefined primary key cannot be updated.");
             Connection.Update(record);
+            SaveAssosiatedRecords(record);
             return record;
         }
 
         public T AddOrUpdate<T>(T record) where T: BaseDataModel, new()
         {
-            var existing = Get<T>(record.Id);
+            var existing = (typeof(T) == baseType) ? Get(record.GetType(), record.Id) : Get<T>(record.Id);
             if (existing == null)
                 return Add(record);
             else
@@ -141,12 +169,74 @@ namespace Rezepte.Services.Database
 
         public IEnumerable<T> GetAll<T>() where T: BaseDataModel, new()
         {
-            return Connection.Table<T>();
+            return CompleteElements(Connection.Table<T>());
+        }
+
+        protected IEnumerable<BaseDataModel> GetAll(Type modelType, BaseDataModel parentRecord = null)
+        {
+            var tableMapping = Connection.GetMapping(modelType);
+            var query = $"select * from {tableMapping.TableName}";
+            if (parentRecord != null)
+            {
+                var parentType = parentRecord.GetType();
+                var foreignProp = modelType.GetProperties()
+                                           .FirstOrDefault(prop =>
+                                           {
+                                               var attr = prop.GetCustomAttribute(typeof(ForeignKeyAttribute)) as ForeignKeyAttribute;
+                                               if (attr == null)
+                                                   return false;
+                                               return attr.ParentType == parentType;
+                                           });
+                var foreignField = tableMapping.FindColumn(foreignProp.Name);
+                query += $" where {foreignField.Name} = {parentRecord.Id}";
+            }
+            var recordSet = Connection.Query(tableMapping, query);
+            return recordSet.Cast<BaseDataModel>();
+        }
+
+        private IEnumerable<T> CompleteElements<T>(TableQuery<T> ts) where T: BaseDataModel, new()
+        {
+            Type type = null;
+            PropertyInfo[] properties = null;
+            foreach (var record in ts)
+            {
+                if (type == null)
+                {
+                    type = record.GetType();
+                    properties = type.GetProperties()
+                                     .Where(prop =>
+                                            prop.PropertyType.IsAssignableTo(typeof(BaseDataModel))
+                                         || (prop.PropertyType.IsArray
+                                             && prop.PropertyType.GetElementType().IsAssignableTo(typeof(BaseDataModel))))
+                                     .ToArray();
+                }
+                foreach (var prop in properties.Where(p => !p.PropertyType.IsArray))
+                {
+                    var records = GetAll(prop.PropertyType, record);
+                }
+                foreach (var prop in properties.Where(p => p.PropertyType.IsArray))
+                {
+                    var records = GetAll(prop.PropertyType.GetElementType(), record).ToArray();
+                    var destRecords = Activator.CreateInstance(prop.PropertyType, records.Length) as Array;
+                    for (int idx = 0; idx < records.Length; idx++)
+                        destRecords.SetValue(records[idx], idx);
+                    prop.SetValue(record, destRecords);
+                }
+                yield return record;
+            }
         }
 
         public T Get<T>(long id) where T: BaseDataModel, new()
         {
             return Connection.Table<T>().FirstOrDefault(rec => rec.Id == id);
+        }
+
+        public BaseDataModel Get(Type modelType, long id)
+        {
+            var mapping = Connection.GetMapping(modelType);
+            var record = Connection.Query(mapping, $"select * from {mapping.TableName} where id = {id};")
+                                   .FirstOrDefault();
+            return record as BaseDataModel;
         }
 
     }

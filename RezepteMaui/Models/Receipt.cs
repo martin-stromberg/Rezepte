@@ -18,6 +18,11 @@ namespace Rezepte.Models
         [IgnoreDataMember]
         public ReceiptIngredients Ingredients { get; set; }
 
+        [IgnoreDataMember]
+        public byte[][] Pictures { get; set; }
+
+        public string[] PictureHashes { get; internal set; }
+
         public override BaseDataModel ToDataModel()
         {
             var obj = base.ToDataModel() as Rezepte.Services.Database.Models.Receipt;
@@ -31,6 +36,8 @@ namespace Rezepte.Models
                                              i.ReceiptId = Id;
                                              return i;
                                          })
+                                         .ToArray();
+            obj.Pictures = PictureHashes?.Select(hash => new ReceiptPicture() { HashValue = hash, ReceiptId = Id })
                                          .ToArray();
             return obj;
         }

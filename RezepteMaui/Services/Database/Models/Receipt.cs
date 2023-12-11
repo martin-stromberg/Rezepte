@@ -14,6 +14,19 @@ namespace Rezepte.Services.Database.Models
         [Ignore]
         public ReceiptIngredient[] Ingredients { get; set; }
 
-    }
+        [Ignore]
+        public ReceiptPicture[] Pictures { get; set; }
 
+        protected override void OnRename(long oldId, long newId)
+        {
+            base.OnRename(oldId, newId);
+            if (Pictures != null)
+                foreach (var picture in Pictures)
+                    picture.ReceiptId = newId;
+            if (Ingredients != null)
+                foreach (var ingredient in Ingredients)
+                    ingredient.ReceiptId = newId;
+        }
+
+    }
 }

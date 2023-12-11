@@ -7,9 +7,25 @@ namespace Rezepte.Services.Database.Models
     public class BaseDataModel
     {
 
+        private long _Id { get; set; }
+
         [PrimaryKey]
         [AutoIncrement]
-        public long Id { get; set; }
+        public long Id
+        {
+            get
+            {
+                return _Id;
+            }
+            set
+            {
+                var _oldValue = _Id;
+                _Id = value;
+                OnRename(_oldValue, value);
+            }
+        }
+
+        protected virtual void OnRename(long oldId, long newId) { }
 
         public override bool Equals(object obj)
         {
@@ -17,16 +33,45 @@ namespace Rezepte.Services.Database.Models
                 return this == null;
             if (obj.GetType() != GetType())
                 return false;
-            foreach (var prop in GetType()
-                                 .GetProperties()
-                                 .Where(p => p.GetCustomAttributes(typeof(AffectsEqualAttribute), true).Any()))
+            foreach (var prop in GetType().GetProperties())
             {
+                var ignore = prop.GetCustomAttributes(typeof(IgnoreAttribute), true).Any();
+                var isDataModel = prop.PropertyType.IsAssignableTo(typeof(BaseDataModel));
+                var isDataModelArray = prop.PropertyType.IsArray
+                    && prop.PropertyType.GetElementType().IsAssignableTo(typeof(BaseDataModel));
+                if (ignore && !isDataModel && !isDataModelArray)
+                    continue;
+
                 var ownValue = prop.GetValue(this);
                 var compareValue = prop.GetValue(obj);
+                if ((ownValue == null) && (compareValue == null))
+                    continue;
                 if ((ownValue != null) && (compareValue == null))
                     return false;
                 if ((ownValue == null) && (compareValue != null))
                     return false;
+
+                if (prop.PropertyType.IsArray)
+                {
+                    var ownArray = ownValue as Array;
+                    var compareArray = compareValue as Array;
+                    if (ownArray.Length != compareArray.Length)
+                        return false;
+                    for (int idx = 0; idx < ownArray.Length; idx++)
+                    {
+                        ownValue = ownArray.GetValue(idx);
+                        compareValue = compareArray.GetValue(idx);
+                        if ((ownValue == null) && (compareValue == null))
+                            continue;
+                        if ((ownValue != null) && (compareValue == null))
+                            return false;
+                        if ((ownValue == null) && (compareValue != null))
+                            return false;
+                        if (!ownValue.Equals(compareValue))
+                            return false;
+                    }
+                    continue;
+                }
                 if (!ownValue.Equals(compareValue))
                     return false;
             }

@@ -1,5 +1,6 @@
 ﻿using Rezepte.Models;
 using Rezepte.Services;
+using Rezepte.Services.PictureStorage;
 using Rezepte.Tests.Helper;
 using System;
 using System.Linq;
@@ -8,6 +9,38 @@ namespace Rezepte.Tests.Services
 {
     internal class ReceiptLibraryTests: BaseTest
     {
+
+        private IPictureStorageSettings pictureStorageSettings = null;
+
+        protected IPictureStorageSettings PictureStorageSettings
+        {
+            get
+            {
+                if (pictureStorageSettings == null)
+                {
+                    pictureStorageSettings = new PictureStorageSettings()
+                    {
+                        RootPath = Path.Combine(FileSystem.Current.AppDataDirectory, "Tests")
+                    };
+                }
+                if (!Directory.Exists(pictureStorageSettings.RootPath))
+                    Directory.CreateDirectory(pictureStorageSettings.RootPath);
+                return pictureStorageSettings;
+            }
+        }
+
+        public override void Init()
+        {
+            base.Init();
+        }
+
+        public override void Cleanup()
+        {
+            base.Cleanup();
+
+            if (Directory.Exists(PictureStorageSettings.RootPath))
+                Directory.Delete(PictureStorageSettings.RootPath, true);
+        }
 
         protected override void Process()
         {
@@ -48,7 +81,8 @@ namespace Rezepte.Tests.Services
                 new DummyReceiptSource(),
                 new DummyReceiptSource()
             };
-            var library = new ReceiptLibrary(database, sources);
+            var pictureSource = new PictureStorage(PictureStorageSettings);
+            var library = new ReceiptLibrary(database, pictureSource, sources);
             var uri = "http://Test_AddSourcesInConstructor_AndRequestsUri_ProcessesAllSources.local";
             var receipt = library.CreateFromUri(uri);
             receipt.Wait();
@@ -73,7 +107,8 @@ namespace Rezepte.Tests.Services
                 new DummyReceiptSource(),
                 new DummyReceiptSource()
             };
-            var library = new ReceiptLibrary(database, sources);
+            var pictureSource = new PictureStorage(PictureStorageSettings);
+            var library = new ReceiptLibrary(database, pictureSource, sources);
 
             var uri = "http://Test_AddSourcesOutsideOfConstructor_AndRequestsUri_ProcessesAllSources.1.local";
             var receipt = library.CreateFromUri(uri);
@@ -97,13 +132,16 @@ namespace Rezepte.Tests.Services
 
         private void Test_AddNewReceipt_WithNewReceipt_AddsReceiptToDatabase()
         {
+            var pictures = new byte[][] { PictureLoader.LoadFirstImage() };
             var database = new DummyDatabase();
-            var library = new ReceiptLibrary(database, null);
+            var pictureSource = new PictureStorage(PictureStorageSettings);
+            var library = new ReceiptLibrary(database, pictureSource, null);
             var receipt = new Receipt()
             {
                 Title = "Rezept.1",
                 Ingredients = new ReceiptIngredients() { Quantity = 1, Ingredients = new ReceiptIngredient[0] },
-                Instructions = string.Empty
+                Instructions = string.Empty,
+                Pictures = pictures
             };
             library.Add(receipt);
 
@@ -116,15 +154,27 @@ namespace Rezepte.Tests.Services
                     Id = 1,
                     Title = "Rezept.1",
                     Quantity = 1,
-                    Ingredients = new Rezepte.Services.Database.Models.ReceiptIngredient[0]
+                    Ingredients = new Rezepte.Services.Database.Models.ReceiptIngredient[0],
+                    Pictures = new Rezepte.Services.Database.Models.ReceiptPicture[]
+                    {
+                        new Rezepte.Services.Database.Models.ReceiptPicture()
+                        {
+                            ReceiptId = 1,
+                            HashValue = "5D7585B6D0C102329261E920AC4A92ABA72C3DE68CED39623D646726492B48F6",
+                            Id = 1
+                        } }
                 } };
+
             CheckAreEqual(expected, actual);
+            CheckAreEqual(expected[0].Pictures, actual[0].Pictures);
+            CheckAreEqual(expected[0].Ingredients, actual[0].Ingredients);
         }
 
         private void Test_AddNewReceipt_WithExistingReceipt_ThrowsException()
         {
             var database = new DummyDatabase();
-            var library = new ReceiptLibrary(database, null);
+            var pictureSource = new PictureStorage(PictureStorageSettings);
+            var library = new ReceiptLibrary(database, pictureSource, null);
             var receipt = new Receipt()
             {
                 Title = "Rezept.1",
@@ -146,7 +196,8 @@ namespace Rezepte.Tests.Services
         private void Test_UpdateReceipt_WithNewReceipt_ThrowsException()
         {
             var database = new DummyDatabase();
-            var library = new ReceiptLibrary(database, null);
+            var pictureSource = new PictureStorage(PictureStorageSettings);
+            var library = new ReceiptLibrary(database, pictureSource, null);
             var receipt = new Receipt()
             {
                 Title = "Rezept.1",
@@ -159,7 +210,8 @@ namespace Rezepte.Tests.Services
         private void Test_UpdateReceipt_WithExistingReceipt_UpdatesReceiptInDatabase()
         {
             var database = new DummyDatabase();
-            var library = new ReceiptLibrary(database, null);
+            var pictureSource = new PictureStorage(PictureStorageSettings);
+            var library = new ReceiptLibrary(database, pictureSource, null);
             var receipt = new Receipt()
             {
                 Title = "Rezept.1",
@@ -188,6 +240,19 @@ namespace Rezepte.Tests.Services
                     Ingredients = new Rezepte.Services.Database.Models.ReceiptIngredient[0]
                 } };
             CheckAreEqual(expected, actual);
+        }
+
+        public void Test_LoadReceiptFromDatabase()
+        {
+            var database = new DummyDatabase();
+            var pictureSource = new PictureStorage(PictureStorageSettings);
+            var receipt = new Rezepte.Services.Database.Models.Receipt() { Title = string.Empty, };
+
+            var library = new ReceiptLibrary(database, pictureSource, null);
+            var actual = library.GetRange(0, 1).ToArray();
+
+            CheckIsTrue(actual.Length == 1);
+            throw new NotImplementedException();
         }
 
     }
