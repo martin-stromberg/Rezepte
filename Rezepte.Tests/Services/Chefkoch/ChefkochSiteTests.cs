@@ -23,8 +23,8 @@ namespace Rezepte.Tests.Services.Chefkoch
         private void LoadReceipt()
         {
             string uri = $"https://www.chefkoch.de/rezepte/241691097658254/Thunfisch-Sandwich.html";
-            ReceiptSourceSettings settings = new ReceiptSourceSettings();
-            ChefkochSite site = new ChefkochSite(settings);
+
+            ChefkochSite site = new ChefkochSite();
             var receipt = site.LoadReceipt(uri);
             receipt.Wait();
 
@@ -44,8 +44,8 @@ namespace Rezepte.Tests.Services.Chefkoch
                 "https://www.chefkoch.de/rezepte/was-backe-ich-heute/",
                 "https://www.chefkoch.de/magazin/artikel/14840/Chefkoch/gut-organisiert-der-perfekte-vorrat-rezepte.html#recipe-slider-14836_1"
             };
-            ReceiptSourceSettings settings = new ReceiptSourceSettings();
-            ChefkochSite site = new ChefkochSite(settings);
+
+            ChefkochSite site = new ChefkochSite();
             foreach (var uri in uris)
             {
                 var receipt = site.LoadReceipt(uri);

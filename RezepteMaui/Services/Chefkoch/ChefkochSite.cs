@@ -4,29 +4,11 @@ using System.Linq;
 
 namespace Rezepte.Services.Chefkoch
 {
-    public interface IReceiptSourceSettings
-    {
-
-        string TempFolderPath { get; }
-
-    }
-
-    public class ReceiptSourceSettings: IReceiptSourceSettings
-    {
-
-        public string TempFolderPath => throw new NotImplementedException();
-
-    }
 
     public abstract class BaseReceiptSource: IReceiptSource
     {
 
-        private readonly IReceiptSourceSettings _Settings;
-
-        public BaseReceiptSource(IReceiptSourceSettings settings)
-        {
-            _Settings = settings;
-        }
+        public BaseReceiptSource() { }
 
         public abstract Task<ISourceReceipt> FromUriAsync(string uri);
 
@@ -88,8 +70,8 @@ namespace Rezepte.Services.Chefkoch
     public class ChefkochSite: BaseReceiptSource
     {
 
-        public ChefkochSite(IReceiptSourceSettings settings)
-            : base(settings) { }
+        public ChefkochSite()
+            : base() { }
 
         public async Task<Receipt> LoadReceipt(string uri)
         {
