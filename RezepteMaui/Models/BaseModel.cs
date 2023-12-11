@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 
 namespace Rezepte.Models
 {
-    public class BaseModel
+    public class BaseModel: ICloneable
     {
 
         public long Id { get; set; }
@@ -126,6 +126,68 @@ namespace Rezepte.Models
             return dataModel;
         }
 
+        protected virtual void Update(BaseModel record)
+        {
+            var ownType = GetType();
+            var dataModelType = record.GetType();
+            foreach (var prop in ownType.GetProperties()
+                                        .Where(p => p.CanWrite)
+                                        .Where(p => p.GetCustomAttribute(typeof(IgnoreDataMemberAttribute)) == null))
+            {
+                string refFieldName = string.Empty;
+                var dataModelProp = dataModelType.GetProperty(prop.Name);
+                if (dataModelProp == null)
+                {
+                    var fieldRefAttr = prop.GetCustomAttribute(typeof(FieldModelReferenceAttribute)) as FieldModelReferenceAttribute;
+                    refFieldName = fieldRefAttr?.FieldName ?? string.Empty;
+                    var sourceRefFieldName = fieldRefAttr?.ReferenceFieldName ?? string.Empty;
+                    dataModelProp = dataModelType.GetProperty(sourceRefFieldName);
+                }
+                if (dataModelProp == null)
+                    continue;
+                if (!dataModelProp.CanRead)
+                    continue;
+                var sourceValue = dataModelProp.GetValue(record);
+                if (sourceValue != null)
+                {
+                    if (prop.PropertyType.IsAssignableTo(typeof(BaseModel)))
+                        sourceValue = ((BaseModel) sourceValue).Clone() as BaseModel;
+                    else if (prop.PropertyType.IsArray
+                        && prop.PropertyType.GetElementType().IsAssignableTo(typeof(BaseModel)))
+                    {
+                        var sourceArray = sourceValue as Array;
+                        var newArray = Activator.CreateInstance(prop.PropertyType, sourceArray.Length) as Array;
+                        for (int idx = 0; idx < sourceArray.Length; idx++)
+                        {
+                            sourceValue = sourceArray.GetValue(idx);
+                            sourceValue = ((BaseModel)sourceValue).Clone();
+                            newArray.SetValue(sourceValue, idx);
+                        }
+                        sourceValue = newArray;
+                    }
+                    if ((prop.PropertyType == typeof(StreamImageSource)) && (sourceValue != null))
+                    {
+                        byte[] bytes = Convert.FromBase64String((string)sourceValue);
+                        MemoryStream stream = new MemoryStream(bytes);
+                        sourceValue = StreamImageSource.FromStream(() => stream);
+                    }
+                    if (!string.IsNullOrWhiteSpace(refFieldName))
+                    {
+                        var propField = prop.PropertyType.GetProperty(refFieldName);
+                        if (!sourceValue.Equals(Activator.CreateInstance(propField.PropertyType)))
+                        {
+                            var propFieldObj = Activator.CreateInstance(prop.PropertyType);
+                            propField.SetValue(propFieldObj, sourceValue);
+                            sourceValue = propFieldObj;
+                        }
+                        else
+                            sourceValue = null;
+                    }
+                }
+                prop.SetValue(this, sourceValue);
+            }
+        }
+
         protected virtual void Update(BaseDataModel record)
         {
             var ownType = GetType();
@@ -190,6 +252,13 @@ namespace Rezepte.Models
             var modelObject = Activator.CreateInstance(modelType) as BaseModel;
             modelObject.Update(record);
             return modelObject;
+        }
+
+        public object Clone()
+        {
+            var destObj = Activator.CreateInstance(GetType()) as BaseModel;
+            destObj.Update(this);
+            return destObj;
         }
 
     }

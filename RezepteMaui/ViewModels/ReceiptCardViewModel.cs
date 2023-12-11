@@ -6,14 +6,13 @@ using System.Linq;
 
 namespace Rezepte.ViewModels
 {
-    public class ReceiptListItemViewModel: BaseViewModel
+    public class ReceiptCardViewModel: BaseViewModel
     {
 
-        public ReceiptListItemViewModel(
-            Receipt item,
-            IPictureStorage pictureStorage,
-            INavigationManager navigationManager)
-            : base(navigationManager, pictureStorage)
+        public ReceiptCardViewModel(INavigationManager navigationManager, IPictureStorage pictureStorage)
+            : base(navigationManager, pictureStorage) { }
+
+        public void SetParent(Receipt item)
         {
             Item = item;
         }
@@ -24,15 +23,17 @@ namespace Rezepte.ViewModels
             {
                 return GetProperty<Receipt>();
             }
-            private set
+            set
             {
                 SetProperty<Receipt>(value);
-                Name = value?.Title;
+                Title = value?.Title;
+                Instructions = value?.Instructions;
                 Picture = PictureStorage.Get(value?.PictureHashes?.FirstOrDefault());
+                Ingredients = value?.Ingredients?.Clone() as ReceiptIngredients;
             }
         }
 
-        public string Name
+        public string Instructions
         {
             get
             {
@@ -56,9 +57,16 @@ namespace Rezepte.ViewModels
             }
         }
 
-        public void OpenDetails()
+        public ReceiptIngredients Ingredients
         {
-            NavigationManager.OpenReceiptCard(Item);
+            get
+            {
+                return GetProperty<ReceiptIngredients>();
+            }
+            set
+            {
+                SetProperty<ReceiptIngredients>(value);
+            }
         }
 
     }

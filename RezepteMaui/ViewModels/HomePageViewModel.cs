@@ -1,5 +1,7 @@
 ﻿using Rezepte.Models;
 using Rezepte.Services;
+using Rezepte.Services.Navigation;
+using Rezepte.Services.PictureStorage;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -11,7 +13,11 @@ namespace Rezepte.ViewModels
 
         private readonly ReceiptLibrary _ReceiptLibrary;
 
-        public HomePageViewModel(ReceiptLibrary receiptLibrary)
+        public HomePageViewModel(
+            ReceiptLibrary receiptLibrary,
+            IPictureStorage pictureStorage,
+            INavigationManager navigationManager)
+            : base(navigationManager, pictureStorage)
         {
             _ReceiptLibrary = receiptLibrary;
             MenuAction = new Command((args) => ExecuteMenuAction(args as string));
@@ -122,7 +128,7 @@ namespace Rezepte.ViewModels
 
         private void Add(Receipt item)
         {
-            Items.Add(new ReceiptListItemViewModel(item));
+            Items.Add(new ReceiptListItemViewModel(item, PictureStorage, NavigationManager));
         }
 
         public ObservableCollection<ReceiptListItemViewModel> Items { get; } = new ObservableCollection<ReceiptListItemViewModel>();

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Rezepte.Services.Navigation;
+using Rezepte.Services.PictureStorage;
+using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -9,8 +11,33 @@ namespace Rezepte.ViewModels
     public class BaseViewModel: INotifyPropertyChanged
     {
 
-        public BaseViewModel()
-            : base() { }
+        private readonly INavigationManager _NavigationManager;
+        private readonly IPictureStorage _PictureStorage;
+
+        public BaseViewModel(INavigationManager navigationManager, IPictureStorage pictureStorage)
+            : base()
+        {
+            _PictureStorage = pictureStorage;
+            _NavigationManager = navigationManager;
+        }
+
+        #region Navigate 
+        protected INavigationManager NavigationManager
+        {
+            get
+            {
+                return _NavigationManager;
+            }
+        }
+
+        protected IPictureStorage PictureStorage
+        {
+            get
+            {
+                return _PictureStorage;
+            }
+        }
+        #endregion
 
         #region INotifyPropertyChanged
         private Dictionary<string, object> properties = new Dictionary<string, object>();

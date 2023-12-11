@@ -1,13 +1,12 @@
 ﻿using Rezepte.Services.Chefkoch;
 using Rezepte.Services.Database;
 using Rezepte.Services.PictureStorage;
-using Rezepte.ViewModels;
 using System;
 using System.Linq;
 
 namespace Rezepte.Services
 {
-    public static class ServiceExtensions
+    public static class ViewModelExtensions
     {
 
         public static MauiAppBuilder RegisterServices(this MauiAppBuilder builder)
@@ -38,7 +37,6 @@ namespace Rezepte.Services
                 }));
             serviceCollection.AddTransient<ChefkochSite>();
             serviceCollection.AddSingleton<ICockingDatabase, CockingDatabase>();
-            serviceCollection.AddTransient<HomePageViewModel>();
             serviceCollection.AddTransient<IPictureStorageSettings>(sp =>
             {
                 var picturePath = Path.Combine(rootPath, "Pictures");

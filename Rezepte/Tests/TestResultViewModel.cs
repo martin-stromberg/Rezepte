@@ -12,6 +12,7 @@ namespace Rezepte.Tests
         private TestResult _result;
 
         public TestResultViewModel(TestResult result)
+            : base(null, null)
         {
             Update(result);
         }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Rezepte.Services;
 using Rezepte.Tests;
+using Rezepte.ViewModels;
 using System.Reflection;
 
 namespace Rezepte
@@ -25,7 +26,9 @@ namespace Rezepte
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 })
-                .RegisterServices();
+                .RegisterServices()
+                .RegisterViewModels()
+                .RegisterNavigation();
 
             #if DEBUG
             builder.Logging.AddDebug();

@@ -23,12 +23,12 @@
             return File.Exists(FilePath);
         }
 
-        public object Get(string hashValue)
+        public ImageSource Get(string hashValue)
         {
             string FilePath = Path.Combine(_Settings.RootPath, $"{hashValue}.dat");
             if (!File.Exists(FilePath))
                 return null;
-            return File.ReadAllBytes(FilePath);
+            return ImageSource.FromFile(FilePath);
         }
 
     }

@@ -3,7 +3,7 @@
     public interface IPictureStorage
     {
 
-        object Get(string hashValue);
+        ImageSource Get(string hashValue);
 
         object Add(string hashValue, byte[] data);
 
