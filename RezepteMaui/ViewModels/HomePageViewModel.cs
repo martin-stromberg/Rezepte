@@ -22,7 +22,7 @@ namespace Rezepte.ViewModels
             _ReceiptLibrary = receiptLibrary;
             MenuAction = new Command((args) => ExecuteMenuAction(args as string));
             IsGeneralMode = true;
-            NewReceiptUri = "https://www.chefkoch.de/rezepte/926481197910350/Schokoladenbrot.html";
+            NewReceiptUri = string.Empty;
         }
 
         public override void OnAppeared()
@@ -128,7 +128,7 @@ namespace Rezepte.ViewModels
 
         private void Add(Receipt item)
         {
-            Items.Add(new ReceiptListItemViewModel(item, PictureStorage, NavigationManager));
+            Items.Insert(0, new ReceiptListItemViewModel(item, PictureStorage, NavigationManager));
         }
 
         public ObservableCollection<ReceiptListItemViewModel> Items { get; } = new ObservableCollection<ReceiptListItemViewModel>();
