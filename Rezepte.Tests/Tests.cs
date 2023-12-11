@@ -2,6 +2,7 @@
 using Rezepte.Tests.Services;
 using Rezepte.Tests.Services.Chefkoch;
 using Rezepte.Tests.Services.Database;
+using Rezepte.Tests.Services.KabelEins;
 using System;
 using System.Linq;
 
@@ -20,10 +21,11 @@ namespace Rezepte.Tests
             {
                 try
                 {
-                    RunTest(new CockingDatabaseTests());
-                    RunTest(new ChefkochSiteTests());
+                    RunTest(new CockingDatabaseTests());                    
                     RunTest(new ReceiptLibraryTests());
                     RunTest(new ReceiptTests());
+                    RunTest(new ChefkochSiteTests());
+                    RunTest(new KabelEinsTests());
                 }
                 finally
                 {

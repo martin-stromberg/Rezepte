@@ -1,5 +1,6 @@
 ﻿using Rezepte.Services.Chefkoch;
 using Rezepte.Services.Database;
+using Rezepte.Services.KabelEins;
 using Rezepte.Services.PictureStorage;
 using System;
 using System.Linq;
@@ -33,9 +34,11 @@ namespace Rezepte.Services
                                                                               sp.GetService<IPictureStorage>(),
                                                                               new IReceiptSource[]
                 {
-                    sp.GetService<ChefkochSite>()
+                    sp.GetService<ChefkochSite>(),
+                    sp.GetService<KabelEinsRezeptSammlung>()
                 }));
             serviceCollection.AddTransient<ChefkochSite>();
+            serviceCollection.AddTransient<KabelEinsRezeptSammlung>();
             serviceCollection.AddSingleton<ICockingDatabase, CockingDatabase>();
             serviceCollection.AddTransient<IPictureStorageSettings>(sp =>
             {
