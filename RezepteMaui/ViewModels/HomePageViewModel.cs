@@ -137,8 +137,9 @@ namespace Rezepte.ViewModels
                 Add(receiptCollection);
                 IsGeneralMode = true;
             }
-            catch
+            catch(Exception ex)
             {
+                NewCollectionName = ex.Message;
                 IsAddingCollectionMode = true;
             }
         }

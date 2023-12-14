@@ -210,6 +210,8 @@ namespace Rezepte.Services.Database
 
         private T CompleteElement<T>(T record) where T : BaseDataModel, new()
         {
+            if (record == null)
+                return null;
             Type type = null; PropertyInfo[] properties = null;
             if (type == null)
             {
