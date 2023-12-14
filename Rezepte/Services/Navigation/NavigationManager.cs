@@ -11,6 +11,7 @@ namespace Rezepte.Services.Navigation
         public NavigationManager()
         {
             Routing.RegisterRoute("receipt", typeof(ReceiptCardPage));
+            Routing.RegisterRoute("receiptCollection", typeof(ReceiptCollectionPage));
         }
 
         protected void NavigateToRoute(string route, Dictionary<string, object> args = null)
@@ -30,5 +31,13 @@ namespace Rezepte.Services.Navigation
             NavigateToRoute("receipt", navigationParameter);
         }
 
+        public void OpenReceiptCollection(ReceiptCollection item)
+        {
+            var navigationParameter = new Dictionary<string, object>
+            {
+                { "Collection", item }
+            };
+            NavigateToRoute("receiptCollection", navigationParameter);
+        }
     }
 }

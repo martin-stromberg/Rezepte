@@ -176,5 +176,22 @@ namespace Rezepte.Services
                 Update(collection);
             }
         }
+
+        internal IEnumerable<Receipt> GetRange(ReceiptCollection collection, int offset, int count)
+        {
+            return _Database.GetAll<Database.Models.ReceiptCollectionEntry>()
+                .Where(record => record.CollectionId == collection.Id)
+                .Skip(offset)
+                .Take(count)
+                .Select(record => GetReceipt(record.ReceiptId));
+        }
+
+        private Receipt GetReceipt(long receiptId)
+        {
+            var record = _Database.Get<Database.Models.Receipt>(receiptId);
+            if (record == null)
+                return null;
+            return BaseModel.CreateFromDataModel(record) as Receipt;
+        }
     }
 }

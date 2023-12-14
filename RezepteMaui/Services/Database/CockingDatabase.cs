@@ -202,43 +202,53 @@ namespace Rezepte.Services.Database
             PropertyInfo[] properties = null;
             foreach (var record in ts)
             {
-                if (type == null)
-                {
-                    type = record.GetType();
-                    properties = type.GetProperties()
-                                     .Where(prop =>
-                                            prop.PropertyType.IsAssignableTo(typeof(BaseDataModel))
-                                         || (prop.PropertyType.IsArray
-                                             && prop.PropertyType.GetElementType().IsAssignableTo(typeof(BaseDataModel))))
-                                     .ToArray();
-                }
-                foreach (var prop in properties.Where(p => !p.PropertyType.IsArray))
-                {
-                    var records = GetAll(prop.PropertyType, record);
-                }
-                foreach (var prop in properties.Where(p => p.PropertyType.IsArray))
-                {
-                    var records = GetAll(prop.PropertyType.GetElementType(), record).ToArray();
-                    var destRecords = Activator.CreateInstance(prop.PropertyType, records.Length) as Array;
-                    for (int idx = 0; idx < records.Length; idx++)
-                        destRecords.SetValue(records[idx], idx);
-                    prop.SetValue(record, destRecords);
-                }
-                yield return record;
+                var completedRecord = CompleteElement(record);
+                
+                yield return completedRecord;
             }
+        }
+
+        private T CompleteElement<T>(T record) where T : BaseDataModel, new()
+        {
+            Type type = null; PropertyInfo[] properties = null;
+            if (type == null)
+            {
+                type = record.GetType();
+                properties = type.GetProperties()
+                                 .Where(prop =>
+                                        prop.PropertyType.IsAssignableTo(typeof(BaseDataModel))
+                                     || (prop.PropertyType.IsArray
+                                         && prop.PropertyType.GetElementType().IsAssignableTo(typeof(BaseDataModel))))
+                                 .ToArray();
+            }
+            foreach (var prop in properties.Where(p => !p.PropertyType.IsArray))
+            {
+                var records = GetAll(prop.PropertyType, record);
+            }
+            foreach (var prop in properties.Where(p => p.PropertyType.IsArray))
+            {
+                var records = GetAll(prop.PropertyType.GetElementType(), record).ToArray();
+                var destRecords = Activator.CreateInstance(prop.PropertyType, records.Length) as Array;
+                for (int idx = 0; idx < records.Length; idx++)
+                    destRecords.SetValue(records[idx], idx);
+                prop.SetValue(record, destRecords);
+            }
+            return record;
         }
 
         public T Get<T>(long id) where T: BaseDataModel, new()
         {
-            return Connection.Table<T>().FirstOrDefault(rec => rec.Id == id);
+            return CompleteElement<T>(Connection.Table<T>().FirstOrDefault(rec => rec.Id == id));
         }
+
+        
 
         public BaseDataModel Get(Type modelType, long id)
         {
             var mapping = Connection.GetMapping(modelType);
             var record = Connection.Query(mapping, $"select * from {mapping.TableName} where id = {id};")
                                    .FirstOrDefault();
-            return record as BaseDataModel;
+            return CompleteElement(record as BaseDataModel);
         }
 
         public T Remove<T>(T record) where T : BaseDataModel, new()

@@ -70,5 +70,9 @@ namespace Rezepte.ViewModels
             }
         }
 
+        public void OpenDetails()
+        {
+            NavigationManager.OpenReceiptCollection(Item);
+        }
     }
 }

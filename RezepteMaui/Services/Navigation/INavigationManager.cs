@@ -7,5 +7,6 @@ namespace Rezepte.Services.Navigation
     public interface INavigationManager
     {
         void OpenReceiptCard(Receipt item);
+        void OpenReceiptCollection(ReceiptCollection item);
     }
 }
