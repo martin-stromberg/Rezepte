@@ -58,7 +58,16 @@ namespace Rezepte.Services
 
             receipt.Id = dataItem.Id;
         }
+        public void Add(ReceiptCollection receiptCollection)
+        {
+            if (receiptCollection.Id != 0)
+                throw new ArgumentException($"Existing receipt cannot be added.");
+            
+            var dataItem = receiptCollection.ToDataModel() as Database.Models.ReceiptCollection;
+            _Database.AddOrUpdate(dataItem);
 
+            receiptCollection.Id = dataItem.Id;
+        }
         private void SavePictures(Receipt receipt)
         {
             if (receipt.Pictures != null)
@@ -97,5 +106,22 @@ namespace Rezepte.Services
                             .Select(record => BaseModel.CreateFromDataModel(record) as Receipt);
         }
 
+        public IEnumerable<ReceiptCollection> GetCollections()
+        {
+            return _Database.GetAll<Database.Models.ReceiptCollection>()
+                .Select(record => BaseModel.CreateFromDataModel(record) as ReceiptCollection);
+        }
+
+        internal Task<ReceiptCollection> CreateCollectionFromName(string name)
+        {            
+            var existing = GetCollections().FirstOrDefault(coll => coll.Name == name);
+            if (existing != null)
+                throw new ApplicationException("Already exists.");
+            ReceiptCollection receiptCollection = new ReceiptCollection()
+            {
+                Name = name
+            };
+            return Task.FromResult(receiptCollection);
+        }
     }
 }

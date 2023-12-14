@@ -60,6 +60,8 @@ namespace Rezepte.Services.Database
                 Connection.CreateTable<Receipt>();
                 Connection.CreateTable<ReceiptIngredient>();
                 Connection.CreateTable<ReceiptPicture>();
+                Connection.CreateTable<ReceiptCollection>();
+                Connection.CreateTable<ReceiptCollectionEntry>();
                 initialized = true;
             }
             finally

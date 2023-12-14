@@ -5,28 +5,34 @@
              xmlns:view="clr-namespace:Rezepte.Views"
              x:Class="Rezepte.MainPage"
              x:DataType="vm:HomePageViewModel">
-
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
+            <RowDefinition Height="200"/>
             <RowDefinition Height="50"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <Image
             Grid.Row="0"
-            Source="rezepte.png"
-            SemanticProperties.Description="Cute dot net bot waving hi to you!"
-            HorizontalOptions="Center" />
+            Source="banner.jpg"      
+            BackgroundColor="Transparent"
+            Aspect="AspectFill"/>
+        <Label
+            Grid.Row="0"
+            Text="Rezeptsammlung"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            FontSize="Header"/>
 
         <HorizontalStackLayout 
             Grid.Row="1"
             HorizontalOptions="End" 
             IsVisible="{Binding IsGeneralMode}">
             <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addReceipt"/>
+            <Button Text="🗊" Command="{Binding MenuAction}" CommandParameter="addCollection"/>
         </HorizontalStackLayout>
 
         <HorizontalStackLayout 
@@ -37,7 +43,16 @@
             <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addURI"/>
         </HorizontalStackLayout>
 
-        <ScrollView Grid.Row="2">
+        <HorizontalStackLayout 
+            Grid.Row="1"
+            HorizontalOptions="End" 
+            IsVisible="{Binding IsAddingCollectionMode}">
+            <Entry Text="{Binding NewCollectionName}"/>
+            <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addCollectionName"/>
+            <Button Text="X" Command="{Binding MenuAction}" CommandParameter="cancelCollectionName"/>
+        </HorizontalStackLayout>
+
+        <ScrollView Grid.Row="2">            
             <VerticalStackLayout
                 Spacing="25"
                 Padding="30,0"
@@ -57,7 +72,25 @@
                     </BindableLayout.ItemTemplate>
                 </FlexLayout>
 
+                <Label Text="Meine Sammlungen"/>
+
+                <FlexLayout
+                    AlignContent="Start"
+                    AlignItems="Start"
+                    AlignSelf="Start"
+                    BindableLayout.ItemsSource="{Binding Collections}"
+                    Direction="Row"
+                    JustifyContent="Start"
+                    Wrap="Wrap">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ReceiptCollectionListItemViewModel">
+                            <view:ReceiptCollectionListItemView BindingContext="{Binding .}"/>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
             </VerticalStackLayout>
+
+            
         </ScrollView>
     </Grid>   
 

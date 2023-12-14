@@ -28,6 +28,7 @@ namespace Rezepte.ViewModels
         public override void OnAppeared()
         {
             base.OnAppeared();
+            LoadCollections();
             LoadItems();
         }
 
@@ -43,11 +44,27 @@ namespace Rezepte.ViewModels
             {
                 SetProperty<bool>(value);
                 if (value)
+                {
                     IsAddingMode = false;
+                    IsAddingCollectionMode = false;
+                }
             }
         }
 
         public bool IsAddingMode
+        {
+            get
+            {
+                return GetProperty<bool>();
+            }
+            set
+            {
+                SetProperty<bool>(value);
+                if (value)
+                    IsGeneralMode = false;
+            }
+        }
+        public bool IsAddingCollectionMode
         {
             get
             {
@@ -72,6 +89,17 @@ namespace Rezepte.ViewModels
                 SetProperty<string>(value);
             }
         }
+        public string NewCollectionName
+        {
+            get
+            {
+                return GetProperty<string>();
+            }
+            set
+            {
+                SetProperty<string>(value);
+            }
+        }
 
         private void ExecuteMenuAction(string args)
         {
@@ -83,7 +111,47 @@ namespace Rezepte.ViewModels
                 case "addURI":
                     ExecuteAddURI();
                     break;
+
+                case "addCollection":
+                    ExecuteAddCollection();
+                    break;
+                case "cancelCollectionName":
+                    ExecuteCancelCollectionName();
+                    break;
+                case "addCollectionName":
+                    ExecuteAddCollectionNameAsync();
+                    break;
             }
+        }
+
+        private async Task ExecuteAddCollectionNameAsync()
+        {
+            IsAddingCollectionMode = false;
+            try
+            {
+                var receiptCollection = await _ReceiptLibrary.CreateCollectionFromName(NewCollectionName);
+                if (receiptCollection == null)
+                    throw new ApplicationException($"Für die angegebene Adresse konnte kein Rezept ermittelt werden.");
+
+                _ReceiptLibrary.Add(receiptCollection);
+                Add(receiptCollection);
+                IsGeneralMode = true;
+            }
+            catch
+            {
+                IsAddingCollectionMode = true;
+            }
+        }
+
+        private void ExecuteCancelCollectionName()
+        {
+            IsGeneralMode = true;
+        }
+
+        private void ExecuteAddCollection()
+        {
+            NewCollectionName = string.Empty;
+            IsAddingCollectionMode = true;
         }
 
         private void ExecuteAddReceipt()
@@ -132,6 +200,17 @@ namespace Rezepte.ViewModels
         }
 
         public ObservableCollection<ReceiptListItemViewModel> Items { get; } = new ObservableCollection<ReceiptListItemViewModel>();
+        public ObservableCollection<ReceiptCollectionListItemViewModel> Collections { get; } = new ObservableCollection<ReceiptCollectionListItemViewModel>();
 
+        private void LoadCollections()
+        {
+            var categories = _ReceiptLibrary.GetCollections();
+            foreach (var category in categories)
+                Add(category);
+        }
+        private void Add(ReceiptCollection item)
+        {
+            Collections.Insert(0, new ReceiptCollectionListItemViewModel(item, PictureStorage, NavigationManager));
+        }
     }
 }
