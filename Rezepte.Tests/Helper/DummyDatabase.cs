@@ -90,5 +90,9 @@ namespace Rezepte.Tests.Helper
             return existing;
         }
 
+        public T Remove<T>(T record) where T : BaseDataModel, new()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

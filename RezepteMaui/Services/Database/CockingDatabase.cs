@@ -8,7 +8,7 @@ namespace Rezepte.Services.Database
 {
     public interface ICockingDatabase
     {
-
+        T Remove<T>(T record) where T : BaseDataModel, new();
         T Add<T>(T record) where T: BaseDataModel, new();
 
         T Update<T>(T record) where T: BaseDataModel, new();
@@ -241,5 +241,10 @@ namespace Rezepte.Services.Database
             return record as BaseDataModel;
         }
 
+        public T Remove<T>(T record) where T : BaseDataModel, new()
+        {
+            Connection.Delete(record);
+            return null;
+        }
     }
 }

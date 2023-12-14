@@ -34,6 +34,18 @@ namespace Rezepte.ViewModels
             }
         }
 
+        public bool IsSelected
+        {
+            get
+            {
+                return GetProperty<bool>();
+            }
+            set
+            {
+                SetProperty<bool>(value);
+            }
+        }
+
         public string Name
         {
             get

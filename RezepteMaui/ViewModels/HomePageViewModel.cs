@@ -124,7 +124,7 @@ namespace Rezepte.ViewModels
             }
         }
 
-        private async Task ExecuteAddCollectionNameAsync()
+        private async void ExecuteAddCollectionNameAsync()
         {
             IsAddingCollectionMode = false;
             try
@@ -196,7 +196,8 @@ namespace Rezepte.ViewModels
 
         private void Add(Receipt item)
         {
-            Items.Insert(0, new ReceiptListItemViewModel(item, PictureStorage, NavigationManager));
+            if (!Items.Any(vm => vm.Item.Id == item.Id))
+                Items.Insert(0, new ReceiptListItemViewModel(item, PictureStorage, NavigationManager));
         }
 
         public ObservableCollection<ReceiptListItemViewModel> Items { get; } = new ObservableCollection<ReceiptListItemViewModel>();
@@ -210,7 +211,8 @@ namespace Rezepte.ViewModels
         }
         private void Add(ReceiptCollection item)
         {
-            Collections.Insert(0, new ReceiptCollectionListItemViewModel(item, PictureStorage, NavigationManager));
+            if (!Collections.Any(vm => vm.Item.Id == item.Id))
+                Collections.Insert(0, new ReceiptCollectionListItemViewModel(item, PictureStorage, NavigationManager));
         }
     }
 }

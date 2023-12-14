@@ -12,8 +12,10 @@
             <ColumnDefinition Width="420"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
+       
 
         <ScrollView  
+            IsVisible="{Binding IsGeneralMode}"
             Grid.Column="0">
             <VerticalStackLayout>
                 <Image        
@@ -53,6 +55,7 @@
 
 
         <ScrollView  
+            IsVisible="{Binding IsGeneralMode}"
             Grid.Column="1">
             <VerticalStackLayout
                 Margin="10,0">
@@ -63,6 +66,36 @@
                     HorizontalOptions="Start" />
 
                 <Label Text="{Binding Instructions}"/>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <HorizontalStackLayout 
+    Grid.Row="0"
+    Grid.Column="1"
+    HorizontalOptions="End"     
+    VerticalOptions="Start"
+    IsVisible="{Binding IsGeneralMode}">
+            <Button Text="🗊" Command="{Binding MenuAction}" CommandParameter="addCollection"/>
+        </HorizontalStackLayout>
+
+
+        <ScrollView
+            Grid.ColumnSpan="2"
+            IsVisible="{Binding IsEditCollectionsMode}">
+            <VerticalStackLayout>
+                <ListView ItemsSource="{Binding Collections}">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <ViewCell>
+                                <HorizontalStackLayout x:DataType="vm:ReceiptCollectionListItemViewModel">
+                                    <CheckBox IsChecked="{Binding IsSelected}"/>
+                                    <Label Text="{Binding Name}" VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+                            </ViewCell>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <Button Text="Übernehmen" Command="{Binding MenuAction}" CommandParameter="saveCollections"/>
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

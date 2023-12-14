@@ -98,6 +98,15 @@ namespace Rezepte.Services
             receipt.Id = dataItem.Id;
         }
 
+        public void Update(ReceiptCollection collection)
+        {
+            if (collection.Id == 0)
+                throw new ArgumentException($"New receipt cannot be updated.");
+            var dataItem = collection.ToDataModel();
+            _Database.AddOrUpdate(dataItem);
+            collection.Id = dataItem.Id;
+        }
+
         public IEnumerable<Receipt> GetRange(int offset, int count)
         {
             return _Database.GetAll<Database.Models.Receipt>()
@@ -122,6 +131,50 @@ namespace Rezepte.Services
                 Name = name
             };
             return Task.FromResult(receiptCollection);
+        }
+
+        public bool IsInCollection(Receipt receipt, ReceiptCollection collection)
+        {
+            return _Database
+                .GetAll<Database.Models.ReceiptCollectionEntry>()
+                .Any(entry => entry.CollectionId == collection.Id && entry.ReceiptId == receipt.Id);
+        }
+
+        internal void AddToCollection(Receipt receipt, ReceiptCollection collection)
+        {
+            var existing = _Database
+                .GetAll<Database.Models.ReceiptCollectionEntry>()
+                .FirstOrDefault(entry => entry.CollectionId == collection.Id && entry.ReceiptId == receipt.Id);
+            if (existing != null)
+                return;
+            var record = new Database.Models.ReceiptCollectionEntry()
+            {
+                ReceiptId = receipt.Id,
+                CollectionId = collection.Id,
+            };
+            _Database.Add(record);
+
+            if (string.IsNullOrEmpty(collection.PictureHash) && receipt.PictureHashes?.Length > 0)
+            {
+                collection.PictureHash = receipt.PictureHashes.FirstOrDefault();
+                Update(collection);
+            }
+        }
+
+        internal void RemoveFromCollection(Receipt receipt, ReceiptCollection collection)
+        {
+            var existing = _Database
+                .GetAll<Database.Models.ReceiptCollectionEntry>()
+                .FirstOrDefault(entry => entry.CollectionId == collection.Id && entry.ReceiptId == receipt.Id);
+            if (existing == null)
+                return;
+            _Database.Remove(existing);
+            if (receipt.PictureHashes != null && receipt.PictureHashes.Contains(collection.PictureHash))
+            {                
+                var firstReceipt = GetRange(0, int.MaxValue).FirstOrDefault(receipt => IsInCollection(receipt, collection) && receipt.PictureHashes != null && receipt.PictureHashes.Length > 0);
+                collection.PictureHash = firstReceipt?.PictureHashes.FirstOrDefault();
+                Update(collection);
+            }
         }
     }
 }
