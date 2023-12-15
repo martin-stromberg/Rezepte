@@ -4,7 +4,7 @@
              x:Class="Rezepte.Views.ReceiptListItemView"
              xmlns:vm="clr-namespace:Rezepte.ViewModels;assembly=RezepteMaui"
              x:DataType="vm:ReceiptListItemViewModel">
-    <Frame Margin="5" WidthRequest="200" HeightRequest="240">
+    <Frame Margin="5" WidthRequest="150" HeightRequest="200">
         <Grid RowSpacing="0" ColumnSpacing="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>

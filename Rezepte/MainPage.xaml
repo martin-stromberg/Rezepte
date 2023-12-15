@@ -57,20 +57,22 @@
                 Spacing="25"
                 Padding="30,0"
                 VerticalOptions="Start">
-                <FlexLayout
-                    AlignContent="Start"
-                    AlignItems="Start"
-                    AlignSelf="Start"
-                    BindableLayout.ItemsSource="{Binding Items}"
-                    Direction="Row"
-                    JustifyContent="Start"
-                    Wrap="Wrap">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ReceiptListItemViewModel">
-                            <view:ReceiptListItemView BindingContext="{Binding .}"/>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </FlexLayout>
+                <ScrollView Orientation="Horizontal">
+                    <FlexLayout
+                        AlignContent="Start"
+                        AlignItems="Start"
+                        AlignSelf="Start"
+                        BindableLayout.ItemsSource="{Binding Items}"
+                        Direction="Row"
+                        JustifyContent="Start"
+                        Wrap="NoWrap">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ReceiptListItemViewModel">
+                                <view:ReceiptListItemView BindingContext="{Binding .}"/>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+                </ScrollView>
 
                 <Label Text="Meine Sammlungen"/>
 
