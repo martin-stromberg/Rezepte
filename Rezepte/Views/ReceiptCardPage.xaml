@@ -9,7 +9,7 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="420"/>
+            <ColumnDefinition Width="380"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
        
@@ -50,14 +50,24 @@
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
+
+                <VerticalStackLayout IsVisible="{Binding IsSmallView}" Margin="10,10,10,0">
+                    <Label                 
+                        Text="{Binding Title}"
+                        FontSize="Header"
+                        VerticalOptions="Start" 
+                        HorizontalOptions="Start" />
+
+                    <Label Text="{Binding Instructions}"/>
+                </VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>
-
 
         <ScrollView  
             IsVisible="{Binding IsGeneralMode}"
             Grid.Column="1">
             <VerticalStackLayout
+                IsVisible="{Binding IsWideView}"
                 Margin="10,0">
                 <Label                 
                     Text="{Binding Title}"
@@ -70,14 +80,14 @@
         </ScrollView>
 
         <HorizontalStackLayout 
-    Grid.Row="0"
-    Grid.Column="1"
-    HorizontalOptions="End"     
-    VerticalOptions="Start"
-    IsVisible="{Binding IsGeneralMode}">
+            Grid.Row="0"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            HorizontalOptions="End"     
+            VerticalOptions="Start"
+            IsVisible="{Binding IsGeneralMode}">
             <Button Text="🗊" Command="{Binding MenuAction}" CommandParameter="addCollection"/>
         </HorizontalStackLayout>
-
 
         <ScrollView
             Grid.ColumnSpan="2"

@@ -19,6 +19,9 @@ namespace Rezepte.ViewModels
             _ReceiptLibrary = receiptLibrary;
             MenuAction = new Command((args) => ExecuteMenuAction(args as string));
             IsGeneralMode = true;
+            
+            IsSmallView = DeviceInfo.Current.Idiom == DeviceIdiom.Phone;
+            IsWideView = !IsSmallView;
         }
 
         private void ExecuteMenuAction(string args)
@@ -39,7 +42,22 @@ namespace Rezepte.ViewModels
             base.OnAppeared();
             LoadCollections();
         }
-
+        public bool IsSmallView
+        {
+            get { return GetProperty<bool>(); }
+            set { SetProperty<bool>(value);
+                if (value)
+                    IsWideView = false;
+            }
+        }
+        public bool IsWideView
+        {
+            get { return GetProperty<bool>(); }
+            set { SetProperty<bool>(value);
+                if (value)
+                    IsSmallView = false;
+            }
+        }
         public bool IsGeneralMode
         {
             get
