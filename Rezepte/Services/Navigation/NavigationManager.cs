@@ -39,5 +39,10 @@ namespace Rezepte.Services.Navigation
             };
             NavigateToRoute("receiptCollection", navigationParameter);
         }
+
+        public void NavigateBack()
+        {
+            MainThread.InvokeOnMainThreadAsync(() => { Shell.Current.Navigation.RemovePage(Shell.Current.CurrentPage); });
+        }
     }
 }

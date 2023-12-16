@@ -20,9 +20,26 @@ namespace Rezepte.ViewModels
             : base(navigationManager, pictureStorage)
         {
             _ReceiptLibrary = receiptLibrary;
+            _ReceiptLibrary.ReceiptCollectionRemoved += _ReceiptLibrary_ReceiptCollectionRemoved;
+            _ReceiptLibrary.ReceiptRemoved += _ReceiptLibrary_ReceiptRemoved;
+
             MenuAction = new Command((args) => ExecuteMenuAction(args as string));
             IsGeneralMode = true;
             NewReceiptUri = string.Empty;
+        }
+
+        private void _ReceiptLibrary_ReceiptRemoved(object sender, BaseModelEventArgs e)
+        {
+            var existing = Items.FirstOrDefault(c => c.Item.Id == e.Item.Id);
+            if (existing != null)
+                Items.Remove(existing);
+        }
+
+        private void _ReceiptLibrary_ReceiptCollectionRemoved(object sender, BaseModelEventArgs e)
+        {
+            var existing = Collections.FirstOrDefault(c => c.Item.Id == e.Item.Id);
+            if (existing != null)
+                Collections.Remove(existing);
         }
 
         public override void OnAppeared()

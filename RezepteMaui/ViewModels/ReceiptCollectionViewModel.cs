@@ -32,7 +32,16 @@ namespace Rezepte.ViewModels
                 case "addURI":
                     ExecuteAddURI();
                     break;
+                case "removeCategory":
+                    ExecuteRemoveCategory();
+                    break;
             }
+        }
+
+        private void ExecuteRemoveCategory()
+        {
+            receiptLibrary.RemoveCollection(Item);
+            NavigationManager.NavigateBack();
         }
 
         private async void ExecuteAddURI()

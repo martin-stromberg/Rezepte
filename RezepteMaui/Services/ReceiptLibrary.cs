@@ -17,6 +17,17 @@ namespace Rezepte.Services
         private readonly ICockingDatabase _Database;
         private readonly IPictureStorage _PictureSource;
 
+        public event EventHandler<BaseModelEventArgs> ReceiptCollectionRemoved;
+        protected void OnReceiptCollectionRemoved(BaseModelEventArgs args)
+        {
+            ReceiptCollectionRemoved?.Invoke(this, args);
+        }
+        public event EventHandler<BaseModelEventArgs> ReceiptRemoved;
+        protected void OnReceiptRemoved(BaseModelEventArgs args)
+        {
+            ReceiptRemoved?.Invoke(this, args);
+        }
+
         public ReceiptLibrary(ICockingDatabase database, IPictureStorage pictureSource, IReceiptSource[] sources)
         {
             _PictureSource = pictureSource;
@@ -177,6 +188,18 @@ namespace Rezepte.Services
             }
         }
 
+        internal void RemoveCollection(ReceiptCollection collection)
+        {
+            var existing = _Database.Get<Database.Models.ReceiptCollection>(collection.Id);
+            if (existing == null)
+                return;
+            var receipts = GetRange(collection, 0, int.MaxValue);
+            foreach (var receipt in receipts)
+                RemoveFromCollection(receipt, collection);
+            _Database.Remove(existing);
+            OnReceiptCollectionRemoved(new BaseModelEventArgs(collection));
+        }
+
         internal IEnumerable<Receipt> GetRange(ReceiptCollection collection, int offset, int count)
         {
             return _Database.GetAll<Database.Models.ReceiptCollectionEntry>()
@@ -209,7 +232,7 @@ namespace Rezepte.Services
                     .ToArray();
 
             List<Receipt> receiptList = new List<Receipt>();
-            foreach (var source in _Sources)
+            foreach (var source in _Sources)         
             {
                 var uris = await source.ExtractUris(html);
                 if (uris != null && uris.Any())
@@ -223,5 +246,7 @@ namespace Rezepte.Services
             }
             return receiptList.ToArray();
         }
+
+        
     }
 }

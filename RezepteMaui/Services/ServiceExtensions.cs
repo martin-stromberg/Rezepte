@@ -29,7 +29,7 @@ namespace Rezepte.Services
                 // string folder = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
                 return new CockingDatabaseSettings() { FilePath = Path.Combine(databasePath, "Rezepte.db3") };
             });
-            serviceCollection.AddTransient<ReceiptLibrary>(sp =>
+            serviceCollection.AddSingleton<ReceiptLibrary>(sp =>
                                                            new ReceiptLibrary(sp.GetService<ICockingDatabase>(),
                                                                               sp.GetService<IPictureStorage>(),
                                                                               new IReceiptSource[]

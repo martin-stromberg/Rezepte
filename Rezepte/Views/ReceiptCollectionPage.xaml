@@ -21,6 +21,7 @@
             HorizontalOptions="End" 
             IsVisible="{Binding IsGeneralMode}">
             <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addReceipt"/>
+            <Button Text="X" Command="{Binding MenuAction}" CommandParameter="removeCategory"/>
         </HorizontalStackLayout>
         <HorizontalStackLayout 
             Grid.Row="0"
