@@ -35,7 +35,11 @@
                 Grid.ColumnSpan="2">
                 <Label
                     Text="{Binding Name}"                    
-                    HorizontalOptions="Start" />
+                    HorizontalOptions="Start">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="ListItem_Clicked"/>
+                    </Label.GestureRecognizers>
+                </Label>
             </VerticalStackLayout>
         </Grid>
     </Frame>
