@@ -65,6 +65,8 @@ namespace Rezepte.Services.Chefkoch
         private async Task<byte[][]> FindPicturesAsync(string content)
         {
             var pictureUri = FindTagValue(content, "head", "meta|property=og:image");
+            if (string.IsNullOrWhiteSpace(pictureUri))
+                return null;
             var pictureTempPath = await DownloadFileAsync(pictureUri);
             try
             {

@@ -240,9 +240,14 @@ namespace Rezepte.Services
         internal async Task<Receipt[]> CreateReceipts(string html)
         {
             if (html.StartsWith("http://") || html.StartsWith("https://"))
-                return new Receipt[] { FindReceiptByUri(html) }
+            {
+                var existing = FindReceiptByUri(html);
+                if (existing == null)
+                    existing = await CreateFromUri(html);
+                return new Receipt[] { existing }
                     .Where(receipt => receipt != null)
                     .ToArray();
+            }
 
             List<Receipt> receiptList = new List<Receipt>();
             foreach (var source in _Sources)         
@@ -251,7 +256,8 @@ namespace Rezepte.Services
                 if (uris != null && uris.Any())
                     foreach (var uri in uris)
                     {
-                        var receipt = await CreateFromUri(uri);
+                        var existing = FindReceiptByUri(uri);
+                        var receipt = existing ?? await CreateFromUri(uri);
                         if (receipt == null)
                             continue;
                         receiptList.Add(receipt);
