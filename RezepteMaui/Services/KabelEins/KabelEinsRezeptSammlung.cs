@@ -34,7 +34,10 @@ namespace Rezepte.Services.KabelEins
             receipt.Pictures = await FindPicturesAsync(articles);
             return receipt;
         }
-
+        public override Task<string[]> ExtractUris(string html)
+        {
+            return Task.FromResult(new string[0]);
+        }
         private string FindInstructions(string[] articles)
         {
             string instructions = "";

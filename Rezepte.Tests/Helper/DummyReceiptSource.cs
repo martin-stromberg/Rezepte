@@ -13,6 +13,11 @@ namespace Rezepte.Tests.Helper
             return Task.FromResult(ReceiptToReturn);
         }
 
+        public Task<string[]> ExtractUris(string html)
+        {
+            throw new NotImplementedException();
+        }
+
         public ISourceReceipt ReceiptToReturn { get; set; }
 
         public string LastUri { get; set; }

@@ -200,5 +200,28 @@ namespace Rezepte.Services
             if (record == null) return null;
             return BaseModel.CreateFromDataModel(record) as Receipt;
         }
+
+        internal async Task<Receipt[]> CreateReceipts(string html)
+        {
+            if (html.StartsWith("http://") || html.StartsWith("https://"))
+                return new Receipt[] { FindReceiptByUri(html) }
+                    .Where(receipt => receipt != null)
+                    .ToArray();
+
+            List<Receipt> receiptList = new List<Receipt>();
+            foreach (var source in _Sources)
+            {
+                var uris = await source.ExtractUris(html);
+                if (uris != null && uris.Any())
+                    foreach (var uri in uris)
+                    {
+                        var receipt = await CreateFromUri(uri);
+                        if (receipt == null)
+                            continue;
+                        receiptList.Add(receipt);
+                    }
+            }
+            return receiptList.ToArray();
+        }
     }
 }

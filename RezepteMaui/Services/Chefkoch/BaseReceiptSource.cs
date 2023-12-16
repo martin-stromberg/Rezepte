@@ -6,7 +6,7 @@
         public BaseReceiptSource() { }
 
         public abstract Task<ISourceReceipt> FromUriAsync(string uri);
-
+        public abstract Task<string[]> ExtractUris(string html);
         protected async Task<string> DownloadFileAsync(string uri)
         {
             var tempFilePath = Path.GetTempFileName();
@@ -102,6 +102,11 @@
                         return string.Empty;
                     content = content.Remove(0, offset);
                     var tagStart = content.Remove(content.IndexOf(">") + 1);
+                    if (tagStart != $"<{tagName}>" && !tagStart.StartsWith($"<{tagName} "))
+                    {
+                        content = content.Remove(0, tagStart.Length);
+                        continue;
+                    }
 
                     if (tagParts.Length > 1)
                     {
@@ -135,7 +140,8 @@
         }
         protected string[] CollectTags(string content, string tagName)
         {
-            var startTag = $"<{tagName}";
+            var startTag = $"<{tagName}>";
+            var startTag2 = $"<{tagName} ";
             var endTag = $"</{tagName}>";
             List<string> tags = new List<string>();
             while (content.Length > 0)
@@ -173,5 +179,6 @@
             return tags.ToArray();
         }
 
+        
     }
 }

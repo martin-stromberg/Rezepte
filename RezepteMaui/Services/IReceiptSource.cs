@@ -6,7 +6,7 @@ namespace Rezepte.Services
 {
     public interface IReceiptSource
     {
-
+        Task<string[]> ExtractUris(string html);
         Task<ISourceReceipt> FromUriAsync(string uri);
 
     }

@@ -39,7 +39,29 @@ namespace Rezepte.Services.Chefkoch
                 return null;
             return receipt;
         }
-
+        public override Task<string[]> ExtractUris(string html)
+        {
+            List<string> uriList = new List<string>();
+            var Links = CollectTags(html, "a");
+            return Task.FromResult(Links
+                .Select(a =>
+                {
+                    int offset = a.IndexOf("href=");
+                    if (offset < 0)
+                        return string.Empty;
+                    a = a.Remove(0, offset + "href=".Length);
+                    offset = a.IndexOfAny(new char[] { ' ', '>' });
+                    a = a.Remove(offset);
+                    a = a.Trim(' ', '"','/');
+                    return a.ToLower();
+                })
+                .Where(uri => !string.IsNullOrWhiteSpace(uri))
+                .Where(uri => uri.StartsWith("https://www.chefkoch.de/rezepte/"))
+                .Where(uri =>!uri.StartsWith("https://www.chefkoch.de/rezepte/was-koche-ich-heute"))
+                .Where(uri => !uri.StartsWith("https://www.chefkoch.de/rezepte/was-backe-ich-heute"))
+                .Where(uri => !uri.StartsWith("https://www.chefkoch.de/rezepte/kategorien"))
+                .ToArray());
+        }
         private async Task<byte[][]> FindPicturesAsync(string content)
         {
             var pictureUri = FindTagValue(content, "head", "meta|property=og:image");
