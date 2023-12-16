@@ -74,7 +74,7 @@ namespace Rezepte.ViewModels
                             }
 
                             receiptLibrary.Add(receipt);
-                            receiptLibrary.AddToCollection(existingReceipt, Item);
+                            receiptLibrary.AddToCollection(receipt, Item);
                             Add(receipt);
                         }
                         

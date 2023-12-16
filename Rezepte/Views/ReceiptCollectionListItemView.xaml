@@ -36,7 +36,11 @@
                 <Label
                     Text="{Binding Name}"                    
                     HorizontalOptions="Center" 
-                    VerticalOptions="End"/>
+                    VerticalOptions="End">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="ListItem_Clicked"/>
+                    </Label.GestureRecognizers>
+                </Label>
             </VerticalStackLayout>
         </Grid>
     </Frame>
