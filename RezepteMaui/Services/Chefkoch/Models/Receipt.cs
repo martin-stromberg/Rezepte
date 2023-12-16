@@ -13,6 +13,7 @@ namespace Rezepte.Services.Chefkoch.Models
         public string Instructions { get; set; }
 
         public byte[][] Pictures { get; set; }
+        public string URI { get; set; }
 
         public Rezepte.Models.Receipt ToModel()
         {
@@ -21,7 +22,8 @@ namespace Rezepte.Services.Chefkoch.Models
                 Title = Title,
                 Ingredients = Ingredients.ToModel(),
                 Instructions = Instructions,
-                Pictures = Pictures
+                Pictures = Pictures,
+                Uri = URI
             };
         }
 

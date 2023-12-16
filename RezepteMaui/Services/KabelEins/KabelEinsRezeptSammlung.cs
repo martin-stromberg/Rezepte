@@ -10,12 +10,15 @@ namespace Rezepte.Services.KabelEins
     {
 
         public override async Task<ISourceReceipt> FromUriAsync(string uri)
-        {
+        {            
             HttpClient client = new HttpClient();
             var responseContent = await client.GetStringAsync(uri);
             var headContent = FindTag(responseContent, false, "head");
 
-            Rezepte.Services.KabelEins.Models.Receipt receipt = new Rezepte.Services.KabelEins.Models.Receipt();
+            Rezepte.Services.KabelEins.Models.Receipt receipt = new Rezepte.Services.KabelEins.Models.Receipt()
+            {
+                URI = uri
+            };
             receipt.Title = WebUtility.HtmlDecode(FindTagValue(headContent, "title").Split('|').First());            
 
             responseContent = FindTag(responseContent, false, "body", "div|id=main-content", "article");

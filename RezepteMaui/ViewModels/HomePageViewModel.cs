@@ -165,12 +165,22 @@ namespace Rezepte.ViewModels
             IsAddingMode = false;
             try
             {
-                var receipt = await _ReceiptLibrary.CreateFromUri(NewReceiptUri);
-                if (receipt == null)
-                    throw new ApplicationException($"Für die angegebene Adresse konnte kein Rezept ermittelt werden.");
+                var uris = NewReceiptUri.Split("\r");
+                foreach (var uri in uris)
+                    try
+                    {
+                        var receiptUri = uri.Trim();
+                        var existingReceipt = _ReceiptLibrary.FindReceiptByUri(receiptUri);
+                        if (existingReceipt != null) continue;
 
-                _ReceiptLibrary.Add(receipt);
-                Add(receipt);
+                        var receipt = await _ReceiptLibrary.CreateFromUri(receiptUri);
+                        if (receipt == null)
+                            throw new ApplicationException($"Für die angegebene Adresse konnte kein Rezept ermittelt werden.");
+
+                        _ReceiptLibrary.Add(receipt);
+                        Add(receipt);
+                    }
+                    catch { }
                 IsGeneralMode = true;
             }
             catch

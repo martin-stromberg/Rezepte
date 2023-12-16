@@ -193,5 +193,12 @@ namespace Rezepte.Services
                 return null;
             return BaseModel.CreateFromDataModel(record) as Receipt;
         }
+
+        internal Receipt FindReceiptByUri(string receiptUri)
+        {
+            var record = _Database.GetAll<Database.Models.Receipt>().FirstOrDefault(receipt => receipt.Uri?.ToLower() == receiptUri.ToLower());
+            if (record == null) return null;
+            return BaseModel.CreateFromDataModel(record) as Receipt;
+        }
     }
 }

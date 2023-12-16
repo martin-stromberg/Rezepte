@@ -13,11 +13,16 @@ namespace Rezepte.Services.Chefkoch
 
         public async Task<Receipt> LoadReceipt(string uri)
         {
+            if (!uri.Contains("chefkoch"))
+                return null;
             HttpClient client = new HttpClient();
             var responseContent = await client.GetStringAsync(uri);
             var headContent = FindTag(responseContent, false, "head");
 
-            Receipt receipt = new Receipt();
+            Receipt receipt = new Receipt()
+            {
+                URI = uri
+            };
             receipt.Title = FindTagValue(headContent, "title").Split('|').First();
 
             responseContent = FindTagValue(responseContent, "body", "main");

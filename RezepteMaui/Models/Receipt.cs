@@ -22,6 +22,7 @@ namespace Rezepte.Models
         public byte[][] Pictures { get; set; }
 
         public string[] PictureHashes { get; set; }
+        public string Uri { get; set; }
 
         public override BaseDataModel ToDataModel()
         {

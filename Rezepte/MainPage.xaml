@@ -39,7 +39,7 @@
             Grid.Row="1"
             HorizontalOptions="End" 
             IsVisible="{Binding IsAddingMode}">
-            <Entry Text="{Binding NewReceiptUri}"/>
+            <Editor Text="{Binding NewReceiptUri}" />
             <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addURI"/>
         </HorizontalStackLayout>
 
