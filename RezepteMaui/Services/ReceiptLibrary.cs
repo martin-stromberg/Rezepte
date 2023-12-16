@@ -200,6 +200,19 @@ namespace Rezepte.Services
             OnReceiptCollectionRemoved(new BaseModelEventArgs(collection));
         }
 
+        internal void RemoveReceipt(Receipt item)
+        {
+            var existing = _Database.Get<Database.Models.Receipt>(item.Id);
+            if (existing == null)
+                return;
+            var collections = GetCollections();
+            foreach (var collection in collections)
+                if (IsInCollection(item, collection))
+                    RemoveFromCollection(item, collection);
+            _Database.Remove(existing);
+            OnReceiptRemoved(new BaseModelEventArgs(item));
+        }
+
         internal IEnumerable<Receipt> GetRange(ReceiptCollection collection, int offset, int count)
         {
             return _Database.GetAll<Database.Models.ReceiptCollectionEntry>()

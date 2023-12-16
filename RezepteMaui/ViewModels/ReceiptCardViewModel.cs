@@ -34,7 +34,16 @@ namespace Rezepte.ViewModels
                 case "saveCollections":
                     ExecuteSaveCollections();
                     break;
+                case "removeReceipt":
+                    ExecuteRemoveReceipt();
+                    break;
             }
+        }
+
+        private void ExecuteRemoveReceipt()
+        {
+            _ReceiptLibrary.RemoveReceipt(Item);
+            NavigationManager.NavigateBack();
         }
 
         public override void OnAppeared()

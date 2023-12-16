@@ -87,6 +87,7 @@
             VerticalOptions="Start"
             IsVisible="{Binding IsGeneralMode}">
             <Button Text="🗊" Command="{Binding MenuAction}" CommandParameter="addCollection"/>
+            <Button Text="X" Command="{Binding MenuAction}" CommandParameter="removeReceipt"/>
         </HorizontalStackLayout>
 
         <ScrollView
