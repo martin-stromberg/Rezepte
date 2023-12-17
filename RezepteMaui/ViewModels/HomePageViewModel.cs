@@ -138,6 +138,9 @@ namespace Rezepte.ViewModels
                 case "addURI":
                     ExecuteAddURI();
                     break;
+                case "cancelURI":
+                    ExecuteCancelURI();
+                    break;
 
                 case "addCollection":
                     ExecuteAddCollection();
@@ -196,9 +199,13 @@ namespace Rezepte.ViewModels
 
         private void ExecuteAddReceipt()
         {
+            NewReceiptUri = string.Empty;
             IsAddingMode = true;
         }
-
+        private void ExecuteCancelURI()
+        {
+            IsGeneralMode = true;
+        }
         private async void ExecuteAddURI()
         {
             IsAddingMode = false;

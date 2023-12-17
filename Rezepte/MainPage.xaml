@@ -5,13 +5,17 @@
              xmlns:view="clr-namespace:Rezepte.Views"
              x:Class="Rezepte.MainPage"
              x:DataType="vm:HomePageViewModel">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="+📝" Command="{Binding MenuAction}" CommandParameter="addReceipt"/>
+        <ToolbarItem Text="+📚" Command="{Binding MenuAction}" CommandParameter="addCollection"/>
+        <ToolbarItem Text="↻" Command="{Binding MenuAction}" CommandParameter="sync"/>
+    </ContentPage.ToolbarItems>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="200"/>
-            <RowDefinition Height="50"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -28,32 +32,26 @@
             FontSize="Header"/>
 
         <HorizontalStackLayout 
-            Grid.Row="1"
+            Grid.Row="0"
             HorizontalOptions="End" 
-            IsVisible="{Binding IsGeneralMode}">
-            <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addReceipt"/>
-            <Button Text="🗊" Command="{Binding MenuAction}" CommandParameter="addCollection"/>
-            <Button Text="↻" Command="{Binding MenuAction}" CommandParameter="sync"/>
-        </HorizontalStackLayout>
-
-        <HorizontalStackLayout 
-            Grid.Row="1"
-            HorizontalOptions="End" 
+            VerticalOptions="End"
             IsVisible="{Binding IsAddingMode}">
             <Editor Text="{Binding NewReceiptUri}" />
             <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addURI"/>
+            <Button Text="X" Command="{Binding MenuAction}" CommandParameter="cancelURI"/>
         </HorizontalStackLayout>
 
         <HorizontalStackLayout 
-            Grid.Row="1"
+            Grid.Row="0"
             HorizontalOptions="End" 
+            VerticalOptions="End"
             IsVisible="{Binding IsAddingCollectionMode}">
             <Entry Text="{Binding NewCollectionName}"/>
             <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addCollectionName"/>
             <Button Text="X" Command="{Binding MenuAction}" CommandParameter="cancelCollectionName"/>
         </HorizontalStackLayout>
 
-        <ScrollView Grid.Row="2">            
+        <ScrollView Grid.Row="1">            
             <VerticalStackLayout
                 Spacing="25"
                 Padding="30,0"

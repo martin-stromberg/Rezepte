@@ -10,23 +10,25 @@ namespace Rezepte.Services.AppToApp
 {
     public class SyncManagerSettings
     {
-        public string Host { get; set; }
-        public string User { get; set; }
-        public string Pass { get; set; }
-
-        internal static async Task<SyncManagerSettings> LoadAsync()
+        private static SyncManagerSettings instance = null;
+        public static async void LoadInstance()
         {
             try
             {
                 using var stream = await FileSystem.OpenAppPackageFileAsync("syncManager.json");
                 using var reader = new StreamReader(stream);
                 var contents = reader.ReadToEnd();
-                return JsonConvert.DeserializeObject<SyncManagerSettings>(contents);
+                instance = JsonConvert.DeserializeObject<SyncManagerSettings>(contents);
             }
-            catch 
-            { 
-                return null; 
+            catch
+            {
+                instance = null;
             }
         }
+        public static SyncManagerSettings Instance => instance;
+
+        public string Host { get; set; }
+        public string User { get; set; }
+        public string Pass { get; set; }
     }
 }

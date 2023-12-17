@@ -19,7 +19,7 @@ namespace Rezepte.Services
         }
 
         public static IServiceCollection RegisterServices(this IServiceCollection serviceCollection)
-        {
+        {            
             var rootPath = FileSystem.Current.AppDataDirectory;            
             serviceCollection.AddTransient<CockingDatabaseSettings>(sp =>
             {
@@ -50,9 +50,10 @@ namespace Rezepte.Services
             });
             serviceCollection.AddTransient<IPictureStorage, PictureStorage.PictureStorage>();
             serviceCollection.AddSingleton<SyncManager>();
+            SyncManagerSettings.LoadInstance();
             serviceCollection.AddSingleton<SyncManagerSettings>(sp =>
             {
-                return SyncManagerSettings.LoadAsync().Wait<SyncManagerSettings>();
+                return SyncManagerSettings.Instance;
             });
             return serviceCollection;
         }
