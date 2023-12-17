@@ -1,4 +1,5 @@
-﻿using Rezepte.Services.AppToApp;
+﻿using Rezepte.Extensions;
+using Rezepte.Services.AppToApp;
 using Rezepte.Services.Chefkoch;
 using Rezepte.Services.Database;
 using Rezepte.Services.KabelEins;
@@ -19,8 +20,7 @@ namespace Rezepte.Services
 
         public static IServiceCollection RegisterServices(this IServiceCollection serviceCollection)
         {
-            var rootPath = FileSystem.Current.AppDataDirectory;
-            serviceCollection.AddSingleton<SyncManager>();
+            var rootPath = FileSystem.Current.AppDataDirectory;            
             serviceCollection.AddTransient<CockingDatabaseSettings>(sp =>
             {
                 var databasePath = Path.Combine(rootPath, "Database");
@@ -49,6 +49,11 @@ namespace Rezepte.Services
                 return new PictureStorageSettings() { RootPath = picturePath };
             });
             serviceCollection.AddTransient<IPictureStorage, PictureStorage.PictureStorage>();
+            serviceCollection.AddSingleton<SyncManager>();
+            serviceCollection.AddSingleton<SyncManagerSettings>(sp =>
+            {
+                return SyncManagerSettings.LoadAsync().Wait<SyncManagerSettings>();
+            });
             return serviceCollection;
         }
 
