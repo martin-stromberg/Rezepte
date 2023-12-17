@@ -128,6 +128,8 @@ namespace Rezepte.Services
         public IEnumerable<ReceiptCollection> GetCollections()
         {
             return _Database.GetAll<Database.Models.ReceiptCollection>()
+                .OrderBy(r => r.Order)
+                .ThenBy(r => r.Name)
                 .Select(record => BaseModel.CreateFromDataModel(record) as ReceiptCollection);
         }
 
@@ -138,7 +140,8 @@ namespace Rezepte.Services
                 throw new ApplicationException("Already exists.");
             ReceiptCollection receiptCollection = new ReceiptCollection()
             {
-                Name = name
+                Name = name,
+                Order = int.MaxValue
             };
             return Task.FromResult(receiptCollection);
         }

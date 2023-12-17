@@ -276,7 +276,7 @@ namespace Rezepte.ViewModels
         private void Add(ReceiptCollection item)
         {
             if (!Collections.Any(vm => vm.Item.Id == item.Id))
-                Collections.Insert(0, new ReceiptCollectionListItemViewModel(item, PictureStorage, NavigationManager));
+                Collections.Add(new ReceiptCollectionListItemViewModel(item, PictureStorage, NavigationManager));
         }
     }
 }

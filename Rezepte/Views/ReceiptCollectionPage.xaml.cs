@@ -1,4 +1,4 @@
-using Rezepte.Models;
+﻿using Rezepte.Models;
 using Rezepte.ViewModels;
 
 namespace Rezepte.Views;
@@ -11,6 +11,10 @@ public partial class ReceiptCollectionPage : ContentPage
     public ReceiptCollectionPage()
 	{
 		InitializeComponent();
+        Shell.SetBackButtonBehavior(this, new BackButtonBehavior()
+        {
+            TextOverride = "⏪ ",
+        });
         BindingContext = ViewModel = App.GetService<ReceiptCollectionViewModel>();
     }
 

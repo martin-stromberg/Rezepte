@@ -6,7 +6,10 @@
              x:Class="Rezepte.Views.ReceiptCardPage"
              Title="{Binding Title}"
              x:DataType="vm:ReceiptCardViewModel">
-
+    <ContentPage.ToolbarItems>        
+        <ToolbarItem Text="📚" Command="{Binding MenuAction}" CommandParameter="addCollection"/>
+        <ToolbarItem Text="X📝" Command="{Binding MenuAction}" CommandParameter="removeReceipt"/>
+    </ContentPage.ToolbarItems>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="380"/>
@@ -78,17 +81,6 @@
                 <Label Text="{Binding Instructions}"/>
             </VerticalStackLayout>
         </ScrollView>
-
-        <HorizontalStackLayout 
-            Grid.Row="0"
-            Grid.Column="0"
-            Grid.ColumnSpan="2"
-            HorizontalOptions="End"     
-            VerticalOptions="Start"
-            IsVisible="{Binding IsGeneralMode}">
-            <Button Text="🗊" Command="{Binding MenuAction}" CommandParameter="addCollection"/>
-            <Button Text="X" Command="{Binding MenuAction}" CommandParameter="removeReceipt"/>
-        </HorizontalStackLayout>
 
         <ScrollView
             Grid.ColumnSpan="2"

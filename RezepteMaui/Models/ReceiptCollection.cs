@@ -12,5 +12,6 @@ namespace Rezepte.Models
     {
         public string Name { get; set; }
         public string PictureHash { get; set; }
+        public int Order { get; set; }
     }
 }

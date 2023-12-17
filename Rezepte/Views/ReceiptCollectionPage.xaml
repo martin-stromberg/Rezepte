@@ -6,32 +6,23 @@
              xmlns:vm="clr-namespace:Rezepte.ViewModels;assembly=RezepteMaui"
              xmlns:view="clr-namespace:Rezepte.Views"
              x:DataType="vm:ReceiptCollectionViewModel"
+             NavigationPage.BackButtonTitle="Back"
              Title="{Binding Title}">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="+📝" Command="{Binding MenuAction}" CommandParameter="addReceipt"/>
+        <ToolbarItem Text="X📚" Command="{Binding MenuAction}" CommandParameter="removeCategory"/>
+    </ContentPage.ToolbarItems>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <HorizontalStackLayout 
-            Grid.Row="0"
-            HorizontalOptions="End" 
-            IsVisible="{Binding IsGeneralMode}">
-            <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addReceipt"/>
-            <Button Text="X" Command="{Binding MenuAction}" CommandParameter="removeCategory"/>
-        </HorizontalStackLayout>
-        <HorizontalStackLayout 
-            Grid.Row="0"
-            HorizontalOptions="End" 
-            IsVisible="{Binding IsAddingMode}">
-            <Editor Text="{Binding NewReceiptUri}" />
-            <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addURI"/>
-        </HorizontalStackLayout>
+        
 
-        <ScrollView Grid.Row="1">
+        <ScrollView Grid.Row="0">
             <VerticalStackLayout>                
                 <FlexLayout
                     AlignContent="Start"
@@ -49,5 +40,14 @@
                 </FlexLayout>
             </VerticalStackLayout>
         </ScrollView>
+        
+        <HorizontalStackLayout 
+            Grid.Row="0"
+            HorizontalOptions="End" 
+            VerticalOptions="Start"
+            IsVisible="{Binding IsAddingMode}">
+            <Editor Text="{Binding NewReceiptUri}" />
+            <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addURI"/>
+        </HorizontalStackLayout>
     </Grid>
 </ContentPage>

@@ -1,4 +1,4 @@
-using Rezepte.Models;
+﻿using Rezepte.Models;
 using Rezepte.ViewModels;
 
 namespace Rezepte.Views
@@ -10,6 +10,10 @@ namespace Rezepte.Views
         public ReceiptCardPage()
         {
             InitializeComponent();
+            Shell.SetBackButtonBehavior(this, new BackButtonBehavior()
+            {
+                TextOverride = "⏪ ",
+            });
             BindingContext = ViewModel = App.GetService<ReceiptCardViewModel>();
         }
 
