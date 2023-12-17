@@ -62,12 +62,26 @@ namespace Rezepte.Services.Database
                 Connection.CreateTable<ReceiptPicture>();
                 Connection.CreateTable<ReceiptCollection>();
                 Connection.CreateTable<ReceiptCollectionEntry>();
+                Connection.CreateTable<DeviceIdentification>();
+                InitializeDeviceInformation();
                 initialized = true;
             }
             finally
             {
                 initializing = false;
             }
+        }
+
+        private void InitializeDeviceInformation()
+        {
+            var record = GetAll<DeviceIdentification>().FirstOrDefault();
+            if (record != null)
+                return;
+            record = new DeviceIdentification()
+            {
+                DeviceId = DateTime.Now.Ticks
+            };
+            Add<DeviceIdentification>(record);
         }
 
         public void Open()

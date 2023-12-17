@@ -33,6 +33,7 @@
             IsVisible="{Binding IsGeneralMode}">
             <Button Text="+" Command="{Binding MenuAction}" CommandParameter="addReceipt"/>
             <Button Text="🗊" Command="{Binding MenuAction}" CommandParameter="addCollection"/>
+            <Button Text="↻" Command="{Binding MenuAction}" CommandParameter="sync"/>
         </HorizontalStackLayout>
 
         <HorizontalStackLayout 

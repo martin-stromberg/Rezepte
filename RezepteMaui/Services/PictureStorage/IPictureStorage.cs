@@ -8,6 +8,6 @@
         object Add(string hashValue, byte[] data);
 
         bool Exists(string hashValue);
-
+        string GetFilePath(string hash);
     }
 }

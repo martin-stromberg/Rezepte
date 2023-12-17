@@ -1,5 +1,6 @@
 ﻿using Rezepte.Models;
 using Rezepte.Services;
+using Rezepte.Services.AppToApp;
 using Rezepte.Services.Navigation;
 using Rezepte.Services.PictureStorage;
 using System;
@@ -12,14 +13,17 @@ namespace Rezepte.ViewModels
     {
 
         private readonly ReceiptLibrary _ReceiptLibrary;
+        private readonly SyncManager syncManager;
 
         public HomePageViewModel(
             ReceiptLibrary receiptLibrary,
+            SyncManager syncManager,
             IPictureStorage pictureStorage,
             INavigationManager navigationManager)
             : base(navigationManager, pictureStorage)
         {
             _ReceiptLibrary = receiptLibrary;
+            this.syncManager = syncManager;
             _ReceiptLibrary.ReceiptCollectionRemoved += _ReceiptLibrary_ReceiptCollectionRemoved;
             _ReceiptLibrary.ReceiptRemoved += _ReceiptLibrary_ReceiptRemoved;
 
@@ -41,12 +45,18 @@ namespace Rezepte.ViewModels
             if (existing != null)
                 Collections.Remove(existing);
         }
-
+        private bool isFirst = true;
         public override void OnAppeared()
         {
             base.OnAppeared();
             LoadCollections();
             LoadItems();
+            if (isFirst)
+                Task.Run(async () => { 
+                    await Task.Delay(2000);
+                    syncManager.Sync();
+                });
+            isFirst = false;
         }
 
         public Command MenuAction { get; }
@@ -138,7 +148,19 @@ namespace Rezepte.ViewModels
                 case "addCollectionName":
                     ExecuteAddCollectionNameAsync();
                     break;
+
+                case "sync":
+                    ExecuteSync();
+                    break;
             }
+        }
+
+        private void ExecuteSync()
+        {
+            Task.Run(() =>
+            {
+                syncManager.Sync(false);
+            });
         }
 
         private async void ExecuteAddCollectionNameAsync()

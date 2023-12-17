@@ -1,4 +1,5 @@
-﻿using Rezepte.Services.Chefkoch;
+﻿using Rezepte.Services.AppToApp;
+using Rezepte.Services.Chefkoch;
 using Rezepte.Services.Database;
 using Rezepte.Services.KabelEins;
 using Rezepte.Services.PictureStorage;
@@ -19,7 +20,7 @@ namespace Rezepte.Services
         public static IServiceCollection RegisterServices(this IServiceCollection serviceCollection)
         {
             var rootPath = FileSystem.Current.AppDataDirectory;
-
+            serviceCollection.AddSingleton<SyncManager>();
             serviceCollection.AddTransient<CockingDatabaseSettings>(sp =>
             {
                 var databasePath = Path.Combine(rootPath, "Database");

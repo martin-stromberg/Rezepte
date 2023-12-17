@@ -31,5 +31,9 @@
             return ImageSource.FromFile(FilePath);
         }
 
+        public string GetFilePath(string hash)
+        {
+            return Path.Combine(_Settings.RootPath, $"{hash}.dat");
+        }
     }
 }

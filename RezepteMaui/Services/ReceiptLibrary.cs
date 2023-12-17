@@ -94,9 +94,8 @@ namespace Rezepte.Services
                     sb.Append(b.ToString("X2"));
             var hashValue = sb.ToString();
 
-            if (_PictureSource.Exists(hashValue))
-                return;
-            var existingImage = _PictureSource.Add(hashValue, picture);
+            if (!_PictureSource.Exists(hashValue))
+                _ = _PictureSource.Add(hashValue, picture);
             receipt.PictureHashes = new string[] { hashValue }.Concat(receipt.PictureHashes ?? new string[0]).ToArray();
         }
 
@@ -232,7 +231,15 @@ namespace Rezepte.Services
 
         internal Receipt FindReceiptByUri(string receiptUri)
         {
+            if (string.IsNullOrWhiteSpace(receiptUri))
+                return null;
             var record = _Database.GetAll<Database.Models.Receipt>().FirstOrDefault(receipt => receipt.Uri?.ToLower() == receiptUri.ToLower());
+            if (record == null) return null;
+            return BaseModel.CreateFromDataModel(record) as Receipt;
+        }
+        internal Receipt FindReceiptByTitle(string title)
+        {
+            var record = _Database.GetAll<Database.Models.Receipt>().FirstOrDefault(receipt => receipt.Title?.ToLower() == title.ToLower());
             if (record == null) return null;
             return BaseModel.CreateFromDataModel(record) as Receipt;
         }
@@ -266,6 +273,11 @@ namespace Rezepte.Services
             return receiptList.ToArray();
         }
 
-        
+        internal DeviceInformation GetDevice()
+        {
+            return BaseModel.CreateFromDataModel(_Database.GetAll<Database.Models.DeviceIdentification>().FirstOrDefault()) as DeviceInformation;
+        }
+
+       
     }
 }
