@@ -396,3 +396,4 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/RezepteMaui/Services/AppToApp/SyncManagerSettings.cs
