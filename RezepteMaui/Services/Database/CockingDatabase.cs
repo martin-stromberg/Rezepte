@@ -157,6 +157,8 @@ namespace Rezepte.Services.Database
         {
             if (record.Id != 0)
                 throw new ArgumentException($"record with defined primary key cannot be added.");
+            record.CreatedAt = DateTime.Now;
+            record.LastUpdate = DateTime.Now;
             Connection.Insert(record);
             SaveAssosiatedRecords(record);
             return record;
@@ -166,6 +168,7 @@ namespace Rezepte.Services.Database
         {
             if (record.Id == 0)
                 throw new ArgumentException($"record with undefined primary key cannot be updated.");
+            record.LastUpdate = DateTime.Now;
             Connection.Update(record);
             SaveAssosiatedRecords(record);
             return record;

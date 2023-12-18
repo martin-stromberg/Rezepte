@@ -11,6 +11,8 @@ namespace Rezepte.Models
     {
 
         public long Id { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime LastUpdate { get; set; }
 
         public override bool Equals(object obj)
         {

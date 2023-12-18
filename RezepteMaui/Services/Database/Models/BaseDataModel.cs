@@ -8,6 +8,8 @@ namespace Rezepte.Services.Database.Models
     {
 
         private long _Id { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime LastUpdate { get; set; }
 
         [PrimaryKey]
         [AutoIncrement]
