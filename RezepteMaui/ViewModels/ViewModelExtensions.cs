@@ -18,6 +18,7 @@ namespace Rezepte.ViewModels
             serviceCollection.AddTransient<ReceiptCardViewModel>();
             serviceCollection.AddTransient<ReceiptListItemViewModel>();
             serviceCollection.AddTransient<ReceiptCollectionViewModel>();
+            serviceCollection.AddTransient<LatestReceiptsViewModel>();
             return serviceCollection;
         }
 

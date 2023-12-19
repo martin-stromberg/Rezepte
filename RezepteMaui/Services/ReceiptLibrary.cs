@@ -28,6 +28,12 @@ namespace Rezepte.Services
             ReceiptRemoved?.Invoke(this, args);
         }
 
+        public event EventHandler<BaseModelEventArgs> ReceiptAdded;
+        protected void OnReceiptAdded(BaseModelEventArgs args)
+        {
+            ReceiptAdded?.Invoke(this, args);
+        }
+
         public ReceiptLibrary(ICockingDatabase database, IPictureStorage pictureSource, IReceiptSource[] sources)
         {
             _PictureSource = pictureSource;
@@ -68,6 +74,7 @@ namespace Rezepte.Services
             _Database.AddOrUpdate(dataItem);
 
             receipt.Id = dataItem.Id;
+            OnReceiptAdded(new BaseModelEventArgs(receipt));
         }
         public void Add(ReceiptCollection receiptCollection)
         {
@@ -78,6 +85,16 @@ namespace Rezepte.Services
             _Database.AddOrUpdate(dataItem);
 
             receiptCollection.Id = dataItem.Id;
+        }
+        public void Add(LatestReceipt receipt)
+        {
+            if (receipt.Id != 0)
+                throw new ArgumentException($"Existing receipt cannot be added.");
+
+            var dataItem = receipt.ToDataModel() as Database.Models.LatestReceipt;
+            _Database.AddOrUpdate(dataItem);
+
+            receipt.Id = dataItem.Id;
         }
         private void SavePictures(Receipt receipt)
         {
@@ -116,7 +133,14 @@ namespace Rezepte.Services
             _Database.AddOrUpdate(dataItem);
             collection.Id = dataItem.Id;
         }
-
+        public void Update(LatestReceipt receipt)
+        {
+            if (receipt.Id == 0)
+                throw new ArgumentException($"New receipt cannot be updated.");
+            var dataItem = receipt.ToDataModel();
+            _Database.AddOrUpdate(dataItem);
+            receipt.Id = dataItem.Id;
+        }
         public IEnumerable<Receipt> GetRange(int offset, int count)
         {
             return _Database.GetAll<Database.Models.Receipt>()
@@ -224,7 +248,7 @@ namespace Rezepte.Services
                 .Select(record => GetReceipt(record.ReceiptId));
         }
 
-        private Receipt GetReceipt(long receiptId)
+        public Receipt GetReceipt(long receiptId)
         {
             var record = _Database.Get<Database.Models.Receipt>(receiptId);
             if (record == null)
@@ -281,6 +305,12 @@ namespace Rezepte.Services
             return BaseModel.CreateFromDataModel(_Database.GetAll<Database.Models.DeviceIdentification>().FirstOrDefault()) as DeviceInformation;
         }
 
-       
+
+        public IEnumerable<LatestReceipt> GetLatestReceipts()
+        {
+            return _Database.GetAll<Database.Models.LatestReceipt>()
+                .Select(record => BaseModel.CreateFromDataModel(record) as LatestReceipt);
+        } 
+
     }
 }

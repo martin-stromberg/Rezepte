@@ -62,6 +62,7 @@ namespace Rezepte.Services.Database
                 Connection.CreateTable<ReceiptPicture>();
                 Connection.CreateTable<ReceiptCollection>();
                 Connection.CreateTable<ReceiptCollectionEntry>();
+                Connection.CreateTable<LatestReceipt>();
                 Connection.CreateTable<DeviceIdentification>();
                 InitializeDeviceInformation();
                 initialized = true;

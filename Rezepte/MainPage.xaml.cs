@@ -10,7 +10,6 @@ namespace Rezepte
         public MainPage()
         {
             InitializeComponent();
-
             BindingContext = ViewModel = App.GetService<HomePageViewModel>();
         }
 
@@ -19,7 +18,11 @@ namespace Rezepte
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            ViewModel.OnAppeared();
+            Task.Run(async () =>
+            {
+                await Task.Delay(500);                    
+                ViewModel?.OnAppeared();
+            });
         }
 
     }

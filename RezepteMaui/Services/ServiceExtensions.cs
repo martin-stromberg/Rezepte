@@ -2,6 +2,7 @@
 using Rezepte.Services.AppToApp;
 using Rezepte.Services.Chefkoch;
 using Rezepte.Services.Database;
+using Rezepte.Services.History;
 using Rezepte.Services.KabelEins;
 using Rezepte.Services.PictureStorage;
 using System;
@@ -55,6 +56,7 @@ namespace Rezepte.Services
             {
                 return SyncManagerSettings.Instance;
             });
+            serviceCollection.AddSingleton<ReceiptHistory>();
             return serviceCollection;
         }
 

@@ -16,6 +16,7 @@ namespace Rezepte.ViewModels
         private readonly SyncManager syncManager;
 
         public HomePageViewModel(
+            LatestReceiptsViewModel latestReceiptsViewModel,
             ReceiptLibrary receiptLibrary,
             SyncManager syncManager,
             IPictureStorage pictureStorage,
@@ -25,19 +26,13 @@ namespace Rezepte.ViewModels
             _ReceiptLibrary = receiptLibrary;
             this.syncManager = syncManager;
             _ReceiptLibrary.ReceiptCollectionRemoved += _ReceiptLibrary_ReceiptCollectionRemoved;
-            _ReceiptLibrary.ReceiptRemoved += _ReceiptLibrary_ReceiptRemoved;
 
             MenuAction = new Command((args) => ExecuteMenuAction(args as string));
             IsGeneralMode = true;
             NewReceiptUri = string.Empty;
+            LatestReceipts = latestReceiptsViewModel;
         }
 
-        private void _ReceiptLibrary_ReceiptRemoved(object sender, BaseModelEventArgs e)
-        {
-            var existing = Items.FirstOrDefault(c => c.Item.Id == e.Item.Id);
-            if (existing != null)
-                Items.Remove(existing);
-        }
 
         private void _ReceiptLibrary_ReceiptCollectionRemoved(object sender, BaseModelEventArgs e)
         {
@@ -46,18 +41,20 @@ namespace Rezepte.ViewModels
                 Collections.Remove(existing);
         }
         private bool isFirst = true;
-        public override void OnAppeared()
+        public override async void OnAppeared()
         {
             base.OnAppeared();
-            LoadCollections();
-            LoadItems();
+            await LoadCollections().ConfigureAwait(false);
+            LatestReceipts?.OnAppeared();
             if (isFirst)
-                Task.Run(async () => { 
-                    await Task.Delay(2000);
+                await Task.Run(async () => { 
+                    await Task.Delay(2000).ConfigureAwait(false);
                     syncManager.Sync();
-                });
-            isFirst = false;
+                }).ConfigureAwait(false);
+            isFirst = false;            
         }
+
+        public LatestReceiptsViewModel LatestReceipts { get; }
 
         public Command MenuAction { get; }
 
@@ -176,7 +173,7 @@ namespace Rezepte.ViewModels
                     throw new ApplicationException($"Für die angegebene Adresse konnte kein Rezept ermittelt werden.");
 
                 _ReceiptLibrary.Add(receiptCollection);
-                Add(receiptCollection);
+                await Add(receiptCollection);
                 IsGeneralMode = true;
             }
             catch(Exception ex)
@@ -230,7 +227,6 @@ namespace Rezepte.ViewModels
                             if (existingReceipt != null) continue;
 
                             _ReceiptLibrary.Add(receipt);
-                            Add(receipt);
                         }
                     }
                     catch { }
@@ -242,41 +238,18 @@ namespace Rezepte.ViewModels
             }
         }
 
-        private int currentOffset = 0;
-        private int currentCount = 10;
-
-        private void LoadItems()
-        {
-            var items = _ReceiptLibrary.GetRange(currentOffset, currentCount);
-            foreach (var item in items)
-            {
-                Add(item);
-                currentOffset++;
-            }
-            if (!items.Any())
-                return;
-            LoadItems();
-        }
-
-        private void Add(Receipt item)
-        {
-            if (!Items.Any(vm => vm.Item.Id == item.Id))
-                Items.Insert(0, new ReceiptListItemViewModel(item, PictureStorage, NavigationManager));
-        }
-
-        public ObservableCollection<ReceiptListItemViewModel> Items { get; } = new ObservableCollection<ReceiptListItemViewModel>();
         public ObservableCollection<ReceiptCollectionListItemViewModel> Collections { get; } = new ObservableCollection<ReceiptCollectionListItemViewModel>();
 
-        private void LoadCollections()
+        private async Task LoadCollections()
         {
             var categories = _ReceiptLibrary.GetCollections();
             foreach (var category in categories)
-                Add(category);
+                await Add(category);
         }
-        private void Add(ReceiptCollection item)
+        private async Task Add(ReceiptCollection item)
         {
             if (!Collections.Any(vm => vm.Item.Id == item.Id))
-                Collections.Add(new ReceiptCollectionListItemViewModel(item, PictureStorage, NavigationManager));
+                await MainThread.InvokeOnMainThreadAsync(() => { Collections.Add(new ReceiptCollectionListItemViewModel(item, PictureStorage, NavigationManager)); });
         }
     }
 }

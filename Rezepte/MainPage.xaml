@@ -56,8 +56,12 @@
                 Spacing="25"
                 Padding="30,0"
                 VerticalOptions="Start">
-                <ScrollView Orientation="Horizontal">
+                <ScrollView 
+                    BackgroundColor="Transparent" 
+                    Orientation="Horizontal" 
+                    BindingContext="{Binding LatestReceipts}">
                     <FlexLayout
+                        x:DataType="vm:LatestReceiptsViewModel"
                         AlignContent="Start"
                         AlignItems="Start"
                         AlignSelf="Start"
@@ -78,7 +82,7 @@
                 <FlexLayout
                     AlignContent="Start"
                     AlignItems="Start"
-                    AlignSelf="Start"
+                    AlignSelf="Start"                         
                     BindableLayout.ItemsSource="{Binding Collections}"
                     Direction="Row"
                     JustifyContent="Start"
