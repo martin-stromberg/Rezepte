@@ -21,7 +21,14 @@ namespace Rezepte.ViewModels
         {
             this.receiptHistory = receiptHistory;
             this.receiptHistory.ReceiptRemoved += ReceiptLibrary_ReceiptRemoved;
-            this.receiptHistory.ReceiptAdded += ReceiptLibrary_ReceiptAdded;
+            this.receiptHistory.ReceiptAdded += ReceiptLibrary_ReceiptAdded;            
+            AddEmptyReceipt();
+        }
+
+        private async void AddEmptyReceipt()
+        {
+            await Add(new Receipt() { Title = string.Empty });
+            isFirst = true;
         }
 
         private async void ReceiptLibrary_ReceiptAdded(object sender, BaseModelEventArgs e)
@@ -44,16 +51,21 @@ namespace Rezepte.ViewModels
             base.OnAppeared();
             receiptHistory.Initialize();
         }
-
+        private bool isFirst = false;
         private async Task Add(Receipt item)
-        {
+        {            
             if (!Items.Any(vm => vm.Item.Id == item.Id))
                 await MainThread.InvokeOnMainThreadAsync(() => 
-                { 
-                    if (Items.Any())
-                        Items.Insert(0, new ReceiptListItemViewModel(item, PictureStorage, NavigationManager)); 
-                    else
+                {
+                    if (!Items.Any())
                         Items.Add(new ReceiptListItemViewModel(item, PictureStorage, NavigationManager));
+                    else
+                    { 
+                        Items.Insert(0, new ReceiptListItemViewModel(item, PictureStorage, NavigationManager));
+                        if (isFirst)
+                            Items.RemoveAt(Items.Count - 1);
+                    }
+                    isFirst = false;
                 });
         }
 

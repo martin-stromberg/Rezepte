@@ -30,7 +30,6 @@ namespace Rezepte.Services.History
 
         public event EventHandler<BaseModelEventArgs> ReceiptAdded;
         public event EventHandler<BaseModelEventArgs> ReceiptRemoved;
-        //ToDo Event für Hinzugef+ügtes und Gelöschtes!
         private void Add(Receipt receipt, bool isInitLoad = false)
         {
             receipts.Insert(0, receipt);
