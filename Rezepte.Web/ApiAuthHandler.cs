@@ -22,10 +22,16 @@ public class ApiAuthHandler : DelegatingHandler
             var username = user.Identity?.Name ?? user.FindFirstValue(ClaimTypes.Name) ?? userId;
             if (!string.IsNullOrEmpty(userId))
             {
-                var token = _tokens.GetToken(userId) ?? _tokens.CreateToken(userId!, username ?? userId!);
+                var token = _tokens.GetToken(userId);
+                if (string.IsNullOrEmpty(token))
+                {
+                    var isAdmin = user.IsInRole("Admin");
+                    token = _tokens.CreateToken(userId!, username ?? userId!, isAdmin);
+                }
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
         }
+
         return await base.SendAsync(request, cancellationToken);
     }
 }

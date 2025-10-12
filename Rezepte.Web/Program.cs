@@ -119,6 +119,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 // ViewModels
 builder.Services.AddScoped<SettingsViewModel>();
 builder.Services.AddScoped<UserProfileViewModel>();
+builder.Services.AddScoped<UserAdminViewModel>();
 
 var app = builder.Build();
 

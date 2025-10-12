@@ -38,8 +38,8 @@ public class SessionController : ControllerBase
             ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
         });
 
-        // Issue API token (JWT) and cache by user
-        tokens.CreateToken(user.Id, user.Username);
+        // Issue API token (JWT) and cache by user; include role claim
+        tokens.CreateToken(user.Id, user.Username, user.IsAdmin);
 
         return LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl);
     }

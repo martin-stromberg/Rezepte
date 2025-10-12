@@ -1,30 +1,46 @@
 ﻿@page "/settings"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject Rezepte.Web.ViewModels.SettingsViewModel Vm
 
-<div class="row g-3">
-    <div class="col-12 col-md-3 col-lg-2">
-        <div class="list-group">
-            @foreach (var item in Vm.Items)
-            {
-                <button type="button"
-                        class="list-group-item list-group-item-action @(ReferenceEquals(item, Vm.SelectedItem) ? "active" : "")"
-                        @onclick="() => { Vm.Select(item); StateHasChanged(); }">
-                    <span class="me-2">@item.Icon</span>@item.Title
-                </button>
-            }
-        </div>
-    </div>
-    <div class="col-12 col-md-9 col-lg-10">
-        <div class="card shadow-soft">
-            <div class="card-header">
-                <h5 class="mb-0">@Vm.SelectedItem.Title</h5>
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized>
+            @* Sidebar *@
+            <div class="row g-3">
+                <div class="col-12 col-md-3 col-lg-2">
+                    <div class="list-group">
+                        @foreach (var item in Vm.Items.Where(item => item.Visible))
+                        {
+                            <button type="button"
+                                    class="list-group-item list-group-item-action @(ReferenceEquals(item, DisplayItem) ? "active" : "")"
+                                    @onclick="() => { Vm.Select(item); StateHasChanged(); }">
+                                <span class="me-2">@item.Icon</span>@item.Title
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="col-12 col-md-9 col-lg-10">
+                    <div class="card shadow-soft">
+                        <div class="card-header">
+                            <h5 class="mb-0">@DisplayItem.Title</h5>
+                        </div>
+                        <div class="card-body">
+                            <DynamicComponent Type="@DisplayItem.ComponentType" />
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <DynamicComponent Type="@Vm.SelectedItem.ComponentType" />
-            </div>
-        </div>
-    </div>
-</div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="alert alert-warning">Bitte anmelden.</div>
+        </NotAuthorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
+
+@code {    
+    private Rezepte.Web.ViewModels.SettingsViewModel.Item DisplayItem
+        => Vm.SelectedItem ?? Vm.Items.First();
+}

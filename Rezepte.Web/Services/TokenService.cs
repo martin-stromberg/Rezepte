@@ -9,7 +9,7 @@ namespace Rezepte.Web.Services;
 
 public interface ITokenService
 {
-    string CreateToken(string userId, string username);
+    string CreateToken(string userId, string username, bool isAdmin = false);
     string? GetToken(string userId);
 }
 
@@ -27,7 +27,7 @@ public class TokenService : ITokenService
         _key = SHA256.HashData(raw);
     }
 
-    public string CreateToken(string userId, string username)
+    public string CreateToken(string userId, string username, bool isAdmin = false)
     {
         var handler = new JwtSecurityTokenHandler();
         var creds = new SigningCredentials(new SymmetricSecurityKey(_key), SecurityAlgorithms.HmacSha256);
@@ -36,6 +36,10 @@ public class TokenService : ITokenService
             new(ClaimTypes.NameIdentifier, userId),
             new(ClaimTypes.Name, username)
         };
+        if (isAdmin)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+        }
         var token = handler.CreateJwtSecurityToken(
             issuer: "rezepte",
             audience: "rezepte.api",

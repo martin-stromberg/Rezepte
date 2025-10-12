@@ -18,10 +18,10 @@
 | FR-014  | Erledigt   | Logging/Diagnostik im Development                                            | `UseDeveloperExceptionPage`, Blazor `DetailedErrors`, angehobene LogLevel in `appsettings.Development.json`. |
 | FR-015  | Erledigt   | DB-Migrationen                                                               | Automatische Migration bei Programmstart (falls Migrationen vorhanden). |
 | FR-016  | Erledigt   | Erste Registrierung als Admin markieren                                      | `IUserService.RegisterAsync` setzt `IsAdmin = true` für den ersten registrierten Benutzer (`Entities.User.IsAdmin`). |
-| FR-017  | Offen      | Admin-Setup-Seite                                                            | Seite `/admin/setup` für Benutzerverwaltung nur für Admins. |
+| FR-017  | Erledigt   | Admin-Setup-Seite                                                            | Benutzerverwaltung als Einstellung "Benutzer" (`Components/Settings/UserAdmin.razor`), nur für Admins sichtbar; API: `GET/POST/PUT/DELETE /api/admin/users` (Bearer + Rolle Admin). |
 | FR-018  | Erledigt   | Form-Handling                                                                | Login/Registrierung senden `x-www-form-urlencoded`; Controller erkennen Form/JSON und liefern bei Form-POST `LocalRedirect`. |
 | FR-019  | Erledigt   | Internationalisierung (Deutsch)                                              | UI-Strings Deutsch; Erweiterbarkeit vorbereitet. |
 | NFR-001 | Erledigt   | Sicherheit Cookie-Einstellungen                                              | Cookie `HttpOnly`, `SameSite=Lax`, `SecurePolicy=SameAsRequest`; HTTPS empfohlen. |
 | NFR-002 | Erledigt   | JWT-Schlüsselstärke                                                          | Secret wird via SHA-256 auf 256 Bit gebracht (HS256-Anforderung). |
 
-Hinweis: Für FR-015 (Migrationen) bitte per CLI ausführen: `dotnet ef migrations add InitialCreate` und `dotnet ef database update` (vorher Anwendung stoppen). Für FR-017 sind Datenmodell- und UI-Erweiterungen einzuplanen.
+Hinweis: Für FR-015 (Migrationen) bitte per CLI ausführen: `dotnet ef migrations add InitialCreate` und `dotnet ef database update` (vorher Anwendung stoppen). Für FR-017 sind Datenmodell- und UI-Erweiterungen umgesetzt; die Seite ist als Einstellungsmodul integriert.

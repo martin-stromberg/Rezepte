@@ -16,6 +16,11 @@ public interface IUserService
     Task<User?> GetByIdAsync(string id, CancellationToken ct);
     Task<(bool ok, string? error, User? user)> UpdateProfileAsync(string id, string? username, string? email, CancellationToken ct);
     Task<(bool ok, string? error)> ChangePasswordAsync(string id, string currentPassword, string newPassword, CancellationToken ct);
+
+    // Admin-Funktionen
+    Task<List<User>> GetAllAsync(CancellationToken ct);
+    Task<(bool ok, string? error)> UpdateUserAsync(string id, string username, string? email, bool isAdmin, CancellationToken ct);
+    Task<(bool ok, string? error)> DeleteAsync(string id, CancellationToken ct);
 }
 public class UserService(RezepteDbContext db) : IUserService
 {
@@ -109,6 +114,48 @@ public class UserService(RezepteDbContext db) : IUserService
         entity.PasswordHash = PasswordHasher.Hash(newPassword);
         await _db.SaveChangesAsync(ct);
 
+        return (true, null);
+    }
+
+    public async Task<List<User>> GetAllAsync(CancellationToken ct)
+    {
+        var list = await _db.Users.AsNoTracking().OrderBy(u => u.Username).ToListAsync(ct);
+        return list.Select(u => new User(u.Id, u.Username, u.Email, u.PasswordHash, u.IsAdmin)).ToList();
+    }
+
+    public async Task<(bool ok, string? error)> UpdateUserAsync(string id, string username, string? email, bool isAdmin, CancellationToken ct)
+    {
+        var entity = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        if (entity is null) return (false, "User not found.");
+
+        if (string.IsNullOrWhiteSpace(username) || username.Length < 3)
+            return (false, "Der Benutzername muss mindestens 3 Zeichen haben.");
+
+        if (!string.Equals(entity.Username, username, StringComparison.Ordinal))
+        {
+            var exists = await _db.Users.AnyAsync(u => u.Username == username && u.Id != id, ct);
+            if (exists) return (false, "Benutzername ist bereits vergeben.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            if (!email.Contains('@') || email.Length > 256)
+                return (false, "Die E-Mail ist ungültig.");
+        }
+
+        entity.Username = username;
+        entity.Email = email ?? string.Empty;
+        entity.IsAdmin = isAdmin;
+        await _db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    public async Task<(bool ok, string? error)> DeleteAsync(string id, CancellationToken ct)
+    {
+        var entity = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
+        if (entity is null) return (false, "User not found.");
+        _db.Users.Remove(entity);
+        await _db.SaveChangesAsync(ct);
         return (true, null);
     }
 }
