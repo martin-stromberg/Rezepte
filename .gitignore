@@ -398,3 +398,6 @@ FodyWeavers.xsd
 *.sln.iml
 /RezepteMaui/Services/AppToApp/SyncManagerSettings.cs
 /Rezepte/Resources/Raw/syncManager.json
+*.db
+*.db-shm
+*.db-wal

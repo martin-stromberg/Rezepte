@@ -1,0 +1,42 @@
+@page "/register"
+@inject NavigationManager Nav
+
+<div class="page-auth my-5">
+    <div class="card shadow-soft">
+        <div class="card-header"><h3 class="mb-0">Registrieren</h3></div>
+        <div class="card-body p-4">
+            <!-- Browser-postendes Formular: Werte gehen über name-Attribute direkt an den API-Endpunkt -->
+            <EditForm Model="model" Action="api/auth/register" Method="post" FormName="register">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Benutzername</label>
+                    <InputText class="form-control" @bind-Value="model.Username" @bind-Value:event="oninput" name="Username" autocomplete="username" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">E-Mail (optional)</label>
+                    <InputText class="form-control" @bind-Value="model.Email" @bind-Value:event="oninput" name="Email" autocomplete="email" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Passwort</label>
+                    <InputText class="form-control" @bind-Value="model.Password" @bind-Value:event="oninput" type="password" name="Password" autocomplete="new-password" />
+                </div>
+                <div class="d-grid">
+                    <button class="btn btn-accent" type="submit">Registrieren</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterModel model = new();
+
+    private class RegisterModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string? Email { get; set; }
+        public string Password { get; set; } = string.Empty;
+    }
+}

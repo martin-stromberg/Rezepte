@@ -1,0 +1,88 @@
+/* Farbpalette für Kochrezepte: warme Akzente (Tomate/Beere), Kräutergrün, Creme-Hintergrund */
+:root {
+    --app-bg: #fffaf3;           /* helles Creme */
+    --app-surface: #ffffff;      /* Karten-/Flächenfarbe */
+    --app-text: #2b2b2b;         /* Grundtext */
+    --app-muted: #6c757d;        /* Muted */
+    --app-border: #e6e2dc;       /* zarte Rahmen */
+
+    --app-primary: #e4572e;      /* tomatenrot/orange */
+    --app-primary-600: #cc4d29;
+    --app-accent: #2e7d32;       /* kräutergrün */
+    --app-accent-600: #256628;
+
+    --app-link: #b23a48;         /* beere */
+    --app-link-hover: #8f2f3a;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+}
+
+/* Navbar */
+.app-navbar {
+    background: linear-gradient(90deg, var(--app-primary) 0%, var(--app-primary-600) 100%);
+}
+.app-navbar .navbar-brand { color: #fff; }
+.app-navbar .nav-link { color: #ffe8dc; }
+.app-navbar .nav-link.active, .app-navbar .nav-link:hover { color: #ffffff; }
+
+.btn-accent {
+    background-color: var(--app-accent);
+    color: #fff;
+}
+.btn-accent:hover { background-color: var(--app-accent-600); color: #fff; }
+
+/* Karten und Flächen */
+.card {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,.04);
+}
+
+/* Links */
+a { color: var(--app-link); }
+a:hover { color: var(--app-link-hover); }
+
+/* Formulare/Validation */
+h1:focus { outline: none; }
+.valid.modified:not([type=checkbox]) { outline: 1px solid #26b050; }
+.invalid { outline: 1px solid #e50000; }
+.validation-message { color: #e50000; }
+
+/* Error Boundary */
+.blazor-error-boundary {
+    background: #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+.blazor-error-boundary::after { content: "Es ist ein Fehler aufgetreten." }
+
+/* Footer */
+.app-footer {
+    background: #fff;
+    border-top: 1px solid var(--app-border);
+}
+
+/* Utility */
+.shadow-soft { box-shadow: 0 10px 30px rgba(0,0,0,.05); }
+.rounded-xl { border-radius: 1rem; }
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+.darker-border-checkbox.form-check-input {
+    border-color: #929292;
+}
