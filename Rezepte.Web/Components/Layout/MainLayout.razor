@@ -1,0 +1,62 @@
+﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+
+<nav class="navbar navbar-expand-lg navbar-dark app-navbar shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="/">
+            <img src="icons/rezepte.ico" alt="Rezepte" width="24" height="24" class="me-1" />
+            <span>Rezepte</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Start</NavLink>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <AuthorizeView>
+                    <Authorized>                        
+                        <li class="nav-item d-flex align-items-center me-2 text-white-50">
+                            Hallo, @context.User.Identity?.Name
+                        </li>
+                        <li class="nav-item">
+                            <form action="api/session/logout?returnUrl=/login" method="post" class="d-inline" formname="logout">
+                                <button type="submit" class="nav-link btn btn-link text-decoration-none">Abmelden</button>
+                            </form>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link d-flex align-items-center" href="/settings" title="Einrichtung / Benutzerverwaltung">
+                                <span class="me-1">⚙️</span>
+                                <span class="d-none d-sm-inline">Einrichtung</span>
+                            </NavLink>
+                        </li>
+                    </Authorized>
+                    <NotAuthorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/login">Anmelden</NavLink>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-4">
+    @Body
+</main>
+
+<footer class="app-footer text-center py-4 mt-auto">
+    <div class="container small text-muted">
+        © @DateTime.Now.Year Rezepte · Mit Liebe gekocht
+    </div>
+</footer>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss" onclick="this.closest('#blazor-error-ui').style.display='none'">🗙</span>
+</div>

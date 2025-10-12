@@ -1,0 +1,47 @@
+@page "/login"
+@inject NavigationManager Nav
+
+<div class="page-auth my-5">
+    <div class="card shadow-soft">
+        <div class="card-header"><h3 class="mb-0">Anmelden</h3></div>
+        <div class="card-body p-4">
+            <!-- Browser-postendes Formular: Werte kommen aus den name-Attributen, unabhängig vom Blazor-Model-Binding -->
+            <EditForm Model="model" Action="api/session/login?returnUrl=/" Method="post" FormName="login">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Benutzername</label>
+                    <InputText class="form-control" @bind-Value="model.Username" @bind-Value:event="oninput" name="Username" autocomplete="username" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Passwort</label>
+                    <InputText class="form-control" @bind-Value="model.Password" @bind-Value:event="oninput" type="password" name="Password" autocomplete="current-password" />
+                </div>
+                <div class="form-check mb-3">
+                    <InputCheckbox class="form-check-input" @bind-Value="model.RememberMe" id="rememberMe" name="RememberMe" />
+                    <label class="form-check-label" for="rememberMe">Angemeldet bleiben</label>
+                </div>
+                <div class="d-grid">
+                    <button class="btn btn-accent" type="submit">Anmelden</button>
+                </div>
+            </EditForm>
+
+            @if (Nav.Uri.Contains("error=1", StringComparison.OrdinalIgnoreCase))
+            {
+                <div class="alert alert-danger mt-3">Benutzername oder Passwort falsch.</div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel model = new();
+
+    private class LoginModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public bool RememberMe { get; set; }
+    }
+}
