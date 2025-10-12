@@ -1,0 +1,118 @@
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Authorization
+@using Rezepte.Web.ViewModels
+@using static Rezepte.Web.ViewModels.UserProfileViewModel
+@inject UserProfileViewModel Vm
+
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized Context="authState">
+            @if (Vm.IsLoading)
+            {
+                <div class="text-muted">Lade Profil…</div>
+            }
+            else
+            {
+                @if (!string.IsNullOrWhiteSpace(Vm.Message))
+                {
+                    <div class="alert @(Vm.IsError ? "alert-danger" : "alert-success")">@Vm.Message</div>
+                }
+
+                <div class="row g-4">
+                    <div class="col-12 col-lg-6">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">Profil</h6>
+                            </div>
+                            <div class="card-body">
+                                <EditForm Model="@Vm.Profile" OnValidSubmit="@(() => Vm.SaveProfileAsync())" FormName="profile">
+                                    <DataAnnotationsValidator />
+                                    <ValidationSummary />
+
+                                    <input type="hidden" id="Id" name="Id" value="@Vm.Profile.Id" />
+
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">Benutzername</label>
+                                        <InputText id="name" class="form-control"
+                                                   @bind-Value="Vm.Profile.Username" />
+                                        <ValidationMessage For="@(() => Vm.Profile.Username)" />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="Email" class="form-label">E-Mail</label>
+                                        <InputText id="Email" class="form-control"
+                                                   @bind-Value="Vm.Profile.Email" />
+                                        <ValidationMessage For="@(() => Vm.Profile.Email)" />
+                                    </div>
+
+                                    <div class="d-grid">
+                                        <button class="btn btn-primary" type="submit" disabled="@Vm.IsBusy">Speichern</button>
+                                    </div>
+                                    <div class="form-text mt-2">
+                                        Hinweis: Nach Änderung des Benutzernamens kann eine erneute Anmeldung nötig sein, damit der Name in der Navigation aktualisiert wird.
+                                    </div>
+                                </EditForm>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-lg-6">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">Passwort ändern</h6>
+                            </div>
+                            <div class="card-body">
+                                <EditForm Model="@Vm.Password" OnValidSubmit="@(() => Vm.ChangePasswordAsync())" FormName="changePassword">
+                                    <DataAnnotationsValidator />
+                                    <ValidationSummary />
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Aktuelles Passwort</label>
+                                        <InputText class="form-control" type="password" @bind-Value="Vm.Password.CurrentPassword" />
+                                        <ValidationMessage For="@(() => Vm.Password.CurrentPassword)" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Neues Passwort</label>
+                                        <InputText class="form-control" type="password" @bind-Value="Vm.Password.NewPassword" />
+                                        <ValidationMessage For="@(() => Vm.Password.NewPassword)" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Neues Passwort bestätigen</label>
+                                        <InputText class="form-control" type="password" @bind-Value="Vm.Password.ConfirmPassword" />
+                                        <ValidationMessage For="@(() => Vm.Password.ConfirmPassword)" />
+                                    </div>
+
+                                    <div class="d-grid">
+                                        <button class="btn btn-outline-primary" type="submit" disabled="@Vm.IsBusy">Passwort ändern</button>
+                                    </div>
+                                </EditForm>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="alert alert-warning">Bitte anmelden, um das Profil zu verwalten.</div>
+        </NotAuthorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
+
+@code {
+    private ProfileModel profileModel = new ProfileModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Vm.OnChange += StateHasChanged;
+        await Vm.LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        Vm.OnChange -= StateHasChanged;
+    }
+    private async void HandleProfileChanges(EditContext args)
+    {
+        await Vm.SaveProfileAsync();
+    }
+}

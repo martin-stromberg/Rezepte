@@ -2,7 +2,7 @@
 
 | Kennung | Status     | Anforderung                                                                  | Umsetzungsbeschreibung |
 |---------|------------|------------------------------------------------------------------------------|------------------------|
-| FR-001  | Erledigt   | Datenpersistenz mit SQLite                                                   | `RezepteDbContext` mit SQLite, Schema via `EnsureCreated` bei fehlenden Migrationen, sonst `Migrate()` beim Start. |
+| FR-001  | Erledigt   | Datenpersistenz mit SQLite                                                   | `RezepteDbContext` mit SQLite, Schema via EF-Migrationen beim Start (wenn vorhanden). |
 | FR-002  | Erledigt   | Passwort-Hashing                                                             | PBKDF2 (`PasswordHasher`) eingesetzt. |
 | FR-003  | Erledigt   | Cookie-Authentifizierung für Website                                         | Cookie-Auth in `Program.cs` konfiguriert (`rezepte.auth`), `UseAuthentication/UseAuthorization`. |
 | FR-004  | Erledigt   | JWT-Bearer-Authentifizierung für API                                         | `JwtBearer` konfiguriert; `ITokenService` erzeugt HS256-Token; Key auf 256 Bit normalisiert. |
@@ -16,12 +16,12 @@
 | FR-012  | Erledigt   | Navbar abhängig vom Anmeldestatus                                            | `AuthorizeView` in `MainLayout.razor`: Gäste sehen „Anmelden“, angemeldete Nutzer Begrüßung + „Abmelden“. |
 | FR-013  | Erledigt   | Kein direkter Link zur Registrierung bei bestehenden Benutzern               | Link entfernt; Middleware blockiert Zugriff auf `/register`, wenn Nutzer existieren. |
 | FR-014  | Erledigt   | Logging/Diagnostik im Development                                            | `UseDeveloperExceptionPage`, Blazor `DetailedErrors`, angehobene LogLevel in `appsettings.Development.json`. |
-| FR-015  | Erledigt   | DB-Migrationen                                                               | Automatische Migration bei Programmstart |
-| FR-016  | Erledigt   | Erste Registrierung als Admin markieren                                      | Flag/Rollenmodell (z. B. `IsAdmin`/`Roles`) noch umzusetzen. |
+| FR-015  | Erledigt   | DB-Migrationen                                                               | Automatische Migration bei Programmstart (falls Migrationen vorhanden). |
+| FR-016  | Erledigt   | Erste Registrierung als Admin markieren                                      | `IUserService.RegisterAsync` setzt `IsAdmin = true` für den ersten registrierten Benutzer (`Entities.User.IsAdmin`). |
 | FR-017  | Offen      | Admin-Setup-Seite                                                            | Seite `/admin/setup` für Benutzerverwaltung nur für Admins. |
 | FR-018  | Erledigt   | Form-Handling                                                                | Login/Registrierung senden `x-www-form-urlencoded`; Controller erkennen Form/JSON und liefern bei Form-POST `LocalRedirect`. |
 | FR-019  | Erledigt   | Internationalisierung (Deutsch)                                              | UI-Strings Deutsch; Erweiterbarkeit vorbereitet. |
 | NFR-001 | Erledigt   | Sicherheit Cookie-Einstellungen                                              | Cookie `HttpOnly`, `SameSite=Lax`, `SecurePolicy=SameAsRequest`; HTTPS empfohlen. |
 | NFR-002 | Erledigt   | JWT-Schlüsselstärke                                                          | Secret wird via SHA-256 auf 256 Bit gebracht (HS256-Anforderung). |
 
-Hinweis: Für FR-015 (Migrationen) bitte per CLI ausführen: `dotnet ef migrations add InitialCreate` und `dotnet ef database update` (vorher Anwendung stoppen). Für FR-016/FR-017 sind Datenmodell- und UI-Erweiterungen einzuplanen.
+Hinweis: Für FR-015 (Migrationen) bitte per CLI ausführen: `dotnet ef migrations add InitialCreate` und `dotnet ef database update` (vorher Anwendung stoppen). Für FR-017 sind Datenmodell- und UI-Erweiterungen einzuplanen.

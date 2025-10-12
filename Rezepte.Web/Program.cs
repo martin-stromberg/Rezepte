@@ -8,6 +8,11 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Rezepte.Web.ViewModels;
+using System.Net;
+using System.Security.Cryptography;
+using Rezepte.Web;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,8 +26,11 @@ builder.Services.AddRazorComponents()
         }
     });
 
-// Add API controllers
-builder.Services.AddControllers();
+// Add API controllers (Antiforgery für APIs global ignorieren)
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add(new IgnoreAntiforgeryTokenAttribute());
+});
 
 // EF Core Sqlite
 var connectionString = builder.Configuration.GetConnectionString("Default") ?? "Data Source=rezepte.db";
@@ -42,10 +50,38 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.SlidingExpiration = true;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
+
+        // WICHTIG: Keine HTML-Redirects für API-Endpunkte
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnRedirectToLogin = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return Task.CompletedTask;
+            },
+            OnRedirectToAccessDenied = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return Task.CompletedTask;
+            }
+        };
     })
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
     {
-        var key = builder.Configuration["Jwt:Key"] ?? "dev-super-secret-key-change";
+        var secret = builder.Configuration["Jwt:Key"] ?? "dev-super-secret-key-change";
+        // Gleiches Verfahren wie im TokenService: SHA256 aus dem Secret bilden
+        var raw = Encoding.UTF8.GetBytes(secret);
+        var keyBytes = SHA256.HashData(raw);
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -53,28 +89,36 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             ValidateAudience = true,
             ValidAudience = "rezepte.api",
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+            IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
         };
     });
 
 builder.Services.AddAuthorization();
 
-// HttpClient for Blazor Server components with API auth delegating handler
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ApiAuthHandler>();
-builder.Services.AddHttpClient("ApiClient").AddHttpMessageHandler<ApiAuthHandler>();
+builder.Services.AddTransient<AntiForgeryHandler>();
 
+// Typed API-Client mit Auth-Handlern (Auth + AntiForgery)
+builder.Services.AddHttpClient<ApiClient>()
+    .AddHttpMessageHandler<ApiAuthHandler>()
+    .AddHttpMessageHandler<AntiForgeryHandler>();
+
+// Default HttpClient (ohne Auth-Header) bleibt für statische/öffentliche Calls verfügbar
 builder.Services.AddScoped(sp =>
 {
-    // Default HttpClient for same-origin calls (no auth header)
     var nav = sp.GetRequiredService<NavigationManager>();
     return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
 });
 
 // Register application services
 builder.Services.AddScoped<IUserService, UserService>();
+
+// ViewModels
+builder.Services.AddScoped<SettingsViewModel>();
+builder.Services.AddScoped<UserProfileViewModel>();
 
 var app = builder.Build();
 
@@ -96,10 +140,13 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
 
-app.UseAntiforgery();
-
 app.UseAuthentication();
 app.UseAuthorization();
+// Antiforgery nur für Nicht-API-Routen aktivieren
+app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
+{
+    branch.UseAntiforgery();
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

@@ -1,0 +1,30 @@
+﻿@page "/settings"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject Rezepte.Web.ViewModels.SettingsViewModel Vm
+
+<div class="row g-3">
+    <div class="col-12 col-md-3 col-lg-2">
+        <div class="list-group">
+            @foreach (var item in Vm.Items)
+            {
+                <button type="button"
+                        class="list-group-item list-group-item-action @(ReferenceEquals(item, Vm.SelectedItem) ? "active" : "")"
+                        @onclick="() => { Vm.Select(item); StateHasChanged(); }">
+                    <span class="me-2">@item.Icon</span>@item.Title
+                </button>
+            }
+        </div>
+    </div>
+    <div class="col-12 col-md-9 col-lg-10">
+        <div class="card shadow-soft">
+            <div class="card-header">
+                <h5 class="mb-0">@Vm.SelectedItem.Title</h5>
+            </div>
+            <div class="card-body">
+                <DynamicComponent Type="@Vm.SelectedItem.ComponentType" />
+            </div>
+        </div>
+    </div>
+</div>
