@@ -72,7 +72,9 @@ public class UserProfileViewModel
         IsBusy = true; Notify();
         try
         {
-            var payload = new UpdateProfileRequest(Profile.Username!.Trim(), string.IsNullOrWhiteSpace(Profile.Email) ? null : Profile.Email.Trim());
+            var username = (Profile.Username ?? string.Empty).Trim();
+            var email = string.IsNullOrWhiteSpace(Profile.Email) ? null : Profile.Email!.Trim();
+            var payload = new UpdateProfileRequest(username, email);
             var res = await _http.PutAsJsonAsync("api/users/me", payload, ct);
             if (!res.IsSuccessStatusCode)
             {

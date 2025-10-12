@@ -1,7 +1,6 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Components.Authorization
 @using Rezepte.Web.ViewModels
-@using static Rezepte.Web.ViewModels.UserProfileViewModel
 @inject UserProfileViewModel Vm
 
 <CascadingAuthenticationState>
@@ -99,8 +98,6 @@
 </CascadingAuthenticationState>
 
 @code {
-    private ProfileModel profileModel = new ProfileModel();
-
     protected override async Task OnInitializedAsync()
     {
         Vm.OnChange += StateHasChanged;
@@ -110,9 +107,5 @@
     public void Dispose()
     {
         Vm.OnChange -= StateHasChanged;
-    }
-    private async void HandleProfileChanges(EditContext args)
-    {
-        await Vm.SaveProfileAsync();
     }
 }

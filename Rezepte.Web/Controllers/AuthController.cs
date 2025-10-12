@@ -4,12 +4,20 @@ using Rezepte.Web.Services;
 
 namespace Rezepte.Web.Controllers;
 
+/// <summary>
+/// Authentication endpoints such as registration. Accepts form posts for the website and JSON for API.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController(IUserService userService) : ControllerBase
 {
     private readonly IUserService _userService = userService;
 
+    /// <summary>
+    /// Registers a new user from form or JSON payloads. On form post, redirects to /login; otherwise returns JSON response.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Redirect to /login on form posts or 200 OK with <see cref="AuthResponse"/> for JSON.</returns>
     [IgnoreAntiforgeryToken]
     [HttpPost("register")]
     public async Task<IActionResult> Register(CancellationToken ct)
@@ -55,7 +63,7 @@ public class AuthController(IUserService userService) : ControllerBase
             return BadRequest(new { message = error ?? "Registration failed" });
         }
 
-        // Wenn Formular-Post: zur Login-Seite weiterleiten, statt JSON auszugeben
+        // When form post: redirect to login instead of returning JSON
         if (Request.HasFormContentType)
         {
             return LocalRedirect("/login");
@@ -64,5 +72,6 @@ public class AuthController(IUserService userService) : ControllerBase
         return Ok(new AuthResponse(user.Id, user.Username, user.Email));
     }
 
+    /// <summary>Form DTO used by the website registration page.</summary>
     public record RegisterRequestForm(string? Email, string Username, string Password);
 }

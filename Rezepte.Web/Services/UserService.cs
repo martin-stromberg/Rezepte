@@ -4,28 +4,117 @@ using Rezepte.Web.Data;
 using Rezepte.Web.Security;
 
 namespace Rezepte.Web.Services;
+
+/// <summary>
+/// Lightweight user projection used by the service layer.
+/// </summary>
+/// <param name="Id">User identifier.</param>
+/// <param name="Username">Username (unique).</param>
+/// <param name="Email">E-mail address (optional).</param>
+/// <param name="PasswordHash">Hashed password.</param>
+/// <param name="IsAdmin">True if user has admin privileges.</param>
 public record User(string Id, string Username, string Email, string PasswordHash, bool IsAdmin);
 
+/// <summary>
+/// User management service contract.
+/// </summary>
 public interface IUserService
 {
+    /// <summary>
+    /// Registers a new user account.
+    /// </summary>
+    /// <param name="username">Desired username.</param>
+    /// <param name="password">Plain password to hash and store.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Tuple with success flag, optional error and created user projection.</returns>
     Task<(bool ok, string? error, User? user)> RegisterAsync(string username, string password, CancellationToken ct);
+
+    /// <summary>
+    /// Authenticates a user with credentials.
+    /// </summary>
+    /// <param name="username">Username.</param>
+    /// <param name="password">Password.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>User projection when credentials are valid; otherwise null.</returns>
     Task<User?> LoginAsync(string username, string password, CancellationToken ct);
+
+    /// <summary>
+    /// Finds a user by username.
+    /// </summary>
+    /// <param name="username">Username to search.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>User projection or null.</returns>
     Task<User?> FindByUsernameAsync(string username, CancellationToken ct);
+
+    /// <summary>
+    /// Indicates whether any users exist in the system.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>True if at least one user exists.</returns>
     Task<bool> HasAnyUsersAsync(CancellationToken ct);
 
+    /// <summary>
+    /// Gets a user by identifier.
+    /// </summary>
+    /// <param name="id">User identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>User projection or null.</returns>
     Task<User?> GetByIdAsync(string id, CancellationToken ct);
+
+    /// <summary>
+    /// Updates the profile (username/email) of a user.
+    /// </summary>
+    /// <param name="id">User identifier.</param>
+    /// <param name="username">New username.</param>
+    /// <param name="email">New e-mail address (optional).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Tuple with success flag, optional error and updated user projection.</returns>
     Task<(bool ok, string? error, User? user)> UpdateProfileAsync(string id, string? username, string? email, CancellationToken ct);
+
+    /// <summary>
+    /// Changes the password of a user after verifying the current password.
+    /// </summary>
+    /// <param name="id">User identifier.</param>
+    /// <param name="currentPassword">Current password to verify.</param>
+    /// <param name="newPassword">New password to set.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Tuple with success flag and optional error.</returns>
     Task<(bool ok, string? error)> ChangePasswordAsync(string id, string currentPassword, string newPassword, CancellationToken ct);
 
-    // Admin-Funktionen
+    // Admin functions
+
+    /// <summary>
+    /// Returns all users for administration.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>List of users.</returns>
     Task<List<User>> GetAllAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Updates an arbitrary user (admin endpoint).
+    /// </summary>
+    /// <param name="id">User identifier.</param>
+    /// <param name="username">New username.</param>
+    /// <param name="email">New e-mail (optional).</param>
+    /// <param name="isAdmin">Admin flag.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Tuple with success flag and optional error.</returns>
     Task<(bool ok, string? error)> UpdateUserAsync(string id, string username, string? email, bool isAdmin, CancellationToken ct);
+
+    /// <summary>
+    /// Deletes a user by id.
+    /// </summary>
+    /// <param name="id">User identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Tuple with success flag and optional error.</returns>
     Task<(bool ok, string? error)> DeleteAsync(string id, CancellationToken ct);
 }
+
 public class UserService(RezepteDbContext db) : IUserService
 {
     private readonly RezepteDbContext _db = db;
 
+    /// <inheritdoc />
     public async Task<(bool ok, string? error, User? user)> RegisterAsync(string username, string password, CancellationToken ct)
     {
         if (await _db.Users.AnyAsync(u => u.Username == username, ct))
@@ -45,6 +134,7 @@ public class UserService(RezepteDbContext db) : IUserService
         return (true, null, user);
     }
 
+    /// <inheritdoc />
     public async Task<User?> LoginAsync(string username, string password, CancellationToken ct)
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Username == username, ct);
@@ -54,23 +144,27 @@ public class UserService(RezepteDbContext db) : IUserService
             : null;
     }
 
+    /// <inheritdoc />
     public async Task<User?> FindByUsernameAsync(string username, CancellationToken ct)
     {
         var entity = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == username, ct);
         return entity is null ? null : new User(entity.Id, entity.Username, entity.Email, entity.PasswordHash, entity.IsAdmin);
     }
 
+    /// <inheritdoc />
     public async Task<bool> HasAnyUsersAsync(CancellationToken ct)
     {
         return await _db.Users.AsNoTracking().AnyAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task<User?> GetByIdAsync(string id, CancellationToken ct)
     {
         var entity = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
         return entity is null ? null : new User(entity.Id, entity.Username, entity.Email, entity.PasswordHash, entity.IsAdmin);
     }
 
+    /// <inheritdoc />
     public async Task<(bool ok, string? error, User? user)> UpdateProfileAsync(string id, string? username, string? email, CancellationToken ct)
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
@@ -100,6 +194,7 @@ public class UserService(RezepteDbContext db) : IUserService
         return (true, null, new User(entity.Id, entity.Username, entity.Email, entity.PasswordHash, entity.IsAdmin));
     }
 
+    /// <inheritdoc />
     public async Task<(bool ok, string? error)> ChangePasswordAsync(string id, string currentPassword, string newPassword, CancellationToken ct)
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
@@ -117,12 +212,14 @@ public class UserService(RezepteDbContext db) : IUserService
         return (true, null);
     }
 
+    /// <inheritdoc />
     public async Task<List<User>> GetAllAsync(CancellationToken ct)
     {
         var list = await _db.Users.AsNoTracking().OrderBy(u => u.Username).ToListAsync(ct);
         return list.Select(u => new User(u.Id, u.Username, u.Email, u.PasswordHash, u.IsAdmin)).ToList();
     }
 
+    /// <inheritdoc />
     public async Task<(bool ok, string? error)> UpdateUserAsync(string id, string username, string? email, bool isAdmin, CancellationToken ct)
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
@@ -150,6 +247,7 @@ public class UserService(RezepteDbContext db) : IUserService
         return (true, null);
     }
 
+    /// <inheritdoc />
     public async Task<(bool ok, string? error)> DeleteAsync(string id, CancellationToken ct)
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);

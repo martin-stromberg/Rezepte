@@ -5,6 +5,9 @@ using Rezepte.Web.Services;
 
 namespace Rezepte.Web.Controllers;
 
+/// <summary>
+/// Administration endpoints for managing user accounts (JWT + Admin role required).
+/// </summary>
 [ApiController]
 [Route("api/admin/users")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
@@ -12,6 +15,10 @@ public class AdminUsersController(IUserService users) : ControllerBase
 {
     private readonly IUserService _users = users;
 
+    /// <summary>
+    /// Returns all users for administration.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
@@ -20,6 +27,11 @@ public class AdminUsersController(IUserService users) : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Creates a new user account.
+    /// </summary>
+    /// <param name="dto">Creation request.</param>
+    /// <param name="ct">Cancellation token.</param>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserRequest dto, CancellationToken ct)
     {
@@ -37,7 +49,7 @@ public class AdminUsersController(IUserService users) : ControllerBase
         if (!ok || user is null)
             return BadRequest(new { message = error ?? "Anlegen fehlgeschlagen." });
 
-        // Admin-Flag ggf. setzen
+        // Optionally set admin flag
         if (dto.IsAdmin && !user.IsAdmin)
         {
             await _users.UpdateUserAsync(user.Id, user.Username, user.Email, true, ct);
@@ -47,6 +59,12 @@ public class AdminUsersController(IUserService users) : ControllerBase
         return Ok(new { user.Id, user.Username, user.Email, user.IsAdmin });
     }
 
+    /// <summary>
+    /// Updates an existing user.
+    /// </summary>
+    /// <param name="id">User id.</param>
+    /// <param name="dto">Update request.</param>
+    /// <param name="ct">Cancellation token.</param>
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateUserRequest dto, CancellationToken ct)
     {
@@ -55,6 +73,11 @@ public class AdminUsersController(IUserService users) : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Deletes a user by id.
+    /// </summary>
+    /// <param name="id">User id.</param>
+    /// <param name="ct">Cancellation token.</param>
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id, CancellationToken ct)
     {
@@ -63,6 +86,9 @@ public class AdminUsersController(IUserService users) : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Creation DTO.</summary>
     public record CreateUserRequest(string Username, string? Email, string Password, bool IsAdmin);
+
+    /// <summary>Update DTO.</summary>
     public record UpdateUserRequest(string Username, string? Email, bool IsAdmin);
 }

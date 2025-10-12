@@ -25,7 +25,7 @@ public class UserAdminViewModel
 
     public UserAdminViewModel(ApiClient api)
     {
-        _api = api;
+        _api = api ?? throw new ArgumentNullException(nameof(api));
     }
 
     public async Task LoadAsync(CancellationToken ct = default)
@@ -45,10 +45,20 @@ public class UserAdminViewModel
 
     public async Task CreateAsync(CancellationToken ct = default)
     {
-        Reset(); IsBusy = true; Notify();
+        Reset();
+        // Validate inputs (avoid null-forgiving)
+        if (string.IsNullOrWhiteSpace(NewUser.Username)) { Fail("Benutzername ist erforderlich."); Notify(); return; }
+        if (string.IsNullOrWhiteSpace(NewUser.Password)) { Fail("Passwort ist erforderlich."); Notify(); return; }
+        var username = NewUser.Username.Trim();
+        var emailRaw = NewUser.Email;
+        var email = string.IsNullOrWhiteSpace(emailRaw) ? null : emailRaw.Trim();
+        var password = NewUser.Password;
+        var isAdmin = NewUser.IsAdmin;
+
+        IsBusy = true; Notify();
         try
         {
-            var payload = new { username = NewUser.Username!.Trim(), email = string.IsNullOrWhiteSpace(NewUser.Email) ? null : NewUser.Email!.Trim(), password = NewUser.Password, isAdmin = NewUser.IsAdmin };
+            var payload = new { username, email, password, isAdmin };
             var res = await _api.Http.PostAsJsonAsync("api/admin/users", payload, ct);
             if (!res.IsSuccessStatusCode)
             {
@@ -58,10 +68,9 @@ public class UserAdminViewModel
             if (created is not null)
             {
                 Users.Add(created);
-                // sortieren optional
                 Users = Users.OrderBy(u => u.Username, StringComparer.OrdinalIgnoreCase).ToList();
             }
-            // Formular zurücksetzen
+            // Reset form
             NewUser.Username = string.Empty;
             NewUser.Email = string.Empty;
             NewUser.Password = string.Empty;
