@@ -23,6 +23,7 @@ public interface IRecipeService
     IQueryable<RecipeImage> GetImages(string recipeId, int offset, int count);
     Task<int> GetImageCountAsync(string recipeId, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteImageAsync(string userId, string recipeId, string imageId, CancellationToken ct);
+    Task<List<Recipe>> GetLatestAsync(string userId, int count, CancellationToken ct);
 }
 
 public record RecipeCreateIngredient(decimal Amount, string? Unit, string Name);
@@ -341,5 +342,14 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
         await _db.SaveChangesAsync(ct);
 
         return (true, null);
+    }
+
+    public async Task<List<Recipe>> GetLatestAsync(string userId, int count, CancellationToken ct)
+    {
+        return await _db.Recipes.AsNoTracking()
+            .Where(r => r.UserId == userId)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(count)
+            .ToListAsync(ct);
     }
 }

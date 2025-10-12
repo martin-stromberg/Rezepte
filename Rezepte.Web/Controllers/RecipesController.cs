@@ -207,7 +207,29 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         return NoContent();
     }
 
-    public record RecipeListItemDto(string Id, string Title, string? Description);
+    [HttpGet("latest")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetLatest([FromQuery] int count = 20, CancellationToken ct = default)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        var recipes = await _recipes.GetLatestAsync(userId, count, ct);
+
+        var dtos = recipes.Select(r =>
+        {
+            var lastImage = _recipes.GetImages(r.Id, 0, 1).OrderByDescending(i => i.CreatedAt).FirstOrDefault();
+            return new RecipeListItemDto(
+                r.Id,
+                r.Title,
+                lastImage?.Url
+            );
+        }).ToList();
+
+        return Ok(dtos);
+    }
+
+    // DTO für die Startseite
+    public record RecipeListItemDto(string Id, string Title, string? ImageUrl);
     public record RecipeDto(string Id, string CookbookId, string OwnerId, string Title, string? Description, List<RecipeStepDto> Steps, string? ImageUrl, int ImageCount);
     public record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     public record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
