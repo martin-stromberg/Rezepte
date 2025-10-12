@@ -1,0 +1,103 @@
+﻿@page "/cookbooks/{Id}/edit"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<h5 class="mb-3 d-flex align-items-center justify-content-between">
+    <span>Kochbuch bearbeiten</span>
+    @if (!isLoading && book is not null)
+    {
+        <div class="btn-group">
+            <button class="btn btn-sm btn-primary" @onclick="SaveAsync" disabled="@isBusy" title="Speichern">💾</button>
+            <button class="btn btn-sm btn-outline-danger" @onclick="DeleteAsync" disabled="@isBusy" title="Löschen">🗑️</button>
+        </div>
+    }
+</h5>
+
+@if (isLoading)
+{
+    <div class="text-muted">Lade…</div>
+}
+else if (book is null)
+{
+    <div class="alert alert-warning">Kochbuch nicht gefunden.</div>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div>
+    }
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Name</label>
+                <input class="form-control" @bind="book.Name" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Beschreibung</label>
+                <textarea class="form-control" rows="3" @bind="book.Description"></textarea>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    private bool isLoading = true;
+    private bool isBusy;
+    private bool isError;
+    private string? message;
+    private CookbookDto? book;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true; isError = false; message = null;
+        try
+        {
+            book = await Api.Http.GetFromJsonAsync<CookbookDto>($"api/cookbooks/{Id}");
+        }
+        catch { book = null; }
+        finally { isLoading = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (book is null) return;
+        if (string.IsNullOrWhiteSpace(book.Name) || book.Name.Length < 3)
+        {
+            isError = true; message = "Name zu kurz."; return;
+        }
+        isBusy = true;
+        try
+        {
+            var payload = new { name = book.Name.Trim(), description = string.IsNullOrWhiteSpace(book.Description) ? null : book.Description.Trim() };
+            var res = await Api.Http.PutAsJsonAsync($"api/cookbooks/{book.Id}", payload);
+            if (!res.IsSuccessStatusCode) { isError = true; message = "Speichern fehlgeschlagen."; return; }
+            isError = false; message = "Gespeichert.";
+        }
+        catch { isError = true; message = "Speichern fehlgeschlagen."; }
+        finally { isBusy = false; }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (book is null) return;
+        isBusy = true;
+        try
+        {
+            var res = await Api.Http.DeleteAsync($"api/cookbooks/{book.Id}");
+            if (!res.IsSuccessStatusCode) { isError = true; message = "Löschen fehlgeschlagen."; return; }
+            Nav.NavigateTo("/cookbooks");
+        }
+        catch { isError = true; message = "Löschen fehlgeschlagen."; }
+        finally { isBusy = false; }
+    }
+
+    private record CookbookDto(string Id, string Name, string? Description, DateTime CreatedAt)
+    {
+        public string Name { get; set; } = Name;
+        public string? Description { get; set; } = Description;
+    }
+}

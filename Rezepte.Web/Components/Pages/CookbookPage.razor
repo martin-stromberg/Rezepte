@@ -1,0 +1,153 @@
+﻿@page "/cookbooks/{Id}"
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject ApiClient Api
+@inject NavigationManager Nav
+@using Rezepte.Web.Components.Shared
+
+<h5 class="mb-3 d-flex align-items-center justify-content-between">
+    <span>@(book?.Name ?? "Kochbuch")</span>
+    <div class="btn-group">
+        <a class="btn btn-sm btn-outline-secondary" href="/cookbooks/@Id/edit" title="Bearbeiten">✏️</a>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" title="Rezept hinzufügen">
+                ＋
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <button type="button" class="dropdown-item" @onclick="CreateRecipe">Neues Rezept anlegen</button>
+                </li>
+                <li>
+                    <button type="button" class="dropdown-item disabled">Rezept aus Datei anlegen (bald)</button>
+                </li>
+                <li>
+                    <button type="button" class="dropdown-item" @onclick="OpenAddExistingDialog">Vorhandenes Rezept hinzufügen</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</h5>
+
+@if (isLoading)
+{
+    <div class="text-muted">Lade…</div>
+}
+else if (book is null)
+{
+    <div class="alert alert-warning">Kochbuch nicht gefunden.</div>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title mb-1">@book.Name</h5>
+            @if (!string.IsNullOrWhiteSpace(book.Description))
+            {
+                <div class="text-muted">@book.Description</div>
+            }
+        </div>
+    </div>
+
+    <h6 class="mb-2">Rezepte</h6>
+    @if (recipes is null || recipes.Count == 0)
+    {
+        <div class="alert alert-info">Noch keine Rezepte vorhanden.</div>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var r in recipes)
+            {
+                <a class="list-group-item list-group-item-action" href="/recipes/@r.Id">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>@r.Title</strong>
+                            @if (!string.IsNullOrWhiteSpace(r.Description))
+                            {
+                                <span class="text-muted">— @r.Description</span>
+                            }
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+}
+
+@if (showAddExisting)
+{
+    <RecipeSelectDialog CookbookId="@Id" OnConfirm="OnAddExistingConfirm" OnCancel="CloseAddExistingDialog" />
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    private bool isLoading = true;
+    private CookbookDto? book;
+    private List<RecipeListItem> recipes = new();
+
+    private bool showAddExisting;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var tasks = new Task[]
+            {
+                LoadCookbookAsync(),
+                LoadRecipesAsync()
+            };
+            await Task.WhenAll(tasks);
+        }
+        finally { isLoading = false; }
+    }
+
+    private async Task LoadCookbookAsync()
+    {
+        try
+        {
+            book = await Api.Http.GetFromJsonAsync<CookbookDto>($"api/cookbooks/{Id}");
+        }
+        catch { book = null; }
+    }
+
+    private async Task LoadRecipesAsync()
+    {
+        try
+        {
+            recipes = await Api.Http.GetFromJsonAsync<List<RecipeListItem>>($"api/recipes/by-cookbook/{Id}") ?? new();
+        }
+        catch { recipes = new(); }
+    }
+
+    private void CreateRecipe()
+    {
+        Nav.NavigateTo($"/recipes/new?cookbookId={Id}");
+    }
+
+    private void OpenAddExistingDialog()
+    {
+        showAddExisting = true;
+    }
+
+    private void CloseAddExistingDialog()
+    {
+        showAddExisting = false;
+    }
+
+    private async Task OnAddExistingConfirm(List<RecipeSelectDialog.RecipeListItem> selected)
+    {
+        if (selected.Count == 0) { showAddExisting = false; return; }
+        var ids = selected.Select(x => x.Id).ToList();
+        var res = await Api.Http.PostAsJsonAsync($"api/recipes/add-existing/{Id}", new { recipeIds = ids });
+        if (res.IsSuccessStatusCode)
+        {
+            await LoadRecipesAsync();
+            showAddExisting = false;
+        }
+    }
+
+    private record CookbookDto(string Id, string Name, string? Description, DateTime CreatedAt);
+    private record RecipeListItem(string Id, string Title, string? Description);
+}

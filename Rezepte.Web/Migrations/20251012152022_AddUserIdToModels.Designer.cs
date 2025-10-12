@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rezepte.Web.Data;
 
@@ -10,9 +11,11 @@ using Rezepte.Web.Data;
 namespace Rezepte.Web.Migrations
 {
     [DbContext(typeof(RezepteDbContext))]
-    partial class RezepteDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251012152022_AddUserIdToModels")]
+    partial class AddUserIdToModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
@@ -85,37 +88,6 @@ namespace Rezepte.Web.Migrations
                     b.HasIndex("UserId", "Title");
 
                     b.ToTable("Recipes");
-                });
-
-            modelBuilder.Entity("Rezepte.Web.Entities.RecipeImage", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<byte[]>("Data")
-                        .IsRequired()
-                        .HasColumnType("BLOB");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RecipeId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecipeId");
-
-                    b.ToTable("RecipeImages");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.RecipeIngredient", b =>
@@ -226,17 +198,6 @@ namespace Rezepte.Web.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Rezepte.Web.Entities.RecipeImage", b =>
-                {
-                    b.HasOne("Rezepte.Web.Entities.Recipe", "Recipe")
-                        .WithMany("Images")
-                        .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Recipe");
-                });
-
             modelBuilder.Entity("Rezepte.Web.Entities.RecipeIngredient", b =>
                 {
                     b.HasOne("Rezepte.Web.Entities.RecipeStep", null)
@@ -257,8 +218,6 @@ namespace Rezepte.Web.Migrations
 
             modelBuilder.Entity("Rezepte.Web.Entities.Recipe", b =>
                 {
-                    b.Navigation("Images");
-
                     b.Navigation("Steps");
                 });
 

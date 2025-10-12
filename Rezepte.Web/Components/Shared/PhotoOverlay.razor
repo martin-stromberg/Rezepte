@@ -1,0 +1,79 @@
+@inject ApiClient Client
+
+@if (Show)
+{
+    <div class="overlay-backdrop" @onclick="OnClose">
+        <div class="overlay-content" @onclick:stopPropagation>
+            <button class="btn btn-sm btn-danger overlay-close" @onclick="OnClose">×</button>
+            @if (isLoading)
+            {
+                <div>Lade Bilder…</div>
+            }
+            else if (images is null || images.Count == 0)
+            {
+                <div>Keine Bilder vorhanden.</div>
+            }
+            else
+            {
+                <div class="image-grid">
+                    @foreach (var img in images)
+                    {
+                        <div class="position-relative">
+                            <img src="@img.Url" class="thumb" @onclick="() => OnShowLargeImage.InvokeAsync(img.Url)" />
+                            @if (Mode == "edit")
+                            {
+                                <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
+                                        title="Bild löschen"
+                                        @onclick="async e => await DeleteImageAsync(img.Id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string RezeptId { get; set; } = string.Empty;
+    [Parameter] public string Mode { get; set; } = "view"; // "view" oder "edit"
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<string> OnShowLargeImage { get; set; }
+
+    private List<RecipeImageDto>? images;
+    private bool isLoading = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Show && !string.IsNullOrEmpty(RezeptId))
+        {
+            await LoadImagesAsync();
+        }
+    }
+
+    private async Task LoadImagesAsync()
+    {
+        isLoading = true;
+        images = null;
+        StateHasChanged();
+        images = await Client.Http.GetFromJsonAsync<List<RecipeImageDto>>($"api/recipes/{RezeptId}/images");
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task DeleteImageAsync(string imageId)
+    {
+        var response = await Client.Http.DeleteAsync($"api/recipes/{RezeptId}/image/{imageId}");
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadImagesAsync();
+        }
+        // Optional: Fehlerbehandlung
+    }
+
+    private record RecipeImageDto(string Id, string Url);
+}

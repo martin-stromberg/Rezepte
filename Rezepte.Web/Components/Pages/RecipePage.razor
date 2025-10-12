@@ -1,0 +1,289 @@
+﻿@page "/recipes/{Id}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Forms
+@using Rezepte.Web.Components.Shared
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject ApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h5 class="mb-3 d-flex align-items-center justify-content-between">
+    <span>@(recipe?.Title ?? "Rezept")</span>
+    @if (isOwner && !isLoading && recipe is not null)
+    {
+        <div class="btn-group">
+            <a class="btn btn-sm btn-outline-secondary" href="/recipes/@Id/edit" title="Bearbeiten">✏️</a>
+        </div>
+    }
+</h5>
+
+@if (isLoading)
+{
+    <div class="text-muted">Lade…</div>
+}
+else if (recipe is null)
+{
+    <div class="alert alert-warning">Rezept nicht gefunden.</div>
+}
+else
+{
+    <div class="row mb-3 g-3 align-items-start">
+        <div class="col-12 col-md-6 position-relative">
+            <div class="rounded shadow-sm bg-light w-100 position-relative" style="aspect-ratio: 4/3; overflow: hidden;">
+                @if (!string.IsNullOrWhiteSpace(recipe.ImageUrl))
+                {
+                    <img src="@recipe.ImageUrl" alt="Rezeptfoto" class="img-fluid w-100 h-100" style="object-fit: cover;" />
+                }
+                else
+                {
+                    <div class="d-flex align-items-center justify-content-center w-100 h-100" style="color:#bbb; font-size:3rem;">
+                        <span>📷</span>
+                    </div>
+                }
+                <InputFile id="FotoUpload" class="d-none" OnChange="OnImageSelected" accept="image/*" />
+                <button type="button" class="btn btn-sm btn-primary position-absolute top-0 end-0 m-2" title="Foto hinzufügen" @onclick="TriggerFileInput">
+                    <i class="bi bi-camera"></i>
+                </button>
+                @if (recipe.ImageCount > 1)
+                {
+                    <button type="button" class="btn btn-sm btn-secondary position-absolute bottom-0 end-0 m-2" title="Alle Bilder anzeigen" @onclick="ShowAllImages">
+                        <i class="bi bi-images"></i>
+                    </button>
+                }
+            </div>
+        </div>
+        <div class="col-12 col-md-6">
+            <h2 class="h4 mb-1">@recipe.Title</h2>
+            @if (!string.IsNullOrWhiteSpace(recipe.Description))
+            {
+                <div class="mb-2 text-muted">@recipe.Description</div>
+            }
+            <div class="d-flex flex-wrap gap-3 align-items-center small text-secondary mb-2">
+                @if (TotalMinutes > 0)
+                {
+                    <span><i class="bi bi-clock"></i> Gesamt: @TotalMinutes min</span>
+                }
+                @if (RestNights > 0)
+                {
+                    <span><i class="bi bi-moon"></i> Ruhenächte: @RestNights</span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion" id="viewSteps">
+        @for (var i = 0; i < recipe.Steps.Count; i++)
+        {
+            var s = recipe.Steps[i];
+            var collapseId = $"vstep{i}";
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="vheading@i">
+                    <button class="accordion-button @(i == 0 ? string.Empty : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="@(i == 0 ? "true" : "false")" aria-controls="@collapseId">
+                        Schritt @(i + 1): @(string.IsNullOrWhiteSpace(s.Title) ? "(ohne Titel)" : s.Title) · @s.DurationMinutes min @(s.RequiresOvernightRest ? "· Ruhe über Nacht" : string.Empty)
+                    </button>
+                </h2>
+                <div id="@collapseId" class="accordion-collapse collapse @(i == 0 ? "show" : string.Empty)" data-bs-parent="#viewSteps">
+                    <div class="accordion-body">
+                        <div class="mb-2">@s.Description</div>
+                        @if (s.Ingredients?.Count > 0)
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 20%">Menge</th>
+                                            <th style="width: 20%">Einheit</th>
+                                            <th>Bezeichnung</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var ing in s.Ingredients)
+                                        {
+                                            <tr>
+                                                <td>@ing.Amount</td>
+                                                <td>@ing.Unit</td>
+                                                <td>@ing.Name</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<PhotoOverlay Show="@showImagesOverlay"
+              RezeptId="@Id"
+              Mode="view"
+              OnClose="CloseOverlay"
+              OnShowLargeImage="ShowLargeImage" />
+
+<!-- Großansicht -->
+@if (!string.IsNullOrEmpty(largeImageUrl))
+{
+    <div class="overlay-backdrop" @onclick="CloseLargeImage">
+        <div class="overlay-content overlay-large" @onclick:stopPropagation>
+            <button class="btn btn-sm btn-danger overlay-close" @onclick="CloseLargeImage">×</button>
+            <img src="@largeImageUrl" class="large-img" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    private bool isLoading = true;
+    private RecipeDto? recipe;
+    private InputFile? fileInput;
+    private ElementReference fileInputRef;
+
+    // Overlay-Logik
+    private bool showImagesOverlay = false;
+    private List<RecipeImageDto>? images;
+    private string? largeImageUrl;
+
+    private int TotalMinutes => recipe?.Steps?.Sum(s => s.DurationMinutes) ?? 0;
+    private int RestNights => recipe?.Steps?.Count(s => s.RequiresOvernightRest) ?? 0;
+
+    private string? currentUserId;
+    private bool isOwner => !string.IsNullOrEmpty(recipe?.OwnerId) && recipe?.OwnerId == currentUserId;
+
+    private async Task TriggerFileInput()
+    {
+        await JS.InvokeVoidAsync("eval", "document.getElementById('FotoUpload').click()");
+    }
+
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            var content = new MultipartFormDataContent();
+            content.Add(new ByteArrayContent(bytes), "file", file.Name);
+
+            var response = await Api.Http.PostAsync($"api/recipes/{Id}/image", content);
+            if (response.IsSuccessStatusCode)
+            {
+                recipe = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Id}");
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task ShowAllImages()
+    {
+        showImagesOverlay = true;
+        images = null;
+        StateHasChanged();
+        images = await Api.Http.GetFromJsonAsync<List<RecipeImageDto>>($"api/recipes/{Id}/images");
+        StateHasChanged();
+    }
+
+    private void CloseOverlay()
+    {
+        showImagesOverlay = false;
+        images = null;
+    }
+
+    private void ShowLargeImage(string url)
+    {
+        largeImageUrl = url;
+    }
+
+    private void CloseLargeImage()
+    {
+        largeImageUrl = null;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        try
+        {
+            recipe = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Id}");
+        }
+        catch { recipe = null; }
+        finally { isLoading = false; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentUserId = authState.User.FindFirst("sub")?.Value // oder "nameidentifier" je nach Claim
+            ?? authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private record RecipeDto(string Id, string CookbookId, string OwnerId, string Title, string? Description, List<RecipeStepDto> Steps, string? ImageUrl = null, int ImageCount = 0);
+    private record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
+    private record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
+    private record RecipeImageDto(string Id, string Url);
+}
+
+<style>
+.overlay-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.overlay-content {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    position: relative;
+}
+.overlay-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    width: 100%;
+}
+.thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    transition: box-shadow 0.2s;
+}
+.thumb:hover {
+    box-shadow: 0 0 0 2px #007bff;
+}
+.overlay-large {
+    max-width: 95vw;
+    max-height: 95vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.large-img {
+    max-width: 90vw;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.3);
+}
+</style>

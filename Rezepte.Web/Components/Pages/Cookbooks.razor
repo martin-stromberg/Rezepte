@@ -1,0 +1,110 @@
+﻿@page "/cookbooks"
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject ApiClient Api
+
+<h4 class="mb-3">Kochbücher</h4>
+
+@if (isLoading)
+{
+    <div class="text-muted">Lade…</div>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div>
+    }
+    <div class="card mb-3">
+        <div class="card-body d-flex gap-2 align-items-end flex-wrap">
+            <div>
+                <label class="form-label">Name</label>
+                <input class="form-control" @bind="newName" />
+            </div>
+            <div class="flex-fill">
+                <label class="form-label">Beschreibung</label>
+                <input class="form-control" @bind="newDescription" />
+            </div>
+            <button class="btn btn-primary" @onclick="CreateAsync" disabled="@isBusy">+ Anlegen</button>
+        </div>
+    </div>
+
+    <div class="list-group">
+        @foreach (var b in books)
+        {
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <a class="text-decoration-none" href="/cookbooks/@b.Id">
+                    <strong>@b.Name</strong>
+                    @if (!string.IsNullOrWhiteSpace(b.Description))
+                    {
+                        <span class="text-muted">— @b.Description</span>
+                    }
+                </a>
+                <a class="btn btn-sm btn-outline-secondary" href="/cookbooks/@b.Id/edit" title="Bearbeiten">✏️</a>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool isBusy;
+    private bool isError;
+    private string? message;
+
+    private List<CookbookDto> books = new();
+    private string newName = string.Empty;
+    private string? newDescription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true; StateHasChanged();
+        try
+        {
+            var data = await Api.Http.GetFromJsonAsync<List<CookbookDto>>("api/cookbooks");
+            books = data ?? new();
+            isError = false; message = null;
+        }
+        catch
+        {
+            isError = true; message = "Kochbücher konnten nicht geladen werden.";
+        }
+        finally { isLoading = false; StateHasChanged(); }
+    }
+
+    private async Task CreateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newName) || newName.Length < 3)
+        {
+            isError = true; message = "Name zu kurz."; return;
+        }
+        isBusy = true; StateHasChanged();
+        try
+        {
+            var payload = new { name = newName.Trim(), description = string.IsNullOrWhiteSpace(newDescription) ? null : newDescription?.Trim() };
+            var res = await Api.Http.PostAsJsonAsync("api/cookbooks", payload);
+            if (!res.IsSuccessStatusCode)
+            {
+                isError = true; message = "Anlegen fehlgeschlagen."; return;
+            }
+            var created = await res.Content.ReadFromJsonAsync<CookbookDto>();
+            if (created is not null)
+            {
+                books.Add(created);
+                books = books.OrderBy(b => b.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            }
+            newName = string.Empty; newDescription = string.Empty;
+            isError = false; message = "Kochbuch angelegt.";
+        }
+        catch { isError = true; message = "Anlegen fehlgeschlagen."; }
+        finally { isBusy = false; StateHasChanged(); }
+    }
+
+    private record CookbookDto(string Id, string Name, string? Description, DateTime CreatedAt);
+}
