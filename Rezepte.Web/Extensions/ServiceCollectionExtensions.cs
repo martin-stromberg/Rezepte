@@ -113,6 +113,8 @@ public static class ServiceCollectionExtensions
 
         // Application services
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ICookbookService, CookbookService>();
+        services.AddScoped<IRecipeService, RecipeService>();
 
         // ViewModels
         services.AddScoped<SettingsViewModel>();
