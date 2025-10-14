@@ -6,6 +6,7 @@
 @attribute [Authorize]
 @inject NavigationManager Nav
 @inject ApiClient Api
+@inject IJSRuntime JS
 
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
     <span>@(IsNew ? "Neues Rezept" : "Rezept bearbeiten")</span>
@@ -15,6 +16,7 @@
         <button class="btn btn-sm btn-secondary" @onclick="ShowImagesOverlay" title="Bilder verwalten">
             <i class="bi bi-images"></i>
         </button>
+        <button class="btn btn-sm btn-outline-danger" @onclick="DeleteAsync" disabled="@isBusy" title="Löschen">🗑️</button>
     </div>
 </h5>
 
@@ -28,6 +30,11 @@ else if (loadError)
 }
 else
 {
+    if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
     <div class="card mb-3">
         <div class="card-body">
             <div class="mb-3">
@@ -131,6 +138,7 @@ else
     private bool isLoading = true;
     private bool isBusy;
     private bool loadError;
+    private string errorMessage;
 
     private string title = string.Empty;
     private string? description;
@@ -198,10 +206,9 @@ else
     {
         if (IsNew)
         {
-            if (string.IsNullOrWhiteSpace(CookbookId)) { return; }
             var createPayload = new
             {
-                cookbookId = CookbookId,
+                cookbookId = string.IsNullOrEmpty(CookbookId) ? null : CookbookId,
                 title,
                 description,
                 steps = steps.Select(s => new
@@ -224,6 +231,10 @@ else
                     {
                         Nav.NavigateTo($"/recipes/{id}");
                     }
+                }
+                else
+                {
+                    errorMessage = await res.Content.ReadAsStringAsync();
                 }
             }
             finally { isBusy = false; }
@@ -254,6 +265,28 @@ else
             }
             finally { isBusy = false; }
         }
+    }
+    private async Task DeleteAsync()
+    {
+        if (IsNew)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        // Bestätigungsabfrage vor dem Löschen
+        var ok = await JS.InvokeAsync<bool>("confirm", "Soll das Rezept komplett gelöscht werden?. Diese Aktion kann nicht rückgängig gemacht werden.");
+        if (!ok) return;
+
+        isBusy = true;
+        try
+        {
+            var res = await Api.Http.DeleteAsync($"api/recipes/{Id}");
+            if (!res.IsSuccessStatusCode) { return; }
+            Nav.NavigateTo("/");
+        }
+        catch { }
+        finally { isBusy = false; }
     }
 
     private void ShowImagesOverlay()

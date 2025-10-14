@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject ApiClient Api
+@inject NavigationManager Navigation
 
 <h4 class="mb-3">Kochbücher</h4>
 
@@ -16,6 +17,7 @@ else
     {
         <div class="alert @(isError ? "alert-danger" : "alert-success")">@message</div>
     }
+
     <div class="card mb-3">
         <div class="card-body d-flex gap-2 align-items-end flex-wrap">
             <div>
@@ -30,21 +32,35 @@ else
         </div>
     </div>
 
-    <div class="list-group">
-        @foreach (var b in books)
-        {
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <a class="text-decoration-none" href="/cookbooks/@b.Id">
-                    <strong>@b.Name</strong>
-                    @if (!string.IsNullOrWhiteSpace(b.Description))
+    @if (gridItems.Count == 0)
+    {
+        <div class="alert alert-info">Noch keine Kochbücher vorhanden.</div>
+    }
+    else
+    {
+        <div class="cookbook-grid">
+            @foreach (var item in gridItems)
+            {
+                <a class="cookbook-card" href="@($"/cookbooks/{item.Id}")" title="@item.Name">
+                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                     {
-                        <span class="text-muted">— @b.Description</span>
+                        <img src="@item.ImageUrl" alt="Letztes Rezept in @item.Name" />
                     }
+                    else
+                    {
+                        <div class="no-image">📚</div>
+                    }
+                    <div class="cookbook-title">
+                        <strong>@item.Name</strong>
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <div class="text-muted small">@item.Description</div>
+                        }
+                    </div>
                 </a>
-                <a class="btn btn-sm btn-outline-secondary" href="/cookbooks/@b.Id/edit" title="Bearbeiten">✏️</a>
-            </div>
-        }
-    </div>
+            }
+        </div>
+    }
 }
 
 @code {
@@ -54,6 +70,7 @@ else
     private string? message;
 
     private List<CookbookDto> books = new();
+    private List<CookbookGridItem> gridItems = new();
     private string newName = string.Empty;
     private string? newDescription;
 
@@ -69,11 +86,36 @@ else
         {
             var data = await Api.Http.GetFromJsonAsync<List<CookbookDto>>("api/cookbooks");
             books = data ?? new();
+
+            // Build grid view models including the image of the latest recipe (if available).
+            var tasks = books.Select(async b =>
+            {
+                string? imageUrl = null;
+                try
+                {
+                    // Erwarteter Endpoint: liefert die neuesten Rezepte, optional nach cookbookId filterbar.
+                    // API: GET api/recipes/latest?cookbookId={id}&count=1
+                    var latest = await Api.Http.GetFromJsonAsync<List<RecipeListItemDto>>($"api/recipes/latest?cookbookId={b.Id}&count=1");
+                    imageUrl = latest?.FirstOrDefault()?.ImageUrl;
+                }
+                catch
+                {
+                    // Fallback: kein Bild
+                    imageUrl = null;
+                }
+
+                return new CookbookGridItem(b.Id, b.Name, b.Description, imageUrl);
+            });
+
+            var results = await Task.WhenAll(tasks);
+            gridItems = results.OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
             isError = false; message = null;
         }
         catch
         {
             isError = true; message = "Kochbücher konnten nicht geladen werden.";
+            gridItems = new();
         }
         finally { isLoading = false; StateHasChanged(); }
     }
@@ -96,8 +138,8 @@ else
             var created = await res.Content.ReadFromJsonAsync<CookbookDto>();
             if (created is not null)
             {
-                books.Add(created);
-                books = books.OrderBy(b => b.Name, StringComparer.OrdinalIgnoreCase).ToList();
+                // reload grid to include new cookbook (and its latest recipe image)
+                await LoadAsync();
             }
             newName = string.Empty; newDescription = string.Empty;
             isError = false; message = "Kochbuch angelegt.";
@@ -107,4 +149,54 @@ else
     }
 
     private record CookbookDto(string Id, string Name, string? Description, DateTime CreatedAt);
+    private record CookbookGridItem(string Id, string Name, string? Description, string? ImageUrl);
+    private record RecipeListItemDto(string Id, string Title, string? ImageUrl);
 }
+<style>
+.cookbook-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+.cookbook-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+    min-height: 180px;
+}
+.cookbook-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+}
+.cookbook-card img, .cookbook-card .no-image {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background: #f5f5f5;
+    display: block;
+}
+.cookbook-card .no-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.25rem;
+    color: #bbb;
+}
+.cookbook-title {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 1.05rem;
+    text-align: center;
+}
+.cookbook-title .small {
+    font-weight: 400;
+    font-size: 0.9rem;
+}
+</style>

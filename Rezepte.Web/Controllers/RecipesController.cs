@@ -24,7 +24,17 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
         var list = await _recipes.GetByCookbookAsync(userId, cookbookId, ct);
-        var dtos = list.Select(r => new RecipeListItemDto(r.Id, r.Title, r.Description)).ToList();
+        var dtos = list.Select(r =>
+        {
+            var lastImage = _recipes.GetImages(r.Id, 0, 1).OrderByDescending(i => i.CreatedAt).FirstOrDefault();
+            return new RecipeListItemDto(
+                r.Id,
+                r.Title,
+                lastImage?.Url,
+                r.Description
+            );
+        }).ToList();
+
         return Ok(dtos);
     }
 
@@ -40,7 +50,7 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
             query = query.Where(r => r.Title.Contains(search));
         }
         var paged = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-        var dtos = paged.Select(r => new RecipeListItemDto(r.Id, r.Title, r.Description)).ToList();
+        var dtos = paged.Select(r => new RecipeListItemDto(r.Id, r.Title, null, r.Description)).ToList();
         return Ok(dtos);
     }
 
@@ -52,7 +62,7 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         var (ok, error, created) = await _recipes.AddExistingToCookbookAsync(userId, cookbookId, dto.RecipeIds, ct);
         if (!ok)
             return BadRequest(new { message = error ?? "Hinzufügen fehlgeschlagen." });
-        var dtos = created.Select(r => new RecipeListItemDto(r.Id, r.Title, r.Description)).ToList();
+        var dtos = created.Select(r => new RecipeListItemDto(r.Id, r.Title, null, r.Description)).ToList();
         return Ok(dtos);
     }
 
@@ -67,7 +77,6 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         var imageCount = await _recipes.GetImageCountAsync(r.Id, ct);
         var dto = new RecipeDto(
             r.Id,
-            r.CookbookId,
             r.UserId,
             r.Title,
             r.Description,
@@ -83,13 +92,27 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
                     s.Ingredients.Select(i => new RecipeIngredientDto(i.Id, i.Amount, i.Unit, i.Name)).ToList()
                 )).ToList(),
             ImageUrl: lastImage?.Url,
-            ImageCount: imageCount
+            ImageCount: imageCount,
+            RecipeCookbooks: r.RecipeCookbooks.Select(rc => new RecipeCookbookDtp(rc.Id, rc.RecipeId, rc.CookbookId)).ToList()
         );
         return Ok(dto);
     }
 
+    [HttpGet("{id}/cookbooks")]
+    public async Task<IActionResult> GetCookbooksForRecipe(string id, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var r = await _recipes.GetByIdAsync(userId, id, ct);
+        if (r is null) return NotFound();
+
+        var list = r.RecipeCookbooks.Select(rc => rc.CookbookId).ToList();
+        return Ok(list);
+    }
+
     public record AddExistingRequest(List<string> RecipeIds);
-    public record CreateRecipeRequest(string CookbookId, string Title, string? Description, List<CreateRecipeStep> Steps);
+    public record CreateRecipeRequest(string? CookbookId, string Title, string? Description, List<CreateRecipeStep> Steps);
     public record CreateRecipeStep(string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<CreateRecipeIngredient> Ingredients);
     public record CreateRecipeIngredient(decimal Amount, string? Unit, string Name);
 
@@ -140,8 +163,7 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
         var (ok, error) = await _recipes.DeleteAsync(userId, id, ct);
-        if (!ok)
-            return BadRequest(new { message = error ?? "Löschen fehlgeschlagen." });
+        if (!ok) return BadRequest(new { message = error ?? "Löschen fehlgeschlagen." });
         return NoContent();
     }
 
@@ -207,21 +229,46 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         return NoContent();
     }
 
+    //[HttpGet("latest")]
+    //[AllowAnonymous]
+    //public async Task<IActionResult> GetLatest([FromQuery] int count = 20, CancellationToken ct = default)
+    //{
+    //    var userId = GetUserId();
+    //    if (userId is null) return Unauthorized();
+    //    var recipes = await _recipes.GetLatestAsync(userId, count, ct);
+
+    //    var dtos = recipes.Select(r =>
+    //    {
+    //        var lastImage = _recipes.GetImages(r.Id, 0, 1).OrderByDescending(i => i.CreatedAt).FirstOrDefault();
+    //        return new RecipeListItemDto(
+    //            r.Id,
+    //            r.Title,
+    //            lastImage?.Url,
+    //            null
+    //        );
+    //    }).ToList();
+
+    //    return Ok(dtos);
+    //}
+
     [HttpGet("latest")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetLatest([FromQuery] int count = 20, CancellationToken ct = default)
+    public async Task<IActionResult> GetLatestForCookbook([FromQuery] string? cookbookId, [FromQuery] int count = 20, CancellationToken ct = default)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
-        var recipes = await _recipes.GetLatestAsync(userId, count, ct);
 
-        var dtos = recipes.Select(r =>
+        // Hole alle Rezepte im Kochbuch, sortiere nach CreatedAt und nehme die neuesten
+        var list = string.IsNullOrWhiteSpace(cookbookId) ? await _recipes.GetLatestAsync(userId, count, ct) : await _recipes.GetByCookbookAsync(userId, cookbookId, ct);
+        var latest = list.OrderByDescending(r => r.CreatedAt).Take(Math.Max(1, count)).ToList();
+
+        var dtos = latest.Select(r =>
         {
             var lastImage = _recipes.GetImages(r.Id, 0, 1).OrderByDescending(i => i.CreatedAt).FirstOrDefault();
             return new RecipeListItemDto(
                 r.Id,
                 r.Title,
-                lastImage?.Url
+                lastImage?.Url,
+                r.Description
             );
         }).ToList();
 
@@ -229,8 +276,9 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
     }
 
     // DTO für die Startseite
-    public record RecipeListItemDto(string Id, string Title, string? ImageUrl);
-    public record RecipeDto(string Id, string CookbookId, string OwnerId, string Title, string? Description, List<RecipeStepDto> Steps, string? ImageUrl, int ImageCount);
+    public record RecipeListItemDto(string Id, string Title, string? ImageUrl, string? Description);
+    public record RecipeDto(string Id, string OwnerId, string Title, string? Description, List<RecipeStepDto> Steps, string? ImageUrl, int ImageCount, List<RecipeCookbookDtp> RecipeCookbooks);
+    public record RecipeCookbookDtp (string Id, string RecipeId, string CookbookId);
     public record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     public record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
 }

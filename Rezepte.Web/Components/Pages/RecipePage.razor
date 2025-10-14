@@ -12,11 +12,23 @@
 @inject AuthenticationStateProvider AuthStateProvider
 
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
-    <span>@(recipe?.Title ?? "Rezept")</span>
+    <span></span>
     @if (isOwner && !isLoading && recipe is not null)
     {
         <div class="btn-group">
             <a class="btn btn-sm btn-outline-secondary" href="/recipes/@Id/edit" title="Bearbeiten">✏️</a>
+
+            @* Favoriten / Zuordnungen zu Kochbüchern *@
+            <button class="btn btn-sm btn-outline-secondary" title="Zu Kochbüchern zuordnen" @onclick="OpenAssignOverlay">
+                @if (isInAnyCookbook)
+                {
+                    <i class="bi bi-heart-fill text-danger"></i>
+                }
+                else
+                {
+                    <i class="bi bi-heart"></i>
+                }
+            </button>
         </div>
     }
 </h5>
@@ -59,8 +71,9 @@ else
         <div class="col-12 col-md-6">
             <h2 class="h4 mb-1">@recipe.Title</h2>
             @if (!string.IsNullOrWhiteSpace(recipe.Description))
+                foreach (var line in @recipe.Description.Split("\r\n"))
             {
-                <div class="mb-2 text-muted">@recipe.Description</div>
+                    <div class="mb-2 text-muted">@line</div>
             }
             <div class="d-flex flex-wrap gap-3 align-items-center small text-secondary mb-2">
                 @if (TotalMinutes > 0)
@@ -88,7 +101,11 @@ else
                 </h2>
                 <div id="@collapseId" class="accordion-collapse collapse @(i == 0 ? "show" : string.Empty)" data-bs-parent="#viewSteps">
                     <div class="accordion-body">
-                        <div class="mb-2">@s.Description</div>
+                        @foreach (var line in s.Description.Split("\r\n"))
+                        {
+                            <div class="mb-2">@line</div>
+                        }
+                        
                         @if (s.Ingredients?.Count > 0)
                         {
                             <div class="table-responsive">
@@ -126,6 +143,12 @@ else
               OnClose="CloseOverlay"
               OnShowLargeImage="ShowLargeImage" />
 
+<!-- Overlay zum Zuordnen -->
+<AssignToCookbooksOverlay Show="@showAssignOverlay"
+                          RecipeId="@Id"
+                          OnClose="CloseAssignOverlay"
+                          OnSaved="OnCookbookAssignmentsSaved" />
+
 <!-- Großansicht -->
 @if (!string.IsNullOrEmpty(largeImageUrl))
 {
@@ -148,6 +171,10 @@ else
     private bool showImagesOverlay = false;
     private List<RecipeImageDto>? images;
     private string? largeImageUrl;
+
+    // Assign overlay
+    private bool showAssignOverlay = false;
+    private bool isInAnyCookbook = false;
 
     private int TotalMinutes => recipe?.Steps?.Sum(s => s.DurationMinutes) ?? 0;
     private int RestNights => recipe?.Steps?.Count(s => s.RequiresOvernightRest) ?? 0;
@@ -213,6 +240,7 @@ else
         try
         {
             recipe = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Id}");
+            await CheckIfInAnyCookbook();
         }
         catch { recipe = null; }
         finally { isLoading = false; }
@@ -223,6 +251,47 @@ else
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         currentUserId = authState.User.FindFirst("sub")?.Value // oder "nameidentifier" je nach Claim
             ?? authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private void OpenAssignOverlay()
+    {
+        showAssignOverlay = true;
+    }
+
+    private void CloseAssignOverlay()
+    {
+        showAssignOverlay = false;
+    }
+
+    private async Task OnCookbookAssignmentsSaved(bool changed)
+    {
+        showAssignOverlay = false;
+        if (changed)
+        {
+            // nach Änderung neu prüfen / ggf. Daten neu laden
+            await CheckIfInAnyCookbook();
+            // optional: recipe neu laden
+            recipe = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Id}");
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Prüft, ob das Rezept in mindestens einem Kochbuch enthalten ist.
+    /// Hinweis: Endpoint "GET api/recipes/{id}/cookbooks" muss vorhanden sein und eine Liste Cookbook-Ids oder -Objekte liefern.
+    /// Falls euer API andere URLs verwendet, passe hier die URL an.
+    /// </summary>
+    private async Task CheckIfInAnyCookbook()
+    {
+        try
+        {
+            var list = await Api.Http.GetFromJsonAsync<List<string>>($"api/recipes/{Id}/cookbooks");
+            isInAnyCookbook = list != null && list.Count > 0;
+        }
+        catch
+        {
+            isInAnyCookbook = false;
+        }
     }
 
     private record RecipeDto(string Id, string CookbookId, string OwnerId, string Title, string? Description, List<RecipeStepDto> Steps, string? ImageUrl = null, int ImageCount = 0);

@@ -9,6 +9,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<Cookbook> Cookbooks => Set<Cookbook>();
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<RecipeStep> RecipeSteps => Set<RecipeStep>();
+    public DbSet<RecipeCookbook> RecipeCookbooks => Set<RecipeCookbook>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeImage> RecipeImages { get; set; } = null!;
 
@@ -44,11 +45,21 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.Property(r => r.Title).IsRequired().HasMaxLength(200);
             b.Property(r => r.Description).HasMaxLength(4000);
             b.Property(r => r.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            b.HasOne<Cookbook>()
-                .WithMany()
-                .HasForeignKey(r => r.CookbookId)
-                .OnDelete(DeleteBehavior.Cascade);
             b.HasIndex(r => new { r.UserId, r.Title });
+        });
+
+        modelBuilder.Entity<RecipeCookbook>(buildAction =>
+        {
+            buildAction.HasKey(rc => rc.Id);
+            buildAction.HasOne(rc => rc.Cookbook)
+                .WithMany(c => c.RecipeCookbooks)
+                .HasForeignKey(rc => rc.CookbookId)
+                .OnDelete(DeleteBehavior.Cascade);
+            buildAction.HasOne(rc => rc.Recipe)
+                .WithMany(r => r.RecipeCookbooks)
+                .HasForeignKey(rc => rc.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            buildAction.HasIndex(rc => new { rc.CookbookId, rc.RecipeId }).IsUnique();
         });
 
         modelBuilder.Entity<RecipeStep>(b =>

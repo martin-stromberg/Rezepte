@@ -1,7 +1,87 @@
 ﻿@page "/"
+@rendermode InteractiveServer
 @inject ApiClient Api
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>Rezepte</PageTitle>
+
+<h5 class="mb-3 d-flex align-items-center justify-content-between">
+    <span></span>
+    <div class="btn-group">
+        <button class="btn btn-sm btn-outline-primary" @onclick="ToggleCreateMenu" disabled="@isCreating" title="Neues Rezept anlegen">
+            @if (isCreating)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            }
+            else
+            {
+                <span>+ Neu</span>
+            }
+        </button>
+    </div>
+</h5>
+
+@* Create menu modal *@
+@if (isCreateMenuOpen)
+{
+    <div class="create-overlay" @onclick="CloseCreateMenu">
+        <div class="create-menu card" @onclick:stopPropagation>
+            <div class="card-body">
+                <h5 class="card-title">Neues Rezept anlegen</h5>
+                <p class="card-text">Wähle, wie das neue Rezept angelegt werden soll:</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" @onclick="CreateEmptyWithoutCookbookAsync" disabled="@isCreating">
+                        @if (isCreating)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <span>Neues Rezept anlegen</span>
+                        }
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="TriggerImportFile">
+                        Rezept aus Datei importieren
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="OpenImportUrlDialog">
+                        Rezept von URL laden
+                    </button>
+                    <button class="btn btn-link text-muted" @onclick="CloseCreateMenu">Abbrechen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Import von URL Overlay *@
+@if (showImportUrl)
+{
+    <div class="overlay-backdrop" @onclick="CloseImportUrlDialog">
+        <div class="overlay-content" @onclick:stopPropagation>
+            <button class="btn btn-sm btn-danger overlay-close" @onclick="CloseImportUrlDialog">×</button>
+            <h5>Rezept von URL laden</h5>
+            <p class="text-muted">Gib die URL einer Datei oder eines unterstützten Imports ein. Der Server versucht, den Inhalt herunterzuladen und mit den vorhandenen Import-Handlern zu verarbeiten.</p>
+
+            <div class="mb-3">
+                <label class="form-label">URL</label>
+                <input class="form-control" @bind="importUrl" placeholder="https://example.com/backup.zip" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(importMessage))
+            {
+                <div class="mb-2 text-muted">@importMessage</div>
+            }
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" @onclick="ImportFromUrlAsync" disabled="@isImporting">Importieren</button>
+                <button class="btn btn-outline-secondary" @onclick="CloseImportUrlDialog" disabled="@isImporting">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+}
+
+<InputFile id="cookbookImportFile" style="position:absolute; left:-9999px; width:0; height:0; overflow:hidden; opacity:0" OnChange="OnImportInputFile" />
 
 <h2>Zuletzt hinzugefügte Rezepte</h2>
 
@@ -33,13 +113,31 @@ else
     </div>
 }
 
+
 @code {
     private List<RecipeListItemDto>? recipes;
     private bool isLoading = true;
+    private bool isCreating;
+    private bool isCreateMenuOpen;
+    private string importUrl = string.Empty;
+    private bool isImporting;
+    private string? importMessage;
+    private bool showImportUrl = false;
 
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
+        try
+        {
+            await LoadLists();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    private async Task LoadLists()
+    {
         try
         {
             // API-Endpoint muss die neuesten Rezepte liefern, z.B. /api/recipes/latest
@@ -49,13 +147,103 @@ else
         {
             recipes = null;
         }
-        finally
+    }
+
+    private void ToggleCreateMenu()
+    {
+        isCreateMenuOpen = !isCreateMenuOpen;
+    }
+
+    private void CloseCreateMenu()
+    {
+        isCreateMenuOpen = false;
+    }
+
+    private async Task TriggerImportFile()
+    {
+        ToggleCreateMenu();
+        await JS.InvokeVoidAsync("eval", "document.getElementById('cookbookImportFile').click()");
+    }
+
+    // OnChange handler for Blazor InputFile
+    private async Task OnImportInputFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+        var max = 1024L * 1024L * 500;
+        await using var stream = file.OpenReadStream(max);
+        using var content = new MultipartFormDataContent();
+        var sc = new StreamContent(stream);
+        sc.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType ?? "application/zip");
+        content.Add(sc, "file", file.Name);
+
+        var res = await Api.Http.PostAsync($"api/cookbooks/import", content);
+        if (res.IsSuccessStatusCode)
         {
-            isLoading = false;
+            await LoadLists();
+        }
+        else
+        {
+            var body = await res.Content.ReadAsStringAsync();
+            await JS.InvokeVoidAsync("alert", "Import fehlgeschlagen: " + res.StatusCode + " - " + body);
         }
     }
 
+    private void OpenImportUrlDialog()
+    {
+        ToggleCreateMenu();
+        importUrl = string.Empty;
+        importMessage = null;
+        showImportUrl = true;
+    }
+    private void CloseImportUrlDialog()
+    {
+        showImportUrl = false;
+    }
+
+    private async Task ImportFromUrlAsync()
+    {
+        if (string.IsNullOrWhiteSpace(importUrl))
+        {
+            importMessage = "Bitte eine gültige URL eingeben.";
+            return;
+        }
+
+        isImporting = true;
+        importMessage = null;
+        try
+        {
+            var payload = new { url = importUrl };
+            var res = await Api.Http.PostAsJsonAsync($"api/cookbooks/import-url", payload);
+            if (res.IsSuccessStatusCode)
+            {
+                await LoadLists();
+                showImportUrl = false;
+            }
+            else
+            {
+                var body = await res.Content.ReadAsStringAsync();
+                importMessage = $"Import fehlgeschlagen: {res.StatusCode} – {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            importMessage = "Import fehlgeschlagen: " + ex.Message;
+        }
+        finally
+        {
+            isImporting = false;
+        }
+    }
+
+    private async Task CreateEmptyWithoutCookbookAsync()
+    {
+        Navigation.NavigateTo($"/recipes/new?cookbookId=");
+        await Task.CompletedTask;
+    }
+
     private record RecipeListItemDto(string Id, string Title, string? ImageUrl);
+    private record CreatedRecipeDto(string Id);
 }
 <style>
 .recipe-grid {
@@ -101,4 +289,92 @@ else
     text-align: center;
     flex: 1 1 auto;
 }
+
+/* Create menu overlay */
+.create-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+}
+.create-menu {
+    width: min(420px, 90%);
+}
+
+    /* Styles für das URL‑Import Overlay (scoped für CookbookPage) */
+
+    .overlay-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .overlay-content {
+        background: #fff;
+        padding: 1.25rem;
+        border-radius: 8px;
+        max-width: 680px;
+        width: min(100%, 680px);
+        max-height: 80vh;
+        overflow: auto;
+        position: relative;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Close‑Button oben rechts */
+    .overlay-close {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 1;
+    }
+
+    /* Formular-Elemente im Overlay */
+    .overlay-content .form-label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+    }
+
+    .overlay-content .form-control {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Informations- / Fehlermeldung */
+    .overlay-content .text-muted {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+        color: #6c757d;
+    }
+
+    /* Buttons */
+    .overlay-content .d-flex {
+        margin-top: 0.75rem;
+    }
+
+    .overlay-content .btn + .btn {
+        margin-left: 0.5rem;
+    }
+
+    /* Kleine Verbesserungen für mobile */
+    @@media (max-width: 520px) {
+        .overlay-content {
+            padding: 0.75rem;
+            max-height: 85vh;
+        }
+
+        .overlay-close {
+            top: 0.25rem;
+            right: 0.25rem;
+        }
+    }
 </style>

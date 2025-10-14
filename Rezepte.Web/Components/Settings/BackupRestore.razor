@@ -1,0 +1,159 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@inject ApiClient Api
+@inject IJSRuntime JS
+
+<div class="p-3">
+    <h5>Sicherung (Admin)</h5>
+    <p class="text-muted">Gesamtexport und Wiederherstellung der Anwendung (Admin).</p>
+
+    <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-outline-danger" @onclick="ExportAllAsync" disabled="@isBusy">
+            <i class="bi bi-box-seam me-1"></i> Gesamtexport (Admin)
+        </button>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Wiederherstellen (ZIP-Datei)</label>
+        <InputFile OnChange="OnFileSelected" />
+        @if (selectedFileName != null)
+        {
+            <div class="mt-2">
+                <small class="text-muted">Ausgewählt: @selectedFileName</small>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" @onclick="RestoreAsync" disabled="@(isBusy || (selectedFile == null))">
+            <i class="bi bi-arrow-clockwise me-1"></i> Wiederherstellen
+        </button>
+    </div>
+
+    @if (isBusy)
+    {
+        <div class="mt-2 text-muted">Vorgang läuft…</div>
+    }
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="mt-2 text-muted">@message</div>
+    }
+</div>
+
+@code {
+    private IBrowserFile? selectedFile;
+    // removed persisted Stream field - Open the stream only when performing the upload
+    private string? selectedFileName;
+    private bool isBusy;
+    private string? message;
+
+    private async Task ExportAllAsync()
+    {
+        isBusy = true;
+        message = null;
+        try
+        {
+            var query = $"includePdf=false&includeImages=true";
+            var req = new HttpRequestMessage(HttpMethod.Post, $"api/admin/exports?{query}");
+            var response = await Api.Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                message = "Nicht angemeldet oder keine Berechtigung (401).";
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                message = $"Export fehlgeschlagen: {response.StatusCode}";
+                return;
+            }
+
+            var fileName = GetFileNameFromResponse(response) ?? $"export-all-{DateTime.UtcNow:yyyyMMddHHmm}.zip";
+            var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            using var streamRef = new DotNetStreamReference(stream: stream);
+            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef).ConfigureAwait(false);
+
+            message = "Download gestartet.";
+        }
+        catch (Exception ex)
+        {
+            message = $"Export fehlgeschlagen: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        selectedFileName = selectedFile?.Name;
+        // Update UI
+        StateHasChanged();
+    }
+
+    private async Task RestoreAsync()
+    {
+        if (selectedFile == null)
+        {
+            message = "Keine Datei ausgewählt.";
+            return;
+        }
+
+        // optional: JS confirm before destructive restore
+        var ok = await JS.InvokeAsync<bool>("confirm", "Wirklich wiederherstellen? Bestehende Daten werden überschrieben.");
+        if (!ok) return;
+
+        isBusy = true;
+        message = null;
+        try
+        {
+            // Open the IBrowserFile stream only when performing the upload.
+            var maxAllowedSize = 1024L * 1024L * 500; // 500 MB; adjust as needed
+            var stream = selectedFile.OpenReadStream(maxAllowedSize);
+
+            using var content = new MultipartFormDataContent();
+            using var streamContent = new StreamContent(stream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedFile.ContentType ?? "application/zip");
+            content.Add(streamContent, "file", selectedFile.Name);
+
+            var response = await Api.Http.PostAsync("api/admin/exports/restore", content).ConfigureAwait(false);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                message = "Nicht angemeldet oder keine Berechtigung (401).";
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                message = $"Wiederherstellung fehlgeschlagen: {response.StatusCode} – {body}";
+                return;
+            }
+
+            message = "Wiederherstellung gestartet / abgeschlossen (Server-Antwort OK).";
+        }
+        catch (Exception ex)
+        {
+            message = $"Wiederherstellung fehlgeschlagen: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private static string? GetFileNameFromResponse(HttpResponseMessage response)
+    {
+        if (response.Content?.Headers?.ContentDisposition?.FileNameStar is string fnStar && !string.IsNullOrWhiteSpace(fnStar))
+            return fnStar.Trim('"');
+
+        if (response.Content?.Headers?.ContentDisposition?.FileName is string fn && !string.IsNullOrWhiteSpace(fn))
+            return fn.Trim('"');
+
+        return null;
+    }
+}
