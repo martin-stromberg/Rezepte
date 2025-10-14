@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rezepte.Web.Data;
 
@@ -10,9 +11,11 @@ using Rezepte.Web.Data;
 namespace Rezepte.Web.Migrations
 {
     [DbContext(typeof(RezepteDbContext))]
-    partial class RezepteDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251013155507_AddJobQueue")]
+    partial class AddJobQueue
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
@@ -55,6 +58,13 @@ namespace Rezepte.Web.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CookbookId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CookbookId1")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
@@ -76,32 +86,13 @@ namespace Rezepte.Web.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CookbookId");
+
+                    b.HasIndex("CookbookId1");
+
                     b.HasIndex("UserId", "Title");
 
                     b.ToTable("Recipes");
-                });
-
-            modelBuilder.Entity("Rezepte.Web.Entities.RecipeCookbook", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CookbookId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RecipeId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecipeId");
-
-                    b.HasIndex("CookbookId", "RecipeId")
-                        .IsUnique();
-
-                    b.ToTable("RecipeCookbooks");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.RecipeImage", b =>
@@ -234,23 +225,17 @@ namespace Rezepte.Web.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Rezepte.Web.Entities.RecipeCookbook", b =>
+            modelBuilder.Entity("Rezepte.Web.Entities.Recipe", b =>
                 {
-                    b.HasOne("Rezepte.Web.Entities.Cookbook", "Cookbook")
-                        .WithMany("RecipeCookbooks")
+                    b.HasOne("Rezepte.Web.Entities.Cookbook", null)
+                        .WithMany()
                         .HasForeignKey("CookbookId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Rezepte.Web.Entities.Recipe", "Recipe")
-                        .WithMany("RecipeCookbooks")
-                        .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cookbook");
-
-                    b.Navigation("Recipe");
+                    b.HasOne("Rezepte.Web.Entities.Cookbook", null)
+                        .WithMany("Recipes")
+                        .HasForeignKey("CookbookId1");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.RecipeImage", b =>
@@ -284,14 +269,12 @@ namespace Rezepte.Web.Migrations
 
             modelBuilder.Entity("Rezepte.Web.Entities.Cookbook", b =>
                 {
-                    b.Navigation("RecipeCookbooks");
+                    b.Navigation("Recipes");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.Recipe", b =>
                 {
                     b.Navigation("Images");
-
-                    b.Navigation("RecipeCookbooks");
 
                     b.Navigation("Steps");
                 });

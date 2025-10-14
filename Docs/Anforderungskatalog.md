@@ -46,19 +46,16 @@
 | SHOP-001  | 🕓 Offen      | Zutaten aus Arbeitsplan können in Einkaufsliste übernommen werden            | Zutatenextraktion aus Arbeitsplan. |
 | SHOP-002  | 🕓 Offen      | Zutaten können als erledigt abgehakt werden                                  | Checkbox-Status pro Zutat in der Einkaufsliste. |
 | KI-001    | 📌 Geplant    | Rezepterfassung per KI aus Fotos/Webseiten (zukünftig)                       | Platzhalter für KI-Modul, z. B. ML.NET oder Azure Cognitive Services. |
+| FR-020    | 🕓 Offen      | Benutzer-Export: Anwender kann eigene Rezeptesammlung exportieren            | API: `GET /api/exports/me?format=zip|json` startet Export-Job; synchron für kleine Exporte, asynchron (Job + Download-Link) bei großen Exporten. Format: ZIP mit `recipes.json` (JSON-Array mit Rezepten, Schritten, Zutaten, Metadaten) und `images/` (Binärdateien, Dateinamen referenziert in JSON). Backend: `IExportService.ExportUserAsync(userId, format, ct)`; Auth: nur eigener Nutzer. |
+| FR-021    | 🕓 Offen      | Administrator-Export: Admin kann vollständigen Datenexport durchführen       | API: `POST /api/admin/exports` (Admin-Role) startet asynchronen Export-Job für alle Daten; Ergebnis ZIP wie FR-020, zusätzlich `metadata.json` (Export-Zeit, Version, counts). Export wird als Background-Job ausgeführt, Download per zeitlich begrenztem Link. Service: `IExportService.ExportAllAsync(...)`. Audit-Log-Eintrag bei Start/Abschluss. |
+| FR-022    | 🕓 Offen      | Importfunktion: Upload von Exportformat zur Erstellung neuer Rezepte        | API: `POST /api/imports` akzeptiert Export-ZIP (Format wie FR-020/FR-021). Import-Optionen: `dryRun=true`, `conflict=skip|replace|duplicate`. Service: `IImportService.ImportAsync(stream, options, userId, ct)` validiert Manifest, prüft Größe/Typ, entpackt, speichert Rezepte und Bilder, erzeugt Ids neu bei `duplicate`. Transactional pro Rezept; Fehlerprotokoll im Result. Nur authentifizierte Nutzer; Admin kann `importAs=userId`. |
+| AUTH-005  | 🕓 Offen      | Autorisierung für Export/Import                                             | Benutzer-Export: eigener Nutzer. Admin-Export/All-Data-Import: nur `IsAdmin==true`. Download-Links nur mit kurzlebigen Tokens. |
+| NFR-010   | 🕓 Offen      | Performance / Skalierung für Exporte                                         | Große Exporte asynchron; Streaming/Chunked ZIP-Erzeugung; max. synchronous export size z.B. 20 MB. Rate-Limit/Queue für Admin-Exporte. |
+| NFR-011   | 🕓 Offen      | Sicherheit / Datenschutz beim Export                                         | PII minimieren; Exporte verschlüsseln optional (passwortgeschützt ZIP) für Admin-Export; Audit-Log aller Export/Import Aktionen. |
+| NFR-012   | 🕓 Offen      | Import-Validierung & Safety                                                   | `dryRun` gibt Schema- und Konflikt-Report; Imports prüfen ContentType und Bildgrößen; Standard-Limits (z.B. 100 MB pro Upload) und Quotas pro Benutzer. |
+| NFR-013   | 🕓 Offen      | Kompatibilität & Upgrade-Sicherheit                                          | Export enthält `formatVersion` in Manifest; Import ignoriert unbekannte Felder; Migrationspfade für ältere Export-Versionen dokumentieren. |
 
-Hinweis: Für FR-015 (Migrationen) bitte per CLI ausführen: `dotnet ef migrations add InitialCreate` und `dotnet ef database update` (vorher Anwendung stoppen). Für FR-017 sind Datenmodell- und UI-Erweiterungen umgesetzt; die Seite ist als Einstellungsmodul integriert.
-
-## Statuslegende
-
-| Symbol            | Statusbezeichnung       | Bedeutung                                                                 |
-| ----------------- |-------------------------|---------------------------------------------------------------------------|
-| 🕓 Offen          | Offen                  | Die Anforderung wurde noch nicht begonnen                                 |
-| 🚧 In Arbeit      | In Arbeit              | Die Umsetzung der Anforderung ist im Gange                                |
-| ✅ Erledigt       | ✅ Erledigt               | Die Anforderung wurde vollständig umgesetzt und getestet                  |
-| 🔍 Review         | Review                 | Die Umsetzung wird aktuell überprüft oder getestet                        |
-| 🛠️ Überarbeiten   | Überarbeiten           | Die Umsetzung muss überarbeitet oder korrigiert werden                    |
-| ⏸️ Zurückgestellt | Zurückgestellt         | Die Umsetzung wurde pausiert oder ist aktuell nicht priorisiert           |
-| ❌ Verworfen      | Verworfen              | Die Anforderung wurde gestrichen und wird nicht umgesetzt                 |
-| 📌 Geplant        | Geplant                | Die Anforderung ist für eine zukünftige Version vorgesehen                |
-| ⚠️ Blockiert      | Blockiert              | Die Umsetzung ist aktuell nicht möglich (z. B. technische Abhängigkeiten) |
+Hinweis zur Implementierung
+- Datenmodell: Export liefert nur DTOs (keine EF-Entitäten) — mapping in Service-Schicht. Bilder als separate Dateien, JSON referenziert Dateinamen statt Base64 (bessere Performance).  
+- Monitoring: `ILogger`-Einträge bei Start/Ende, Fehler-Details im Import-Result; Export/Import-Jobs persistent (z. B. DB-Tabelle `Jobs`) für Nachverfolgbarkeit.  
+- CLI / Administration: Möglichkeit, Exporte im Background-Service zu planen oder per CLI zu triggern (optional).

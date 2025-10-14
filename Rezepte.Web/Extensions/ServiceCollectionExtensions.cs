@@ -1,15 +1,18 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Data;
 using Rezepte.Web.Services;
+using Rezepte.Web.Services.BackgroundJobs;
+using Rezepte.Web.Services.BackgroundJobs.Handlers;
+using Rezepte.Web.Services.Import;
 using Rezepte.Web.ViewModels;
-using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Rezepte.Web.Extensions;
 
@@ -115,11 +118,19 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICookbookService, CookbookService>();
         services.AddScoped<IRecipeService, RecipeService>();
+        services.AddScoped<IExportService, ExportService>();
+        services.AddScoped<IBackgroundJobHandler, ExportUserJobHandler>();
+        services.AddScoped<IPdfGenerator, PdfGenerator>();
+        services.AddScoped<IImportService, ImportService>();
+        services.AddScoped<IImportHandler, BackupImportHandler>();
+        services.AddScoped<IImportHandler, UrlReceiptImportHandler>();
 
         // ViewModels
         services.AddScoped<SettingsViewModel>();
         services.AddScoped<UserProfileViewModel>();
         services.AddScoped<UserAdminViewModel>();
+
+        services.AddBackgroundJobQueue();
 
         return services;
     }

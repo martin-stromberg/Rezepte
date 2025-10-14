@@ -1,5 +1,6 @@
 ﻿@page "/cookbooks/{Id}/edit"
 @using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
 @attribute [Authorize]
 @inject ApiClient Api
 @inject NavigationManager Nav

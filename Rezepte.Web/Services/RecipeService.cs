@@ -17,6 +17,8 @@ public interface IRecipeService
     Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct);
     Task<(bool ok, string? error, List<Recipe> created)> AddExistingToCookbookAsync(string userId, string cookbookId, IEnumerable<string> recipeIds, CancellationToken ct);
+    Task<(bool ok, string? error)> RemoveFromCookbookAsync(string userId, string cookbookId, string recipeId, CancellationToken ct);
+
     Task<(bool ok, string? error, string? imageId)> SetImageAsync(string userId, string recipeId, Stream imageStream, string fileName, CancellationToken ct);
     Task<(bool ok, string? error, RecipeImage? image)> AddImageAsync(string userId, string recipeId, Stream imageStream, string fileName, string contentType, CancellationToken ct);
     Task<RecipeImage?> GetImageAsync(string recipeId, string imageId, CancellationToken ct);
@@ -49,6 +51,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     {
         return await _db.Recipes
             .AsNoTracking()
+            .Include(r => r.RecipeCookbooks)
             .Include(r => r.Steps)
                 .ThenInclude(s => s.Ingredients)
             .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct);
@@ -57,33 +60,38 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     public async Task<List<Recipe>> GetByCookbookAsync(string userId, string cookbookId, CancellationToken ct)
     {
         return await _db.Recipes.AsNoTracking()
-            .Where(r => r.CookbookId == cookbookId && r.UserId == userId)
+            .Include(r => r.Images)
+            .Where(r => r.RecipeCookbooks.Any(c => c.CookbookId == cookbookId) && r.UserId == userId)
             .OrderBy(r => r.Title)
             .ToListAsync(ct);
     }
 
     public async Task<List<Recipe>> GetAvailableForCookbookAsync(string userId, string cookbookId, CancellationToken ct)
     {
-        return await _db.Recipes.AsNoTracking()
-            .Where(r => r.CookbookId != cookbookId && r.UserId == userId)
+        return await _db.Recipes.Include(r => r.RecipeCookbooks).AsNoTracking()
+            .Where(r => r.RecipeCookbooks.Any(c => c.CookbookId != cookbookId) && r.UserId == userId)
             .OrderBy(r => r.Title)
             .ToListAsync(ct);
     }
 
     public async Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(cookbookId)) return (false, "CookbookId required.", null);
         if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3) return (false, "Der Titel muss mindestens 3 Zeichen haben.", null);
         var cookbookExists = await _db.Cookbooks.AsNoTracking().AnyAsync(c => c.Id == cookbookId && c.UserId == userId, ct);
-        if (!cookbookExists) return (false, "Kochbuch nicht gefunden.", null);
+        if (!cookbookExists && !string.IsNullOrWhiteSpace(cookbookId)) return (false, "Kochbuch nicht gefunden.", null);
 
         var entity = new Recipe
         {
             UserId = userId,
-            CookbookId = cookbookId,
             Title = title.Trim(),
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim()
         };
+        if (cookbookExists)
+            entity.RecipeCookbooks.Add(new RecipeCookbook
+            {
+                CookbookId = cookbookId,
+                RecipeId = entity.Id
+            });
         _db.Recipes.Add(entity);
 
         // Steps (+ ingredients)
@@ -207,49 +215,34 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
         foreach (var rid in ids)
         {
             var source = await _db.Recipes
+                .Include(r => r.RecipeCookbooks)
                 .Include(r => r.Steps)
                     .ThenInclude(s => s.Ingredients)
                 .FirstOrDefaultAsync(r => r.Id == rid && r.UserId == userId, ct);
             if (source is null) { continue; }
-            if (source.CookbookId == cookbookId) { continue; }
-
-            var clone = new Recipe
+            if (source.RecipeCookbooks.Any(c => c.CookbookId == cookbookId)) { continue; }
+            source.RecipeCookbooks.Add(new RecipeCookbook
             {
-                UserId = userId,
                 CookbookId = cookbookId,
-                Title = source.Title,
-                Description = source.Description
-            };
-            _db.Recipes.Add(clone);
-            created.Add(clone);
-
-            foreach (var s in source.Steps.OrderBy(s => s.StepIndex))
-            {
-                var step = new RecipeStep
-                {
-                    RecipeId = clone.Id,
-                    StepIndex = s.StepIndex,
-                    Title = s.Title,
-                    Description = s.Description,
-                    DurationMinutes = s.DurationMinutes,
-                    RequiresOvernightRest = s.RequiresOvernightRest
-                };
-                _db.RecipeSteps.Add(step);
-                foreach (var ing in s.Ingredients)
-                {
-                    _db.RecipeIngredients.Add(new RecipeIngredient
-                    {
-                        StepId = step.Id,
-                        Amount = ing.Amount,
-                        Unit = ing.Unit,
-                        Name = ing.Name
-                    });
-                }
-            }
+                RecipeId = source.Id
+            });
         }
-
         await _db.SaveChangesAsync(ct);
         return (true, null, created);
+    }
+    public async Task<(bool ok, string? error)> RemoveFromCookbookAsync(string userId, string cookbookId, string recipeId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return (false, "Unauthorized");
+        var recipe = await _db.Recipes.Include(r => r.RecipeCookbooks).FirstOrDefaultAsync(r => r.Id == recipeId, ct).ConfigureAwait(false);
+        if (recipe == null) return (false, "Rezept nicht gefunden.");
+        if (recipe.UserId != userId) return (false, "Keine Berechtigung.");
+
+        var existingAssignment = recipe.RecipeCookbooks.FirstOrDefault(rc => rc.CookbookId == cookbookId);
+        if (existingAssignment is null) return (false, "Rezept ist nicht in diesem Kochbuch.");
+
+        recipe.RecipeCookbooks.Remove(existingAssignment);
+        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return (true, null);
     }
 
     public async Task<(bool ok, string? error, string? imageId)> SetImageAsync(string userId, string recipeId, Stream imageStream, string fileName, CancellationToken ct)

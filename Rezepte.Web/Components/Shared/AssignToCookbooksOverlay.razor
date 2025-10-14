@@ -1,0 +1,154 @@
+@using Microsoft.JSInterop
+@inject ApiClient Api
+@inject IJSRuntime JS
+
+@if (!Show) 
+{
+    @* not visible *@
+}
+else
+{
+    <div class="overlay-backdrop" @onclick="OnCancelClick">
+        <div class="overlay-content" @onclick:stopPropagation>
+            <button class="btn btn-sm btn-danger overlay-close" @onclick="OnCancelClick">×</button>
+            <h5>Zuweisung zu Kochbüchern</h5>
+            <p class="text-muted">Wähle aus, in welchen Kochbüchern dieses Rezept erscheinen soll.</p>
+
+            @if (isLoading)
+            {
+                <div class="text-muted">Lade…</div>
+            }
+            else
+            {
+                <div class="mb-3" style="max-height:40vh; overflow:auto;">
+                    @if (cookbooks?.Count == 0)
+                    {
+                        <div class="text-muted">Keine Kochbücher vorhanden.</div>
+                    }
+                    else
+                    {
+                        @foreach (var cb in cookbooks)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="@cb.Id" checked="@selectedIds.Contains(cb.Id)" @onchange="(e) => Toggle(cb.Id, e.Value as bool?)" />
+                                <label class="form-check-label" for="@cb.Id">@cb.Name</label>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(message))
+                {
+                    <div class="mb-2 text-muted">@message</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" @onclick="SaveAsync" disabled="@isBusy">Speichern</button>
+                    <button class="btn btn-outline-secondary" @onclick="OnCancelClick" disabled="@isBusy">Abbrechen</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string RecipeId { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<bool> OnSaved { get; set; } // arg: changed?
+
+    private List<CookbookDto>? cookbooks;
+    private HashSet<string> selectedIds = new();
+    private HashSet<string> originalIds = new();
+    private bool isLoading = true;
+    private bool isBusy = false;
+    private string? message;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Show) return;
+        isLoading = true;
+        message = null;
+        try
+        {
+            // --- Annahmen / Endpoints ---
+            // GET api/cookbooks => List of user's cookbooks
+            // GET api/recipes/{recipeId}/cookbooks => List<string> of cookbook ids the recipe currently belongs to
+            // POST api/cookbooks/{cookbookId}/recipes (body: array of recipeIds) => adds recipes to cookbook
+            // DELETE api/cookbooks/{cookbookId}/recipes/{recipeId} => removes recipe from cookbook
+            //
+            // Passe die URLs an euer API an falls nötig.
+
+            cookbooks = await Api.Http.GetFromJsonAsync<List<CookbookDto>>("api/cookbooks");
+            var assigned = await Api.Http.GetFromJsonAsync<List<string>>($"api/recipes/{RecipeId}/cookbooks");
+
+            selectedIds = assigned != null ? new HashSet<string>(assigned) : new HashSet<string>();
+            originalIds = new HashSet<string>(selectedIds);
+        }
+        catch (Exception ex)
+        {
+            message = "Fehler beim Laden: " + ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Toggle(string id, bool? isChecked)
+    {
+        if (isChecked == true) selectedIds.Add(id);
+        else selectedIds.Remove(id);
+    }
+
+    private async Task SaveAsync()
+    {
+        isBusy = true;
+        message = null;
+        try
+        {
+            var toAdd = selectedIds.Except(originalIds).ToList();
+            var toRemove = originalIds.Except(selectedIds).ToList();
+
+            // Additions: POST per cookbook (angepasst an euer Backend)
+            foreach (var cbId in toAdd)
+            {
+                var body = JsonContent.Create(new[] { RecipeId });
+                var resp = await Api.Http.PostAsync($"api/cookbooks/{cbId}/recipes", body);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    message = $"Hinzufügen in '{cbId}' fehlgeschlagen: {resp.StatusCode}";
+                }
+            }
+
+            // Removals: DELETE per cookbook
+            foreach (var cbId in toRemove)
+            {
+                var resp = await Api.Http.DeleteAsync($"api/cookbooks/{cbId}/recipes/{RecipeId}");
+                if (!resp.IsSuccessStatusCode)
+                {
+                    message = $"Entfernen aus '{cbId}' fehlgeschlagen: {resp.StatusCode}";
+                }
+            }
+
+            var changed = toAdd.Count > 0 || toRemove.Count > 0;
+            await OnSaved.InvokeAsync(changed);
+            await OnClose.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            message = "Speichern fehlgeschlagen: " + ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task OnCancelClick()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private record CookbookDto(string Id, string Name);
+}

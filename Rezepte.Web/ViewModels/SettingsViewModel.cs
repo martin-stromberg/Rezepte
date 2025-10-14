@@ -20,13 +20,20 @@ public class SettingsViewModel
 
     public SettingsViewModel(AuthenticationStateProvider authenticationStateProvider)
     {
-        var isAdmin = authenticationStateProvider.GetAuthenticationStateAsync().Result.User.IsInRole("Admin");
-        Items =
-        [
+        // Achtung: synchronous block / kurz und bewusst — Auth-State ist zur Initialisierung benötigt.
+        var authState = authenticationStateProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult();
+        var isAdmin = authState.User?.IsInRole("Admin") ?? false;
+
+        Items = new List<Item>
+        {
             new Item("Profil", "👤", true, typeof(UserProfile)),
-            new Item("Benutzer", "👥", isAdmin, typeof(UserAdmin))
-        ];
-        SelectedItem = Items[0];
+            new Item("Benutzer", "👥", isAdmin, typeof(UserAdmin)),
+            new Item("Datenexport", "📤", true, typeof(Rezepte.Web.Components.Settings.ExportData)),
+            // Neues Register für Admin-Gesamtexport + Wiederherstellung
+            new Item("Sicherung", "💾", isAdmin, typeof(Rezepte.Web.Components.Settings.BackupRestore))
+        };
+
+        SelectedItem = Items.First();
     }
 
     public void Select(Item item) => SelectedItem = item;
