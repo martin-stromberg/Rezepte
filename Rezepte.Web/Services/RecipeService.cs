@@ -13,7 +13,7 @@ public interface IRecipeService
     Task<Recipe?> GetByIdAsync(string userId, string id, CancellationToken ct);
     Task<List<Recipe>> GetByCookbookAsync(string userId, string cookbookId, CancellationToken ct);
     Task<List<Recipe>> GetAvailableForCookbookAsync(string userId, string cookbookId, CancellationToken ct);
-    Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
+    Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
     Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct);
     Task<(bool ok, string? error, List<Recipe> created)> AddExistingToCookbookAsync(string userId, string cookbookId, IEnumerable<string> recipeIds, CancellationToken ct);
@@ -26,6 +26,7 @@ public interface IRecipeService
     Task<int> GetImageCountAsync(string recipeId, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteImageAsync(string userId, string recipeId, string imageId, CancellationToken ct);
     Task<List<Recipe>> GetLatestAsync(string userId, int count, CancellationToken ct);
+    Task<Recipe> FindByUri(string userId, string v, CancellationToken ct);
 }
 
 public record RecipeCreateIngredient(decimal Amount, string? Unit, string Name);
@@ -74,7 +75,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             .ToListAsync(ct);
     }
 
-    public async Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
+    public async Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3) return (false, "Der Titel muss mindestens 3 Zeichen haben.", null);
         var cookbookExists = await _db.Cookbooks.AsNoTracking().AnyAsync(c => c.Id == cookbookId && c.UserId == userId, ct);
@@ -84,7 +85,8 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
         {
             UserId = userId,
             Title = title.Trim(),
-            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim()
+            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+            Uri = string.IsNullOrWhiteSpace(uri) ? null : uri.Trim(),
         };
         if (cookbookExists)
             entity.RecipeCookbooks.Add(new RecipeCookbook
@@ -344,5 +346,11 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             .OrderByDescending(r => r.CreatedAt)
             .Take(count)
             .ToListAsync(ct);
+    }
+
+    public async Task<Recipe> FindByUri(string userId, string uri, CancellationToken ct)
+    {
+        return await _db.Recipes.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.UserId == userId && r.Uri == uri, ct);
     }
 }

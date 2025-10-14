@@ -63,7 +63,7 @@ public class BackupImportHandler(IRecipeService recipes, ILogger<BackupImportHan
                     (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
                 )).ToList() ?? new List<RecipeCreateStep>();
 
-                var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, r.Title ?? string.Empty, r.Description, steps, ct).ConfigureAwait(false);
+                var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, r.Title ?? string.Empty, r.Description, r.Uri, steps, ct).ConfigureAwait(false);
                 if (!ok || recipe == null)
                 {
                     _logger.LogWarning("Could not create recipe from import: {Title} -> {Error}", r.Title, error);

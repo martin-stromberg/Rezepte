@@ -11,4 +11,5 @@ public class Recipe
     public ICollection<RecipeStep> Steps { get; set; } = new List<RecipeStep>();
     public ICollection<RecipeImage> Images { get; set; } = new List<RecipeImage>();
     public ICollection<RecipeCookbook> RecipeCookbooks { get; set; } = new List<RecipeCookbook>();
+    public string? Uri { get; internal set; }
 }

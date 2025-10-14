@@ -112,7 +112,7 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
     }
 
     public record AddExistingRequest(List<string> RecipeIds);
-    public record CreateRecipeRequest(string? CookbookId, string Title, string? Description, List<CreateRecipeStep> Steps);
+    public record CreateRecipeRequest(string? CookbookId, string Title, string? Description, string? Uri, List<CreateRecipeStep> Steps);
     public record CreateRecipeStep(string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<CreateRecipeIngredient> Ingredients);
     public record CreateRecipeIngredient(decimal Amount, string? Unit, string Name);
 
@@ -129,7 +129,7 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
             (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
         )).ToList() ?? new List<RecipeCreateStep>();
 
-        var (ok, error, recipe) = await _recipes.CreateAsync(userId, dto.CookbookId, dto.Title, dto.Description, steps, ct);
+        var (ok, error, recipe) = await _recipes.CreateAsync(userId, dto.CookbookId, dto.Title, dto.Description, dto.Uri, steps, ct);
         if (!ok || recipe is null)
             return BadRequest(new { message = error ?? "Anlegen fehlgeschlagen." });
 

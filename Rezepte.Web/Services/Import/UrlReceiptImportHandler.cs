@@ -1,4 +1,5 @@
-﻿using Rezepte.Web.Services;
+﻿using Rezepte.Web.Entities;
+using Rezepte.Web.Services;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -292,6 +293,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
         public RecipeIngredients Ingredients { get; internal set; }
         public string Instructions { get; internal set; }
         public string Description { get; internal set; }
+        public string Uri { get; internal set; }
     }
     private sealed class RecipeIngredients()
     {
@@ -373,7 +375,8 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
             recipe.Title = WebUtility.HtmlDecode(FindTagValue(headContent, "title").Split('|').First());
             if (string.IsNullOrWhiteSpace(recipe.Title))
                 recipe.Title = WebUtility.HtmlDecode(FindTagValue(headContent, "meta|name=og:title").Split('|').First());
-            
+            recipe.Uri = WebUtility.HtmlDecode(FindTagValue(headContent, "meta|property=og:url").Split('|').First());
+
             responseContent = FindTagValue(responseContent, "body", "main");
             var contentTitle = FindTagValue(responseContent, "h1");
             if (!string.IsNullOrWhiteSpace(contentTitle))
@@ -455,30 +458,38 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
                         RequiresOvernightRest: false,
                         Ingredients: stepIngredients)
                 };
-
-                var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, imported.Title ?? "Importiertes Rezept", imported.Description, steps, ct).ConfigureAwait(false);
-                if (!ok || recipe == null)
+                var existingRecipe = await _recipes.FindByUri(userId, imported.Uri ?? string.Empty, ct).ConfigureAwait(false);
+                if (existingRecipe is not null)
                 {
-                    _logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);
+                    var (ok, error) = await _recipes.UpdateAsync(userId, existingRecipe.Id, imported.Title, imported.Description, steps, ct).ConfigureAwait(false);
+                    if (!ok)
+                    {
+                        _logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);
+                        continue;
+                    }
+
+                    // Attach pictures (if any)
+                    if (imported.Pictures != null && imported.Pictures.Length > 0)
+                    {
+                        for (int i = 0; i < imported.Pictures.Length; i++)
+                        {
+                            ct.ThrowIfCancellationRequested();
+                            var imgBytes = imported.Pictures[i];
+                            if (imgBytes == null || imgBytes.Length == 0) continue;
+
+                            var ext = GetImageExtension(imgBytes);
+                            var imgFileName = SanitizeFileName($"{imported.Title ?? "image"}-{i + 1}{ext}");
+                            var contentType = GetContentTypeFromExtension(ext);
+                            await _recipes.AddImageAsync(userId, existingRecipe.Id, new MemoryStream(imgBytes), imgFileName, contentType, ct).ConfigureAwait(false);
+                        }
+                    }
                     continue;
                 }
 
-                created.Add(recipe.Id);
-
-                // Attach pictures (if any)
-                if (imported.Pictures != null && imported.Pictures.Length > 0)
+                bool flowControl = await CreateNewRecipe(targetCookbookId, userId, created, imported, steps, ct).ConfigureAwait(false);
+                if (!flowControl)
                 {
-                    for (int i = 0; i < imported.Pictures.Length; i++)
-                    {
-                        ct.ThrowIfCancellationRequested();
-                        var imgBytes = imported.Pictures[i];
-                        if (imgBytes == null || imgBytes.Length == 0) continue;
-
-                        var ext = GetImageExtension(imgBytes);
-                        var imgFileName = SanitizeFileName($"{imported.Title ?? "image"}-{i + 1}{ext}");
-                        var contentType = GetContentTypeFromExtension(ext);
-                        await _recipes.AddImageAsync(userId, recipe.Id, new MemoryStream(imgBytes), imgFileName, contentType, ct).ConfigureAwait(false);
-                    }
+                    continue;
                 }
             }
             catch (Exception ex)
@@ -493,6 +504,36 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
             lastReader = null;
         }
         return new ImportResult(true, null, created);
+    }
+
+    private async Task<bool> CreateNewRecipe(string targetCookbookId, string userId, List<string> created, RecipeImport imported, List<RecipeCreateStep> steps, CancellationToken ct)
+    {
+        var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, imported.Title ?? "Importiertes Rezept", imported.Description, imported.Uri, steps, ct).ConfigureAwait(false);
+        if (!ok || recipe == null)
+        {
+            _logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);
+            return false;
+        }
+
+        created.Add(recipe.Id);
+
+        // Attach pictures (if any)
+        if (imported.Pictures != null && imported.Pictures.Length > 0)
+        {
+            for (int i = 0; i < imported.Pictures.Length; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+                var imgBytes = imported.Pictures[i];
+                if (imgBytes == null || imgBytes.Length == 0) continue;
+
+                var ext = GetImageExtension(imgBytes);
+                var imgFileName = SanitizeFileName($"{imported.Title ?? "image"}-{i + 1}{ext}");
+                var contentType = GetContentTypeFromExtension(ext);
+                await _recipes.AddImageAsync(userId, recipe.Id, new MemoryStream(imgBytes), imgFileName, contentType, ct).ConfigureAwait(false);
+            }
+        }
+
+        return true;
     }
 
     private static string GetImageExtension(byte[] bytes)
