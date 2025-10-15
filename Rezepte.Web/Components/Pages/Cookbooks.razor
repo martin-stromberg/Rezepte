@@ -4,6 +4,7 @@
 @attribute [Authorize]
 @inject ApiClient Api
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <h4 class="mb-3">Kochbücher</h4>
 
@@ -41,23 +42,41 @@ else
         <div class="cookbook-grid">
             @foreach (var item in gridItems)
             {
-                <a class="cookbook-card" href="@($"/cookbooks/{item.Id}")" title="@item.Name">
-                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                    {
-                        <img src="@item.ImageUrl" alt="Letztes Rezept in @item.Name" />
-                    }
-                    else
-                    {
-                        <div class="no-image">📚</div>
-                    }
-                    <div class="cookbook-title">
-                        <strong>@item.Name</strong>
-                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                <div class="cookbook-card-wrapper"
+                     data-id="@item.Id"
+                     draggable="true"
+                     @ondragstart="() => OnDragStart(item.Id)"
+                     @ondragend="OnDragEnd"
+                     @ondragover:preventDefault="true"
+                     @ondragenter="() => OnDragEnter(item.Id)"
+                     @ondragleave="() => OnDragLeave(item.Id)"
+                     @ondrop="() => OnDrop(item.Id)">
+                    <a class="cookbook-card @(dragOverId == item.Id ? "drag-over" : null) @(isDragging ? "no-pointer" : null)"
+                       href="@($"/cookbooks/{item.Id}")" title="@item.Name">
+                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                         {
-                            <div class="text-muted small">@item.Description</div>
+                            <img src="@item.ImageUrl" alt="Letztes Rezept in @item.Name" />
                         }
-                    </div>
-                </a>
+                        else
+                        {
+                            <div class="no-image">📚</div>
+                        }
+                        <div class="cookbook-title">
+                            <strong>@item.Name</strong>
+                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            {
+                                <div class="text-muted small">@item.Description</div>
+                            }
+                        </div>
+                    </a>
+
+                    <button type="button"
+                            class="drag-handle"
+                            title="Verschieben"
+                            tabindex="-1"> 
+                        <i class="bi bi-arrows-move"></i>
+                    </button>
+                </div>
             }
         </div>
     }
@@ -73,6 +92,16 @@ else
     private List<CookbookGridItem> gridItems = new();
     private string newName = string.Empty;
     private string? newDescription;
+
+    // Drag & drop Zustand (nur UI)
+    private string? draggingId;
+    private string? dragOverId;
+    private bool isDragging;
+    private bool dragJsRegistered;
+    private DotNetObjectReference<Rezepte.Web.Components.Pages.Cookbooks>? dotNetRef;
+
+    // Guard: verhindert doppelte Persist-Aufrufe
+    private bool persistOrderInProgress;
 
     protected override async Task OnInitializedAsync()
     {
@@ -108,7 +137,8 @@ else
             });
 
             var results = await Task.WhenAll(tasks);
-            gridItems = results.OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            // Use the service order (should be OrderIndex then Name)
+            gridItems = results.ToList();
 
             isError = false; message = null;
         }
@@ -148,6 +178,167 @@ else
         finally { isBusy = false; StateHasChanged(); }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // create DotNetReference once
+        if (dotNetRef == null)
+            dotNetRef = DotNetObjectReference.Create(this);
+
+        // Always try to register: JS side guards against duplicate listeners on the same element.
+        try
+        {
+            await JS.InvokeVoidAsync("dragHelpers.register", ".cookbook-card-wrapper, .drag-handle", dotNetRef);
+        }
+        catch (JSException)
+        {
+            // still safe if script not loaded yet; will try again on next render
+        }
+    }
+
+    // --- Drag & Drop Handler (UI) ---
+    private void OnDragStart(string id)
+    {
+        draggingId = id;
+        dragOverId = null;
+        isDragging = true;
+        StateHasChanged();
+    }
+
+    private void OnDragEnd()
+    {
+        draggingId = null;
+        dragOverId = null;
+        isDragging = false;
+        StateHasChanged();
+    }
+
+    private void OnDragEnter(string id)
+    {
+        if (draggingId == null || draggingId == id) return;
+        dragOverId = id;
+        StateHasChanged();
+    }
+
+    private void OnDragLeave(string id)
+    {
+        if (dragOverId == id)
+        {
+            dragOverId = null;
+            StateHasChanged();
+        }
+    }
+
+    // Called from JS fallback when native drop occurs
+    [JSInvokable]
+    public async Task OnJsDrop(string? sourceId, string? targetId)
+    {
+        if (string.IsNullOrEmpty(sourceId) || string.IsNullOrEmpty(targetId) || sourceId == targetId)
+        {
+            draggingId = null;
+            dragOverId = null;
+            isDragging = false;
+            StateHasChanged();
+            return;
+        }
+
+        var source = gridItems.FirstOrDefault(g => g.Id == sourceId);
+        var targetIndex = gridItems.FindIndex(g => g.Id == targetId);
+        if (source != null && targetIndex >= 0)
+        {
+            gridItems.Remove(source);
+            gridItems.Insert(targetIndex, source);
+            await PersistOrderAsync();
+        }
+
+        draggingId = null;
+        dragOverId = null;
+        isDragging = false;
+        StateHasChanged();
+    }
+
+    // Blazor drop handler (may not fire in some browsers)
+    private async Task OnDrop(string targetId)
+    {
+        if (string.IsNullOrEmpty(draggingId) || draggingId == targetId)
+        {
+            draggingId = null;
+            dragOverId = null;
+            isDragging = false;
+            return;
+        }
+
+        var source = gridItems.FirstOrDefault(g => g.Id == draggingId);
+        var targetIndex = gridItems.FindIndex(g => g.Id == targetId);
+        if (source != null && targetIndex >= 0)
+        {
+            gridItems.Remove(source);
+            gridItems.Insert(targetIndex, source);
+            await PersistOrderAsync();
+        }
+
+        draggingId = null;
+        dragOverId = null;
+        isDragging = false;
+        StateHasChanged();
+    }
+
+    private async Task PersistOrderAsync()
+    {
+        // Prevent re-entrancy / duplicate calls
+        if (persistOrderInProgress) 
+        {
+            // Optional: set a user-visible short message or just return
+            // message = "Speichern läuft bereits…";
+            return;
+        }
+
+        persistOrderInProgress = true;
+        try
+        {
+            // Build ordered id list from current UI order
+            var orderedIds = gridItems.Select(g => g.Id).ToList();
+            if (orderedIds.Count == 0) return;
+
+            isBusy = true; StateHasChanged();
+            try
+            {
+                var res = await Api.Http.PostAsJsonAsync("api/cookbooks/reorder", orderedIds);
+                if (!res.IsSuccessStatusCode)
+                {
+                    var body = await res.Content.ReadAsStringAsync();
+                    isError = true;
+                    message = $"Reihenfolge speichern fehlgeschlagen: {res.StatusCode} – {body}";
+                }
+                else
+                {
+                    isError = false;
+                    message = "Reihenfolge gespeichert.";
+                    // Optionally reload to get server-canonical order / images
+                    await LoadAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                isError = true;
+                message = "Fehler beim Speichern der Reihenfolge: " + ex.Message;
+            }
+            finally
+            {
+                isBusy = false;
+                StateHasChanged();
+            }
+        }
+        finally
+        {
+            persistOrderInProgress = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        dotNetRef?.Dispose();
+    }
+
     private record CookbookDto(string Id, string Name, string? Description, DateTime CreatedAt);
     private record CookbookGridItem(string Id, string Name, string? Description, string? ImageUrl);
     private record RecipeListItemDto(string Id, string Title, string? ImageUrl);
@@ -159,44 +350,92 @@ else
     gap: 1.5rem;
     margin-top: 1rem;
 }
-.cookbook-card {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    text-decoration: none;
-    color: inherit;
-    overflow: hidden;
-    transition: box-shadow 0.2s;
-    min-height: 180px;
+.cookbook-card-wrapper {
+    position: relative;
 }
-.cookbook-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.13);
-}
-.cookbook-card img, .cookbook-card .no-image {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    background: #f5f5f5;
-    display: block;
-}
-.cookbook-card .no-image {
+
+/* Drag-Griff */
+.drag-handle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 30;
+    border: none;
+    background: rgba(255,255,255,0.9);
+    border-radius: 4px;
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.25rem;
-    color: #bbb;
-}
-.cookbook-title {
-    padding: 0.75rem 1rem;
-    font-weight: 600;
-    font-size: 1.05rem;
-    text-align: center;
-}
-.cookbook-title .small {
-    font-weight: 400;
-    font-size: 0.9rem;
+    cursor: grab;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+.drag-handle:active { cursor: grabbing; }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+    /* visuelles Feedback beim Ablegen-Ziel */
+    .cookbook-card.drag-over {
+        outline: 3px dashed rgba(0, 123, 255, 0.45);
+        transform: translateY(-4px);
+    }
+
+    /* Während Drag: Links deaktivieren, Griff aktiv halten */
+    .cookbook-card.no-pointer {
+        pointer-events: none;
+    }
+
+        .cookbook-card.no-pointer .drag-handle {
+            pointer-events: auto;
+        }
+
+    /* Kartenstile */
+    .cookbook-card {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        text-decoration: none;
+        color: inherit;
+        overflow: hidden;
+        transition: box-shadow 0.2s, transform 0.12s;
+        min-height: 180px;
+    }
+
+        .cookbook-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+        }
+
+        .cookbook-card img, .cookbook-card .no-image {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            background: #f5f5f5;
+            display: block;
+        }
+
+        .cookbook-card .no-image {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.25rem;
+            color: #bbb;
+        }
+
+    .cookbook-title {
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        font-size: 1.05rem;
+        text-align: center;
+    }
+
+        .cookbook-title .small {
+            font-weight: 400;
+            font-size: 0.9rem;
 }
 </style>

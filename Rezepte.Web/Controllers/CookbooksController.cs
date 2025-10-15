@@ -277,6 +277,19 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         }
     }
 
+    [HttpPost("reorder")]
+    public async Task<IActionResult> Reorder([FromBody] List<string>? orderedIds, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        if (orderedIds == null || orderedIds.Count == 0)
+            return BadRequest(new { message = "Keine Reihenfolge übergeben." });
+
+        var (ok, error) = await _cookbooks.ReorderAsync(userId, orderedIds, ct);
+        if (!ok) return BadRequest(new { message = error ?? "Reihenfolge konnte nicht gespeichert werden." });
+
+        return Ok();
+    }
 
     public record CreateCookbookRequest(string Name, string? Description);
     public record UpdateCookbookRequest(string Name, string? Description);
