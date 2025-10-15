@@ -86,7 +86,13 @@ else
                                title="Auswählen" />
                     }
 
-                    <a class="recipe-card" href="@(!isMultiSelecting ? $"/recipes/{recipe.Id}" : "#")" @onclick="(e) => OnCardClick(e, recipe.Id)">
+                    <a class="recipe-card"
+                       href="@(!isMultiSelecting ? $"/recipes/{recipe.Id}" : null)"
+                       @onclick="(e) => OnCardClick(e, recipe.Id)"
+                       @onclick:preventDefault="isMultiSelecting"
+                       @onclick:stopPropagation="isMultiSelecting"
+                       role="button"
+                       tabindex="0">
                         @if (!string.IsNullOrWhiteSpace(recipe.ImageUrl))
                         {
                             <img src="@recipe.ImageUrl" alt="Bild zu @recipe.Title" />
