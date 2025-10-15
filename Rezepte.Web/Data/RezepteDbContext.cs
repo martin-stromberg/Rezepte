@@ -34,6 +34,13 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.Property(c => c.Name).IsRequired().HasMaxLength(128);
             b.Property(c => c.Description).HasMaxLength(1024);
             b.Property(c => c.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // Real CLR-Eigenschaft OrderIndex konfigurieren (nicht als Shadow-Property)
+            b.Property(c => c.OrderIndex).HasDefaultValue(0);
+
+            // Index auf UserId + OrderIndex für schnelle Sortierung
+            b.HasIndex(c => new { c.UserId, c.OrderIndex });
+
             b.HasIndex(c => c.Name).IsUnique(false);
             b.HasIndex(c => new { c.UserId, c.Name });
         });
