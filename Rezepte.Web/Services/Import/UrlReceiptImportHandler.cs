@@ -3,6 +3,7 @@ using Rezepte.Web.Services;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace Rezepte.Web.Services.Import;
@@ -95,7 +96,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
     protected string FindTagValue(string content, params string[] tags)
     {
         content = FindTag(content, true, tags);
-        int offset = content.IndexOf($"</{tags.Last()}");
+        int offset = content.IndexOf($"</{tags.Last().Split('|').First()}");
         if (offset >= 0)
             content = content.Remove(offset);
         return content.Replace("<br>", "\r\n").Trim();
@@ -118,44 +119,54 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
     }
     protected string[] CollectTags(string content, string tagName)
     {
-        var startTag = $"<{tagName.Split('|').First()}>";
-        var startTag2 = $"<{tagName.Split('|').First()} ";
-        var endTag = $"</{tagName.Split('|').First()}>";
+        string tagBase = tagName.Split('|').First();
+        string startTagPattern = $@"<{tagBase}(\s[^>]*)?>";
+        string endTag = $"</{tagBase}>";
         List<string> tags = new List<string>();
-        while (content.Length > 0)
+
+        while (!string.IsNullOrEmpty(content))
         {
-            var tag = FindTag(content, false, tagName);
-            if (string.IsNullOrWhiteSpace(tag))
+            var matchStart = Regex.Match(content, startTagPattern);
+            if (!matchStart.Success)
                 break;
+
+            int startIndex = matchStart.Index;
+            int currentIndex = startIndex;
             int level = 0;
-            var newTag = string.Empty;
+
             do
             {
-                int offsetStart = tag.IndexOf(startTag);
-                int offsetEnd = tag.IndexOf(endTag);
-                while (offsetEnd > offsetStart && (offsetStart >= 0))
-                {
-                    level += 1;
-                    var part = tag.Substring(0, offsetStart + startTag.Length);
-                    newTag += part;
-                    tag = tag.Remove(0, part.Length);
+                var nextStart = Regex.Match(content.Substring(currentIndex), startTagPattern);
+                var nextEnd = content.IndexOf(endTag, currentIndex, StringComparison.Ordinal);
 
-                    offsetStart = tag.IndexOf(startTag);
-                    offsetEnd = tag.IndexOf(endTag);
+                if (nextStart.Success && nextStart.Index + currentIndex < nextEnd)
+                {
+                    level++;
+                    currentIndex += nextStart.Index + nextStart.Length;
                 }
-                var part2 = tag.Substring(0, offsetEnd + endTag.Length);
-                newTag += part2;
-                tag = tag.Remove(0, part2.Length);
-                level -= 1;
+                else if (nextEnd >= 0)
+                {
+                    level--;
+                    currentIndex = nextEnd + endTag.Length;
+                }
+                else
+                {
+                    // Ungültige Struktur: kein passender End-Tag
+                    break;
+                }
             }
             while (level > 0);
-            tags.Add(newTag);
 
-            content = content.Remove(0, content.IndexOf(newTag));
-            content = content.Remove(0, newTag.Length);
+            int length = currentIndex - startIndex;
+            string fullTag = content.Substring(startIndex, length);
+            tags.Add(fullTag);
+
+            content = content.Substring(startIndex + length);
         }
+
         return tags.ToArray();
     }
+
     private async Task<byte[][]> FindPicturesAsync(string content)
     {        
         var pictureUri = FindTagValue(content, "head", "meta|property=og:image");
@@ -238,7 +249,14 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
         XmlDoc.LoadXml(code);
         return XmlDoc.DocumentElement;
     }
-
+    private string GetNodeText (XmlNode node)
+    {
+        if (node is XmlComment)
+            return "";
+        if (node.ChildNodes.Count == 0)
+            return node.InnerText;
+        return string.Join(" ", node.ChildNodes.Cast<XmlNode>().Select(n => GetNodeText(n))).Replace("  ", " ").Trim();
+    }
     private RecipeIngredients FindIngredients(string[] articles)
     {
         RecipeIngredients ingredients = new RecipeIngredients();
@@ -260,7 +278,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
             var ingredient = new RecipeIngredient()
             {
                 Quantity = quantityCell.InnerText,
-                Name = nameCell.InnerText
+                Name = GetNodeText(nameCell)
             };
             return ingredient;
         })
@@ -294,6 +312,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
         public string Instructions { get; internal set; }
         public string Description { get; internal set; }
         public string Uri { get; internal set; }
+        public int WorkTime { get; internal set; }
     }
     private sealed class RecipeIngredients()
     {
@@ -393,12 +412,41 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
             if (recipe.Instructions == null)
                 throw new ApplicationException("no instructions");
 
+            recipe.WorkTime = (int)ParseGermanTimeSpan(FindMetaValue(responseContent, "Arbeitszeit")).TotalMinutes;
+
             return new KeyValuePair<string, RecipeImport[]>(fileName, new RecipeImport[] { recipe });
         }
         catch
         {
             return new KeyValuePair<string, RecipeImport[]>();
         }
+    }
+
+    public static TimeSpan ParseGermanTimeSpan(string input)
+    {
+        var pattern = @"(?:(\d+)\s*Std\.)?\s*(?:(\d+)\s*Min\.)?";
+        var match = Regex.Match(input, pattern);
+
+        if (!match.Success)
+            return TimeSpan.Zero;
+
+        int hours = match.Groups[1].Success ? int.Parse(match.Groups[1].Value) : 0;
+        int minutes = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+
+        return new TimeSpan(hours, minutes, 0);
+    }
+
+    private string FindMetaValue(string responseContent, string name = "")
+    {
+        var labels = CollectTags(responseContent, "div|class=recipe-meta-property-group__labels");
+        foreach (var div in labels)
+        {
+            var value = FindTagValue(div, "div|class=recipe-meta-property-group__value").Trim();
+            var title = FindTagValue(div, "div|class=recipe-meta-property-group__title").Trim();
+            if (title == name)
+                return value;
+        }
+        return string.Empty;
     }
 
     public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string targetCookbookId, string userId, CancellationToken ct = default)
@@ -454,7 +502,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
                     new RecipeCreateStep(
                         Title: null,
                         Description: imported.Instructions ?? string.Empty,
-                        DurationMinutes: 0,
+                        DurationMinutes: imported.WorkTime,
                         RequiresOvernightRest: false,
                         Ingredients: stepIngredients)
                 };
