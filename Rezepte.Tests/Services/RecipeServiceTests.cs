@@ -1,12 +1,14 @@
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
 using Rezepte.Web.Services;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Rezepte.Tests.Services;
@@ -30,6 +32,18 @@ public class RecipeServiceTests
         mock.SetupGet(e => e.WebRootPath).Returns("wwwroot");
         return mock.Object;
     }
+    private static IHttpContextAccessor CreateMockHttpContextAccessor(string userId = UserA)
+    {
+        var context = new DefaultHttpContext();
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(System.Security.Claims.ClaimTypes.NameIdentifier, userId)
+        }, "TestAuth"));
+
+        var mock = new Mock<IHttpContextAccessor>();
+        mock.SetupGet(a => a.HttpContext).Returns(context);
+        return mock.Object;
+    }
 
     [Fact]
     public async Task CreateAsync_ShouldCreate_WithStepsAndIngredients()
@@ -39,7 +53,7 @@ public class RecipeServiceTests
         db.Cookbooks.Add(cookbook);
         await db.SaveChangesAsync();
 
-        var sut = new RecipeService(db, CreateMockEnv());
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
         var steps = new[]
         {
             new RecipeCreateStep(
@@ -58,7 +72,7 @@ public class RecipeServiceTests
             )
         };
 
-        var (ok, error, recipe) = await sut.CreateAsync(UserA, cookbook.Id, "Kuchen", "Leckerer Kuchen", steps, CancellationToken.None);
+        var (ok, error, recipe) = await sut.CreateAsync(UserA, cookbook.Id, "Kuchen", "Leckerer Kuchen", null, steps, CancellationToken.None);
 
         ok.Should().BeTrue();
         error.Should().BeNull();
@@ -78,8 +92,8 @@ public class RecipeServiceTests
         db.Cookbooks.Add(cookbook);
         await db.SaveChangesAsync();
 
-        var sut = new RecipeService(db, CreateMockEnv());
-        (bool ok1, string? _, Recipe? recipe) = await sut.CreateAsync(UserA, cookbook.Id, "Salat", null, new[]
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        (bool ok1, string? _, Recipe? recipe) = await sut.CreateAsync(UserA, cookbook.Id, "Salat", null, null, new[]
         {
             new RecipeCreateStep(null, "Schneiden", 5, false, Array.Empty<RecipeCreateIngredient>())
         }, CancellationToken.None);
@@ -106,8 +120,8 @@ public class RecipeServiceTests
         db.Cookbooks.Add(cookbook);
         await db.SaveChangesAsync();
 
-        var sut = new RecipeService(db, CreateMockEnv());
-        (bool ok1, string? _, Recipe? recipe) = await sut.CreateAsync(UserA, cookbook.Id, "Suppe", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        (bool ok1, string? _, Recipe? recipe) = await sut.CreateAsync(UserA, cookbook.Id, "Suppe", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
         ok1.Should().BeTrue();
 
         (bool ok2, string? err2) = await sut.DeleteAsync(UserA, recipe!.Id, CancellationToken.None);
@@ -127,10 +141,10 @@ public class RecipeServiceTests
         db.Cookbooks.AddRange(cb1, cb2);
         await db.SaveChangesAsync();
 
-        var sut = new RecipeService(db, CreateMockEnv());
-        await sut.CreateAsync(UserA, cb1.Id, "Z-Titel", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
-        await sut.CreateAsync(UserA, cb1.Id, "A-Titel", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
-        await sut.CreateAsync(UserB, cb2.Id, "Andere", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        await sut.CreateAsync(UserA, cb1.Id, "Z-Titel", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        await sut.CreateAsync(UserA, cb1.Id, "A-Titel", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        await sut.CreateAsync(UserB, cb2.Id, "Andere", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
 
         var list = await sut.GetByCookbookAsync(UserA, cb1.Id, CancellationToken.None);
 
@@ -146,8 +160,8 @@ public class RecipeServiceTests
         db.Cookbooks.Add(cb);
         await db.SaveChangesAsync();
 
-        var sut = new RecipeService(db, CreateMockEnv());
-        var (ok, error, recipe) = await sut.CreateAsync(UserA, cb.Id, "ab", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        var (ok, error, recipe) = await sut.CreateAsync(UserA, cb.Id, "ab", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
 
         ok.Should().BeFalse();
         error.Should().NotBeNull();
@@ -163,10 +177,10 @@ public class RecipeServiceTests
         db.Cookbooks.AddRange(cb1, cb2);
         await db.SaveChangesAsync();
 
-        var sut = new RecipeService(db, CreateMockEnv());
-        await sut.CreateAsync(UserA, cb1.Id, "R01", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
-        await sut.CreateAsync(UserB, cb2.Id, "R02", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
-        await sut.CreateAsync(UserB, cb2.Id, "R03", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        await sut.CreateAsync(UserA, cb1.Id, "R01", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        await sut.CreateAsync(UserB, cb2.Id, "R02", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        await sut.CreateAsync(UserB, cb2.Id, "R03", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
 
         var available = await sut.GetAvailableForCookbookAsync(UserB, cb1.Id, CancellationToken.None);
 
@@ -182,14 +196,14 @@ public class RecipeServiceTests
         db.Cookbooks.AddRange(source, target);
         await db.SaveChangesAsync();
 
-        var sut = new RecipeService(db, CreateMockEnv());
-        (bool ok1, string? error1, Recipe? r1) = await sut.CreateAsync(UserB, source.Id, "R01", "D1", new[]
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        (bool ok1, string? error1, Recipe? r1) = await sut.CreateAsync(UserB, source.Id, "R01", "D1", null, new[]
         {
             new RecipeCreateStep("S1", "Desc1", 5, false, new[] { new RecipeCreateIngredient(1, "g", "Z1") })
         }, CancellationToken.None);
         ok1.Should().BeTrue($"CreateAsync for r1 failed: {error1}");
         r1.Should().NotBeNull();
-        (bool ok2, string? error2, Recipe? r2) = await sut.CreateAsync(UserB, source.Id, "R02", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        (bool ok2, string? error2, Recipe? r2) = await sut.CreateAsync(UserB, source.Id, "R02", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
         ok2.Should().BeTrue($"CreateAsync for r2 failed: {error2}");
         r2.Should().NotBeNull();
 
@@ -198,7 +212,7 @@ public class RecipeServiceTests
         ok.Should().BeTrue();
         err.Should().BeNull();
         created.Should().HaveCount(2);
-        created.All(c => c.CookbookId == target.Id).Should().BeTrue();
+        created.All(c => c.RecipeCookbooks.Any(rc => rc.CookbookId == target.Id)).Should().BeTrue();
 
         var targetRecipes = await sut.GetByCookbookAsync(UserB, target.Id, CancellationToken.None);
         targetRecipes.Should().HaveCount(2);
@@ -217,9 +231,9 @@ public class RecipeServiceTests
         db.Cookbooks.AddRange(source, target);
         await db.SaveChangesAsync();
 
-        var sut = new RecipeService(db, CreateMockEnv());
-        (bool _, string? _, Recipe? r1) = await sut.CreateAsync(UserB, target.Id, "SchonDa", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
-        (bool _, string? _, Recipe? r2) = await sut.CreateAsync(UserB, source.Id, "Neu01", null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        (bool _, string? _, Recipe? r1) = await sut.CreateAsync(UserB, target.Id, "SchonDa", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        (bool _, string? _, Recipe? r2) = await sut.CreateAsync(UserB, source.Id, "Neu01", null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None);
 
         (bool ok, string? err, List<Recipe> created) = await sut.AddExistingToCookbookAsync(UserB, target.Id, new[] { r1!.Id, r2!.Id }, CancellationToken.None);
 
@@ -237,7 +251,7 @@ public class RecipeServiceTests
         db.Cookbooks.Add(target);
         await db.SaveChangesAsync();
 
-        var sut = new RecipeService(db, CreateMockEnv());
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
         (bool ok, string? err, List<Recipe> created) = await sut.AddExistingToCookbookAsync(UserA, target.Id, Array.Empty<string>(), CancellationToken.None);
 
         ok.Should().BeTrue();

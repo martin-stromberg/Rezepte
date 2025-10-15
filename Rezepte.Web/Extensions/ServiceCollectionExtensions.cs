@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Rezepte.Web.Configuration;
 using Rezepte.Web.Data;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.BackgroundJobs;
@@ -20,6 +21,8 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddRezepteServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment env)
     {
+        // Bind configuration sections used by the app
+        services.Configure<ImageOptions>(configuration.GetSection("Images"));
         // Razor Components
         services.AddRazorComponents()
             .AddInteractiveServerComponents(options =>

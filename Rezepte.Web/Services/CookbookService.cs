@@ -43,10 +43,10 @@ public class CookbookService(RezepteDbContext db) : ICookbookService
         }
 
         // bestimme maximalen OrderIndex des Benutzers und hänge neu an
-        var maxIndex = await _db.Cookbooks.Where(c => c.UserId == userId)
-            .Select(c => EF.Property<int>(c, "OrderIndex"))
-            .DefaultIfEmpty(-1)
-            .MaxAsync(ct);
+        var maxIndex = await _db.Cookbooks
+            .Where(c => c.UserId == userId)
+            .Select(c => (int?)c.OrderIndex)
+            .MaxAsync(ct) ?? -1;
 
         var entity = new Cookbook
         {

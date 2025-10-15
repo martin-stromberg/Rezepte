@@ -31,14 +31,14 @@
 | BOOK-001  | ✅ Erledigt   | Benutzer kann beliebig viele Kochbücher erstellen                            | Kochbuch‑Entity mit Benutzerreferenz; UI/Endpoints zum Erstellen vorhanden (`Cookbooks.razor`, `POST /api/cookbooks`). |
 | BOOK-002  | ✅ Erledigt   | Rezepte können mehreren Kochbüchern zugeordnet werden                        | Many‑to‑Many Beziehung zwischen Rezept und Kochbuch; UI: Mehrfachzuweisung (Multi‑Assign Overlay) und API‑Endpunkte vorhanden. |
 | BOOK-003  | ✅ Erledigt   | Reihenfolge der Kochbücher ändern (Drag & Drop)                              | UI: Drag‑Handle + clientseitiges Reordering (`Cookbooks.razor`, `dragHelpers.js`); Persistenz: `OrderIndex` in `Cookbook`‑Entity, Service: `ICookbookService.ReorderAsync`, API: `POST /api/cookbooks/reorder`. (EF‑Migration erforderlich) |
-| RECIPE-001| 🕓 Offen      | Rezept hat Titel                                                             | Property `Title` in der Rezept‑Entity. |
-| RECIPE-002| 🕓 Offen      | Rezept hat beliebig viele Bilder                                             | Bilder als separate Entity mit Foreign Key zum Rezept. |
-| RECIPE-003| 🕓 Offen      | Rezept hat beliebig viele Zubereitungsschritte                               | Schritte als Collection in der Rezept‑Entity. |
-| STEP-001  | 🕓 Offen      | Schritt hat optionalen Titel                                                 | Property `Title` (nullable) in Schritt‑Entity. |
-| STEP-002  | 🕓 Offen      | Schritt hat Beschreibung                                                     | Property `Description` in Schritt‑Entity. |
-| STEP-003  | 🕓 Offen      | Schritt hat Zutatenliste                                                     | Zutaten als Collection in Schritt‑Entity. |
-| STEP-004  | 🕓 Offen      | Schritt hat Zubereitungsdauer                                                | Property `DurationMinutes` in Schritt‑Entity. |
-| STEP-005  | 🕓 Offen      | Schritt kann Ruhezeit über Nacht enthalten                                   | Boolean‑Flag `RequiresOvernightRest` in Schritt‑Entity. |
+| RECIPE-001| ✅ Erledigt   | Rezept hat Titel                                                             | `Recipe`‑Entity besitzt `Title` (CLR‑Property), Mapping im DbContext vorhanden; DB‑Migration ggf. angewendet. |
+| RECIPE-002| ✅ Erledigt   | Rezept hat beliebig viele Bilder                                             | Bilder als separate Entity (`RecipeImage`) mit FK zum `Recipe`; Controller‑Endpoints und Service‑Methoden für Upload/Download/Delete implementiert; Upload‑Validierung, Max‑Size und Cache/ETag ergänzt. |
+| RECIPE-003| ✅ Erledigt   | Rezept hat beliebig viele Zubereitungsschritte                               | Schritte als Collection in der Rezept‑Entity. |
+| STEP-001  | ✅ Erledigt   | Schritt hat optionalen Titel                                                 | Property `Title` (nullable) in Schritt‑Entity. |
+| STEP-002  | ✅ Erledigt   | Schritt hat Beschreibung                                                     | Property `Description` in Schritt‑Entity. |
+| STEP-003  | ✅ Erledigt   | Schritt hat Zutatenliste                                                     | Zutaten als Collection in Schritt‑Entity. |
+| STEP-004  | ✅ Erledigt   | Schritt hat Zubereitungsdauer                                                | Property `DurationMinutes` in Schritt‑Entity. |
+| STEP-005  | ✅ Erledigt   | Schritt kann Ruhezeit über Nacht enthalten                                   | Boolean‑Flag `RequiresOvernightRest` in Schritt‑Entity. |
 | CAL-001   | 🕓 Offen      | Jeder Benutzer hat einen Kalender                                            | Kalender‑View mit Benutzerbindung. |
 | CAL-002   | 🕓 Offen      | Rezepte können im Kalender eingeplant werden                                 | Rezept‑Zuordnung zu Datum mit Vorbereitungslogik. |
 | CAL-003   | 🕓 Offen      | Vorbereitungen an Vortagen werden automatisch erkannt                         | Algorithmus zur Rückrechnung basierend auf Dauer und Ruhezeit. |
@@ -57,7 +57,6 @@
 | NFR-013   | 🕓 Offen      | Kompatibilität & Upgrade‑Sicherheit                                          | Export enthält `formatVersion` im Manifest; Import ignoriert unbekannte Felder. |
 
 Hinweis zur Implementierung
-- `OrderIndex` wurde als CLR‑Property der `Cookbook`‑Entity hinzugefügt; dazu ist eine EF‑Migration nötig (z. B. `dotnet ef migrations add CookbookOrderIndex` + `dotnet ef database update`).  
-- UI‑Änderung: Drag&Drop in `Cookbooks.razor` + `wwwroot/js/dragHelpers.js` (JS‑Fallback für Browser‑Kompatibilität). Client ruft `POST /api/cookbooks/reorder` mit geordneter Id‑Liste.  
-- Monitoring: `ILogger`‑Einträge bei Persistenz‑Operationen und Fehlern empfohlen.  
-- Tests: E2E‑Test für Drag&Drop → Persistenz empfohlen (optional).
+- `Recipe`‑Bilder: entity `RecipeImage`, DbContext‑Mapping und Controller/Service Endpunkte (Upload/Download/Delete) sind implementiert. Upload enthält Content‑Type‑Whitelist, konfigurierbare Max‑Size (`ImageOptions`) und ETag/Cache‑Header beim Download.
+- `OrderIndex` für `Cookbook` wurde ergänzt; EF‑Migration erforderlich (`dotnet ef migrations add yyyyMMddHHmm_CookbookOrderIndex` + `dotnet ef database update`).
+- Falls weitere Änderungen am Modell nötig sind, bitte Migrationen nach Anleitung erstellen und anwenden.

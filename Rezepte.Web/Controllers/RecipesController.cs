@@ -1,20 +1,25 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Rezepte.Web.Entities;
 using Rezepte.Web.Services;
+using Rezepte.Web.Configuration;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Rezepte.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class RecipesController(IRecipeService recipes) : ControllerBase
+public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> imageOptions) : ControllerBase
 {
     private readonly IRecipeService _recipes = recipes;
+    private readonly ImageOptions _imageOptions = imageOptions.Value;
 
     private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -61,7 +66,7 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         if (userId is null) return Unauthorized();
         var (ok, error, created) = await _recipes.AddExistingToCookbookAsync(userId, cookbookId, dto.RecipeIds, ct);
         if (!ok)
-            return BadRequest(new { message = error ?? "Hinzuf�gen fehlgeschlagen." });
+            return BadRequest(new { message = error ?? "Hinzufügen fehlgeschlagen." });
         var dtos = created.Select(r => new RecipeListItemDto(r.Id, r.Title, null, r.Description)).ToList();
         return Ok(dtos);
     }
@@ -163,7 +168,7 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
         var (ok, error) = await _recipes.DeleteAsync(userId, id, ct);
-        if (!ok) return BadRequest(new { message = error ?? "L�schen fehlgeschlagen." });
+        if (!ok) return BadRequest(new { message = error ?? "Löschen fehlgeschlagen." });
         return NoContent();
     }
 
@@ -180,8 +185,22 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
             return BadRequest(new { message = "Keine Datei hochgeladen." });
         }
 
-        using var stream = file.OpenReadStream();
-        var (ok, error, image) = await _recipes.AddImageAsync(userId, id, stream, file.FileName, file.ContentType, ct);
+        // Größe prüfen
+        if (file.Length > _imageOptions.MaxSizeBytes)
+        {
+            return BadRequest(new { message = $"Datei zu groß. Maximal { _imageOptions.MaxSizeBytes } Bytes erlaubt." });
+        }
+
+        // ContentType prüfen (einfache Whitelist)
+        var contentType = file.ContentType ?? string.Empty;
+        if (!_imageOptions.AllowedContentTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "Nicht unterstützter Dateityp." });
+        }
+
+        // Optional: Datei‑Header / Magic‑Bytes Check hier ergänzen (empfohlen für Production).
+        await using var stream = file.OpenReadStream();
+        var (ok, error, image) = await _recipes.AddImageAsync(userId, id, stream, file.FileName, contentType, ct);
 
         if (!ok)
         {
@@ -197,7 +216,29 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
     {
         var image = await _recipes.GetImageAsync(recipeId, imageId, ct);
         if (image == null) return NotFound();
+
         var contentType = string.IsNullOrWhiteSpace(image.ContentType) ? "image/jpeg" : image.ContentType;
+
+        // ETag via SHA256 über die Daten
+        string etag;
+        using (var sha = SHA256.Create())
+        {
+            var hash = sha.ComputeHash(image.Data);
+            etag = "\"" + Convert.ToBase64String(hash) + "\""; // quoted ETag
+        }
+
+        // If-None-Match prüfen
+        if (Request.Headers.TryGetValue("If-None-Match", out var inm) && inm.Any(h => h == etag))
+        {
+            Response.Headers["ETag"] = etag;
+            Response.Headers["Cache-Control"] = $"public, max-age={_imageOptions.CacheMaxAgeSeconds}";
+            return StatusCode(StatusCodes.Status304NotModified);
+        }
+
+        // Cache Header setzen
+        Response.Headers["Cache-Control"] = $"public, max-age={_imageOptions.CacheMaxAgeSeconds}";
+        Response.Headers["ETag"] = etag;
+
         return File(image.Data, contentType, image.FileName);
     }
 
@@ -225,7 +266,7 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
         var (ok, error) = await _recipes.DeleteImageAsync(userId, recipeId, imageId, ct);
-        if (!ok) return BadRequest(new { message = error ?? "Bild konnte nicht gel�scht werden." });
+        if (!ok) return BadRequest(new { message = error ?? "Bild konnte nicht gelöscht werden." });
         return NoContent();
     }
 
@@ -275,7 +316,7 @@ public class RecipesController(IRecipeService recipes) : ControllerBase
         return Ok(dtos);
     }
 
-    // DTO f�r die Startseite
+    // DTO für die Startseite
     public record RecipeListItemDto(string Id, string Title, string? ImageUrl, string? Description);
     public record RecipeDto(string Id, string OwnerId, string Title, string? Description, List<RecipeStepDto> Steps, string? ImageUrl, int ImageCount, List<RecipeCookbookDtp> RecipeCookbooks);
     public record RecipeCookbookDtp (string Id, string RecipeId, string CookbookId);

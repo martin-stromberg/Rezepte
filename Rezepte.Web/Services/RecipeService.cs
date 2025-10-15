@@ -228,6 +228,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
                 CookbookId = cookbookId,
                 RecipeId = source.Id
             });
+            created.Add(source);
         }
         await _db.SaveChangesAsync(ct);
         return (true, null, created);

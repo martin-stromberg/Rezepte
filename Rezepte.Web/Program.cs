@@ -2,24 +2,27 @@ using Rezepte.Web.Components;
 using Rezepte.Web.Services;
 using Rezepte.Web.Middleware;
 using Rezepte.Web.Data;
-using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.ViewModels;
 using Rezepte.Web;
+using Rezepte.Web.Configuration;
 using Rezepte.Web.Extensions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure logging (console errors + rolling file logs)
+// Configure logging (Serilog via extension)
 builder.ConfigureSerilog();
 
-// Register all app services
+// Register all application services via project extension (DbContext, auth, DI, controllers, etc.)
 builder.Services.AddRezepteServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
-// Apply migrations / ensure database
+// Apply migrations / ensure database (extension handles logging/errors)
 await app.ApplyDatabaseMigrationsAsync();
 
+// Error handling
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -27,24 +30,34 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();
 }
 
+// Static files (wwwroot)
+app.UseStaticFiles();
+
+// Authentication/Authorization
 app.UseAuthentication();
 app.UseAuthorization();
-// Antiforgery nur für Nicht-API-Routen aktivieren
+
+// Antiforgery only for non-API routes
 app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
 {
     branch.UseAntiforgery();
 });
 
+// Map static assets (project extension may map embedded/static resources)
 app.MapStaticAssets();
+
+// Blazor Razor components (interactive server render mode)
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 // Map API controllers
 app.MapControllers();
 
-// Redirect to register/login depending on state
+// Redirect middleware to /register or /login depending on user state
 app.UseRedirectToRegisterWhenNoUsers();
 
+// Run
 app.Run();
