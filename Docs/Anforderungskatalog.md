@@ -28,8 +28,8 @@
 | AUTH-003  | ✅ Erledigt   | Administrator kann weitere Benutzer anlegen                                  | Admin-Panel `UserAdmin.razor` und `AdminUsersController` mit `GET/POST/PUT/DELETE /api/admin/users` (JWT + Rolle Admin). |
 | AUTH-004  | ✅ Erledigt   | Login/Logout für Benutzer                                                    | `POST /api/session/login` und `POST /api/session/logout`; Website-Cookie + JWT für API (`TokenService`, `ApiAuthHandler`). |
 | DB-001    | ✅ Erledigt   | Verwendung von SQLite als Datenbank                                          | EF Core mit SQLite Provider, `RezepteDbContext`, Migrationen/EnsureCreated bei Start. |
-| BOOK-001  | 🕓 Offen      | Benutzer kann beliebig viele Kochbücher erstellen                            | Kochbuch-Entity mit Benutzerreferenz. |
-| BOOK-002  | 🕓 Offen      | Rezepte können mehreren Kochbüchern zugeordnet werden                        | Many-to-Many Beziehung zwischen Rezept und Kochbuch. |
+| BOOK-001  | ✅ Erledigt   | Benutzer kann beliebig viele Kochbücher erstellen                            | Kochbuch-Entity mit Benutzerreferenz; UI/Endpoints zum Erstellen vorhanden (`Cookbooks.razor`, `POST /api/cookbooks`). |
+| BOOK-002  | ✅ Erledigt   | Rezepte können mehreren Kochbüchern zugeordnet werden                        | Many-to-Many Beziehung zwischen Rezept und Kochbuch; UI: Mehrfachzuweisung (Multi-Assign Overlay) und API‑Endpunkte vorhanden. |
 | RECIPE-001| 🕓 Offen      | Rezept hat Titel                                                             | Property `Title` in der Rezept-Entity. |
 | RECIPE-002| 🕓 Offen      | Rezept hat beliebig viele Bilder                                             | Bilder als separate Entity mit Foreign Key zum Rezept. |
 | RECIPE-003| 🕓 Offen      | Rezept hat beliebig viele Zubereitungsschritte                               | Schritte als Collection in der Rezept-Entity. |

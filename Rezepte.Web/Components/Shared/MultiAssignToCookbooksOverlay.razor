@@ -1,0 +1,213 @@
+@using System.Net.Http.Json
+@inject ApiClient Api
+
+@if (!Show)
+{
+    @* not visible *@
+}
+else
+{
+    <div class="overlay-backdrop" @onclick="OnCancelClick">
+        <div class="overlay-content" @onclick:stopPropagation>
+            <button class="btn btn-sm btn-danger overlay-close" @onclick="OnCancelClick">×</button>
+            <h5>Zuweisung zu Kochbüchern (Mehrfachauswahl)</h5>
+            <p class="text-muted">Wähle die Kochbücher, in denen die ausgewählten Rezepte erscheinen sollen.</p>
+
+            @if (isLoading)
+            {
+                <div class="text-muted">Lade…</div>
+            }
+            else
+            {
+                <div class="mb-3" style="max-height:40vh; overflow:auto;">
+                    @if (cookbooks?.Count == 0)
+                    {
+                        <div class="text-muted">Keine Kochbücher vorhanden.</div>
+                    }
+                    else
+                    {
+                        @foreach (var cb in cookbooks)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="@cb.Id" checked="@selectedIds.Contains(cb.Id)" @onchange="(e) => Toggle(cb.Id, e.Value as bool?)" />
+                                <label class="form-check-label" for="@cb.Id">@cb.Name</label>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(message))
+                {
+                    <div class="mb-2 text-muted">@message</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" @onclick="SaveAsync" disabled="@isBusy">Speichern</button>
+                    <button class="btn btn-outline-secondary" @onclick="OnCancelClick" disabled="@isBusy">Abbrechen</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public IEnumerable<string> RecipeIds { get; set; } = Enumerable.Empty<string>();
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<bool> OnSaved { get; set; } // arg: changed?
+
+    private List<CookbookDto>? cookbooks;
+    private HashSet<string> selectedIds = new();
+    private HashSet<string> originalIds = new();
+    private bool isLoading = true;
+    private bool isBusy = false;
+    private string? message;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Show) return;
+        isLoading = true;
+        message = null;
+        selectedIds = new HashSet<string>();
+        originalIds = new HashSet<string>();
+
+        try
+        {
+            cookbooks = await Api.Http.GetFromJsonAsync<List<CookbookDto>>("api/cookbooks") ?? new();
+
+            var ids = RecipeIds?.ToList() ?? new List<string>();
+            if (ids.Count == 0)
+            {
+                // nothing selected: nothing to do
+                return;
+            }
+
+            // For each recipe, get assigned cookbook ids and compute intersection -> cookbooks assigned to all recipes
+            var assignedCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var rid in ids)
+            {
+                try
+                {
+                    var assigned = await Api.Http.GetFromJsonAsync<List<string>>($"api/recipes/{rid}/cookbooks");
+                    if (assigned is null) continue;
+                    foreach (var cb in assigned)
+                    {
+                        if (assignedCounts.ContainsKey(cb)) assignedCounts[cb]++;
+                        else assignedCounts[cb] = 1;
+                    }
+                }
+                catch
+                {
+                    // ignore per-recipe failures
+                }
+            }
+
+            // select those cookbook ids that are present for all selected recipes
+            foreach (var kv in assignedCounts)
+            {
+                if (kv.Value == ids.Count) selectedIds.Add(kv.Key);
+            }
+
+            originalIds = new HashSet<string>(selectedIds);
+        }
+        catch (Exception ex)
+        {
+            message = "Fehler beim Laden: " + ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Toggle(string id, bool? isChecked)
+    {
+        if (isChecked == true) selectedIds.Add(id);
+        else selectedIds.Remove(id);
+    }
+
+    private async Task SaveAsync()
+    {
+        isBusy = true;
+        message = null;
+        try
+        {
+            var ids = RecipeIds?.ToList() ?? new();
+            var toAdd = selectedIds.Except(originalIds).ToList();
+            var toRemove = originalIds.Except(selectedIds).ToList();
+
+            // Additions: add all selected recipes to each cookbook in toAdd
+            foreach (var cbId in toAdd)
+            {
+                var body = JsonContent.Create(ids);
+                var resp = await Api.Http.PostAsync($"api/cookbooks/{cbId}/recipes", body);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    message = $"Hinzufügen in '{cbId}' fehlgeschlagen: {resp.StatusCode}";
+                }
+            }
+
+            // Removals: remove each recipe individually from each cookbook in toRemove
+            foreach (var cbId in toRemove)
+            {
+                foreach (var rid in ids)
+                {
+                    var resp = await Api.Http.DeleteAsync($"api/cookbooks/{cbId}/recipes/{rid}");
+                    if (!resp.IsSuccessStatusCode)
+                    {
+                        message = $"Entfernen aus '{cbId}' fehlgeschlagen: {resp.StatusCode}";
+                    }
+                }
+            }
+
+            var changed = toAdd.Count > 0 || toRemove.Count > 0;
+            await OnSaved.InvokeAsync(changed);
+            await OnClose.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            message = "Speichern fehlgeschlagen: " + ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task OnCancelClick()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private record CookbookDto(string Id, string Name);
+}
+<style>
+/* reuse same overlay styles as other overlays */
+.overlay-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.overlay-content {
+    background: #fff;
+    padding: 1.25rem;
+    border-radius: 8px;
+    max-width: 680px;
+    width: min(100%, 680px);
+    max-height: 80vh;
+    overflow: auto;
+    position: relative;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+.overlay-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1;
+}
+</style>

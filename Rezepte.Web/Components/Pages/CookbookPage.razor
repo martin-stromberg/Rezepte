@@ -31,6 +31,18 @@
                 </li>
             </ul>
         </div>
+
+        @* Multi-Select Toggle *@
+        <button class="btn btn-sm btn-outline-secondary ms-2" title="Mehrfachauswahl" @onclick="ToggleMultiSelect">
+            @if (isMultiSelecting)
+            {
+                <i class="bi bi-check2-square"></i>
+            }
+            else
+            {
+                <i class="bi bi-square"></i>
+            }
+        </button>
     </div>
 </h5>
 
@@ -64,29 +76,67 @@ else
         <div class="recipe-grid">
             @foreach (var recipe in recipes)
             {
-                <a class="recipe-card" href="@($"/recipes/{recipe.Id}")" title="@recipe.Title">
-                    @if (!string.IsNullOrWhiteSpace(recipe.ImageUrl))
+                <div class="recipe-card-wrapper position-relative">
+                    @if (isMultiSelecting)
                     {
-                        <img src="@recipe.ImageUrl" alt="Bild zu @recipe.Title" />
+                        @* Toggle per onclick vermeiden ChangeEvent/Casting-Probleme *@
+                        <input class="select-checkbox form-check-input" type="checkbox"
+                               checked="@selectedRecipeIds.Contains(recipe.Id)"
+                               @onclick="() => ToggleSelect(recipe.Id)"
+                               title="Auswählen" />
                     }
-                    else
-                    {
-                        <div class="no-image">📷</div>
-                    }
-                    <div class="recipe-title">@recipe.Title</div>
-                    @if (!string.IsNullOrWhiteSpace(recipe.Description))
-                    {
-                        <div class="small text-muted text-center px-2 pb-3">@recipe.Description</div>
-                    }
-                </a>
+
+                    <a class="recipe-card"
+                       href="@(!isMultiSelecting ? $"/recipes/{recipe.Id}" : null)"
+                       @onclick="(e) => OnCardClick(e, recipe.Id)"
+                       @onclick:preventDefault="isMultiSelecting"
+                       @onclick:stopPropagation="isMultiSelecting"
+                       role="button"
+                       tabindex="0">
+                        @if (!string.IsNullOrWhiteSpace(recipe.ImageUrl))
+                        {
+                            <img src="@recipe.ImageUrl" alt="Bild zu @recipe.Title" />
+                        }
+                        else
+                        {
+                            <div class="no-image">📷</div>
+                        }
+                        <div class="recipe-title">@recipe.Title</div>
+                        @if (!string.IsNullOrWhiteSpace(recipe.Description))
+                        {
+                            <div class="small text-muted text-center px-2 pb-3">@recipe.Description</div>
+                        }
+                    </a>
+                </div>
             }
         </div>
     }
 }
 
+@* Multi-assign action bar shown when multi-select active *@
+@if (isMultiSelecting)
+{
+    <div class="multi-action-bar shadow-sm">
+        <div class="container d-flex align-items-center justify-content-between">
+            <div>
+                <strong>@selectedRecipeIds.Count</strong> ausgewählt
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary" @onclick="ClearSelection" disabled="@(selectedRecipeIds.Count == 0)">Abbrechen</button>
+                <button class="btn btn-primary" @onclick="OpenMultiAssign" disabled="@(selectedRecipeIds.Count == 0)">Zu Kochbüchern zuweisen</button>
+            </div>
+        </div>
+    </div>
+}
+
 @if (showAddExisting)
 {
     <RecipeSelectDialog CookbookId="@Id" OnConfirm="OnAddExistingConfirm" OnCancel="CloseAddExistingDialog" />
+}
+
+@if (showMultiAssign)
+{
+    <MultiAssignToCookbooksOverlay Show="showMultiAssign" RecipeIds="selectedRecipeIdsList" OnSaved="OnMultiAssignSaved" OnClose="CloseMultiAssign" />
 }
 
 @* Verwende Blazor InputFile (nicht raw input). Position off-screen statt display:none, damit programmatic click funktioniert *@
@@ -130,6 +180,13 @@ else
     private string importUrl = string.Empty;
     private bool isImporting;
     private string? importMessage;
+
+    // Multi-select state
+    private bool isMultiSelecting = false;
+    private HashSet<string> selectedRecipeIds = new();
+    private bool showMultiAssign = false;
+
+    private IEnumerable<string> selectedRecipeIdsList => selectedRecipeIds.ToList();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -227,7 +284,6 @@ else
         importMessage = null;
         showImportUrl = true;
     }
-
     private void CloseImportUrlDialog()
     {
         showImportUrl = false;
@@ -268,10 +324,73 @@ else
         }
     }
 
+    // Multi-select methods
+    private void ToggleMultiSelect()
+    {
+        isMultiSelecting = !isMultiSelecting;
+        if (!isMultiSelecting)
+        {
+            selectedRecipeIds.Clear();
+        }
+    }
+
+    private void ToggleSelect(string recipeId)
+    {
+        if (selectedRecipeIds.Contains(recipeId))
+            selectedRecipeIds.Remove(recipeId);
+        else
+            selectedRecipeIds.Add(recipeId);
+
+        StateHasChanged();
+    }
+
+    private void ClearSelection()
+    {
+        selectedRecipeIds.Clear();
+        isMultiSelecting = false;
+    }
+
+    private void OpenMultiAssign()
+    {
+        if (selectedRecipeIds.Count == 0) return;
+        showMultiAssign = true;
+        StateHasChanged();
+    }
+
+    private void CloseMultiAssign()
+    {
+        showMultiAssign = false;
+    }
+
+    private async Task OnMultiAssignSaved(bool changed)
+    {
+        showMultiAssign = false;
+        // Refresh list to reflect changed cookbook memberships (if needed)
+        await LoadRecipesAsync();
+        // exit multi-select mode and clear selection
+        isMultiSelecting = false;
+        selectedRecipeIds.Clear();
+    }
+
+    // prevent navigation when in multi-select mode
+    private void OnCardClick(MouseEventArgs e, string recipeId)
+    {
+        if (isMultiSelecting)
+        {
+            // toggle selection if card clicked
+            if (selectedRecipeIds.Contains(recipeId)) selectedRecipeIds.Remove(recipeId);
+            else selectedRecipeIds.Add(recipeId);
+        }
+        else
+        {
+            // navigate normally
+            Nav.NavigateTo($"/recipes/{recipeId}");
+        }
+    }
+
     private record CookbookDto(string Id, string Name, string? Description, DateTime CreatedAt);
     private record RecipeListItemDto(string Id, string Title, string? Description, string? ImageUrl);
 }
-
 <style>
 .recipe-grid {
     display: grid;
@@ -279,6 +398,18 @@ else
     gap: 1.5rem;
     margin-top: 1rem;
 }
+.recipe-card-wrapper { position: relative; }
+.select-checkbox {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 20;
+    width: 1.25rem;
+    height: 1.25rem;
+    transform: scale(1.05);
+}
+
+/* reuse existing recipe-card styles */
 .recipe-card {
     display: flex;
     flex-direction: column;
@@ -317,79 +448,22 @@ else
     flex: 1 1 auto;
 }
 
-    /* Styles für das URL‑Import Overlay (scoped für CookbookPage) */
-
-    .overlay-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.6);
-        z-index: 2000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-    }
-
-    .overlay-content {
-        background: #fff;
-        padding: 1.25rem;
-        border-radius: 8px;
-        max-width: 680px;
-        width: min(100%, 680px);
-        max-height: 80vh;
-        overflow: auto;
-        position: relative;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-    }
-
-    /* Close‑Button oben rechts */
-    .overlay-close {
-        position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        z-index: 1;
-    }
-
-    /* Formular-Elemente im Overlay */
-    .overlay-content .form-label {
-        display: block;
-        margin-bottom: 0.25rem;
-        font-weight: 600;
-    }
-
-    .overlay-content .form-control {
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    /* Informations- / Fehlermeldung */
-    .overlay-content .text-muted {
-        margin-top: 0.5rem;
-        margin-bottom: 0.5rem;
-        color: #6c757d;
-    }
-
-    /* Buttons */
-    .overlay-content .d-flex {
-        margin-top: 0.75rem;
-    }
-
-    .overlay-content .btn + .btn {
-        margin-left: 0.5rem;
-    }
-
-    /* Kleine Verbesserungen für mobile */
-    @@media (max-width: 520px) {
-        .overlay-content
-
-    {
-        padding: 0.75rem;
-        max-height: 85vh;
-    }
-
-    .overlay-close {
-        top: 0.25rem;
-        right: 0.25rem;
-    }
-    }
+/* Multi-action bar (fixed bottom) */
+.multi-action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 1rem;
+    z-index: 2500;
+    pointer-events: auto;
+}
+.multi-action-bar .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+}
 </style>
