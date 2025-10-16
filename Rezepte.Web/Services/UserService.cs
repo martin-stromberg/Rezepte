@@ -1,3 +1,4 @@
+using Google.Apis.Services;
 using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Contracts;
 using Rezepte.Web.Data;
@@ -13,7 +14,8 @@ namespace Rezepte.Web.Services;
 /// <param name="Email">E-mail address (optional).</param>
 /// <param name="PasswordHash">Hashed password.</param>
 /// <param name="IsAdmin">True if user has admin privileges.</param>
-public record User(string Id, string Username, string Email, string PasswordHash, bool IsAdmin);
+/// <param name="RegistrationTime">Timestamp of user registration.</param>
+public record User(string Id, string Username, string Email, string PasswordHash, bool IsAdmin, DateTime RegistrationTime);
 
 /// <summary>
 /// User management service contract.
@@ -109,10 +111,11 @@ public interface IUserService
     /// <returns>Tuple with success flag and optional error.</returns>
     Task<(bool ok, string? error)> DeleteAsync(string id, CancellationToken ct);
 }
-
-public class UserService(RezepteDbContext db) : IUserService
+public class UserService(RezepteDbContext db) : BaseService, IUserService
 {
     private readonly RezepteDbContext _db = db;
+
+    
 
     /// <inheritdoc />
     public async Task<(bool ok, string? error, User? user)> RegisterAsync(string username, string password, CancellationToken ct)
@@ -129,10 +132,11 @@ public class UserService(RezepteDbContext db) : IUserService
         };
         _db.Users.Add(entity);
         await _db.SaveChangesAsync(ct);
-
-        var user = new User(entity.Id, entity.Username, entity.Email, entity.PasswordHash, entity.IsAdmin);
+        User user = MatchUser(entity);
         return (true, null, user);
     }
+
+    
 
     /// <inheritdoc />
     public async Task<User?> LoginAsync(string username, string password, CancellationToken ct)
@@ -140,7 +144,7 @@ public class UserService(RezepteDbContext db) : IUserService
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Username == username, ct);
         if (entity is null) return null;
         return PasswordHasher.Verify(password, entity.PasswordHash)
-            ? new User(entity.Id, entity.Username, entity.Email, entity.PasswordHash, entity.IsAdmin)
+            ? MatchUser(entity)
             : null;
     }
 
@@ -148,7 +152,7 @@ public class UserService(RezepteDbContext db) : IUserService
     public async Task<User?> FindByUsernameAsync(string username, CancellationToken ct)
     {
         var entity = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == username, ct);
-        return entity is null ? null : new User(entity.Id, entity.Username, entity.Email, entity.PasswordHash, entity.IsAdmin);
+        return entity is null ? null : MatchUser(entity);
     }
 
     /// <inheritdoc />
@@ -161,7 +165,7 @@ public class UserService(RezepteDbContext db) : IUserService
     public async Task<User?> GetByIdAsync(string id, CancellationToken ct)
     {
         var entity = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
-        return entity is null ? null : new User(entity.Id, entity.Username, entity.Email, entity.PasswordHash, entity.IsAdmin);
+        return entity is null ? null : MatchUser(entity);
     }
 
     /// <inheritdoc />
@@ -191,7 +195,7 @@ public class UserService(RezepteDbContext db) : IUserService
 
         await _db.SaveChangesAsync(ct);
 
-        return (true, null, new User(entity.Id, entity.Username, entity.Email, entity.PasswordHash, entity.IsAdmin));
+        return (true, null, MatchUser(entity));
     }
 
     /// <inheritdoc />
@@ -216,7 +220,7 @@ public class UserService(RezepteDbContext db) : IUserService
     public async Task<List<User>> GetAllAsync(CancellationToken ct)
     {
         var list = await _db.Users.AsNoTracking().OrderBy(u => u.Username).ToListAsync(ct);
-        return list.Select(u => new User(u.Id, u.Username, u.Email, u.PasswordHash, u.IsAdmin)).ToList();
+        return list.Select(u => MatchUser(u)).ToList();
     }
 
     /// <inheritdoc />

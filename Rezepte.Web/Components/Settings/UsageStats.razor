@@ -1,0 +1,23 @@
+﻿@using Rezepte.Web.Dto
+@inject ApiClient Client
+@code {
+    private UserStatsDto? stats;
+    protected override async Task OnInitializedAsync()
+    {
+        stats = await Client.GetAsync<UserStatsDto>("api/userstats/me");
+    }
+}
+
+@if (stats == null)
+{
+    <div>Lade…</div>
+}
+else
+{
+    <dl class="row">
+        <dt class="col-6">Zeit seit Registrierung</dt><dd class="col-6">@stats.TimeSinceRegistration</dd>
+        <dt class="col-6">Anzahl Kochbücher</dt><dd class="col-6">@stats.CookbookCount</dd>
+        <dt class="col-6">Eigene Rezepte</dt><dd class="col-6">@stats.OwnRecipeCount</dd>
+        <dt class="col-6">KI‑Anfragen</dt><dd class="col-6">@stats.AiRequestCount</dd>
+    </dl>
+}

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Entities;
+using System.Collections.Generic;
 
 namespace Rezepte.Web.Data;
 
@@ -12,6 +13,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<RecipeCookbook> RecipeCookbooks => Set<RecipeCookbook>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeImage> RecipeImages { get; set; } = null!;
+    public DbSet<AiRequestLog> AiRequestLogs => Set<AiRequestLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -98,5 +100,15 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             .WithOne(i => i.Recipe)
             .HasForeignKey(i => i.RecipeId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<AiRequestLog>(b => 
+        {
+            b.HasKey(a => a.Id);
+            b.Property(a => a.UserId).IsRequired().HasMaxLength(64);
+            b.Property(a => a.Service).IsRequired().HasMaxLength(100);
+            b.Property(a => a.Timestamp).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasIndex(a => a.UserId);
+            b.HasIndex(a => a.Timestamp);
+        });
     }
 }

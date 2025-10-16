@@ -1,10 +1,11 @@
-using System.IO.Compression;
-using System.Text;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
+using System.IO.Compression;
+using System.Text;
+using System.Text.Json;
+using static Grpc.Core.Metadata;
 
 namespace Rezepte.Web.Services;
 
@@ -46,7 +47,7 @@ public interface IPdfGenerator
 /// /images/{recipeId}/imageNN.ext
 /// /pdf/{author} - {title}.pdf   (optional)
 /// </summary>
-public class ExportService : IExportService
+public class ExportService : BaseService, IExportService
 {
     private readonly RezepteDbContext _db;
     private readonly ILogger<ExportService> _logger;
@@ -95,7 +96,7 @@ public class ExportService : IExportService
         _logger.LogInformation("Starting admin export by {AdminUserId}", adminUserId);
 
         // load all users, cookbooks, recipes
-        var users = await _db.Users.AsNoTracking().Select(u => new Rezepte.Web.Services.User(u.Id, u.Username, u.Email, u.PasswordHash, u.IsAdmin)).ToListAsync(ct);
+        var users = await _db.Users.AsNoTracking().Select(u => MatchUser(u)).ToListAsync(ct);
 
         var cookbooks = await _db.Cookbooks
                 .AsNoTracking()

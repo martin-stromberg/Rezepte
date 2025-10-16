@@ -62,7 +62,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     {
         return await _db.Recipes.AsNoTracking()
             .Include(r => r.Images)
-            .Where(r => r.RecipeCookbooks.Any(c => c.CookbookId == cookbookId) && r.UserId == userId)
+            .Where(r => r.RecipeCookbooks.Any(c => (c.CookbookId == cookbookId) || (cookbookId == "")) && r.UserId == userId)
             .OrderBy(r => r.Title)
             .ToListAsync(ct);
     }

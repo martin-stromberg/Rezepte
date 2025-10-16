@@ -30,7 +30,9 @@ public class SettingsViewModel
             new Item("Benutzer", "👥", isAdmin, typeof(UserAdmin)),
             new Item("Datenexport", "📤", true, typeof(Rezepte.Web.Components.Settings.ExportData)),
             // Neues Register für Admin-Gesamtexport + Wiederherstellung
-            new Item("Sicherung", "💾", isAdmin, typeof(Rezepte.Web.Components.Settings.BackupRestore))
+            new Item("Sicherung", "💾", isAdmin, typeof(Rezepte.Web.Components.Settings.BackupRestore)),
+            // beim Initialisieren
+            new Item("Nutzungsstatistiken", "📊", true, typeof(Rezepte.Web.Components.Settings.UsageStats))
         };
 
         SelectedItem = Items.First();

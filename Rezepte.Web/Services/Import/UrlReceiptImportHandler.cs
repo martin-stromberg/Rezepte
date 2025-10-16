@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace Rezepte.Web.Services.Import;
-
 public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptImportHandler> logger) : IImportHandler
 {
     private readonly IRecipeService _recipes = recipes;
@@ -160,7 +159,8 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
             int length = currentIndex - startIndex;
             string fullTag = content.Substring(startIndex, length);
             tags.Add(fullTag);
-
+            if (startIndex + length == 0)
+                break;
             content = content.Substring(startIndex + length);
         }
 

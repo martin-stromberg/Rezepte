@@ -83,6 +83,25 @@
 
 <InputFile id="cookbookImportFile" style="position:absolute; left:-9999px; width:0; height:0; overflow:hidden; opacity:0" OnChange="OnImportInputFile" />
 
+@* Statusdialog für Dateiimport *@
+@if (isImporting)
+{
+    <div class="overlay-backdrop" @onclick:stopPropagation>
+        <div class="overlay-content d-flex align-items-center gap-3" style="width:320px; justify-content:center;">
+            <div>
+                <div class="spinner-border" role="status" aria-hidden="true"></div>
+            </div>
+            <div>
+                <div style="font-weight:600">@importStatus</div>
+                @if (!string.IsNullOrWhiteSpace(importMessage))
+                {
+                    <div class="text-muted small mt-1">@importMessage</div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 <h2>Zuletzt hinzugefügte Rezepte</h2>
 
 @if (isLoading)
@@ -122,6 +141,7 @@ else
     private string importUrl = string.Empty;
     private bool isImporting;
     private string? importMessage;
+    private string importStatus = string.Empty;
     private bool showImportUrl = false;
 
     protected override async Task OnInitializedAsync()
@@ -170,22 +190,57 @@ else
     {
         var file = e.File;
         if (file == null) return;
-        var max = 1024L * 1024L * 500;
-        await using var stream = file.OpenReadStream(max);
-        using var content = new MultipartFormDataContent();
-        var sc = new StreamContent(stream);
-        sc.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType ?? "application/zip");
-        content.Add(sc, "file", file.Name);
+        isImporting = true;
+        importMessage = null;
+        importStatus = "Lade Datei";
 
-        var res = await Api.Http.PostAsync($"api/cookbooks/import", content);
-        if (res.IsSuccessStatusCode)
+        try
         {
-            await LoadLists();
+            var max = 1024L * 1024L * 500;
+            await using var ms = file.OpenReadStream(max);
+            // Kopiere Datei in MemoryStream – Status "Lade Datei"
+            await using var uploadStream = new MemoryStream();
+            await ms.CopyToAsync(uploadStream);
+            uploadStream.Seek(0, SeekOrigin.Begin);
+
+            importStatus = "Suche Dateihandler";
+
+            using var content = new MultipartFormDataContent();
+            var sc = new StreamContent(uploadStream);
+            sc.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType ?? "application/zip");
+            content.Add(sc, "file", file.Name);
+
+            importStatus = "Verarbeite Datei";
+
+            // Sende Request (blockierend bis Ergebnis zurückkommt)
+            var res = await Api.Http.PostAsync($"api/cookbooks/import", content);
+
+            if (res.IsSuccessStatusCode)
+            {
+                // kurz warten, damit UI den finalen Status zeigt, dann neu laden
+                importStatus = "Fertig";
+                await LoadLists();
+            }
+            else
+            {
+                var body = await res.Content.ReadAsStringAsync();
+                importMessage = "Import fehlgeschlagen: " + res.StatusCode + " - " + body;
+            }
         }
-        else
+        catch (OperationCanceledException)
         {
-            var body = await res.Content.ReadAsStringAsync();
-            await JS.InvokeVoidAsync("alert", "Import fehlgeschlagen: " + res.StatusCode + " - " + body);
+            importMessage = "Import abgebrochen.";
+        }
+        catch (Exception ex)
+        {
+            importMessage = "Import fehlgeschlagen: " + ex.Message;
+        }
+        finally
+        {
+            // kurzen Moment anzeigen, dann schließen
+            await Task.Delay(600);
+            isImporting = false;
+            importStatus = string.Empty;
         }
     }
 
@@ -211,6 +266,7 @@ else
 
         isImporting = true;
         importMessage = null;
+        importStatus = "Verarbeite Datei";
         try
         {
             var payload = new { url = importUrl };
@@ -232,7 +288,9 @@ else
         }
         finally
         {
+            await Task.Delay(600);
             isImporting = false;
+            importStatus = string.Empty;
         }
     }
 
