@@ -1,0 +1,44 @@
+﻿/* Overlay für URL‑Dialog (scoped to CookbookPage) */
+.overlay-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.overlay-content {
+    background: #fff;
+    padding: 1.25rem;
+    border-radius: 8px;
+    max-width: 680px;
+    width: min(100%, 680px);
+    max-height: 80vh;
+    overflow: auto;
+    position: relative;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* Close‑Button oben rechts */
+.overlay-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1;
+}
+
+/* kleine Anpassungen für mobile */
+@media (max-width: 520px) {
+    .overlay-content {
+        padding: 0.75rem;
+        max-height: 85vh;
+    }
+
+    .overlay-close {
+        top: 0.25rem;
+        right: 0.25rem;
+    }
+}
