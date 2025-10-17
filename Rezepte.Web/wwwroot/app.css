@@ -1,17 +1,16 @@
 /* Farbpalette für Kochrezepte: warme Akzente (Tomate/Beere), Kräutergrün, Creme-Hintergrund */
 :root {
-    --app-bg: #fffaf3;           /* helles Creme */
-    --app-surface: #ffffff;      /* Karten-/Flächenfarbe */
-    --app-text: #2b2b2b;         /* Grundtext */
-    --app-muted: #6c757d;        /* Muted */
-    --app-border: #e6e2dc;       /* zarte Rahmen */
+    --app-bg: #fffaf3; /* helles Creme */
+    --app-surface: #ffffff; /* Karten-/Flächenfarbe */
+    --app-text: #2b2b2b; /* Grundtext */
+    --app-muted: #6c757d; /* Muted */
+    --app-border: #e6e2dc; /* zarte Rahmen */
 
-    --app-primary: #e4572e;      /* tomatenrot/orange */
+    --app-primary: #5A1F1F; /* Tiefes Bordeaux	 */
     --app-primary-600: #cc4d29;
-    --app-accent: #2e7d32;       /* kräutergrün */
+    --app-accent: #2e7d32; /* kräutergrün */
     --app-accent-600: #256628;
-
-    --app-link: #b23a48;         /* beere */
+    --app-link: #b23a48; /* beere */
     --app-link-hover: #8f2f3a;
 }
 
