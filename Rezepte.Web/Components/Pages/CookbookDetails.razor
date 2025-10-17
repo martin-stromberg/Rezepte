@@ -5,6 +5,8 @@
 @inject ApiClient Api
 @inject NavigationManager Nav
 
+<PageTitle>@(book?.Name ?? "Kochbuch")</PageTitle>
+
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
     <span>Kochbuch bearbeiten</span>
     @if (!isLoading && book is not null)

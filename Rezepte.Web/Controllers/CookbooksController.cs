@@ -239,9 +239,15 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
 
         try
         {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0");
+            client.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
+            client.DefaultRequestHeaders.Referrer = new Uri("https://www.bing.com/");
             using var resp = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode)
+            {
+                var errorContent = await resp.Content.ReadAsStringAsync();
                 return BadRequest(new { message = $"Remote request failed: {resp.StatusCode}" });
+            }
 
             // Copy to MemoryStream because handlers may need seekable stream
             await using var ms = new MemoryStream();

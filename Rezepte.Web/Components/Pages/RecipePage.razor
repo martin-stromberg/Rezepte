@@ -1,15 +1,20 @@
 ﻿@page "/recipes/{Id}"
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Options
 @using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Forms
 @using Rezepte.Web.Components.Shared
+@using Rezepte.Web.Configuration
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject ApiClient Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IOptionsMonitor<ImageOptions> ImageOptionsMonitor
+
+<PageTitle>@(recipe?.Title ?? "Rezept")</PageTitle>
 
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
     <span></span>
@@ -56,10 +61,15 @@ else
                         <span>📷</span>
                     </div>
                 }
-                <InputFile id="FotoUpload" class="d-none" OnChange="OnImageSelected" accept="image/*" />
-                <button type="button" class="btn btn-sm btn-primary position-absolute top-0 end-0 m-2" title="Foto hinzufügen" @onclick="TriggerFileInput">
+
+                @* Accessible hidden InputFile (not display:none / not zero-size) so iOS Safari opens dialog via label *@
+                <InputFile id="FotoUpload" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; opacity:0;" OnChange="OnImageSelected" accept="image/*" />
+
+                @* Use a label as trigger rather than programmatic click for iOS Safari compatibility *@
+                <label for="FotoUpload" class="btn btn-sm btn-primary position-absolute top-0 end-0 m-2" title="Foto hinzufügen" role="button" style="cursor:pointer;">
                     <i class="bi bi-camera"></i>
-                </button>
+                </label>
+
                 @if (recipe.ImageCount > 1)
                 {
                     <button type="button" class="btn btn-sm btn-secondary position-absolute bottom-0 end-0 m-2" title="Alle Bilder anzeigen" @onclick="ShowAllImages">
@@ -160,6 +170,14 @@ else
     </div>
 }
 
+@if (showCropper)
+{
+    <ImageCropper Show="@showCropper"
+                  ImageDataUrl="@cropDataUrl"
+                  UploadUrl="@($"/api/recipes/{Id}/image")"
+                  OnUploaded="OnCroppedUploaded"
+                  OnCancel="CloseCropper" />
+}
 @code {
     [Parameter] public string Id { get; set; } = string.Empty;
     private bool isLoading = true;
@@ -172,6 +190,11 @@ else
     private List<RecipeImageDto>? images;
     private string? largeImageUrl;
 
+    private bool showCropper;
+    private string? cropDataUrl;
+
+    private string errorMessage = string.Empty;
+
     // Assign overlay
     private bool showAssignOverlay = false;
     private bool isInAnyCookbook = false;
@@ -182,31 +205,70 @@ else
     private string? currentUserId;
     private bool isOwner => !string.IsNullOrEmpty(recipe?.OwnerId) && recipe?.OwnerId == currentUserId;
 
-    private async Task TriggerFileInput()
-    {
-        await JS.InvokeVoidAsync("eval", "document.getElementById('FotoUpload').click()");
-    }
-
     private async Task OnImageSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
-        if (file != null)
+        if (file == null) return;
+
+        // Reset previous error
+        errorMessage = string.Empty;
+
+        // Validate size first — if too large, show error and don't open dialog
+        if (file.Size > ImageOptionsMonitor.CurrentValue.MaxSizeBytes)
         {
-            using var stream = file.OpenReadStream(5 * 1024 * 1024);
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            var bytes = ms.ToArray();
-
-            var content = new MultipartFormDataContent();
-            content.Add(new ByteArrayContent(bytes), "file", file.Name);
-
-            var response = await Api.Http.PostAsync($"api/recipes/{Id}/image", content);
-            if (response.IsSuccessStatusCode)
-            {
-                recipe = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Id}");
-                StateHasChanged();
-            }
+            errorMessage = $"Die Größe des Bildes überschreitet den maximalen Wert.";
+            return;
         }
+
+        // Show cropper overlay immediately so user sees loading state
+        cropDataUrl = null;
+        showCropper = true;
+        StateHasChanged(); // force render so overlay + "Lade Vorschau…" erscheint
+
+        try
+        {
+            // Convert file to data URL asynchronously
+            using var ms = new MemoryStream();
+            await file.OpenReadStream(ImageOptionsMonitor.CurrentValue.MaxSizeBytes).CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var dataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}";
+
+            // Assign the prepared data URL -> ImageCropper will initialize the cropper
+            cropDataUrl = dataUrl;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // conversion failed -> close overlay and show error
+            showCropper = false;
+            cropDataUrl = null;
+            errorMessage = "Fehler beim Laden der Bilddatei.";
+            Console.Error.WriteLine("OnImageSelected conversion error: " + ex.Message);
+        }
+    }
+
+    private async Task OnCroppedUploaded(bool ok)
+    {
+        showCropper = false;
+        cropDataUrl = null;
+        if (ok)
+        {
+            // Bild wurde per JS direkt hochgeladen — Rezept neu laden
+            recipe = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Id}");
+            StateHasChanged();
+        }
+        else
+        {
+            // Fehlermeldung anzeigen
+            await JS.InvokeVoidAsync("alert", "Bild konnte nicht hochgeladen werden. Bitte erneut versuchen.");
+        }
+    }
+
+    private Task CloseCropper()
+    {
+        showCropper = false;
+        cropDataUrl = null;
+        return Task.CompletedTask;
     }
 
     private async Task ShowAllImages()

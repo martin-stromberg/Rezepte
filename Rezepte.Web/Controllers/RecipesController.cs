@@ -78,7 +78,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
         if (userId is null) return Unauthorized();
         var r = await _recipes.GetByIdAsync(userId, id, ct);
         if (r is null) return NotFound();
-        var lastImage = await _recipes.GetImages(r.Id, 0, 1).OrderByDescending(img => img.CreatedAt).FirstOrDefaultAsync(ct);
+        var lastImage = await _recipes.GetImages(r.Id, 0, 1).FirstOrDefaultAsync(ct);
         var imageCount = await _recipes.GetImageCountAsync(r.Id, ct);
         var dto = new RecipeDto(
             r.Id,
@@ -117,7 +117,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
     }
 
     public record AddExistingRequest(List<string> RecipeIds);
-    public record CreateRecipeRequest(string? CookbookId, string Title, string? Description, string? Uri, List<CreateRecipeStep> Steps);
+    public record CreateRecipeRequest(string? CookbookId, string Title, string? Description, string? Uri, int? Portions, List<CreateRecipeStep> Steps);
     public record CreateRecipeStep(string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<CreateRecipeIngredient> Ingredients);
     public record CreateRecipeIngredient(decimal Amount, string? Unit, string Name);
 
@@ -134,7 +134,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
             (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
         )).ToList() ?? new List<RecipeCreateStep>();
 
-        var (ok, error, recipe) = await _recipes.CreateAsync(userId, dto.CookbookId, dto.Title, dto.Description, dto.Uri, steps, ct);
+        var (ok, error, recipe) = await _recipes.CreateAsync(userId, dto.CookbookId, dto.Title, dto.Description, dto.Uri, dto.Portions, steps, ct);
         if (!ok || recipe is null)
             return BadRequest(new { message = error ?? "Anlegen fehlgeschlagen." });
 

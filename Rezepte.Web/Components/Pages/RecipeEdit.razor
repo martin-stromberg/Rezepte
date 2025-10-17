@@ -8,6 +8,8 @@
 @inject ApiClient Api
 @inject IJSRuntime JS
 
+<PageTitle>@(title ?? "Rezept")</PageTitle>
+
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
     <span>@(IsNew ? "Neues Rezept" : "Rezept bearbeiten")</span>
     <div class="btn-group">

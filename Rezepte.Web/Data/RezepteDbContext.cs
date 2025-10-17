@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Entities;
+using System.Collections.Generic;
 
 namespace Rezepte.Web.Data;
 
@@ -12,6 +13,10 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<RecipeCookbook> RecipeCookbooks => Set<RecipeCookbook>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeImage> RecipeImages { get; set; } = null!;
+    public DbSet<AiRequestLog> AiRequestLogs => Set<AiRequestLog>();
+
+    public DbSet<UserSetting> UserSettings => Set<UserSetting>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -98,5 +103,32 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             .WithOne(i => i.Recipe)
             .HasForeignKey(i => i.RecipeId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<AiRequestLog>(b => 
+        {
+            b.HasKey(a => a.Id);
+            b.Property(a => a.UserId).IsRequired().HasMaxLength(64);
+            b.Property(a => a.Service).IsRequired().HasMaxLength(100);
+            b.Property(a => a.Timestamp).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasIndex(a => a.UserId);
+            b.HasIndex(a => a.Timestamp);
+        });
+
+        // Konfiguration für UserSetting
+        modelBuilder.Entity<UserSetting>(b =>
+        {
+            b.HasKey(u => u.UserId);
+            b.Property(u => u.UserId).IsRequired().HasMaxLength(64);
+            b.Property(u => u.AiEnabled).IsRequired().HasDefaultValue(true);
+            b.HasIndex(u => u.UserId).IsUnique();
+        });
+
+        // Konfiguration für AppSetting
+        modelBuilder.Entity<AppSetting>(b =>
+        {
+            b.HasKey(a => a.Key);
+            b.Property(a => a.Key).IsRequired().HasMaxLength(128);
+            b.Property(a => a.Value).IsRequired();
+        });
     }
 }

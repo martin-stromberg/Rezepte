@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rezepte.Web.Data;
 
@@ -10,9 +11,11 @@ using Rezepte.Web.Data;
 namespace Rezepte.Web.Migrations
 {
     [DbContext(typeof(RezepteDbContext))]
-    partial class RezepteDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251016165359_AddAiRequestLogAndUserCreatedAt")]
+    partial class AddAiRequestLogAndUserCreatedAt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
@@ -44,21 +47,6 @@ namespace Rezepte.Web.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("AiRequestLogs");
-                });
-
-            modelBuilder.Entity("Rezepte.Web.Entities.AppSetting", b =>
-                {
-                    b.Property<string>("Key")
-                        .HasMaxLength(128)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Key");
-
-                    b.ToTable("AppSettings");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.Cookbook", b =>
@@ -114,9 +102,6 @@ namespace Rezepte.Web.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Portions")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -292,25 +277,6 @@ namespace Rezepte.Web.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("Rezepte.Web.Entities.UserSetting", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("AiEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(true);
-
-                    b.HasKey("UserId");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("UserSettings");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.RecipeCookbook", b =>

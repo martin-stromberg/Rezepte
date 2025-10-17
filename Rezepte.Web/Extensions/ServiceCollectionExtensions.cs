@@ -12,6 +12,7 @@ using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.BackgroundJobs.Handlers;
 using Rezepte.Web.Services.Import;
 using Rezepte.Web.ViewModels;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -23,6 +24,7 @@ public static class ServiceCollectionExtensions
     {
         // Bind configuration sections used by the app
         services.Configure<ImageOptions>(configuration.GetSection("Images"));
+        services.Configure<AIOptions>(configuration.GetSection("AI"));
         // Razor Components
         services.AddRazorComponents()
             .AddInteractiveServerComponents(options =>
@@ -101,6 +103,7 @@ public static class ServiceCollectionExtensions
         // Infrastructure
         services.AddMemoryCache();
         services.AddSingleton<ITokenService, TokenService>();
+        services.AddSingleton<IGoogleServiceAccountProvider, GoogleServiceAccountProvider>();
         services.AddHttpContextAccessor();
         services.AddTransient<ApiAuthHandler>();
         services.AddTransient<AntiForgeryHandler>();
@@ -114,7 +117,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped(sp =>
         {
             var nav = sp.GetRequiredService<NavigationManager>();
-            return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
+            return new HttpClient(new HttpClientHandler()
+            {
+                UseCookies = true,
+                CookieContainer = new CookieContainer()
+            }) { BaseAddress = new Uri(nav.BaseUri) };
         });
 
         // Application services
@@ -127,6 +134,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IImportHandler, BackupImportHandler>();
         services.AddScoped<IImportHandler, UrlReceiptImportHandler>();
+        services.AddScoped<IImportHandler, AIFotoImportHandler>();
+        services.AddScoped<IImportHandler, AIUrlImportHandler>();
+        services.AddScoped<IAiUsageService, AiUsageService>();
+        services.AddScoped<ISettingsService, SettingsService>();
 
         // ViewModels
         services.AddScoped<SettingsViewModel>();
