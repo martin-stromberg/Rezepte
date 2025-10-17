@@ -41,9 +41,12 @@
                             <span>Neues Rezept anlegen</span>
                         }
                     </button>
-                    <button class="btn btn-outline-secondary" @onclick="TriggerImportFile">
+
+                    @* Use a label for the hidden input: works reliably on iOS Safari *@
+                    <label class="btn btn-outline-secondary" for="cookbookImportFile" @onclick="CloseCreateMenu" role="button" style="cursor:pointer;">
                         Rezept aus Datei importieren
-                    </button>
+                    </label>
+
                     <button class="btn btn-outline-secondary" @onclick="OpenImportUrlDialog">
                         Rezept von URL laden
                     </button>
@@ -81,7 +84,8 @@
     </div>
 }
 
-<InputFile id="cookbookImportFile" style="position:absolute; left:-9999px; width:0; height:0; overflow:hidden; opacity:0" OnChange="OnImportInputFile" />
+@* Hidden InputFile: keep it off-screen but not display:none / not zero-size (iOS needs it focusable) *@
+<InputFile id="cookbookImportFile" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; opacity:0;" OnChange="OnImportInputFile" />
 
 @* Statusdialog für Dateiimport *@
 @if (isImporting)

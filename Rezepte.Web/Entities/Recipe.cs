@@ -12,4 +12,5 @@ public class Recipe
     public ICollection<RecipeImage> Images { get; set; } = new List<RecipeImage>();
     public ICollection<RecipeCookbook> RecipeCookbooks { get; set; } = new List<RecipeCookbook>();
     public string? Uri { get; internal set; }
+    public int Portions { get; set; } = 0;
 }

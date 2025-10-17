@@ -312,6 +312,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
         public string Instructions { get; internal set; }
         public string Description { get; internal set; }
         public string Uri { get; internal set; }
+        public int Portions { get; internal set; }
         public int WorkTime { get; internal set; }
     }
     private sealed class RecipeIngredients()
@@ -556,7 +557,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
 
     private async Task<bool> CreateNewRecipe(string targetCookbookId, string userId, List<string> created, RecipeImport imported, List<RecipeCreateStep> steps, CancellationToken ct)
     {
-        var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, imported.Title ?? "Importiertes Rezept", imported.Description, imported.Uri, steps, ct).ConfigureAwait(false);
+        var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, imported.Title ?? "Importiertes Rezept", imported.Description, imported.Uri, imported.Portions, steps, ct).ConfigureAwait(false);
         if (!ok || recipe == null)
         {
             _logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);

@@ -570,6 +570,7 @@ public record ExportRecipeDto
     public string? Title { get; init; }
     public string? Description { get; init; }
     public string? Uri { get; init; }
+    public int? Portions { get; init; }
     public List<ExportStepDto>? Steps { get; init; }
     public List<string>? ImagePaths { get; init; }
     public List<ExportRecipeCookbookDto>? Cookbooks { get; init; }

@@ -56,10 +56,15 @@ else
                         <span>📷</span>
                     </div>
                 }
-                <InputFile id="FotoUpload" class="d-none" OnChange="OnImageSelected" accept="image/*" />
-                <button type="button" class="btn btn-sm btn-primary position-absolute top-0 end-0 m-2" title="Foto hinzufügen" @onclick="TriggerFileInput">
+
+                @* Accessible hidden InputFile (not display:none / not zero-size) so iOS Safari opens dialog via label *@
+                <InputFile id="FotoUpload" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; opacity:0;" OnChange="OnImageSelected" accept="image/*" />
+
+                @* Use a label as trigger rather than programmatic click for iOS Safari compatibility *@
+                <label for="FotoUpload" class="btn btn-sm btn-primary position-absolute top-0 end-0 m-2" title="Foto hinzufügen" role="button" style="cursor:pointer;">
                     <i class="bi bi-camera"></i>
-                </button>
+                </label>
+
                 @if (recipe.ImageCount > 1)
                 {
                     <button type="button" class="btn btn-sm btn-secondary position-absolute bottom-0 end-0 m-2" title="Alle Bilder anzeigen" @onclick="ShowAllImages">
@@ -181,11 +186,6 @@ else
 
     private string? currentUserId;
     private bool isOwner => !string.IsNullOrEmpty(recipe?.OwnerId) && recipe?.OwnerId == currentUserId;
-
-    private async Task TriggerFileInput()
-    {
-        await JS.InvokeVoidAsync("eval", "document.getElementById('FotoUpload').click()");
-    }
 
     private async Task OnImageSelected(InputFileChangeEventArgs e)
     {
