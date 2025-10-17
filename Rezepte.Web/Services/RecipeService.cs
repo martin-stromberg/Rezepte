@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using Rezepte.Web.Components.Pages;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
 using System.IO;
+using static Rezepte.Web.Services.RecipeService;
 
 namespace Rezepte.Web.Services;
 
@@ -27,6 +29,7 @@ public interface IRecipeService
     Task<(bool ok, string? error)> DeleteImageAsync(string userId, string recipeId, string imageId, CancellationToken ct);
     Task<List<Recipe>> GetLatestAsync(string userId, int count, CancellationToken ct);
     Task<Recipe> FindByUri(string userId, string v, CancellationToken ct);
+    Task<SearchResult> SearchAsync(string? q, string? tags, int? cookbookId, int page, int pageSize, string sort, CancellationToken ct);
 }
 
 public record RecipeCreateIngredient(decimal Amount, string? Unit, string Name);
@@ -291,7 +294,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
         {
             RecipeId = recipeId,
             FileName = fileName,
-            ContentType = contentType, 
+            ContentType = contentType,
             Data = ms.ToArray()
         };
 
@@ -354,5 +357,98 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     {
         return await _db.Recipes.AsNoTracking()
             .FirstOrDefaultAsync(r => r.UserId == userId && r.Uri == uri, ct);
+    }
+
+    public async Task<SearchResult> SearchAsync(string? q, string? tags, int? cookbookId, int page, int pageSize, string sort, CancellationToken ct)
+    {
+        // Base query: include steps + ingredients and images; RecipeCookbooks needed for cookbook filter
+        IQueryable<Recipe> query = _db.Recipes
+            .AsNoTracking()
+            .Include(r => r.Images)
+            .Include(r => r.Steps!)
+                .ThenInclude(s => s.Ingredients!)
+            .Include(r => r.RecipeCookbooks)
+            .AsQueryable();
+
+        // Simple fulltext-ish search across Title, Description, Step.Description and Ingredient.Name
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var pattern = $"%{q.Trim()}%";
+            query = query.Where(r =>
+                EF.Functions.Like(r.Title, pattern) ||
+                (r.Description != null && EF.Functions.Like(r.Description, pattern)) ||
+                r.Steps.Any(s => EF.Functions.Like(s.Description, pattern) ||
+                                 s.Ingredients.Any(i => EF.Functions.Like(i.Name, pattern)))
+            );
+        }
+
+        // cookbookId comes as int? in the API contract, but Cookbooks/CookbookId are stored as string IDs.
+        if (cookbookId.HasValue)
+        {
+            var cookbookIdStr = cookbookId.Value.ToString();
+            query = query.Where(r => r.RecipeCookbooks.Any(cb => cb.CookbookId == cookbookIdStr));
+        }
+
+        // NOTE: Tags are not modelled on Recipe -> ignore tags filter for now.
+        // If tags parameter is provided, we cannot filter (no Tag entity). Option: implement Tag entity later.
+
+        // Total count before paging
+        var total = await query.CountAsync(ct);
+
+        // Sorting (fallback newest)
+        query = sort?.ToLowerInvariant() switch
+        {
+            "title" => query.OrderBy(r => r.Title),
+            "newest" => query.OrderByDescending(r => r.CreatedAt),
+            _ => query.OrderByDescending(r => r.CreatedAt)
+        };
+
+        // Paging + projection to SearchResultItem
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => new SearchResultItem
+            {
+                Id = r.Id,
+                Title = r.Title,
+                CreatedAt = r.CreatedAt,
+                PrimaryImageUrl = r.Images.OrderByDescending(i => i.CreatedAt).Select(i => i.Url).FirstOrDefault(),
+                // Create a short snippet: prefer first step description, then ingredient names, then recipe description
+                Snippet = (r.Steps
+                            .OrderBy(s => s.StepIndex)
+                            .Select(s => s.Description)
+                            .FirstOrDefault()
+                          ?? string.Join(", ", r.Steps.SelectMany(s => s.Ingredients.Select(i => i.Name)).Where(n => !string.IsNullOrEmpty(n)).Take(10))
+                          ?? r.Description
+                          ?? string.Empty),
+                Tags = Array.Empty<string>()
+            })
+            .ToListAsync(ct);
+
+        // Truncate snippets to a reasonable length
+        foreach (var it in items)
+        {
+            if (it.Snippet?.Length > 200)
+            {
+                it.Snippet = it.Snippet.Substring(0, 200) + "...";
+            }
+        }
+
+        return new SearchResult { Items = items, TotalCount = total };
+    }
+
+    public sealed class SearchResult
+    {
+        public int TotalCount { get; set; }
+        public IEnumerable<SearchResultItem> Items { get; set; } = Array.Empty<SearchResultItem>();
+    }
+    public sealed class SearchResultItem
+    {
+        public string Id { get; set; } = null!;
+        public string Title { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
+        public string? PrimaryImageUrl { get; set; }
+        public string Snippet { get; set; } = string.Empty;
+        public string[] Tags { get; set; } = Array.Empty<string>();
     }
 }
