@@ -8,8 +8,15 @@ namespace Rezepte.Web.Services.Import;
 
 public class AIUrlImportHandler : BaseAIImportHandler, IImportHandler
 {
-    public AIUrlImportHandler(IOptionsMonitor<Configuration.AIOptions> options, IRecipeService recipes, ILogger<AIUrlImportHandler> logger, IHttpContextAccessor httpContextAccessor, IAiUsageService aiUsageService)
-        :base(options, httpContextAccessor, aiUsageService, recipes, logger)
+    public AIUrlImportHandler(
+        IOptionsMonitor<Configuration.AIOptions> options, 
+        IRecipeService recipes, 
+        ILogger<AIUrlImportHandler> logger, 
+        IHttpContextAccessor httpContextAccessor, 
+        IAiUsageService aiUsageService, 
+        IGoogleServiceAccountProvider googleServiceAccountProvider,
+        ISettingsService settings)
+        :base(options, httpContextAccessor, aiUsageService, recipes, googleServiceAccountProvider, settings,logger)
     {
     }
    

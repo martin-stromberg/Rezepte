@@ -15,6 +15,9 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<RecipeImage> RecipeImages { get; set; } = null!;
     public DbSet<AiRequestLog> AiRequestLogs => Set<AiRequestLog>();
 
+    public DbSet<UserSetting> UserSettings => Set<UserSetting>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -109,6 +112,23 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.Property(a => a.Timestamp).HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasIndex(a => a.UserId);
             b.HasIndex(a => a.Timestamp);
+        });
+
+        // Konfiguration für UserSetting
+        modelBuilder.Entity<UserSetting>(b =>
+        {
+            b.HasKey(u => u.UserId);
+            b.Property(u => u.UserId).IsRequired().HasMaxLength(64);
+            b.Property(u => u.AiEnabled).IsRequired().HasDefaultValue(true);
+            b.HasIndex(u => u.UserId).IsUnique();
+        });
+
+        // Konfiguration für AppSetting
+        modelBuilder.Entity<AppSetting>(b =>
+        {
+            b.HasKey(a => a.Key);
+            b.Property(a => a.Key).IsRequired().HasMaxLength(128);
+            b.Property(a => a.Value).IsRequired();
         });
     }
 }

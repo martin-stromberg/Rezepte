@@ -51,7 +51,9 @@ public class AIFotoImportHandler : BaseAIImportHandler, IImportHandler
         IAiUsageService _aiUsage,
         IMemoryCache cache,
         ILogger<AIFotoImportHandler> logger,
-        IHttpContextAccessor httpContextAccessor) : base(aioptions, httpContextAccessor, _aiUsage, recipes, logger)
+        IGoogleServiceAccountProvider googleServiceAccountProvider,
+        ISettingsService settings,
+        IHttpContextAccessor httpContextAccessor) : base(aioptions, httpContextAccessor, _aiUsage, recipes, googleServiceAccountProvider, settings,logger)
     {
         this.aioptions = aioptions;
         _cache = cache;

@@ -103,6 +103,7 @@ public static class ServiceCollectionExtensions
         // Infrastructure
         services.AddMemoryCache();
         services.AddSingleton<ITokenService, TokenService>();
+        services.AddSingleton<IGoogleServiceAccountProvider, GoogleServiceAccountProvider>();
         services.AddHttpContextAccessor();
         services.AddTransient<ApiAuthHandler>();
         services.AddTransient<AntiForgeryHandler>();
@@ -136,6 +137,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportHandler, AIFotoImportHandler>();
         services.AddScoped<IImportHandler, AIUrlImportHandler>();
         services.AddScoped<IAiUsageService, AiUsageService>();
+        services.AddScoped<ISettingsService, SettingsService>();
 
         // ViewModels
         services.AddScoped<SettingsViewModel>();

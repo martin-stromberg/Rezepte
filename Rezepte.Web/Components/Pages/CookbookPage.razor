@@ -8,6 +8,8 @@
 @inject IJSRuntime JS
 @using Rezepte.Web.Components.Shared
 
+<PageTitle>@(book?.Name ?? "Kochbuch")</PageTitle>
+
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
     <span>@(book?.Name ?? "Kochbuch")</span>
     <div class="btn-group">

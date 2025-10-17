@@ -4,7 +4,14 @@ using static Rezepte.Web.Services.Import.GeminiClient;
 
 namespace Rezepte.Web.Services.Import;
 
-public abstract class BaseAIImportHandler(IOptionsMonitor<AIOptions> aioptions, IHttpContextAccessor httpContextAccessor, IAiUsageService aiUsage, IRecipeService recipeService, ILogger logger)
+public abstract class BaseAIImportHandler(
+    IOptionsMonitor<AIOptions> aioptions, 
+    IHttpContextAccessor httpContextAccessor, 
+    IAiUsageService aiUsage, 
+    IRecipeService recipeService, 
+    IGoogleServiceAccountProvider serviceAccountProvider,
+    ISettingsService settingsService,
+    ILogger logger)
 {
     private KeyValuePair<string, AIRecipe[]> _lastRecipes;
     private StreamReader lastReader = null;
@@ -12,6 +19,9 @@ public abstract class BaseAIImportHandler(IOptionsMonitor<AIOptions> aioptions, 
     protected readonly IRecipeService recipeService = recipeService;
     protected readonly ILogger _logger = logger;
     protected IAiUsageService AiUsageService => aiUsage;
+    protected readonly IGoogleServiceAccountProvider _serviceAccountProvider = serviceAccountProvider;
+
+    protected string ServicecAcountFile => _serviceAccountProvider.GetFilePath();
     public string UserId
     {
         get
@@ -20,45 +30,24 @@ public abstract class BaseAIImportHandler(IOptionsMonitor<AIOptions> aioptions, 
             return userId ?? "unknown";
         }
     }
-    protected string ServicecAcountFile
-    {
-        get
-        {
-            const string fileName = "google.application-credentials.json";
-            // Programmdirectory (auch in Veröffentlichungen verlässlich)
-            var jsonPath = Path.Combine(AppContext.BaseDirectory ?? Environment.CurrentDirectory, fileName);
 
-            // Nur die Umgebungsvariable setzen, wenn die Datei tatsächlich vorhanden ist
-            if (File.Exists(jsonPath))
-            {
-                Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", jsonPath);
-            }
-
-            return jsonPath;
-        }
-    }
-    protected virtual bool IsActive()
+    protected virtual async Task<bool> IsActiveAsync()
     {
-        if (!File.Exists(ServicecAcountFile))
+        if (!_serviceAccountProvider.Exists())
             return false;
-        //var quotaClient = new GoogleQuotaClient(ServicecAcountFile);
-        //string projectId = "rezepteverwaltung-475218";
-
-        //// Vision API
-        //string visionQuota = await quotaClient.GetQuotaAsync("vision.googleapis.com", projectId);
-        //Console.WriteLine("Vision API Quota:");
-        //Console.WriteLine(visionQuota);
-
-        //// Gemini / Generative Language API
-        //string geminiQuota = await quotaClient.GetQuotaAsync("generativelanguage.googleapis.com", projectId);
-        //Console.WriteLine("Gemini API Quota:");
-        //Console.WriteLine(geminiQuota);
+        if (!await SettingsService.GetGlobalAiEnabledAsync())
+            return false;
+        if (!await SettingsService.GetUserAiEnabledAsync(UserId))
+            return false;
         return true;
     }
+
     private bool IsSimulationModeActive
     {
         get => aioptions.CurrentValue.Simulate;
     }
+    public ISettingsService SettingsService { get; } = settingsService;
+
     protected virtual AIRecipe CreateSimulationReceipt(byte[] imageBytes)
     {
         return new AIRecipe()
@@ -75,7 +64,7 @@ public abstract class BaseAIImportHandler(IOptionsMonitor<AIOptions> aioptions, 
         if (lastReader is not null)
             lastReader.Dispose();
 
-        if (!IsActive())
+        if (!await IsActiveAsync())
             return false;
 
         if (IsTextMode())

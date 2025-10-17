@@ -1,0 +1,178 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using System.Text.Json
+@inject ApiClient Client
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div>
+    <h6>Nutzung von KI</h6>
+
+    @if (isLoading)
+    {
+        <div>Lade…</div>
+    }
+    else
+    {
+        @if (isAdmin)
+        {
+            <hr />
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="globalAi" checked="@globalAiEnabled" @onchange="OnGlobalToggle" disabled="@isSaving" />
+                <label class="form-check-label" for="globalAi">KI global aktiv (Admin)</label>
+            </div>
+        }
+
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="userAi"
+                   checked="@userAiEnabled"
+                   @onchange="OnUserToggle"
+                   disabled="@(isSaving || !globalAiEnabled)" />
+            <label class="form-check-label" for="userAi">KI für mein Konto aktivieren</label>
+        </div>
+
+        @if (!globalAiEnabled && !isAdmin)
+        {
+            <div class="text-muted small mb-2">KI ist global deaktiviert — Ihre Einstellung ist gesperrt.</div>
+        }               
+    }
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="mt-2 text-danger">@message</div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool userAiEnabled;
+    private bool globalAiEnabled;
+    private bool isAdmin;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        message = null;
+        try
+        {
+            var resp = await Client.Http.GetAsync("api/settings/me");
+            if (!resp.IsSuccessStatusCode)
+            {
+                message = "Einstellungen konnten nicht geladen werden.";
+                return;
+            }
+
+            var json = await resp.Content.ReadAsStringAsync();
+            if (!string.IsNullOrWhiteSpace(json))
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                // handle different casings and types (bool or "True"/"true")
+                if (TryGetBoolean(root, "AiEnabled", "aiEnabled", out var ai))
+                    userAiEnabled = ai;
+                if (TryGetBoolean(root, "GlobalAiEnabled", "globalAiEnabled", out var ga))
+                    globalAiEnabled = ga;
+            }
+
+            var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+            isAdmin = auth.User.IsInRole("Admin");
+        }
+        catch
+        {
+            message = "Fehler beim Laden.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static bool TryGetBoolean(JsonElement root, string prop1, string prop2, out bool value)
+    {
+        value = false;
+        if (root.ValueKind != JsonValueKind.Object) return false;
+
+        if (root.TryGetProperty(prop1, out var el) || root.TryGetProperty(prop2, out el))
+        {
+            if (el.ValueKind == JsonValueKind.True) { value = true; return true; }
+            if (el.ValueKind == JsonValueKind.False) { value = false; return true; }
+            if (el.ValueKind == JsonValueKind.String)
+            {
+                var s = el.GetString();
+                if (!string.IsNullOrEmpty(s) && bool.TryParse(s, out var b)) { value = b; return true; }
+            }
+        }
+        return false;
+    }
+
+    private static bool ParseChangeEventBool(ChangeEventArgs e, bool fallback)
+    {
+        if (e.Value is bool b) return b;
+        if (e.Value is string s && bool.TryParse(s, out var pb)) return pb;
+        return fallback;
+    }
+
+    private async Task OnUserToggle(ChangeEventArgs e)
+    {
+        if (!globalAiEnabled)
+        {
+            message = "Die Benutzer‑Einstellung ist gesperrt, solange KI global deaktiviert ist.";
+            return;
+        }
+
+        isSaving = true;
+        message = null;
+        try
+        {
+            userAiEnabled = ParseChangeEventBool(e, userAiEnabled);
+            var ok = await Client.PutAsJsonAsync("api/settings/me/ai", userAiEnabled);
+            if (!ok.IsSuccessStatusCode) message = "Speichern fehlgeschlagen.";
+
+            // Log the change
+            await Client.Http.PostAsJsonAsync("api/logs", new { Action = "ToggleUserAi", Success = ok.IsSuccessStatusCode, Time = DateTime.UtcNow });
+        }
+        catch (Exception ex)
+        {
+            message = $"Speichern fehlgeschlagen: {ex.Message}";
+        }
+        finally { isSaving = false; }
+    }
+
+    private async Task OnGlobalToggle(ChangeEventArgs e)
+    {
+        isSaving = true;
+        message = null;
+        try
+        {
+            globalAiEnabled = ParseChangeEventBool(e, globalAiEnabled);
+            var ok = await Client.PutAsJsonAsync("api/settings/global/ai", globalAiEnabled);
+            if (!ok.IsSuccessStatusCode)
+            {
+                message = "Speichern fehlgeschlagen.";
+            }
+            else
+            {
+                if (!globalAiEnabled)
+                {
+                    await LoadAsync();
+                }
+            }
+
+            // Log the change
+            await Client.Http.PostAsJsonAsync("api/logs", new { Action = "ToggleGlobalAi", Success = ok.IsSuccessStatusCode, Time = DateTime.UtcNow });
+        }
+        catch (Exception ex)
+        {
+            message = $"Speichern fehlgeschlagen: {ex.Message}";
+        }
+        finally { isSaving = false; }
+    }
+}
