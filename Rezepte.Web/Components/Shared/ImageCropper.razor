@@ -1,0 +1,160 @@
+﻿@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
+@inject Rezepte.Web.Services.ITokenService TokenService
+@rendermode InteractiveServer
+
+@if (Show)
+{
+    <div class="overlay-backdrop" @onclick="()=>{}">
+        <div class="overlay-content" @onclick:stopPropagation style="max-width:900px; width:100%; max-height:90vh;">
+            <button class="btn btn-sm btn-danger overlay-close" @onclick="Cancel" disabled="@isUploading">×</button>
+
+            <div class="text-center mb-2 position-relative">
+                <img id="@ImgId" src="@ImageDataUrl" style="max-width:100%; max-height:70vh; display:block; margin:0 auto;" />
+
+                @if (!_initialized)
+                {
+                    <div class="overlay-loading d-flex align-items-center justify-content-center">
+                        <div class="spinner-border" role="status" aria-hidden="true"></div>
+                        <div class="ms-2">Lade Vorschau…</div>
+                    </div>
+                }
+
+                @if (isUploading)
+                {
+                    <div class="overlay-loading d-flex align-items-center justify-content-center">
+                        <div class="spinner-border" role="status" aria-hidden="true"></div>
+                        <div class="ms-2">Speichere Bild…</div>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button class="btn btn-secondary" @onclick="Cancel" disabled="@isUploading">Abbrechen</button>
+                <button class="btn btn-primary" @onclick="SaveAsync" disabled="@(!_initialized || isUploading)">Zuschneiden &amp; Speichern</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string? ImageDataUrl { get; set; }
+    [Parameter] public string? UploadUrl { get; set; }
+    [Parameter] public EventCallback<bool> OnUploaded { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string ImgId = "cropperImg_" + Guid.NewGuid().ToString("n");
+    private bool _initialized;
+    private string? _lastImageDataUrl;
+    private bool isUploading;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Show && !string.IsNullOrEmpty(ImageDataUrl))
+        {
+            if (!_initialized || _lastImageDataUrl != ImageDataUrl)
+            {
+                try
+                {
+                    var ok = await JS.InvokeAsync<bool>("imageCropper.init", ImgId, ImageDataUrl);
+                    _initialized = ok;
+                    _lastImageDataUrl = ImageDataUrl;
+                }
+                catch
+                {
+                    _initialized = false;
+                }
+                StateHasChanged();
+            }
+        }
+        else if (!Show && _initialized)
+        {
+            try { await JS.InvokeVoidAsync("imageCropper.destroy", ImgId); } catch { }
+            _initialized = false;
+            _lastImageDataUrl = null;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!_initialized || string.IsNullOrEmpty(UploadUrl))
+        {
+            await OnUploaded.InvokeAsync(false);
+            return;
+        }
+
+        isUploading = true;
+        StateHasChanged();
+
+        // Prefer server-side token via ITokenService (works for Blazor Server)
+        string? token = null;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user?.Identity?.IsAuthenticated == true)
+            {
+                var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                var userName = user.Identity?.Name ?? user.FindFirst(ClaimTypes.Name)?.Value ?? userId;
+                var isAdmin = user.IsInRole("Admin");
+
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    token = TokenService.GetToken(userId);
+                    if (string.IsNullOrEmpty(token))
+                    {
+                        // CreateToken caches token in TokenService
+                        token = TokenService.CreateToken(userId, userName ?? userId, isAdmin);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            token = null;
+        }
+
+        // fallback: try client storage only if server token not available
+        if (string.IsNullOrEmpty(token))
+        {
+            try
+            {
+                token = await JS.InvokeAsync<string>("localStorage.getItem", "access_token");
+                if (string.IsNullOrEmpty(token))
+                    token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+                if (string.IsNullOrEmpty(token))
+                    token = await JS.InvokeAsync<string>("sessionStorage.getItem", "access_token");
+            }
+            catch
+            {
+                token = null;
+            }
+        }
+
+        var result = await JS.InvokeAsync<object>("imageCropper.uploadCroppedBlob", ImgId, UploadUrl, "photo.jpg", token, 0.9, 1600, 1600, 15000);
+
+        bool ok = false;
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(result);
+            var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("ok", out var p) && p.GetBoolean())
+                ok = true;
+        }
+        catch { ok = false; }
+
+        isUploading = false;
+        StateHasChanged();
+
+        await OnUploaded.InvokeAsync(ok);
+    }
+
+    private async Task Cancel()
+    {
+        if (isUploading) return;
+        await OnCancel.InvokeAsync();
+    }
+}

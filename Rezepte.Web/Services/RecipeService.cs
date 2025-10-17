@@ -310,7 +310,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
 
     public IQueryable<RecipeImage> GetImages(string recipeId, int offset, int count)
     {
-        return _db.RecipeImages.AsNoTracking().Where(i => i.RecipeId == recipeId).Skip(offset).Take(count);
+        return _db.RecipeImages.AsNoTracking().OrderByDescending(img => img.CreatedAt).Where(i => i.RecipeId == recipeId).Skip(offset).Take(count);
     }
     public async Task<int> GetImageCountAsync(string recipeId, CancellationToken ct)
     {

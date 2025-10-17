@@ -78,7 +78,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
         if (userId is null) return Unauthorized();
         var r = await _recipes.GetByIdAsync(userId, id, ct);
         if (r is null) return NotFound();
-        var lastImage = await _recipes.GetImages(r.Id, 0, 1).OrderByDescending(img => img.CreatedAt).FirstOrDefaultAsync(ct);
+        var lastImage = await _recipes.GetImages(r.Id, 0, 1).FirstOrDefaultAsync(ct);
         var imageCount = await _recipes.GetImageCountAsync(r.Id, ct);
         var dto = new RecipeDto(
             r.Id,
