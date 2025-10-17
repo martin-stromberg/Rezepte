@@ -9,6 +9,7 @@ using Rezepte.Web.Data;
 using Rezepte.Web.Services;
 using Xunit;
 using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace Rezepte.Tests.Services;
 
@@ -34,7 +35,13 @@ public class RecipeServiceStepValidationTests
     private static IHttpContextAccessor CreateMockHttpContextAccessor()
     {
         var mock = new Mock<IHttpContextAccessor>();
-        // Optional: Setup mock if needed for tests
+        // Provide a HttpContext with an authenticated user to avoid NREs in RecipeService.CurrentUserId
+        var context = new DefaultHttpContext();
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, UserA)
+        }, "test"));
+        mock.SetupGet(m => m.HttpContext).Returns(context);
         return mock.Object;
     }
 
@@ -42,9 +49,9 @@ public class RecipeServiceStepValidationTests
     public async Task CreateAsync_ShouldFail_WhenStepDescriptionMissing()
     {
         using var db = CreateDb();
-        var cb = new Rezepte.Web.Entities.Cookbook { Name = "CB", UserId = UserA };
+        var cb = new Rezepte.Web.Entities.Cookbook { Id = Guid.NewGuid().ToString(), Name = "CB", UserId = UserA };
         db.Cookbooks.Add(cb);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(CancellationToken.None);
 
         var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
         var steps = new[]
@@ -58,7 +65,15 @@ public class RecipeServiceStepValidationTests
             )
         };
 
-        var (ok, error, recipe) = await sut.CreateAsync(UserA, cb.Id, "Test", null, null, steps, CancellationToken.None);
+        var (ok, error, recipe) = await sut.CreateAsync(
+            UserA,
+            cb.Id,
+            "Test",
+            description: null,
+            uri: null,
+            portions: null,
+            steps: steps,
+            ct: CancellationToken.None);
 
         ok.Should().BeFalse();
         error.Should().NotBeNull();
@@ -69,9 +84,9 @@ public class RecipeServiceStepValidationTests
     public async Task CreateAsync_ShouldFail_WhenStepDurationNegative()
     {
         using var db = CreateDb();
-        var cb = new Rezepte.Web.Entities.Cookbook { Name = "CB", UserId = UserA };
+        var cb = new Rezepte.Web.Entities.Cookbook { Id = Guid.NewGuid().ToString(), Name = "CB", UserId = UserA };
         db.Cookbooks.Add(cb);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(CancellationToken.None);
 
         var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
         var steps = new[]
@@ -85,7 +100,15 @@ public class RecipeServiceStepValidationTests
             )
         };
 
-        var (ok, error, recipe) = await sut.CreateAsync(UserA, cb.Id, "Test", null, null, steps, CancellationToken.None);
+        var (ok, error, recipe) = await sut.CreateAsync(
+            UserA,
+            cb.Id,
+            "Test",
+            description: null,
+            uri: null,
+            portions: null,
+            steps: steps,
+            ct: CancellationToken.None);
 
         ok.Should().BeFalse();
         error.Should().NotBeNull();
@@ -96,9 +119,9 @@ public class RecipeServiceStepValidationTests
     public async Task CreateAsync_ShouldFail_WhenIngredientNameMissing()
     {
         using var db = CreateDb();
-        var cb = new Rezepte.Web.Entities.Cookbook { Name = "CB", UserId = UserA };
+        var cb = new Rezepte.Web.Entities.Cookbook { Id = Guid.NewGuid().ToString(), Name = "CB", UserId = UserA };
         db.Cookbooks.Add(cb);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(CancellationToken.None);
 
         var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
         var steps = new[]
@@ -112,7 +135,15 @@ public class RecipeServiceStepValidationTests
             )
         };
 
-        var (ok, error, recipe) = await sut.CreateAsync(UserA, cb.Id, "Test", null, null, steps, CancellationToken.None);
+        var (ok, error, recipe) = await sut.CreateAsync(
+            UserA,
+            cb.Id,
+            "Test",
+            description: null,
+            uri: null,
+            portions: null,
+            steps: steps,
+            ct: CancellationToken.None);
 
         ok.Should().BeFalse();
         error.Should().NotBeNull();

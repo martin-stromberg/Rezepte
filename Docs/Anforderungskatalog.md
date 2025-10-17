@@ -46,7 +46,14 @@
 | PLAN-002  | 🕓 Offen      | Schritte werden zeitlich optimiert (z. B. Dessert vor Hauptgericht)          | Sortierlogik nach Zubereitungszeit und Rezepttyp. |
 | SHOP-001  | 🕓 Offen      | Zutaten aus Arbeitsplan können in Einkaufsliste übernommen werden            | Zutatenextraktion aus Arbeitsplan. |
 | SHOP-002  | 🕓 Offen      | Zutaten können als erledigt abgehakt werden                                  | Checkbox‑Status pro Zutat in der Einkaufsliste. |
-| KI-001    | 📌 Geplant    | Rezepterfassung per KI aus Fotos/Webseiten (zukünftig)                       | Platzhalter für KI‑Modul, z. B. ML.NET oder Azure Cognitive Services. |
+| KI-001    | ✅ Erledigt  | Rezepterfassung per KI aus Fotos/Webseiten (langfristig)                     | Infrastruktur: Gemini/Vision‑Clients vorhanden; Einstellungen & Laufzeit‑Guards implementiert (siehe KI-002/KI-003). Extraktion/Parser/Prompts in Weiterentwicklung. |
+| KI-002    | ✅ Erledigt   | Benutzerbezogene KI‑Einstellung (User kann KI für eigenes Konto aktivieren)  | `UserSetting` Entity, `SettingsService`, API `GET /api/settings/me` und `PUT /api/settings/me/ai` sowie Blazor‑Component `AiSettings.razor` implementiert. |
+| KI-003    | ✅ Erledigt   | Globale KI‑Deaktivierung durch Admin                                          | `AppSetting` Entity, `SettingsService`, Admin‑API `GET /api/settings/global` und `PUT /api/settings/global/ai`; UI: Admin sieht globalen Switch in `AiSettings`. |
+| IMG-001   | ✅ Erledigt   | Bild‑Zuschneiden vor Upload (Clientseitig)                                    | `ImageCropper` Component (Cropper.js + JS Interop) + direct fetch upload (`imageCropper.uploadCroppedBlob`) implementiert; verhindert große SignalR/Base64‑Transfers. |
+| IMG-002   | ✅ Erledigt   | iOS Safari kompatibler File‑Trigger                                            | Label‑trigger für verstecktes `InputFile` (1×1 px, nicht display:none) zur zuverlässigen Öffnung des Dateidialogs. |
+| SYS-001   | ✅ Erledigt   | AI‑Aufrufe runtime‑guard                                                        | AI‑Handler (z. B. `BaseAIImportHandler`, `AIFotoImportHandler`) prüfen vor externen API‑Aufrufen zuerst `SettingsService.GetGlobalAiEnabledAsync` und `GetUserAiEnabledAsync(userId)`. |
+| DB-002    | ✅ Erledigt   | Settings‑Tabellen und Mapping                                                  | `UserSetting` und `AppSetting` in `RezepteDbContext` registriert; Modell‑Konfiguration und Indexe hinzugefügt; Migration erstellt/applied empfohlen. |
+| INF-001   | ✅ Erledigt   | Tokenbereitstellung für Browser‑Uploads                                        | `ITokenService` + `ApiAuthHandler` sorgen für gültige JWT; ImageCropper liest serverseitigen Token bei Blazor Server und übergibt an Fetch. |
 | FR-020    | 🕓 Offen      | Benutzer‑Export: Anwender kann eigene Rezeptesammlung exportieren            | API: `GET /api/exports/me?format=zip|json` startet Export‑Job; Backend: `IExportService.ExportUserAsync(userId, format, ct)`. |
 | FR-021    | 🕓 Offen      | Administrator‑Export: Admin kann vollständigen Datenexport durchführen       | API: `POST /api/admin/exports` (Admin‑Role) startet asynchronen Export‑Job. |
 | FR-022    | 🕓 Offen      | Importfunktion: Upload von Exportformat zur Erstellung neuer Rezepte        | API: `POST /api/imports` akzeptiert Export‑ZIP (Format wie FR‑020/FR‑021). |
@@ -56,7 +63,12 @@
 | NFR-012   | 🕓 Offen      | Import‑Validierung & Safety                                                   | `dryRun` gibt Schema‑ und Konflikt‑Report; Upload‑Limits und Quotas. |
 | NFR-013   | 🕓 Offen      | Kompatibilität & Upgrade‑Sicherheit                                          | Export enthält `formatVersion` im Manifest; Import ignoriert unbekannte Felder. |
 
-Hinweis zur Implementierung
-- `Recipe`‑Bilder: entity `RecipeImage`, DbContext‑Mapping und Controller/Service Endpunkte (Upload/Download/Delete) sind implementiert. Upload enthält Content‑Type‑Whitelist, konfigurierbare Max‑Size (`ImageOptions`) und ETag/Cache‑Header beim Download.
-- `OrderIndex` für `Cookbook` wurde ergänzt; EF‑Migration erforderlich (`dotnet ef migrations add yyyyMMddHHmm_CookbookOrderIndex` + `dotnet ef database update`).
-- Falls weitere Änderungen am Modell nötig sind, bitte Migrationen nach Anleitung erstellen und anwenden.
+## Hinweise zur Umsetzung der jüngsten Änderungen
+- Neue Entities `UserSetting` und `AppSetting` wurden hinzugefügt und im `RezepteDbContext` konfiguriert. Bitte Migration erstellen: `dotnet ef migrations add 20251017_AddSettings` und `dotnet ef database update`.
+- `SettingsService` (`ISettingsService`) kapselt Lese-/Schreibzugriffe; API‑Controller `SettingsController` stellt Endpunkte für Nutzer und Admins zur Verfügung.
+- Frontend: `AiSettings.razor` (unter `Components/Settings`) zeigt User‑Toggle und (nur für Admins) den globalen Toggle. UI sperrt User‑Toggle, wenn global deaktiviert ist.
+- `BaseAIImportHandler` und konkrete AI‑Handler prüfen zur Laufzeit globalen und benutzerbezogenen Schalter vor externen AI‑Aufrufen (Guard‑Methoden `IsAiAllowedForUserAsync`).
+- ImageCropper: clientseitiges Zuschneiden mit Cropper.js + `imageCropper.uploadCroppedBlob` (Fetch). Upload erfolgt mit Authorization‑Header; Blazor Server verwendet `ITokenService` beim Hochladen.
+- Vermeide synchrone Warteaufrufe auf async Methoden; Guard‑Prüfungen sind async und CancellationToken‑fähig.
+- Testempfehlungen: Unit‑Tests für `SettingsService` (InMemory DbContext); Integrationstest: Admin toggles global AI und Validate Handlers skip AI.
+
