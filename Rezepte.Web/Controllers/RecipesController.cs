@@ -20,7 +20,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
 {
     private readonly IRecipeService _recipes = recipes;
     private readonly ImageOptions _imageOptions = imageOptions.Value;
-
+    private const int MaxPageSize = 100;
     private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     [HttpGet("by-cookbook/{cookbookId}")]
@@ -322,4 +322,43 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
     public record RecipeCookbookDtp (string Id, string RecipeId, string CookbookId);
     public record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     public record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
+
+
+    /// <summary>
+    /// Suche nach Rezepten (Titel, Zutaten, Schritte, Tags). 
+    /// Query-Parameter: q, tags (comma separated), cookbookId, page, pageSize, sort (relevance|newest|title).
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchAsync(
+        [FromQuery] string? q,
+        [FromQuery] string? tags,
+        [FromQuery] int? cookbookId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string sort = "relevance",
+        CancellationToken ct = default)
+    {
+        if (page < 1) page = 1;
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+        var recipes = await _recipes.SearchAsync(q, tags, cookbookId, page, pageSize, sort, ct);
+
+        // map to DTOs and create safe snippets
+        var items = recipes.Items.Select(i => new RecipeSearchItemDto
+        (
+            Id: i.Id,
+            Title: i.Title ?? string.Empty,
+            Snippet: (i.Snippet ?? string.Empty).Length <= 200 ? (i.Snippet ?? string.Empty) : (i.Snippet ?? string.Empty).Substring(0, 200) + "...",
+            PrimaryImageUrl: i.PrimaryImageUrl,
+            Tags: i.Tags ?? Array.Empty<string>(),
+            PublishedLabel: i.CreatedAt.ToString("yyyy-MM-dd")
+        )).ToArray();
+
+        var result = new RecipeSearchResponseDto(items, recipes.TotalCount);
+        return Ok(result);
+    }
+
+    // DTOs returned by this controller
+    private sealed record RecipeSearchItemDto(string Id, string Title, string Snippet, string? PrimaryImageUrl, string[] Tags, string? PublishedLabel);
+    private sealed record RecipeSearchResponseDto(RecipeSearchItemDto[] Items, int Total);
 }
