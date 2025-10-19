@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using Rezepte.Web.Components.Shared
 @rendermode InteractiveServer
 @inject ApiClient Api
 @inject NavigationManager Navigation
@@ -21,90 +22,6 @@
         </button>
     </div>
 </h5>
-
-@* Create menu modal *@
-@if (isCreateMenuOpen)
-{
-    <div class="create-overlay" @onclick="CloseCreateMenu">
-        <div class="create-menu card" @onclick:stopPropagation>
-            <div class="card-body">
-                <h5 class="card-title">Neues Rezept anlegen</h5>
-                <p class="card-text">Wähle, wie das neue Rezept angelegt werden soll:</p>
-                <div class="d-grid gap-2">
-                    <button class="btn btn-outline-primary" @onclick="CreateEmptyWithoutCookbookAsync" disabled="@isCreating">
-                        @if (isCreating)
-                        {
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        }
-                        else
-                        {
-                            <span>Neues Rezept anlegen</span>
-                        }
-                    </button>
-
-                    @* Use a label for the hidden input: works reliably on iOS Safari *@
-                    <label class="btn btn-outline-secondary" for="cookbookImportFile" @onclick="CloseCreateMenu" role="button" style="cursor:pointer;">
-                        Rezept aus Datei importieren
-                    </label>
-
-                    <button class="btn btn-outline-secondary" @onclick="OpenImportUrlDialog">
-                        Rezept von URL laden
-                    </button>
-                    <button class="btn btn-link text-muted" @onclick="CloseCreateMenu">Abbrechen</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
-@* Import von URL Overlay *@
-@if (showImportUrl)
-{
-    <div class="overlay-backdrop" @onclick="CloseImportUrlDialog">
-        <div class="overlay-content" @onclick:stopPropagation>
-            <button class="btn btn-sm btn-danger overlay-close" @onclick="CloseImportUrlDialog">×</button>
-            <h5>Rezept von URL laden</h5>
-            <p class="text-muted">Gib die URL einer Datei oder eines unterstützten Imports ein. Der Server versucht, den Inhalt herunterzuladen und mit den vorhandenen Import-Handlern zu verarbeiten.</p>
-
-            <div class="mb-3">
-                <label class="form-label">URL</label>
-                <input class="form-control" @bind="importUrl" placeholder="https://example.com/backup.zip" />
-            </div>
-
-            @if (!string.IsNullOrEmpty(importMessage))
-            {
-                <div class="mb-2 text-muted">@importMessage</div>
-            }
-
-            <div class="d-flex gap-2">
-                <button class="btn btn-primary" @onclick="ImportFromUrlAsync" disabled="@isImporting">Importieren</button>
-                <button class="btn btn-outline-secondary" @onclick="CloseImportUrlDialog" disabled="@isImporting">Abbrechen</button>
-            </div>
-        </div>
-    </div>
-}
-
-@* Hidden InputFile: keep it off-screen but not display:none / not zero-size (iOS needs it focusable) *@
-<InputFile id="cookbookImportFile" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; opacity:0;" OnChange="OnImportInputFile" />
-
-@* Statusdialog für Dateiimport *@
-@if (isImporting)
-{
-    <div class="overlay-backdrop" @onclick:stopPropagation>
-        <div class="overlay-content d-flex align-items-center gap-3" style="width:320px; justify-content:center;">
-            <div>
-                <div class="spinner-border" role="status" aria-hidden="true"></div>
-            </div>
-            <div>
-                <div style="font-weight:600">@importStatus</div>
-                @if (!string.IsNullOrWhiteSpace(importMessage))
-                {
-                    <div class="text-muted small mt-1">@importMessage</div>
-                }
-            </div>
-        </div>
-    </div>
-}
 
 <h2>Zuletzt hinzugefügte Rezepte</h2>
 
@@ -136,18 +53,17 @@ else
     </div>
 }
 
+<CreateRecipeDialog @ref="createDialog" OnClosed="HandleCreateDialogClosed" />
 
 @code {
     private List<RecipeListItemDto>? recipes;
     private bool isLoading = true;
     private bool isCreating;
-    private bool isCreateMenuOpen;
     private string importUrl = string.Empty;
     private bool isImporting;
     private string? importMessage;
     private string importStatus = string.Empty;
-    private bool showImportUrl = false;
-
+    
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
@@ -173,135 +89,22 @@ else
         }
     }
 
+    private CreateRecipeDialog? createDialog;
+
     private void ToggleCreateMenu()
     {
-        isCreateMenuOpen = !isCreateMenuOpen;
+        // statt eigener Menu-Logik: öffne Dialog
+        createDialog?.Show();
     }
 
-    private void CloseCreateMenu()
+    private Task HandleCreateDialogClosed(CreateRecipeDialog.DialogResult result)
     {
-        isCreateMenuOpen = false;
-    }
-
-    private async Task TriggerImportFile()
-    {
-        ToggleCreateMenu();
-        await JS.InvokeVoidAsync("eval", "document.getElementById('cookbookImportFile').click()");
-    }
-
-    // OnChange handler for Blazor InputFile
-    private async Task OnImportInputFile(InputFileChangeEventArgs e)
-    {
-        var file = e.File;
-        if (file == null) return;
-        isImporting = true;
-        importMessage = null;
-        importStatus = "Lade Datei";
-
-        try
+        if (result.Success)
         {
-            var max = 1024L * 1024L * 500;
-            await using var ms = file.OpenReadStream(max);
-            // Kopiere Datei in MemoryStream – Status "Lade Datei"
-            await using var uploadStream = new MemoryStream();
-            await ms.CopyToAsync(uploadStream);
-            uploadStream.Seek(0, SeekOrigin.Begin);
-
-            importStatus = "Suche Dateihandler";
-
-            using var content = new MultipartFormDataContent();
-            var sc = new StreamContent(uploadStream);
-            sc.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType ?? "application/zip");
-            content.Add(sc, "file", file.Name);
-
-            importStatus = "Verarbeite Datei";
-
-            // Sende Request (blockierend bis Ergebnis zurückkommt)
-            var res = await Api.Http.PostAsync($"api/cookbooks/import", content);
-
-            if (res.IsSuccessStatusCode)
-            {
-                // kurz warten, damit UI den finalen Status zeigt, dann neu laden
-                importStatus = "Fertig";
-                await LoadLists();
-            }
-            else
-            {
-                var body = await res.Content.ReadAsStringAsync();
-                importMessage = "Import fehlgeschlagen: " + res.StatusCode + " - " + body;
-            }
+            // bei Bedarf Liste neu laden oder UI anpassen
+            _ = LoadLists();
         }
-        catch (OperationCanceledException)
-        {
-            importMessage = "Import abgebrochen.";
-        }
-        catch (Exception ex)
-        {
-            importMessage = "Import fehlgeschlagen: " + ex.Message;
-        }
-        finally
-        {
-            // kurzen Moment anzeigen, dann schließen
-            await Task.Delay(600);
-            isImporting = false;
-            importStatus = string.Empty;
-        }
-    }
-
-    private void OpenImportUrlDialog()
-    {
-        ToggleCreateMenu();
-        importUrl = string.Empty;
-        importMessage = null;
-        showImportUrl = true;
-    }
-    private void CloseImportUrlDialog()
-    {
-        showImportUrl = false;
-    }
-
-    private async Task ImportFromUrlAsync()
-    {
-        if (string.IsNullOrWhiteSpace(importUrl))
-        {
-            importMessage = "Bitte eine gültige URL eingeben.";
-            return;
-        }
-
-        isImporting = true;
-        importMessage = null;
-        importStatus = "Verarbeite Datei";
-        try
-        {
-            var payload = new { url = importUrl };
-            var res = await Api.Http.PostAsJsonAsync($"api/cookbooks/import-url", payload);
-            if (res.IsSuccessStatusCode)
-            {
-                await LoadLists();
-                showImportUrl = false;
-            }
-            else
-            {
-                var body = await res.Content.ReadAsStringAsync();
-                importMessage = $"Import fehlgeschlagen: {res.StatusCode} – {body}";
-            }
-        }
-        catch (Exception ex)
-        {
-            importMessage = "Import fehlgeschlagen: " + ex.Message;
-        }
-        finally
-        {
-            await Task.Delay(600);
-            isImporting = false;
-            importStatus = string.Empty;
-        }
-    }
-
-    private async Task CreateEmptyWithoutCookbookAsync()
-    {
-        Navigation.NavigateTo($"/recipes/new?cookbookId=");
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     private record RecipeListItemDto(string Id, string Title, string? ImageUrl);

@@ -1,5 +1,4 @@
-﻿using Google.Apis.Auth.OAuth2;
-using Google.Cloud.Vision.V1;
+﻿using Google.Cloud.Vision.V1;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,57 +7,64 @@ using Rezepte.Web.Configuration;
 using Rezepte.Web.Entities;
 using System.Formats.Asn1;
 using System.IO;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using static Rezepte.Web.Services.Import.GeminiClient;
 
 namespace Rezepte.Web.Services.Import;
-
-public class GoogleQuotaClient
-{
-    private readonly string _serviceAccountJsonPath;
-    private readonly HttpClient _httpClient;
-
-    public GoogleQuotaClient(string serviceAccountJsonPath)
-    {
-        _serviceAccountJsonPath = serviceAccountJsonPath;
-        _httpClient = new HttpClient();
-    }
-
-    public async Task<string> GetQuotaAsync(string serviceName, string projectId)
-    {
-        var credential = GoogleCredential
-            .FromFile(_serviceAccountJsonPath)
-            .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
-
-        var token = await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        string url = $"https://serviceusage.googleapis.com/v1beta1/projects/{projectId}/services/{serviceName}/consumerQuotaMetrics";
-        var response = await _httpClient.GetAsync(url);
-        var result = await response.Content.ReadAsStringAsync();
-        response.EnsureSuccessStatusCode();
-
-        return result;
-    }
-}
+/// <summary>
+/// Handles the import of AI-generated recipes from image files, leveraging AI services for text extraction and
+/// processing.
+/// </summary>
+/// <remarks>This class is responsible for processing image files to extract recipe data using AI-based text
+/// recognition.  It supports caching of parsed results to improve performance and reduce redundant processing for
+/// identical images. The caching behavior is configurable via <see cref="AIOptions"/>.</remarks>
 public class AIFotoImportHandler : BaseAIImportHandler, IImportHandler
 {
+    /// <summary>
+    /// Handles the import of photos using AI-based processing and integrates with various services such as caching,
+    /// logging, and external providers.
+    /// </summary>
+    /// <param name="recipes">The service used to manage and retrieve recipe-related data.</param>
+    /// <param name="aioptions">The options monitor providing configuration settings for AI operations.</param>
+    /// <param name="_aiUsage">The service used to track and manage AI usage metrics.</param>
+    /// <param name="cache">The memory cache instance used to store temporary data for performance optimization.</param>
+    /// <param name="logger">The logger instance used for logging diagnostic and operational messages.</param>
+    /// <param name="googleServiceAccountProvider">The provider for Google service account credentials, used for accessing Google APIs.</param>
+    /// <param name="settings">The service used to manage application settings.</param>
+    /// <param name="httpContextAccessor">The accessor for the current HTTP context, used to retrieve request-specific information.</param>
     public AIFotoImportHandler(IRecipeService recipes,
         IOptionsMonitor<AIOptions> aioptions,
         IAiUsageService _aiUsage,
         IMemoryCache cache,
         ILogger<AIFotoImportHandler> logger,
-        IGoogleServiceAccountProvider googleServiceAccountProvider,
-        ISettingsService settings,
-        IHttpContextAccessor httpContextAccessor) : base(aioptions, httpContextAccessor, _aiUsage, recipes, googleServiceAccountProvider, settings,logger)
+        IGoogleCredentialsProvider googleServiceAccountProvider,
+        ISettingsService settings) : base(aioptions, _aiUsage, recipes, googleServiceAccountProvider, settings,logger)
     {
         this.aioptions = aioptions;
         _cache = cache;
     }
+    protected override async Task<bool> IsActiveAsync()
+    {
+        if (!await base.IsActiveAsync())
+            return false;
 
+        var globalGoogleVisionEnabled = await SettingsService.GetGlobalGoogleVisionEnabledAsync();
+        if (!globalGoogleVisionEnabled)
+            return false;
+        var userGoogleVisionEnabled = await SettingsService.GetUserGoogleVisionEnabledAsync(UserId);
+        if (!userGoogleVisionEnabled)
+            return false;
+
+        var globalGeminiEnabled = await SettingsService.GetGlobalGeminiEnabledAsync();
+        if (!globalGeminiEnabled)
+            return false;
+        var userGeminiEnabled = await SettingsService.GetUserGeminiEnabledAsync(UserId);
+        if (!userGeminiEnabled)
+            return false;
+        return true;
+    }
     
     private bool IsCacheEnabled     {
         get => aioptions.CurrentValue.EnableCache;
@@ -67,16 +73,36 @@ public class AIFotoImportHandler : BaseAIImportHandler, IImportHandler
     {
         get => aioptions.CurrentValue.CacheDurationHours;
     }
+    /// <summary>
+    /// Determines whether the current mode is text-based.
+    /// </summary>
+    /// <returns><see langword="true"/> if the current mode is text-based; otherwise, <see langword="false"/>.</returns>
     protected override bool IsTextMode()
     {
         return false;
+    }
+    protected override async Task<bool> HandleConfirmation(IImportInteraction interaction)
+    {
+        return await interaction.AskForConfirmationAsync("Die Texte der angegebenen Bilddatei werden mittels KI extrahiert und analysiert. Fortfahren?");
     }
        
     // Default cache duration when option missing/invalid
     private static readonly TimeSpan DefaultParsedImageCacheDuration = TimeSpan.FromDays(7);
     private readonly IOptionsMonitor<AIOptions> aioptions;
     private readonly IMemoryCache _cache;
-
+    /// <summary>
+    /// Reads and processes a collection of AI-generated recipes from an image stream.
+    /// </summary>
+    /// <remarks>This method processes the provided image stream to extract AI-generated recipes. If caching
+    /// is enabled, the method attempts to retrieve the recipes from the cache using a hash of the image data. If the
+    /// recipes are not cached, the image is processed to extract the recipes, and the result is cached for future use
+    /// based on the configured cache duration.</remarks>
+    /// <param name="fileName">The name of the file being processed. Used for logging or identification purposes.</param>
+    /// <param name="stream">The input stream containing the image data to be processed.</param>
+    /// <param name="responseContent">The response content associated with the operation, used for additional context.</param>
+    /// <param name="ct">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>An array of <see cref="GeminiClient.AIRecipe"/> objects extracted from the image. Returns an empty array if no
+    /// recipes are found.</returns>
     protected override async Task<GeminiClient.AIRecipe[]> ReadRecipeCollection(string fileName, Stream stream, string responseContent, CancellationToken ct)
     {
         byte[] imageBytes = await ReadImage(stream, ct).ConfigureAwait(false);
@@ -156,7 +182,7 @@ public class AIFotoImportHandler : BaseAIImportHandler, IImportHandler
         await AiUsageService.RecordRequestAsync(UserId, "Vision.Image.Success", ct);
 
         await AiUsageService.RecordRequestAsync(UserId, "Gemini.Image.Requests", ct);
-        var gemini = new GeminiClient(ServicecAcountFile);
+        var gemini = CreateGeminiClient();
         var resultContent = await gemini.ExtractRecipeAsync(extractedText);
         await AiUsageService.RecordRequestAsync(UserId, "Gemini.Image.Success", ct);
         return (flowControl: true, recipes: resultContent);

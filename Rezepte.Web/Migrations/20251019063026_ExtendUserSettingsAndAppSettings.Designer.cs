@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rezepte.Web.Data;
 
@@ -10,9 +11,11 @@ using Rezepte.Web.Data;
 namespace Rezepte.Web.Migrations
 {
     [DbContext(typeof(RezepteDbContext))]
-    partial class RezepteDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251019063026_ExtendUserSettingsAndAppSettings")]
+    partial class ExtendUserSettingsAndAppSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
@@ -309,9 +312,6 @@ namespace Rezepte.Web.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("GoogleVisionEnabled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("RequireAiConfirmation")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("UserId");

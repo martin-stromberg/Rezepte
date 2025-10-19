@@ -7,15 +7,21 @@ namespace Rezepte.Web.Services;
 /// Provider für den Pfad zur Google Service Account JSON Datei.
 /// Setzt die Umgebungsvariable __GOOGLE_APPLICATION_CREDENTIALS__ wenn die Datei vorhanden ist.
 /// </summary>
-public interface IGoogleServiceAccountProvider
+public interface IGoogleCredentialsProvider
 {
     /// <summary>
     /// Liefert den vollständigen Pfad zur Service-Account-Datei (auch wenn sie nicht existiert).
     /// </summary>
-    string GetFilePath();
+    string GetServiceAccountFilePath();
 
     /// <summary>
     /// Prüft, ob die Service-Account-Datei vorhanden ist.
     /// </summary>
-    bool Exists();
+    bool ServiceAccountFileExists();
+
+    /// <summary>
+    /// Liefert den API-Key für Gemini.
+    /// </summary>
+    /// <returns></returns>
+    string GetGeminiApiKey();
 }

@@ -10,7 +10,7 @@ namespace Rezepte.Web.Services.Import;
 /// Handler für Backup‑ZIPs (erwartet recipes.json im ZIP).
 /// Legt Rezepte im Zielkochbuch an (nutzt IRecipeService.CreateAsync).
 /// </summary>
-public class BackupImportHandler(IRecipeService recipes, ILogger<BackupImportHandler> logger) : IImportHandler
+public class BackupImportHandler(IRecipeService recipes, ILogger<BackupImportHandler> logger) : BaseImportHandler, IImportHandler
 {
     private readonly IRecipeService _recipes = recipes;
     private readonly ILogger<BackupImportHandler> _logger = logger;

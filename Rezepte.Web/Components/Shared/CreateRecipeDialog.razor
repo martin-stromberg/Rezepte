@@ -1,0 +1,483 @@
+﻿@using System.Net.Http.Headers
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Web
+@inject ApiClient Api
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+@if (isOpen)
+{
+    <div class="create-overlay" @onclick="OnBackdropClick">
+        <div class="create-menu card" @onclick:stopPropagation>
+            <div class="card-body">
+                <h5 class="card-title">Neues Rezept anlegen</h5>
+                <p class="card-text">Wähle, wie das neue Rezept angelegt werden soll:</p>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" @onclick="CreateEmptyAsync" disabled="@isBusy">
+                        @if (isBusy && currentAction == ActionKind.CreateEmpty)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <span>Neues Rezept anlegen</span>
+                        }
+                    </button>
+
+                    <label class="btn btn-outline-secondary" for="fileInput" role="button" style="cursor:pointer;" disabled="@isBusy">
+                        Rezept aus Datei importieren
+                    </label>
+
+                    <button class="btn btn-outline-secondary" @onclick="ToggleUrlImport" disabled="@isBusy">
+                        Rezept von URL laden
+                    </button>
+
+                    <button class="btn btn-link text-muted" @onclick="CloseClicked" disabled="@isBusy">Abbrechen</button>
+                </div>
+
+                <InputFile id="fileInput" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; opacity:0;" OnChange="OnFileChange" />
+
+                @if (showUrl)
+                {
+                    <div class="mt-3">
+                        <label class="form-label">URL</label>
+                        <input class="form-control" @bind="importUrl" placeholder="https://example.com/backup.zip" @ref="urlInputRef" />
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-primary" @onclick="ImportFromUrlAsync" disabled="@isBusy">
+                                @if (isBusy && currentAction == ActionKind.ImportUrl)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                }
+                                else
+                                {
+                                    <span>Importieren</span>
+                                }
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="ToggleUrlImport" disabled="@isBusy">Abbrechen</button>
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(message))
+                {
+                    <div class="mt-2 text-muted small">@message</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* Confirmation overlay shown when an interactive import handler asks for confirmation *@
+    @if (confirmVisible)
+    {
+        <div class="confirm-overlay" @onclick="() => { /* block backdrop clicks */ }">
+            <div class="confirm-box card" @onclick:stopPropagation>
+                <div class="card-body">
+                    <h5 class="card-title">Bestätigung</h5>
+                    <p class="card-text">@confirmPrompt</p>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button class="btn btn-outline-secondary" @onclick="()=>Confirm(false)">Abbrechen</button>
+                        <button class="btn btn-primary" @onclick="()=>Confirm(true)">Bestätigen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    public record DialogResult(bool Success, string? Error, List<string>? CreatedIds);
+
+    private enum ActionKind { None, CreateEmpty, ImportFile, ImportUrl }
+
+    private bool isOpen;
+    private bool isBusy;
+    private string? message;
+    private bool showUrl;
+    private string importUrl = string.Empty;
+    private ActionKind currentAction = ActionKind.None;
+
+    // Confirmation overlay state
+    private TaskCompletionSource<bool>? _confirmTcs;
+    private bool confirmVisible;
+    private string confirmPrompt = string.Empty;
+
+    // input reference for URL
+    private ElementReference urlInputRef;
+
+    // optional cookbok id to associate created/imported recipes with a cookbook
+    private string? _cookbookId;
+
+    [Parameter] public EventCallback<DialogResult> OnClosed { get; set; }
+
+    // Public API for parent via @ref
+    public void Show(string? cookbookId = null)
+    {
+        _cookbookId = string.IsNullOrWhiteSpace(cookbookId) ? null : cookbookId;
+        isOpen = true;
+        message = null;
+        importUrl = string.Empty;
+        showUrl = false;
+        StateHasChanged();
+    }
+    public void Hide()
+    {
+        isOpen = false;
+        StateHasChanged();
+    }
+
+    private void OnBackdropClick()
+    {
+        // close and report cancelled
+        Close(new DialogResult(false, null, null));
+    }
+
+    private async Task CreateEmptyAsync()
+    {
+        isBusy = true;
+        currentAction = ActionKind.CreateEmpty;
+        message = null;
+        try
+        {
+            // navigate to create page with cookbookId if provided
+            var target = string.IsNullOrWhiteSpace(_cookbookId)
+                ? "/recipes/new?cookbookId="
+                : $"/recipes/new?cookbookId={Uri.EscapeDataString(_cookbookId)}";
+            Navigation.NavigateTo(target);
+            await CloseAsync(new DialogResult(true, null, null));
+        }
+        catch (Exception ex)
+        {
+            message = "Fehler beim Anlegen: " + ex.Message;
+            await CloseAsync(new DialogResult(false, ex.Message, null));
+        }
+        finally
+        {
+            isBusy = false;
+            currentAction = ActionKind.None;
+        }
+    }
+
+    private async Task OnFileChange(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        isBusy = true;
+        currentAction = ActionKind.ImportFile;
+        message = "Lade Datei...";
+        StateHasChanged();
+        try
+        {
+            var max = 1024L * 1024L * 500;
+            await using var ms = file.OpenReadStream(max);
+            await using var uploadStream = new MemoryStream();
+            await ms.CopyToAsync(uploadStream);
+            uploadStream.Seek(0, SeekOrigin.Begin);
+
+            using var content = new MultipartFormDataContent();
+            var sc = new StreamContent(uploadStream);
+            sc.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "application/zip");
+            content.Add(sc, "file", file.Name);
+
+            message = "Starte Import-Session...";
+            StateHasChanged();
+
+            var endpoint = string.IsNullOrWhiteSpace(_cookbookId)
+                ? "api/cookbooks/import-session/start-file"
+                : $"api/cookbooks/{_cookbookId}/import-session/start-file";
+
+            var startRes = await Api.Http.PostAsync(endpoint, content);
+            if (!startRes.IsSuccessStatusCode)
+            {
+                var body = await startRes.Content.ReadAsStringAsync();
+                message = $"Fehler beim Starten der Import‑Session: {startRes.StatusCode} - {body}";
+                return;
+            }
+
+            var startJson = await startRes.Content.ReadFromJsonAsync<JsonElement>();
+            string? sessionId = null;
+            if (startJson.ValueKind != JsonValueKind.Undefined && startJson.TryGetProperty("sessionId", out var sidEl) && sidEl.ValueKind == JsonValueKind.String)
+            {
+                sessionId = sidEl.GetString();
+            }
+
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                message = "Fehler: Keine Import-Session vom Server erhalten.";
+                return;
+            }
+
+            // Poll loop (gleiches Verhalten wie bei URL-Import)
+            while (true)
+            {
+                await Task.Delay(800);
+                var statusEndpoint = string.IsNullOrWhiteSpace(_cookbookId)
+                    ? $"api/cookbooks/import-session/{sessionId}/status"
+                    : $"api/cookbooks/{_cookbookId}/import-session/{sessionId}/status";
+                var statusRes = await Api.Http.GetAsync(statusEndpoint);
+                if (!statusRes.IsSuccessStatusCode)
+                {
+                    var body = await statusRes.Content.ReadAsStringAsync();
+                    message = $"Fehler beim Abfragen des Import‑Status: {statusRes.StatusCode} - {body}";
+                    return;
+                }
+                var statusJson = await statusRes.Content.ReadFromJsonAsync<JsonElement>();
+                var waiting = statusJson.GetProperty("waitingForConfirmation").GetBoolean();
+                var statusText = statusJson.GetProperty("status").GetString();
+                message = statusText;
+                StateHasChanged();
+
+                if (waiting)
+                {
+                    var prompt = statusJson.GetProperty("confirmationPrompt").GetString() ?? "Bestätigen?";
+                    var accepted = await ShowUserConfirmationAsync(prompt);
+                    var confirmEndpoint = string.IsNullOrWhiteSpace(_cookbookId)
+                        ? $"api/cookbooks/import-session/{sessionId}/confirm"
+                        : $"api/cookbooks/{_cookbookId}/import-session/{sessionId}/confirm";
+                    var confirmRes = await Api.Http.PostAsJsonAsync(confirmEndpoint, new { Accepted = accepted });
+                    if (!confirmRes.IsSuccessStatusCode)
+                    {
+                        var body = await confirmRes.Content.ReadAsStringAsync();
+                        message = $"Fehler beim Bestätigen: {confirmRes.StatusCode} - {body}";
+                        return;
+                    }
+                }
+
+                if (statusJson.TryGetProperty("result", out var resultEl) && resultEl.ValueKind != JsonValueKind.Null)
+                {
+                    var success = resultEl.GetProperty("success").GetBoolean();
+                    if (success)
+                    {
+                        await CloseAsync(new DialogResult(true, null, null));
+                        return;
+                    }
+                    else
+                    {
+                        var err = resultEl.GetProperty("error").GetString() ?? "Unbekannter Importfehler";
+                        message = $"Import fehlgeschlagen: {err}";
+                        return;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            message = "Import fehlgeschlagen: " + ex.Message;
+            return;
+        }
+        finally
+        {
+            isBusy = false;
+            currentAction = ActionKind.None;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleUrlImport()
+    {
+        showUrl = !showUrl;
+        message = null;
+
+        // when showing input, focus it after render on dispatcher
+        if (showUrl)
+        {
+            await InvokeAsync(async () =>
+            {
+                // allow render to create the element
+                await Task.Yield();
+                await urlInputRef.FocusAsync();
+            });
+        }
+        else
+        {
+            // when hiding, clear focus state if desired
+            await InvokeAsync(() => StateHasChanged());
+        }
+    }
+
+    private async Task ImportFromUrlAsync()
+    {
+        if (string.IsNullOrWhiteSpace(importUrl)) { message = "Bitte eine gültige URL eingeben."; return; }
+
+        isBusy = true;
+        currentAction = ActionKind.ImportUrl;
+        message = "Starte Import...";
+        StateHasChanged();
+        try
+        {
+            var endpoint = string.IsNullOrWhiteSpace(_cookbookId)
+                ? $"api/cookbooks/import-session/start"
+                : $"api/cookbooks/{_cookbookId}/import-session/start";
+            // send property name matching server DTO (PascalCase) to avoid any binding surprises
+            var payload = new { Url = importUrl };
+            var startRes = await Api.Http.PostAsJsonAsync(endpoint, payload);
+            if (!startRes.IsSuccessStatusCode)
+            {
+                var body = await startRes.Content.ReadAsStringAsync();
+                message = $"Fehler beim Starten des Imports: {startRes.StatusCode} - {body}";
+                StateHasChanged();
+                return;
+            }
+
+            var startJson = await startRes.Content.ReadFromJsonAsync<JsonElement>();
+            string? sessionId = null;
+            if (startJson.ValueKind != JsonValueKind.Undefined && startJson.TryGetProperty("sessionId", out var sidEl) && sidEl.ValueKind == JsonValueKind.String)
+            {
+                sessionId = sidEl.GetString();
+            }
+
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                message = "Fehler: Keine Import-Session vom Server erhalten.";
+                StateHasChanged();
+                return;
+            }
+
+            // Poll loop
+            while (true)
+            {
+                await Task.Delay(800);
+                var statusEndpoint = string.IsNullOrWhiteSpace(_cookbookId)
+                    ? $"api/cookbooks/import-session/{sessionId}/status"
+                    : $"api/cookbooks/{_cookbookId}/import-session/{sessionId}/status";
+                var statusRes = await Api.Http.GetAsync(statusEndpoint);
+                if (!statusRes.IsSuccessStatusCode)
+                {
+                    var body = await statusRes.Content.ReadAsStringAsync();
+                    message = $"Fehler beim Abfragen des Import‑Status: {statusRes.StatusCode} - {body}";
+                    StateHasChanged();
+                    return;
+                }
+                var statusJson = await statusRes.Content.ReadFromJsonAsync<JsonElement>();
+                var waiting = statusJson.GetProperty("waitingForConfirmation").GetBoolean();
+                var statusText = statusJson.GetProperty("status").GetString();
+                message = statusText;
+                StateHasChanged();
+
+                if (waiting)
+                {
+                    var prompt = statusJson.GetProperty("confirmationPrompt").GetString() ?? "Bestätigen?";
+                    // show UI prompt to user via overlay
+                    var accepted = await ShowUserConfirmationAsync(prompt);
+                    // post confirmation using PascalCase property name
+                    var confirmEndpoint = string.IsNullOrWhiteSpace(_cookbookId)
+                        ? $"api/cookbooks/import-session/{sessionId}/confirm"
+                        : $"api/cookbooks/{_cookbookId}/import-session/{sessionId}/confirm";
+                    var confirmRes = await Api.Http.PostAsJsonAsync(confirmEndpoint, new { Accepted = accepted });
+                    if (!confirmRes.IsSuccessStatusCode)
+                    {
+                        var body = await confirmRes.Content.ReadAsStringAsync();
+                        message = $"Fehler beim Bestätigen: {confirmRes.StatusCode} - {body}";
+                        StateHasChanged();
+                        return;
+                    }
+                    // continue polling
+                }
+
+                // final result?
+                if (statusJson.TryGetProperty("result", out var resultEl) && resultEl.ValueKind != JsonValueKind.Null)
+                {
+                    var success = resultEl.GetProperty("success").GetBoolean();
+                    if (success)
+                    {
+                        await CloseAsync(new DialogResult(true, null, null));
+                        return;
+                    }
+                    else
+                    {
+                        var err = resultEl.GetProperty("error").GetString() ?? "Unbekannter Importfehler";
+                        // show error and keep dialog open so user can retry or inspect message
+                        message = $"Import fehlgeschlagen: {err}";
+                        StateHasChanged();
+                        return;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            message = "Import fehlgeschlagen: " + ex.Message;
+            StateHasChanged();
+            return;
+        }
+        finally
+        {
+            isBusy = false;
+            currentAction = ActionKind.None;
+            StateHasChanged();
+        }
+    }
+
+    // helper: show confirmation UI to user via overlay instead of browser confirm
+    private async Task<bool> ShowUserConfirmationAsync(string prompt)
+    {
+        // cancel previous if any
+        _confirmTcs?.TrySetCanceled();
+
+        _confirmTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // Ensure UI state changes run on the Blazor dispatcher
+        await InvokeAsync(() =>
+        {
+            confirmPrompt = prompt ?? string.Empty;
+            confirmVisible = true;
+            StateHasChanged();
+        });
+
+        try
+        {
+            // await the TCS on the renderer context (no ConfigureAwait(false))
+            var result = await _confirmTcs.Task;
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        finally
+        {
+            // Ensure UI state teardown runs on the dispatcher
+            await InvokeAsync(() =>
+            {
+                confirmVisible = false;
+                _confirmTcs = null;
+                StateHasChanged();
+            });
+        }
+    }
+
+    private void Confirm(bool accepted)
+    {
+        var tcs = _confirmTcs;
+        if (tcs == null) return;
+
+        // complete the TCS (may run from UI event)
+        tcs.TrySetResult(accepted);
+
+        // update UI on dispatcher
+        _ = InvokeAsync(() =>
+        {
+            confirmVisible = false;
+            StateHasChanged();
+        });
+    }
+
+    private void CloseClicked()
+    {
+        Close(new DialogResult(false, null, null));
+    }
+
+    private async Task CloseAsync(DialogResult result)
+    {
+        isOpen = false;
+        await OnClosed.InvokeAsync(result);
+        StateHasChanged();
+    }
+
+    private void Close(DialogResult result)
+    {
+        _ = CloseAsync(result);
+    }
+}
+

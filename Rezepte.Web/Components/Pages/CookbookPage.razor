@@ -14,25 +14,10 @@
     <span>@(book?.Name ?? "Kochbuch")</span>
     <div class="btn-group">
         <a class="btn btn-sm btn-outline-secondary" href="/cookbooks/@Id/edit" title="Bearbeiten">✏️</a>
-        <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" title="Rezept hinzufügen">
-                ＋
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                    <button type="button" class="dropdown-item" @onclick="CreateRecipe">Neues Rezept anlegen</button>
-                </li>
-                <li>
-                    <button type="button" class="dropdown-item" @onclick="TriggerImportFile">Rezept aus Datei importieren</button>
-                </li>
-                <li>
-                    <button type="button" class="dropdown-item" @onclick="OpenImportUrlDialog">Rezept von URL laden</button>
-                </li>
-                <li>
-                    <button type="button" class="dropdown-item" @onclick="OpenAddExistingDialog">Vorhandenes Rezept hinzufügen</button>
-                </li>
-            </ul>
-        </div>
+
+        <button type="button" class="btn btn-sm btn-primary" @onclick="OpenCreateDialog" title="Rezept hinzufügen">
+            ＋
+        </button>
 
         @* Multi-Select Toggle *@
         <button class="btn btn-sm btn-outline-secondary ms-2" title="Mehrfachauswahl" @onclick="ToggleMultiSelect">
@@ -47,6 +32,9 @@
         </button>
     </div>
 </h5>
+
+@* Create dialog kept as top-level overlay component so it renders over the page (not inside the button bar) *@
+<CreateRecipeDialog @ref="createDialog" OnClosed="HandleCreateDialogClosed" />
 
 @if (isLoading)
 {
@@ -190,6 +178,9 @@ else
 
     private IEnumerable<string> selectedRecipeIdsList => selectedRecipeIds.ToList();
 
+    // Reference to the dialog component
+    private CreateRecipeDialog? createDialog;
+
     protected override async Task OnParametersSetAsync()
     {
         isLoading = true;
@@ -221,6 +212,20 @@ else
             recipes = await Api.Http.GetFromJsonAsync<List<RecipeListItemDto>>($"api/recipes/by-cookbook/{Id}") ?? new();
         }
         catch { recipes = new(); }
+    }
+
+    private void OpenCreateDialog()
+    {
+        createDialog?.Show(Id);
+    }
+
+    private async Task HandleCreateDialogClosed(CreateRecipeDialog.DialogResult result)
+    {
+        // If dialog triggered a creation or successful import, refresh list
+        if (result.Success)
+        {
+            await LoadRecipesAsync();
+        }
     }
 
     private void CreateRecipe()

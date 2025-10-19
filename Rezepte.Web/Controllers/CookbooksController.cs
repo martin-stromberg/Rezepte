@@ -85,8 +85,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
         var (ok, error) = await _cookbooks.DeleteAsync(userId, id, ct);
-        if (!ok)
-            return BadRequest(new { message = error ?? "Löschen fehlgeschlagen." });
+        if (!ok) return BadRequest(new { message = error ?? "Löschen fehlgeschlagen." });
         return NoContent();
     }
 
@@ -230,7 +229,6 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         if (userId is null) return Unauthorized();
         if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
 
-        
         if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
             return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
 
@@ -297,7 +295,209 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return Ok();
     }
 
+    // --- Ergänzungen innerhalb existing controller (neue Endpoints) ---
+    // POST api/cookbooks/{cookbookId}/import-session/start
+    [HttpPost("{cookbookId}/import-session/start")]
+    public async Task<IActionResult> StartImportSession(string cookbookId, [FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, [FromServices] IHttpClientFactory httpClientFactory, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
+
+        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
+
+        var client = httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(30);
+
+        // Set common browser-like headers to reduce chance of 403 from remote hosts
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0");
+        client.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
+        client.DefaultRequestHeaders.Referrer = new Uri("https://www.bing.com/");
+
+        using var resp = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var errorBody = await resp.Content.ReadAsStringAsync();
+            return BadRequest(new { message = $"Remote request failed: {resp.StatusCode}", detail = errorBody });
+        }
+
+        await using var ms = new MemoryStream();
+        await using var remoteStream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        await remoteStream.CopyToAsync(ms, ct).ConfigureAwait(false);
+        ms.Seek(0, SeekOrigin.Begin);
+
+        var fileName = Path.GetFileName(uri.LocalPath);
+        if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-url";
+
+        return await StartImportSessionFromStreamAsync(ms, fileName, cookbookId, orchestrator, GetUserId()!, ct);
+    }
+
+    // GET api/cookbooks/{cookbookId}/import-session/{sessionId}/status
+    [HttpGet("{cookbookId}/import-session/{sessionId}/status")]
+    public IActionResult GetImportSessionStatus(string cookbookId, string sessionId, [FromServices] ImportOrchestrator orchestrator)
+    {
+        var session = orchestrator.GetSession(sessionId);
+        if (session == null) return NotFound();
+        return Ok(new {
+            status = session.Status,
+            waitingForConfirmation = session.WaitingForConfirmation,
+            confirmationPrompt = session.ConfirmationPrompt,
+            result = session.Result != null ? new { success = session.Result.Success, error = session.Result.Error, created = session.Result.CreatedRecipeIds } : null
+        });
+    }
+
+    // POST api/cookbooks/{cookbookId}/import-session/{sessionId}/confirm
+    [HttpPost("{cookbookId}/import-session/{sessionId}/confirm")]
+    public IActionResult ConfirmImportSession(string cookbookId, string sessionId, [FromBody] ConfirmRequest req, [FromServices] ImportOrchestrator orchestrator)
+    {
+        var ok = orchestrator.Confirm(sessionId, req.Accepted);
+        if (!ok) return NotFound();
+        return NoContent();
+    }
+
+    // --- Neue Endpoints ohne cookbookId, damit der Blazor-Client die session-basierten Aufrufe auch ohne Cookbook nutzt ---
+    // POST api/cookbooks/import-session/start
+    [HttpPost("import-session/start")]
+    public async Task<IActionResult> StartImportSessionNoCookbook([FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, [FromServices] IHttpClientFactory httpClientFactory, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
+
+        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
+
+        var client = httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(30);
+
+        // Set browser-like headers here as well
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0");
+        client.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
+        client.DefaultRequestHeaders.Referrer = new Uri("https://www.bing.com/");
+
+        using var resp = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        if (!resp.IsSuccessStatusCode) 
+        {
+            var errorBody = await resp.Content.ReadAsStringAsync();
+            return BadRequest(new { message = $"Remote request failed: {resp.StatusCode}", detail = errorBody });
+        }
+
+        await using var ms = new MemoryStream();
+        await using var remoteStream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        await remoteStream.CopyToAsync(ms, ct).ConfigureAwait(false);
+        ms.Seek(0, SeekOrigin.Begin);
+
+        var fileName = Path.GetFileName(uri.LocalPath);
+        if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-url";
+
+        return await StartImportSessionFromStreamAsync(ms, fileName, null, orchestrator, GetUserId()!, ct);
+    }
+
+    // GET api/cookbooks/import-session/{sessionId}/status
+    [HttpGet("import-session/{sessionId}/status")]
+    public IActionResult GetImportSessionStatusNoCookbook(string sessionId, [FromServices] ImportOrchestrator orchestrator)
+    {
+        var session = orchestrator.GetSession(sessionId);
+        if (session == null) return NotFound();
+        return Ok(new {
+            status = session.Status,
+            waitingForConfirmation = session.WaitingForConfirmation,
+            confirmationPrompt = session.ConfirmationPrompt,
+            result = session.Result != null ? new { success = session.Result.Success, error = session.Result.Error, created = session.Result.CreatedRecipeIds } : null
+        });
+    }
+
+    // POST api/cookbooks/import-session/{sessionId}/confirm
+    [HttpPost("import-session/{sessionId}/confirm")]
+    public IActionResult ConfirmImportSessionNoCookbook(string sessionId, [FromBody] ConfirmRequest req, [FromServices] ImportOrchestrator orchestrator)
+    {
+        var ok = orchestrator.Confirm(sessionId, req.Accepted);
+        if (!ok) return NotFound();
+        return NoContent();
+    }
+
+    // --- Neue Endpoints: Starten einer Import-Session aus einer hochgeladenen Datei ---
+    [HttpPost("{cookbookId}/import-session/start-file")]
+    public async Task<IActionResult> StartImportSessionFromFile(string cookbookId, IFormFile file, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        if (file == null || file.Length == 0) return BadRequest(new { message = "No file uploaded." });
+
+        // Prüfe Besitz / Existenz des Kochbuchs
+        var cookbook = await _cookbooks.GetByIdAsync(userId, cookbookId, ct);
+        if (cookbook is null) return NotFound(new { message = "Cookbook not found." });
+
+        try
+        {
+            await using var ms = new MemoryStream();
+            await file.CopyToAsync(ms, ct).ConfigureAwait(false);
+            ms.Seek(0, SeekOrigin.Begin);
+
+            return await StartImportSessionFromStreamAsync(ms, file.FileName, cookbookId, orchestrator, userId, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Problem(title: "Start import session failed", detail: ex.Message, statusCode: 500);
+        }
+    }
+
+    [HttpPost("import-session/start-file")]
+    public async Task<IActionResult> StartImportSessionFromFileNoCookbook(IFormFile file, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        if (file == null || file.Length == 0) return BadRequest(new { message = "No file uploaded." });
+
+        try
+        {
+            await using var ms = new MemoryStream();
+            await file.CopyToAsync(ms, ct).ConfigureAwait(false);
+            ms.Seek(0, SeekOrigin.Begin);
+
+            return await StartImportSessionFromStreamAsync(ms, file.FileName, null, orchestrator, userId, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Problem(title: "Start import session failed", detail: ex.Message, statusCode: 500);
+        }
+    }
+
+    // private helper that centralizes starting an import session from an already-read stream
+    private async Task<IActionResult> StartImportSessionFromStreamAsync(Stream ms, string fileName, string? cookbookId, ImportOrchestrator orchestrator, string userId, CancellationToken ct)
+    {
+        if (ms == null) return BadRequest(new { message = "No stream provided." });
+        if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-stream";
+
+        try
+        {
+            // Ensure stream position is at start for orchestrator
+            if (ms.CanSeek) ms.Seek(0, SeekOrigin.Begin);
+
+            var sessionId = await orchestrator.StartImportAsync(ms, fileName, cookbookId, userId, ct).ConfigureAwait(false);
+            return Ok(new { sessionId });
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Problem(title: "Start import session failed", detail: ex.Message, statusCode: 500);
+        }
+    }
+
     public record CreateCookbookRequest(string Name, string? Description);
     public record UpdateCookbookRequest(string Name, string? Description);
     public record ImportUrlRequest(string Url);
+    public record ConfirmRequest(bool Accepted);
 }
