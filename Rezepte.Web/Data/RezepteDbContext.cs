@@ -18,6 +18,9 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<UserSetting> UserSettings => Set<UserSetting>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
 
+    // Calendar events
+    public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -112,6 +115,30 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.Property(a => a.Timestamp).HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasIndex(a => a.UserId);
             b.HasIndex(a => a.Timestamp);
+        });
+
+        // CalendarEvent configuration
+        modelBuilder.Entity<CalendarEvent>(b =>
+        {
+            b.HasKey(e => e.Id);
+            b.Property(e => e.UserId).IsRequired().HasMaxLength(64);
+            b.Property(e => e.RecipeId).HasMaxLength(64).IsRequired(false);
+            b.Property(e => e.StartDate).IsRequired();
+            b.Property(e => e.TimeOfDay).IsRequired();
+            b.Property(e => e.Portions).HasDefaultValue(1);
+            b.Property(e => e.Recurrence).HasDefaultValue(RecurrenceType.None);
+            b.Property(e => e.RecurrenceDays).HasDefaultValue(WeekDays.None);
+            b.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(e => e.ModifiedAt).IsRequired(false);
+
+            // optional relationship to Recipe (if recipe removed, keep event but null RecipeId)
+            b.HasOne(e => e.Recipe)
+                .WithMany()
+                .HasForeignKey(e => e.RecipeId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            b.HasIndex(e => new { e.UserId, e.StartDate });
+            b.HasIndex(e => e.RecipeId);
         });
 
         // Konfiguration für UserSetting
