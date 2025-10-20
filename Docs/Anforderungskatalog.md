@@ -39,8 +39,8 @@
 | STEP-003  | ✅ Erledigt   | Schritt hat Zutatenliste                                                     | Zutaten als Collection in Schritt‑Entity. |
 | STEP-004  | ✅ Erledigt   | Schritt hat Zubereitungsdauer                                                | Property `DurationMinutes` in Schritt‑Entity. |
 | STEP-005  | ✅ Erledigt   | Schritt kann Ruhezeit über Nacht enthalten                                   | Boolean‑Flag `RequiresOvernightRest` in Schritt‑Entity. |
-| CAL-001   | 🕓 Offen      | Jeder Benutzer hat einen Kalender                                            | Kalender‑View mit Benutzerbindung. |
-| CAL-002   | 🕓 Offen      | Rezepte können im Kalender eingeplant werden                                 | Rezept‑Zuordnung zu Datum mit Vorbereitungslogik. |
+| CAL-001   | 🕓 Teilweise  | Jeder Benutzer hat einen Kalender                                            | Kalender‑View mit Benutzerbindung. |
+| CAL-002   | 🕓 Teilweise  | Rezepte können im Kalender eingeplant werden                                 | Rezept‑Zuordnung zu Datum mit Vorbereitungslogik. Offen: Rezepte mit tagesübergreifenden Vorbereitungen |
 | CAL-003   | 🕓 Offen      | Vorbereitungen an Vortagen werden automatisch erkannt                        | Algorithmus zur Rückrechnung basierend auf Dauer und Ruhezeit. |
 | PLAN-001  | 🕓 Offen      | Arbeitsplan kombiniert mehrere Rezepte                                       | Arbeitsplan‑Entity mit Rezeptreferenzen. |
 | PLAN-002  | 🕓 Offen      | Schritte werden zeitlich optimiert (z. B. Dessert vor Hauptgericht)           | Sortierlogik nach Zubereitungszeit und Rezepttyp. |
@@ -51,6 +51,7 @@
 | KI-003    | ✅ Erledigt   | Globale KI‑Deaktivierung durch Admin                                         | `AppSetting` Entity, `SettingsService`, Admin‑API `GET /api/settings/global` und `PUT /api/settings/global/ai`; UI: Admin sieht globalen Switch in `AiSettings`. |
 | IMG-001   | ✅ Erledigt   | Bild‑Zuschneiden vor Upload (Clientseitig)                                   | `ImageCropper` Component (Cropper.js + JS Interop) + direct fetch upload (`imageCropper.uploadCroppedBlob`) implementiert; verhindert große SignalR/Base64‑Transfers. |
 | IMG-002   | ✅ Erledigt   | iOS Safari kompatibler File‑Trigger                                          | Label‑trigger für verstecktes `InputFile` (1×1 px, nicht display:none) zur zuverlässigen Öffnung des Dateidialogs. |
+| IMG-003   | ✅ Erledigt   | Einheitliche quadratische Thumbnails + Großbild‑Overlay                      | `Components/Shared/PhotoOverlay.razor` zeigt Bilder in einem Grid mit quadratischen Thumbnails (`PhotoOverlay.razor.css`: `aspect-ratio: 1/1`, `object-fit: cover`). Klick auf ein Thumbnail öffnet eine separate Großbild‑Overlay (`large-backdrop` / `large-content`) mit höherem `z-index`. `Delete`‑Button nutzt `@onclick:stopPropagation`. Empfehlung: bUnit/E2E‑Test für Klick→Overlay Verhalten. |
 | SYS-001   | ✅ Erledigt   | AI‑Aufrufe runtime‑guard                                                     | AI‑Handler (z. B. `BaseAIImportHandler`, `AIFotoImportHandler`) prüfen vor externen API‑Aufrufen zuerst `SettingsService.GetGlobalAiEnabledAsync` und `GetUserAiEnabledAsync(userId)`. |
 | DB-002    | ✅ Erledigt   | Settings‑Tabellen und Mapping                                                | `UserSetting` und `AppSetting` in `RezepteDbContext` registriert; Modell‑Konfiguration und Indexe hinzugefügt; Migration erstellt/applied empfohlen. |
 | INF-001   | ✅ Erledigt   | Tokenbereitstellung für Browser‑Uploads                                      | `ITokenService` + `ApiAuthHandler` sorgen für gültige JWT; ImageCropper liest serverseitigen Token bei Blazor Server und übergibt an Fetch. |
@@ -75,11 +76,13 @@
 - Client‑(Blazor) Änderungen:
   - `CreateRecipeDialog` (komponente) zeigt interaktive Bestätigungs‑Overlay statt browser `confirm()`; Overlay ist fokussiert, z‑Index/CSS angepasst.
   - URL‑Input erhält Fokus beim Öffnen; Datei‑Uploads starten nun Session‑Flow statt direkten Sync‑Import.
+  - `Components/Shared/PhotoOverlay.razor` zeigt nun quadratische Thumbnails in einem Grid; Klick öffnet ein eigenständiges Großbild‑Overlay (`large-backdrop` / `large-content`). Scoped CSS liegt in `PhotoOverlay.razor.css`. `OnShowLargeImage` EventCallback bleibt verfügbar.
 - Fehler‑UX:
   - Technische Exceptions (z. B. Google/Gemini errors) werden serverseitig durch `ImportExceptionHelper.BeautifyExceptionMessage` aufbereitet; volle Details bleiben in Logs, Benutzer sieht kurze, lokalisierte Meldung.
 - Tests / Wartung:
   - Bitte bestehende Import‑Tests anpassen: Orchestrator (singleton) erfordert Scoping in Tests; Handler‑Mocks bleiben Scoped.
   - Empfohlen: Integrationstest für Session‑Flow (start → poll → confirm → result).
+  - UI‑Komponenten (z. B. `PhotoOverlay`) mit bUnit testen; E2E‑Szenarios für Klick→Großansicht empfohlen.
 - Security:
   - Endpoints weiterhin autorisiert (Bearer/Cookie). Externe HTTP‑Calls setzen browser‑like Header (UserAgent, Accept, Referrer) um 403‑Risiken zu reduzieren.
 - Migration / Ops:
