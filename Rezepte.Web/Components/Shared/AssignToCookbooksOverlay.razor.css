@@ -1,0 +1,26 @@
+﻿.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  z-index: 14000;
+  padding: 1rem;
+}
+
+.overlay-content {
+  background: #fff;
+  border-radius: 8px;
+  max-width: 720px;
+  width: 95%;
+  max-height: 85vh;
+  overflow: auto;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+  position: relative;
+  padding: 1rem;
+}
+
+.overlay-assign {
+  /* spezifische Styles für Zuordnungs‑Overlay falls nötig */
+}

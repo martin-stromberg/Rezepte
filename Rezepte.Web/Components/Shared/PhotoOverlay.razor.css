@@ -1,0 +1,113 @@
+/* backdrop */
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  z-index: 14000;
+  padding: 1rem;
+}
+
+/* content container */
+.overlay-content {
+  background: #fff;
+  border-radius: 8px;
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow: auto;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  position: relative;
+}
+
+/* photo-specific tweaks */
+.overlay-photo {
+  padding: 1rem;
+}
+
+.overlay-photo .image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.overlay-photo .thumb-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1; /* erzwingt quadratisches Verhältnis */
+  overflow: hidden;
+  border-radius: 0.25rem;
+  background-color: #f6f6f6;
+}
+
+.overlay-photo img.thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* füllt Quadrat, zuschneiden bei Bedarf */
+  display: block;
+  cursor: pointer;
+  user-select: none;
+}
+
+.overlay-photo .position-absolute {
+  z-index: 2;
+}
+
+/* close button positioning (falls vorhanden) */
+.overlay-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+}
+
+/* large image specific styles */
+.large-backdrop {
+  /* gleiche wie .overlay-backdrop, sofern keine Änderung gewünscht */
+}
+
+.large-content {
+  /* spezifische Stile für den großen Bildinhalt, wenn nötig */
+}
+
+.large-photo-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80vh; /* Beispielsweise 80% der Viewport-Höhe */
+}
+
+.large-photo {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain; /* Das Bild wird skaliert, um im Container zu bleiben */
+  border-radius: 0.5rem;
+  display: block;
+}
+
+/* Animationen */
+.overlay-content {
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

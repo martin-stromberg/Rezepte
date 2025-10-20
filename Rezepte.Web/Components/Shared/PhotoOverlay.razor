@@ -3,7 +3,7 @@
 @if (Show)
 {
     <div class="overlay-backdrop" @onclick="OnClose">
-        <div class="overlay-content" @onclick:stopPropagation>
+        <div class="overlay-content overlay-photo" @onclick:stopPropagation>
             <button class="btn btn-sm btn-danger overlay-close" @onclick="OnClose">×</button>
             @if (isLoading)
             {
@@ -18,12 +18,16 @@
                 <div class="image-grid">
                     @foreach (var img in images)
                     {
-                        <div class="position-relative">
-                            <img src="@img.Url" class="thumb" @onclick="() => OnShowLargeImage.InvokeAsync(img.Url)" />
+                        <div class="thumb-container position-relative">
+                            <img src="@img.Url"
+                                 class="thumb"
+                                 alt="Foto"
+                                 @onclick="async () => await ShowLargeAsync(img.Url)" />
                             @if (Mode == "edit")
                             {
                                 <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
                                         title="Bild löschen"
+                                        @onclick:stopPropagation
                                         @onclick="async e => await DeleteImageAsync(img.Id)">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -34,6 +38,19 @@
             }
         </div>
     </div>
+
+    @* Large image overlay *@
+    @if (showLargeImage && !string.IsNullOrEmpty(selectedImageUrl))
+    {
+        <div class="overlay-backdrop large-backdrop" @onclick="CloseLarge">
+            <div class="overlay-content large-content" @onclick:stopPropagation>
+                <button class="btn btn-sm btn-danger overlay-close" @onclick="CloseLarge">×</button>
+                <div class="large-photo-wrap">
+                    <img src="@selectedImageUrl" alt="Großansicht" class="large-photo" />
+                </div>
+            </div>
+        </div>
+    }
 }
 
 @code {
@@ -46,6 +63,10 @@
 
     private List<RecipeImageDto>? images;
     private bool isLoading = false;
+
+    // large image state
+    private string? selectedImageUrl;
+    private bool showLargeImage = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -73,6 +94,24 @@
             await LoadImagesAsync();
         }
         // Optional: Fehlerbehandlung
+    }
+
+    private async Task ShowLargeAsync(string url)
+    {
+        selectedImageUrl = url;
+        showLargeImage = true;
+        StateHasChanged();
+
+        if (OnShowLargeImage.HasDelegate)
+        {
+            await OnShowLargeImage.InvokeAsync(url);
+        }
+    }
+
+    private void CloseLarge()
+    {
+        showLargeImage = false;
+        selectedImageUrl = null;
     }
 
     private record RecipeImageDto(string Id, string Url);
