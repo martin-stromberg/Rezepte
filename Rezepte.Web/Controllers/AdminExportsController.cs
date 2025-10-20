@@ -62,9 +62,16 @@ public class AdminExportsController : ControllerBase
     /// POST /api/admin/exports/restore
     /// </summary>
     [HttpPost("restore")]
-    public async Task<IActionResult> Restore([FromForm] IFormFile file, CancellationToken ct = default)
+    [Authorize(Roles = "Admin")]
+    [RequestSizeLimit(524288000)] // 500 MB limit, anpassen nach Bedarf
+    [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+    public async Task<IActionResult> Restore([FromForm(Name = "file")] IFormFile? file, CancellationToken ct = default)
     {
-        if (file == null || file.Length == 0) return BadRequest("No file uploaded.");
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new ProblemDetails { Title = "Missing file", Detail = "Form field 'file' is required." });
+        }
+
         var adminId = GetUserId();
         if (string.IsNullOrEmpty(adminId)) return Unauthorized();
 

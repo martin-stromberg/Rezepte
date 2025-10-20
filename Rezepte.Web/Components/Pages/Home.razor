@@ -87,6 +87,7 @@ else
         {
             recipes = null;
         }
+        StateHasChanged();
     }
 
     private CreateRecipeDialog? createDialog;
@@ -97,14 +98,22 @@ else
         createDialog?.Show();
     }
 
-    private Task HandleCreateDialogClosed(CreateRecipeDialog.DialogResult result)
+    // WICHTIG: async und await LoadLists damit UI nach Upload aktualisiert wird
+    private async Task HandleCreateDialogClosed(CreateRecipeDialog.DialogResult result)
     {
         if (result.Success)
         {
-            // bei Bedarf Liste neu laden oder UI anpassen
-            _ = LoadLists();
+            isLoading = true;
+            try
+            {
+                await LoadLists();
+            }
+            finally
+            {
+                isLoading = false;
+                StateHasChanged();
+            }
         }
-        return Task.CompletedTask;
     }
 
     private record RecipeListItemDto(string Id, string Title, string? ImageUrl);

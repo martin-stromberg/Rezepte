@@ -11,7 +11,8 @@ namespace Rezepte.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+// allow either Bearer *or* cookie auth for browser uploads (so fetch with cookies or short-lived JWT works)
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)]
 public class CookbooksController(ICookbookService cookbooks, IRecipeService recipes) : ControllerBase
 {
     private readonly ICookbookService _cookbooks = cookbooks;
@@ -194,6 +195,8 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     [HttpPost("import")]
+    [RequestSizeLimit(524288000)] // 500 MB limit, anpassen nach Bedarf
+    [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
     public async Task<IActionResult> ImportFromFile(IFormFile file, [FromServices] IImportService importService, CancellationToken ct)
     {
         var userId = GetUserId();
@@ -418,8 +421,11 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // --- Neue Endpoints: Starten einer Import-Session aus einer hochgeladenen Datei ---
+    // POST api/cookbooks/{cookbookId}/import-session/start-file
     [HttpPost("{cookbookId}/import-session/start-file")]
-    public async Task<IActionResult> StartImportSessionFromFile(string cookbookId, IFormFile file, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
+    [RequestSizeLimit(524288000)] // 500 MB
+    [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+    public async Task<IActionResult> StartImportSessionFromFile(string cookbookId, [FromForm(Name = "file")] IFormFile? file, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
@@ -447,8 +453,11 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         }
     }
 
+    // POST api/cookbooks/import-session/start-file
     [HttpPost("import-session/start-file")]
-    public async Task<IActionResult> StartImportSessionFromFileNoCookbook(IFormFile file, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
+    [RequestSizeLimit(524288000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+    public async Task<IActionResult> StartImportSessionFromFileNoCookbook([FromForm(Name = "file")] IFormFile? file, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
