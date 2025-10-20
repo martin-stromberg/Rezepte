@@ -4,17 +4,21 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Rezepte.Web.Components.Shared
 @using Rezepte.Web.Models
-@using static Rezepte.Web.Components.Shared.CalendarEventDialog
 @rendermode InteractiveServer
 @inject ApiClient Client
 @inject NavigationManager Nav
 
 <PageTitle>Mein Kalender</PageTitle>
 
-<h3>Kalender</h3>
-
-<div class="mb-3 d-flex gap-2">
-    <button type="button" class="btn btn-primary" @onclick="ShowCreate">Termin erstellen</button>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Kalender</h3>
+    <div class="d-flex gap-2 align-items-center">
+        <button class="btn btn-outline-secondary btn-sm" @onclick="PrevMonth">‹</button>
+        <div class="fw-semibold">@currentMonthStart.ToString("MMMM yyyy", System.Globalization.CultureInfo.CurrentCulture)</div>
+        <button class="btn btn-outline-secondary btn-sm" @onclick="NextMonth">›</button>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="ToggleShowPast">@((showPastDays ? "Vergangene verbergen" : "Vergangene anzeigen"))</button>
+        <button type="button" class="btn btn-primary btn-sm" @onclick="ShowCreate">Termin erstellen</button>
+    </div>
 </div>
 
 @if (isLoading)
@@ -23,17 +27,109 @@
 }
 else
 {
-    <div class="list-group">
-        @foreach (var occ in occurrences)
+    <div class="calendar-root">
+        @foreach (var d in monthDays)
         {
-            <div class="list-group-item d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="fw-semibold">@occ.Occurrence.ToLocalTime()</div>
-                    <div class="text-muted">@occ.Title (@occ.Portions)</div>
+            var isPast = d.Date < today;
+            if (isPast && !showPastDays)
+            {
+                continue;
+            }
+
+            <div class="day-card card mb-3">
+                <div class="day-header d-flex justify-content-between align-items-center p-2">
+                    <div>
+                        <div class="fw-semibold">@d.ToString("dddd, dd. MMMM")</div>
+                        <div class="small text-muted">@d.ToString("yyyy")</div>
+                    </div>
+                    <div class="text-muted small">@GetDaySummary(d)</div>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => Edit(occ.EventId)">Bearbeiten</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => Delete(occ.EventId)">Löschen</button>
+
+                <div class="day-body p-2">
+                    @{
+
+                        var items = occurrences
+                            .Where(o => o.Occurrence.ToLocalTime().Date == d.Date)
+                            .OrderBy(o => o.Occurrence.ToLocalTime().TimeOfDay)
+                            .ToList();
+                    }
+
+                    @if (!items.Any())
+                    {
+                        <div class="no-events text-muted d-flex align-items-center gap-2 p-3">
+                            <span class="sleep-emoji">😴</span>
+                            <span>Keine Rezepte eingeplant</span>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var period in periods)
+                        {
+                            var perItems = items.Where(it => period.Pred(it.Occurrence.ToLocalTime().TimeOfDay)).ToList();
+
+                            @if (perItems.Any())
+                            {
+                                <div class="period-block mt-3">
+                                    <div class="period-divider">
+                                        <span class="period-label">@period.Label</span>
+                                    </div>
+
+                                    @foreach (var it in perItems)
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(it.RecipeId) && recipePreviews.TryGetValue(it.RecipeId!, out var preview))
+                                        {
+                                            <div class="recipe-item position-relative d-flex gap-3 align-items-start p-2 mb-2">
+                                                @* stretched link: whole card clickable, buttons still usable *@
+                                                <a class="stretched-link" href="@($"/recipes/{preview.Id}")" aria-label="Rezept ansehen"></a>
+
+                                                @if (!string.IsNullOrWhiteSpace(preview.ImageUrl))
+                                                {
+                                                    <img src="@preview.ImageUrl" alt="@preview.Title" class="recipe-thumb" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="recipe-thumb placeholder">🍽️</div>
+                                                }
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-semibold">@preview.Title</div>
+                                                    @if (!string.IsNullOrWhiteSpace(preview.Description))
+                                                    {
+                                                        <div class="text-muted small">@preview.Description</div>
+                                                    }
+                                                    <div class="text-muted small mt-1">@it.Occurrence.ToLocalTime():t · Portionen: @it.Portions</div>
+                                                </div>
+                                                <div class="action-buttons d-flex flex-column gap-1">
+                                                    <button class="btn btn-outline-secondary btn-icon" title="Bearbeiten" @onclick="() => Edit(it.EventId)" aria-label="Bearbeiten">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger btn-icon" title="Löschen" @onclick="() => Delete(it.EventId)" aria-label="Löschen">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="event-item d-flex justify-content-between align-items-start p-2 mb-2 border rounded">
+                                                <div>
+                                                    <div class="fw-semibold">@it.Title</div>
+                                                    <div class="text-muted small">@it.Occurrence.ToLocalTime():t · Portionen: @it.Portions</div>
+                                                </div>
+                                                <div class="action-buttons d-flex flex-column gap-1">
+                                                    <button class="btn btn-outline-secondary btn-icon" title="Bearbeiten" @onclick="() => Edit(it.EventId)" aria-label="Bearbeiten">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger btn-icon" title="Löschen" @onclick="() => Delete(it.EventId)" aria-label="Löschen">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
+                        }
+                    }
                 </div>
             </div>
         }
@@ -43,38 +139,54 @@ else
 @* ausgelagerter Dialog für Create/Edit *@
 @if (showForm)
 {
-    <!-- Dialog jetzt als Modal zentriert anzeigen -->
     <CalendarEventDialog Modal="true"
-                         EditingId="@editingId"
+                         EditingId="@editingid"
                          InitialEvent="@editingEvent"
                          OnSaved="OnDialogSaved"
                          OnCancel="OnDialogCanceled" />
 }
 
 @code {
-    // Erweiterte OccurrenceView mit allen nötigen Informationen für Editing
     private record OccurrenceView(string EventId, string? RecipeId, DateTime Occurrence, TimeSpan TimeOfDay, string Title, int Portions, RecurrenceType Recurrence, WeekDays RecurrenceDays);
 
     private List<OccurrenceView> occurrences = new();
     private bool isLoading = true;
     private bool showForm;
-    private string? editingId;
+    private string? editingid;
     private CalendarEventDto? editingEvent;
 
-    private Dictionary<WeekDays, bool> bindWeekDays = Enum.GetValues(typeof(WeekDays)).Cast<WeekDays>().Where(w => w != WeekDays.None).ToDictionary(w => (WeekDays)w, _ => false);
+    private Dictionary<string, RecipePreviewDto> recipePreviews = new();
+
+    private DateTime currentMonthStart = DateTime.UtcNow.Date.AddDays(-(DateTime.UtcNow.Day - 1)).ToLocalTime();
+    private List<DateTime> monthDays = new();
+    private DateTime today = DateTime.UtcNow.Date;
+    private bool showPastDays = false;
+
+    private readonly (Func<TimeSpan, bool> Pred, string Label)[] periods = new[]
+    {
+        (new Func<TimeSpan,bool>(ts => ts.Hours >= 5 && ts.Hours < 11), "Morgens"),
+        (new Func<TimeSpan,bool>(ts => ts.Hours >= 11 && ts.Hours < 15), "Mittags"),
+        (new Func<TimeSpan,bool>(ts => ts.Hours >= 15 && ts.Hours < 21), "Abends"),
+        (new Func<TimeSpan,bool>(ts => ts.Hours < 5 || ts.Hours >= 21), "Nachts")
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAsync();
+        await LoadMonthAsync(currentMonthStart);
     }
 
-    private async Task LoadAsync()
+    private async Task LoadMonthAsync(DateTime monthStartLocal)
     {
         isLoading = true;
         occurrences.Clear();
-        var from = DateTime.UtcNow.Date.AddDays(-1);
-        var to = DateTime.UtcNow.Date.AddDays(30);
-        var resp = await Client.Http.GetFromJsonAsync<ApiCalendarResponse>($"/api/calendar?from={from:o}&to={to:o}");
+        recipePreviews.Clear();
+
+        var fromLocal = new DateTime(monthStartLocal.Year, monthStartLocal.Month, 1, 0, 0, 0, DateTimeKind.Local);
+        var toLocal = fromLocal.AddMonths(1).AddTicks(-1);
+        var fromUtc = fromLocal.ToUniversalTime();
+        var toUtc = toLocal.ToUniversalTime();
+
+        var resp = await Client.Http.GetFromJsonAsync<ApiCalendarResponse>($"/api/calendar?from={fromUtc:o}&to={toUtc:o}");
         if (resp?.items != null)
         {
             foreach (var it in resp.items)
@@ -91,31 +203,66 @@ else
                     it.recurrenceDays));
             }
         }
+
+        var recipeIds = occurrences.Where(o => !string.IsNullOrWhiteSpace(o.RecipeId)).Select(o => o.RecipeId!).Distinct().ToList();
+        foreach (var rid in recipeIds)
+        {
+            try
+            {
+                var dto = await Client.Http.GetFromJsonAsync<RecipePreviewDto>($"/api/recipes/{rid}");
+                if (dto != null) recipePreviews[rid] = dto;
+            }
+            catch { }
+        }
+
+        BuildMonthDays(monthStartLocal);
         isLoading = false;
         await InvokeAsync(StateHasChanged);
     }
 
+    private void BuildMonthDays(DateTime monthStartLocal)
+    {
+        monthDays = Enumerable.Range(0, DateTime.DaysInMonth(monthStartLocal.Year, monthStartLocal.Month))
+                              .Select(i => new DateTime(monthStartLocal.Year, monthStartLocal.Month, i + 1).Date)
+                              .ToList();
+    }
+
+    private async Task PrevMonth()
+    {
+        currentMonthStart = currentMonthStart.AddMonths(-1);
+        await LoadMonthAsync(currentMonthStart);
+    }
+
+    private async Task NextMonth()
+    {
+        currentMonthStart = currentMonthStart.AddMonths(1);
+        await LoadMonthAsync(currentMonthStart);
+    }
+
+    private void ToggleShowPast()
+    {
+        showPastDays = !showPastDays;
+    }
+
     private async Task ShowCreate()
     {
-        editingId = null;
+        editingid = null;
         editingEvent = null;
         showForm = true;
-        foreach (var k in bindWeekDays.Keys.ToList()) bindWeekDays[k] = false;
         await InvokeAsync(StateHasChanged);
     }
 
     private async Task Edit(string eventId)
     {
-        editingId = eventId;
-        // find loaded occurrence and pass as InitialEvent into dialog
+        editingid = eventId;
         var occ = occurrences.FirstOrDefault(o => o.EventId == eventId);
         if (occ != null)
         {
             editingEvent = new CalendarEventDto(
                 occ.EventId,
                 occ.RecipeId,
-                occ.Occurrence.Date,
-                occ.TimeOfDay,
+                occ.Occurrence.ToLocalTime().Date,
+                occ.Occurrence.ToLocalTime().TimeOfDay,
                 occ.Portions,
                 occ.Recurrence,
                 occ.RecurrenceDays);
@@ -131,13 +278,13 @@ else
     private async Task Delete(string eventId)
     {
         await Client.Http.DeleteAsync($"/api/calendar/{eventId}");
-        await LoadAsync();
+        await LoadMonthAsync(currentMonthStart);
     }
 
     private async Task OnDialogSaved()
     {
         showForm = false;
-        await LoadAsync();
+        await LoadMonthAsync(currentMonthStart);
     }
 
     private Task OnDialogCanceled()
@@ -146,7 +293,13 @@ else
         return Task.CompletedTask;
     }
 
-    // DTOs for client JSON handling: occurrence is DateTime, not string
+    private string GetDaySummary(DateTime day)
+    {
+        var count = occurrences.Count(o => o.Occurrence.ToLocalTime().Date == day.Date);
+        return count == 0 ? "Keine Termine" : $"{count} Termin{(count == 1 ? "" : "e")}";
+    }
+
     private record ApiCalendarResponseItem(String id, String? recipeId, DateTime occurrence, Int32 portions, RecurrenceType recurrence, WeekDays recurrenceDays);
     private record ApiCalendarResponse(ApiCalendarResponseItem[]? items);
+    private record RecipePreviewDto(string Id, string Title, string? Description, string? ImageUrl);
 }
