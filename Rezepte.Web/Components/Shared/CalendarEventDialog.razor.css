@@ -1,0 +1,31 @@
+.calendar-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.45);
+    z-index: 12000;
+    padding: 1rem; /* Abstand auf kleinen Bildschirmen */
+}
+
+.calendar-dialog-container {
+    max-width: 720px;
+    width: 95%;
+    box-sizing: border-box;
+}
+
+    /* Ensure the inner card uses full width of container and no extra margin */
+    .calendar-dialog-container > .card {
+        margin: 0;
+        width: 100%;
+    }
+
+/* small responsive tweak: on very narrow screens make dialog full height scrollable */
+@media (max-width: 420px) {
+    .calendar-dialog-container {
+        max-height: 95vh;
+        overflow: auto;
+        padding: 0.5rem;
+    }
+}

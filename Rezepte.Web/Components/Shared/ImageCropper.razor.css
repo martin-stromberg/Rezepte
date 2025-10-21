@@ -1,0 +1,57 @@
+/* Fullscreen fixed backdrop (sitzt über allen Overlays) */
+.image-cropper-backdrop {
+  position: fixed;
+  inset: 0;                    /* top:0; right:0; bottom:0; left:0 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 20000;             /* deutlich oberhalb anderer Overlays */
+  padding: 1rem;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+}
+
+/* Content-Box: zentriert, max. Größe, eigene Scrollzone */
+.image-cropper-content {
+  position: relative;
+  width: min(92vw, 1100px);
+  max-width: 1100px;
+  max-height: 92vh;
+  background: #fff;
+  border-radius: 8px;
+  overflow: auto;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.7);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transform: translateZ(0);   /* GPU compositing zur flüssigen Darstellung */
+}
+
+/* Body area for cropper canvas/preview: skaliert innerhalb der Box */
+.image-cropper-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 240px;
+}
+
+/* Close/Action buttons über dem Content sichtbar */
+.image-cropper-content .overlay-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 5;
+}
+
+/* Kleine Bildschirme: Box nahezu full-screen */
+@media (max-width: 480px) {
+  .image-cropper-content {
+    width: calc(100vw - 1rem);
+    max-height: calc(100vh - 1rem);
+    border-radius: 6px;
+    padding: 0.25rem;
+  }
+}

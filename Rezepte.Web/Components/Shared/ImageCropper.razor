@@ -7,8 +7,8 @@
 
 @if (Show)
 {
-    <div class="overlay-backdrop" @onclick="()=>{}">
-        <div class="overlay-content" @onclick:stopPropagation style="max-width:900px; width:100%; max-height:90vh;">
+    <div class="image-cropper-backdrop" @onclick="() => { }">
+        <div class="image-cropper-content" @onclick:stopPropagation style="max-width:900px; width:100%; max-height:90vh;">
             <button class="btn btn-sm btn-danger overlay-close" @onclick="Cancel" disabled="@isUploading">×</button>
 
             <div class="text-center mb-2 position-relative">

@@ -4,6 +4,7 @@ public record ImportResult(bool Success, string? Error, List<string> CreatedReci
 
 public interface IImportHandler
 {
+    public string UserId { set; }
     /// <summary>
     /// Prüft schnell, ob dieser Handler mit der gegebenen Datei umgehen kann.
     /// </summary>

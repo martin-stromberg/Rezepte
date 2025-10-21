@@ -1,39 +1,41 @@
 ﻿using Microsoft.Extensions.Options;
+using Microsoft.VisualBasic;
 using Rezepte.Web.Configuration;
 using static Rezepte.Web.Services.Import.GeminiClient;
+using System.Text.RegularExpressions;
 
 namespace Rezepte.Web.Services.Import;
 
+public class BaseImportHandler
+{
+    public string UserId { protected get; set; }
+
+}
 public abstract class BaseAIImportHandler(
     IOptionsMonitor<AIOptions> aioptions, 
-    IHttpContextAccessor httpContextAccessor, 
     IAiUsageService aiUsage, 
     IRecipeService recipeService, 
-    IGoogleServiceAccountProvider serviceAccountProvider,
+    IGoogleCredentialsProvider serviceAccountProvider,
     ISettingsService settingsService,
-    ILogger logger)
+    ILogger logger): BaseImportHandler, IInteractiveImportHandler
 {
     private KeyValuePair<string, AIRecipe[]> _lastRecipes;
     private StreamReader lastReader = null;
+    private string _responseContent = string.Empty;
     protected abstract bool IsTextMode();
     protected readonly IRecipeService recipeService = recipeService;
     protected readonly ILogger _logger = logger;
     protected IAiUsageService AiUsageService => aiUsage;
-    protected readonly IGoogleServiceAccountProvider _serviceAccountProvider = serviceAccountProvider;
+    protected readonly IGoogleCredentialsProvider _serviceAccountProvider = serviceAccountProvider;
 
-    protected string ServicecAcountFile => _serviceAccountProvider.GetFilePath();
-    public string UserId
+    protected GeminiClient CreateGeminiClient()
     {
-        get
-        {
-            var userId = httpContextAccessor.HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            return userId ?? "unknown";
-        }
+        return new GeminiClient(_serviceAccountProvider.GetGeminiApiKey(), _serviceAccountProvider.GetServiceAccountFilePath(), _logger);
     }
 
     protected virtual async Task<bool> IsActiveAsync()
     {
-        if (!_serviceAccountProvider.Exists())
+        if (!_serviceAccountProvider.ServiceAccountFileExists())
             return false;
         if (!await SettingsService.GetGlobalAiEnabledAsync())
             return false;
@@ -41,7 +43,10 @@ public abstract class BaseAIImportHandler(
             return false;
         return true;
     }
-
+    public static bool LooksLikeHtmlDocument(string input)
+    {
+        return input.Contains("<html") && input.Contains("<body");
+    }
     private bool IsSimulationModeActive
     {
         get => aioptions.CurrentValue.Simulate;
@@ -66,22 +71,18 @@ public abstract class BaseAIImportHandler(
 
         if (!await IsActiveAsync())
             return false;
-
+        _responseContent = "";
+        _lastRecipes = new KeyValuePair<string, AIRecipe[]>();
         if (IsTextMode())
         {
             if (IsSimulationModeActive)
-            {
-                await Task.Delay(3000); // Simulate some delay
-                _lastRecipes = new KeyValuePair<string, AIRecipe[]>(fileName, new AIRecipe[] { CreateSimulationReceipt(new byte[0]) });
                 return true;
-            }
 
             lastReader = new StreamReader(stream);
             try
             {
-                var responseContent = lastReader.ReadToEnd();
-                _lastRecipes = new KeyValuePair<string, AIRecipe[]>(fileName, await ReadRecipeCollection(fileName, stream, responseContent, ct));
-                return _lastRecipes.Value.Any();
+                _responseContent = lastReader.ReadToEnd();
+                return LooksLikeHtmlDocument(_responseContent);
             }
             catch
             {
@@ -89,7 +90,7 @@ public abstract class BaseAIImportHandler(
             }
         }
         else
-        {
+        {            
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (string.IsNullOrEmpty(fileName)) return false;
 
@@ -97,19 +98,21 @@ public abstract class BaseAIImportHandler(
             if (string.IsNullOrEmpty(ext)) return false;
             ext = ext.ToLowerInvariant();
             if (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" && ext != ".bmp") return false;
-
-            if (IsSimulationModeActive)
-                _lastRecipes = new KeyValuePair<string, AIRecipe[]>(fileName, new AIRecipe[] { CreateSimulationReceipt(new byte[0]) });
-            else
-                _lastRecipes = new KeyValuePair<string, AIRecipe[]>(fileName, await ReadRecipeCollection(fileName, stream, "", ct));
-            return _lastRecipes.Value.Any();
+            return true;
         }
     }
     protected abstract Task<AIRecipe[]> ReadRecipeCollection(string fileName, Stream stream, string responseContent, CancellationToken ct);
     public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string targetCookbookId, string userId, CancellationToken ct = default)
     {
+        if (IsSimulationModeActive)
+        {
+            await Task.Delay(3000);
+            _lastRecipes = new KeyValuePair<string, AIRecipe[]>(fileName, new AIRecipe[] { CreateSimulationReceipt(new byte[0]) });
+        } 
+        else
+            _lastRecipes = new KeyValuePair<string, AIRecipe[]>(fileName, await ReadRecipeCollection(fileName, stream, _responseContent, ct));
         if (_lastRecipes.Key != fileName)
-            throw new InvalidOperationException("CanHandleAsync must be called and return true before HandleAsync.");
+            throw new InvalidOperationException("No receipe information was extracted.");
         var importedRecipes = _lastRecipes.Value;
         var created = new List<string>();
         try
@@ -167,8 +170,11 @@ public abstract class BaseAIImportHandler(
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error while importing AI-detected recipe {FileName}", fileName);
-            return new ImportResult(false, ex.Message, created);
+            _logger.LogError(ex, "Error while importing AI-detected recipe {FileName}", fileName);
+
+            // create a user-friendly, localized short message while the full exception remains in the logs
+            var friendly = ImportExceptionHelper.BeautifyExceptionMessage(ex);
+            return new ImportResult(false, friendly, created);
         }
 
     }
@@ -287,5 +293,62 @@ public abstract class BaseAIImportHandler(
             parsedUnit = parts[0];
             parsedName = parts[1];
         }
+    }
+
+    public async Task<ImportResult> HandleInteractiveAsync(Stream stream, string fileName, string targetCookbookId, string userId, IImportInteraction interaction, CancellationToken ct = default)
+    {
+        if (!await HandleConfirmation(interaction))
+            return new ImportResult(false, "Import cancelled by user.", new List<string>());
+
+        await interaction.ReportStatusAsync("Importiere Rezepte...");
+        return await HandleAsync(stream, fileName, targetCookbookId, userId, ct);
+    }
+
+    protected virtual async Task<bool> HandleConfirmation(IImportInteraction interaction)
+    {
+        return await interaction.AskForConfirmationAsync("Weitermachen?");
+    }
+
+    private string BeautifyExceptionMessage(Exception ex)
+    {
+        // unwrap to the most relevant exception
+        while (ex.InnerException is not null)
+            ex = ex.InnerException;
+
+        var raw = ex.Message ?? ex.ToString();
+
+        // try to extract a detailed 'Detail="...""' if present (e.g. Google/Rpc style)
+        var detailMatch = Regex.Match(raw, "Detail\\s*=\\s*\"(?<d>.*?)\"", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        string detail = detailMatch.Success ? detailMatch.Groups["d"].Value : string.Empty;
+
+        if (string.IsNullOrEmpty(detail))
+        {
+            // alternate pattern: detail: ... or \"detail\": "...
+            var altMatch = Regex.Match(raw, "(\"detail\"\\s*[:=]\\s*\"(?<d>.*?)\")|detail\\s*[:=]\\s*(?<d>https?://[^\\s]+|.+)", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            if (altMatch.Success) detail = altMatch.Groups["d"].Value;
+        }
+
+        // Truncate long details and remove sensitive data (URLs left as-is for operator)
+        string Shorten(string s, int max = 300) => string.IsNullOrEmpty(s) ? s : (s.Length <= max ? s : s.Substring(0, max).TrimEnd() + "…");
+
+        // Friendly, localized message
+        if (!string.IsNullOrEmpty(detail))
+        {
+            // special-case hints
+            if (detail.IndexOf("billing", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return $"Zugriff verweigert / Abrechnung erforderlich: {Shorten(detail)}";
+            }
+            if (detail.IndexOf("permission", StringComparison.OrdinalIgnoreCase) >= 0 || detail.IndexOf("permissiondenied", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return $"Zugriffsfehler: {Shorten(detail)}";
+            }
+
+            return Shorten(detail);
+        }
+
+        // fallback: try to provide a concise summary from the raw message
+        var firstLine = raw.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? raw;
+        return Shorten(firstLine);
     }
 }

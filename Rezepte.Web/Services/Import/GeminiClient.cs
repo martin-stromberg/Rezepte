@@ -1,33 +1,55 @@
 ﻿using Google.Api;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Rezepte.Web.Entities;
 using Rezepte.Web.Extensions;
+using System;
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using static QuestPDF.Helpers.Colors;
+using static System.Net.WebRequestMethods;
 
 namespace Rezepte.Web.Services.Import;
 
 public class GeminiClient
 {
     private readonly HttpClient _httpClient;
-
-    public GeminiClient(string serviceAccountJsonPath)
+    
+    
+    public GeminiClient(string apiKey, string serviceAccountJsonPath, ILogger logger)
     {
         _httpClient = new HttpClient();
+        _apiKey = apiKey;
         _credential = GoogleCredential
-            .FromFile(serviceAccountJsonPath)
-            .CreateScoped("https://www.googleapis.com/auth/generative-language");
+                .FromFile(serviceAccountJsonPath)
+                .CreateScoped("https://www.googleapis.com/auth/generative-language");
+        _logger = logger;
     }
 
     private readonly GoogleCredential _credential;
+    private readonly ILogger _logger;
+    private readonly string _apiKey;
+
+    private async Task InitHttpClientAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_apiKey))
+            _httpClient.DefaultRequestHeaders.Add("x-goog-api-key", _apiKey);
+        else if (_credential is not null)
+        {
+            var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        }
+        else
+            throw new InvalidOperationException("No valid authentication method configured.");
+    }
 
     public async Task<AIRecipe[]> ExtractRecipeAsync(string ocrText)
     {
-        var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        await InitHttpClientAsync();
 
         var prompt = $@"
 Hier ist ein OCR-Text von einer Rezeptkarte. Bitte extrahiere:
@@ -38,7 +60,15 @@ Hier ist ein OCR-Text von einer Rezeptkarte. Bitte extrahiere:
 - Zubereitungsschritte (als Fließtext)
 - Ignoriere Logos, Kategorien, Kartennummern, Handschrift, Anmerkungen, Datum
 
-Gib die Informationen wie folgt aus:
+Gib die Informationen wie folgt aus.
+Gib das genauso an, mit ** bei den Überschriften und Doppelpunkten, wie im Beispiel. 
+Gib das Ergebnis auch nicht als json oder anderes Format aus, sondern nur als reinen Text.
+Ersetzte die Platzhalter {{...}} mit den entsprechenden Werten aus dem OCR-Text.
+Die einzelnen Werte dürfen keine doppelten ** enthalten. Ersetzte sie durch einfach *.
+Wenn du etwas nicht findest, lasse das Feld leer.
+Wenn du Rechtschreibfehler im OCR-Text findest, korrigiere diese bitte.
+
+Beispielausgabe:
 **Titel des Rezepts:** {{Hier der Titel}}
 
 **Portionen:** {{Anzahl Personen oder leer lassen}}
@@ -53,6 +83,9 @@ Gib die Informationen wie folgt aus:
 
 **Zubereitungsschritte:**
 {{Fließtext}}
+
+
+
 
 OCR-Text:
 ""{ocrText}""
@@ -71,13 +104,18 @@ OCR-Text:
         var model = "gemini-2.5-flash-lite";
         //model = "gemini-pro";
 
+        _logger.LogInformation("Sending request to Gemini model {Model}", model);
+        _logger.LogInformation("Prompt: {Prompt}", prompt);
+        _logger.LogInformation("Request Body: {RequestBody}", json);
+
         var response = await _httpClient.PostAsync(
             $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
             content
         );
         var responseJson = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation("Response JSON: {ResponseJson}", responseJson);
         response.EnsureSuccessStatusCode();
-        
+
 
         using var doc = JsonDocument.Parse(responseJson);
         var text = doc.RootElement
@@ -95,8 +133,7 @@ OCR-Text:
 
     public async Task<AIRecipe[]> ExtractRecipeFromUrlAsync(string responseContent)
     {
-        var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        await InitHttpClientAsync();
 
         var prompt = $@"
 Hier ist Html-Code von einer Webseite, von der erwartet wir dass sie ein Kochrezept enthält. Bitte extrahiere:
@@ -108,7 +145,15 @@ Hier ist Html-Code von einer Webseite, von der erwartet wir dass sie ein Kochrez
 - Rezeptbild (falls vorhanden)
 - Ignoriere Navigation, Werbung, Kommentare, Bewertungen, Logos, Kategorien
 
-Gib die Informationen wie folgt aus:
+Gib die Informationen wie folgt aus.
+Gib das genauso an, mit ** bei den Überschriften und Doppelpunkten, wie im Beispiel. 
+Gib das Ergebnis auch nicht als json oder anderes Format aus, sondern nur als reinen Text.
+Ersetzte die Platzhalter {{...}} mit den entsprechenden Werten aus dem OCR-Text.
+Die einzelnen Werte dürfen keine doppelten ** enthalten. Ersetzte sie durch einfach *.
+Wenn du etwas nicht findest, lasse das Feld leer.
+Wenn du Rechtschreibfehler im OCR-Text findest, korrigiere diese bitte.
+
+Beispielausgabe:
 **Titel des Rezepts:** {{Hier der Titel}}
 
 **Portionen:** {{Anzahl Personen oder leer lassen}}
@@ -142,14 +187,17 @@ Html-Code:
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var model = "gemini-2.5-flash-lite";
         //model = "gemini-pro";
+        _logger.LogInformation("Sending request to Gemini model {Model}", model);
+        _logger.LogInformation("Prompt: {Prompt}", prompt);
+        _logger.LogInformation("Request Body: {RequestBody}", json);
 
         var response = await _httpClient.PostAsync(
             $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
             content
         );
         var responseJson = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation("Response JSON: {ResponseJson}", responseJson);
         response.EnsureSuccessStatusCode();
-
 
         using var doc = JsonDocument.Parse(responseJson);
         var text = doc.RootElement
@@ -177,6 +225,18 @@ Html-Code:
     }
     private AIRecipe ParseRecipe(string recipeContent)
     {
+        var informationSet = ExtractInformation(recipeContent);
+        var expectedKeys = new[]
+        {
+            "Titel des Rezepts",
+            "Portionen",
+            "Vorbereitungszeit",
+            "Kochzeit",
+            "Bild-URL",
+            "Zutatenliste",
+            "Zubereitungsschritte"
+        };
+
         AIRecipe extractedRecipe = new AIRecipe();
         extractedRecipe.Title = ParseInformation(recipeContent, "Titel des Rezepts");
         extractedRecipe.Ingredients = ParseInformation(recipeContent, "Zutatenliste").Split("\r\n").Where(line => !string.IsNullOrWhiteSpace(line)).Select(line => line.TrimStart(' ', '*')).ToList();
@@ -185,6 +245,8 @@ Html-Code:
         extractedRecipe.PreparationTimeInMinutes = ParseMinutes(ParseInformation(recipeContent, "Vorbereitungszeit"));
         extractedRecipe.CookingTimeInMinutes += ParseInformation(recipeContent, "Kochzeit").ToInt32(0);
         extractedRecipe.ImageUri = ParseInformation(recipeContent, "Bild-URL");
+        if (string.IsNullOrWhiteSpace(extractedRecipe.Instructions))
+            extractedRecipe.Instructions = string.Join("\r\n", informationSet.Where(i => !expectedKeys.Contains(i.Key)).SelectMany(i => new string[] { $"{i.Key}:", i.Value, "\r\n" })).Trim();
         if (!string.IsNullOrWhiteSpace(extractedRecipe.ImageUri))
         {
             try
@@ -256,5 +318,13 @@ Html-Code:
             .TakeWhile(line => !line.StartsWith("**")
             )).Trim();
     }
-
+    private KeyValuePair<string, string>[] ExtractInformation(string recipeContent)
+    {
+        var names = recipeContent.Replace("\r\n", "\n")
+            .Replace("\r", "\rn")
+            .Split("\n")
+            .Where(line => line.StartsWith("**"))
+            .Select(line => line.Trim('*').Trim(':'));
+        return names.Select(name => new KeyValuePair<string, string>(name, ParseInformation(recipeContent, name))).ToArray();
+    }
 }

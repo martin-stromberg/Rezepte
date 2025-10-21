@@ -103,7 +103,7 @@ public static class ServiceCollectionExtensions
         // Infrastructure
         services.AddMemoryCache();
         services.AddSingleton<ITokenService, TokenService>();
-        services.AddSingleton<IGoogleServiceAccountProvider, GoogleServiceAccountProvider>();
+        services.AddSingleton<IGoogleCredentialsProvider, GoogleCredentialsProvider>();
         services.AddHttpContextAccessor();
         services.AddTransient<ApiAuthHandler>();
         services.AddTransient<AntiForgeryHandler>();
@@ -134,10 +134,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IImportHandler, BackupImportHandler>();
         services.AddScoped<IImportHandler, UrlReceiptImportHandler>();
+        services.AddScoped<IImportHandler, SecondSourceUrlReceiptImportHandler>();
         services.AddScoped<IImportHandler, AIFotoImportHandler>();
         services.AddScoped<IImportHandler, AIUrlImportHandler>();
         services.AddScoped<IAiUsageService, AiUsageService>();
         services.AddScoped<ISettingsService, SettingsService>();
+        services.AddScoped<ICalendarService, CalendarService>();
+
+        // ImportOrchestrator: singleton that creates scopes for handlers (handlers stay scoped)
+        services.AddSingleton<ImportOrchestrator>();
 
         // ViewModels
         services.AddScoped<SettingsViewModel>();

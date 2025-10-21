@@ -1,18 +1,43 @@
-﻿using Rezepte.Web.Entities;
+﻿using Microsoft.EntityFrameworkCore.Update;
+using Rezepte.Web.Entities;
 using Rezepte.Web.Services;
+using System;
+using System.Formats.Asn1;
 using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Xml;
+using static Google.Cloud.Vision.V1.ProductSearchResults.Types;
+using static Rezepte.Web.Services.Import.GeminiClient;
+using static System.Collections.Specialized.BitVector32;
 
 namespace Rezepte.Web.Services.Import;
-public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptImportHandler> logger) : IImportHandler
+public abstract class BaseUrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptImportHandler> logger): BaseImportHandler
 {
-    private readonly IRecipeService _recipes = recipes;
-    private readonly ILogger<UrlReceiptImportHandler> _logger = logger;
-    private KeyValuePair<string, RecipeImport[]> _lastRecipe = new KeyValuePair<string, RecipeImport[]>();
     private StreamReader lastReader = null;
+    private KeyValuePair<string, RecipeImport[]> _lastRecipe = new KeyValuePair<string, RecipeImport[]>();
+    protected sealed class RecipeImport()
+    {
+        public string Title { get; internal set; }
+        public byte[][] Pictures { get; internal set; }
+        public RecipeIngredients Ingredients { get; internal set; }
+        public string Instructions { get; internal set; }
+        public string Description { get; internal set; }
+        public string Uri { get; internal set; }
+        public int Portions { get; internal set; }
+        public int WorkTime { get; internal set; }
+    }
+    protected sealed class RecipeIngredients()
+    {
+        public RecipeIngredient?[]? Items { get; internal set; }
+        public int Quantity { get; internal set; }
+    }
+    protected sealed class RecipeIngredient()
+    {
+        public string Quantity { get; internal set; }
+        public string Name { get; internal set; }
+    }
 
     protected string GetTagAttribute(string tag, string valueNames)
     {
@@ -113,9 +138,67 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
                 break;
             tags.Add(tag);
             content = content.Remove(0, content.IndexOf(tag));
+            content = content.Remove(0, tag.Length);
         }
         return tags.ToArray();
     }
+    protected TimeSpan ParseGermanTimeSpan(string input)
+    {
+        var pattern = @"(?:(\d+)\s*Std\.)?\s*(?:(\d+)\s*Min\.)?";
+        var match = Regex.Match(input, pattern);
+
+        if (!match.Success)
+            return TimeSpan.Zero;
+
+        int hours = match.Groups[1].Success ? int.Parse(match.Groups[1].Value) : 0;
+        int minutes = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+
+        return new TimeSpan(hours, minutes, 0);
+    }
+    protected string FindUrl(string html)
+    {
+        var headContent = FindTag(html, false, "head");
+        var url = WebUtility.HtmlDecode(FindTagValue(headContent, "meta|property=og:url").Split('|').First());
+        return url;
+    }
+    protected virtual string FindTitle(string html)
+    {
+        var headContent = FindTag(html, false, "head");
+        var title = WebUtility.HtmlDecode(FindTagValue(headContent, "title").Split('|').First());
+        if (string.IsNullOrWhiteSpace(title))
+            title = WebUtility.HtmlDecode(FindTagValue(headContent, "meta|name=og:title").Split('|').First());
+        return title;
+    }
+    protected virtual async Task<byte[][]> FindPicturesAsync(string html)
+    {
+        var pictureUri = FindTagValue(html, "head", "meta|property=og:image");
+        if (string.IsNullOrWhiteSpace(pictureUri)) return null;
+        var pictureTempPath = await DownloadFileAsync(pictureUri);
+        try
+        {
+            byte[] imageArray = File.ReadAllBytes(pictureTempPath);
+            return new byte[][] { imageArray };
+        }
+        finally
+        {
+            File.Delete(pictureTempPath);
+        }
+    }
+    protected XmlElement? CreateNode(string code)
+    {
+        System.Xml.XmlDocument XmlDoc = new System.Xml.XmlDocument();
+        XmlDoc.LoadXml(code);
+        return XmlDoc.DocumentElement;
+    }
+    protected string GetNodeText(XmlNode node)
+    {
+        if (node is XmlComment)
+            return "";
+        if (node.ChildNodes.Count == 0)
+            return node.InnerText;
+        return string.Join(" ", node.ChildNodes.Cast<XmlNode>().Select(n => GetNodeText(n))).Replace("  ", " ").Trim();
+    }
+
     protected string[] CollectTags(string content, string tagName)
     {
         string tagBase = tagName.Split('|').First();
@@ -165,30 +248,6 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
         }
 
         return tags.ToArray();
-    }
-
-    private async Task<byte[][]> FindPicturesAsync(string content)
-    {        
-        var pictureUri = FindTagValue(content, "head", "meta|property=og:image");
-        //var tags = CollectTagValues(content, "img|class=ds-teaser-link__image").Select(i => i).Concat(new string[] { pictureUri }).Distinct().ToArray();
-        var tags = CollectTags(content, "div|class=ds-slider__item").Where(t => t.Contains("ds-slider-image__image-wrap")).SelectMany(t => CollectTagValues(t, "img")).Concat(new string[] { pictureUri }).Distinct().ToArray();
-        List<byte[]> imageDataCollection = new List<byte[]>();
-        foreach (var imageUri in tags)
-            try
-            {
-                var pictureTempPath = await DownloadFileAsync(imageUri);
-                try
-                {
-                    byte[] imageArray = File.ReadAllBytes(pictureTempPath);
-                    imageDataCollection.Add(imageArray);
-                }
-                finally
-                {
-                    File.Delete(pictureTempPath);
-                }
-            }
-            catch { }
-        return imageDataCollection.ToArray();
     }
     protected async Task<string> DownloadFileAsync(string uri)
     {
@@ -243,120 +302,80 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
         return tempFilePath;
     }
 
-    protected XmlElement? CreateNode(string code)
+    private static string GetImageExtension(byte[] bytes)
     {
-        System.Xml.XmlDocument XmlDoc = new System.Xml.XmlDocument();
-        XmlDoc.LoadXml(code);
-        return XmlDoc.DocumentElement;
-    }
-    private string GetNodeText (XmlNode node)
-    {
-        if (node is XmlComment)
-            return "";
-        if (node.ChildNodes.Count == 0)
-            return node.InnerText;
-        return string.Join(" ", node.ChildNodes.Cast<XmlNode>().Select(n => GetNodeText(n))).Replace("  ", " ").Trim();
-    }
-    private RecipeIngredients FindIngredients(string[] articles)
-    {
-        RecipeIngredients ingredients = new RecipeIngredients();
-        var ingredientsArticle = articles.FirstOrDefault(article => article.Contains("recipe-ingredients"));
-        if (ingredientsArticle == null)
-            return null;
-        ingredients.Quantity = int.Parse(FindTagValue(ingredientsArticle, "input"));
-        var ingredientTable = FindTag(ingredientsArticle, false, "table");
-        var rows = CollectTags(ingredientTable, "tr");
-        ingredients.Items = rows.Select(row =>
+        if (bytes.Length >= 4)
         {
-            var node = CreateNode(row);
-            var quantityCell = node.ChildNodes.OfType<XmlNode>().FirstOrDefault(n => n.Name == "td");
-            var nameCell = node.ChildNodes.OfType<XmlNode>().Skip(1).FirstOrDefault(n => n.Name == "td");
-
-            if (quantityCell is null || nameCell is null)
-                return null;
-
-            var ingredient = new RecipeIngredient()
-            {
-                Quantity = quantityCell.InnerText,
-                Name = GetNodeText(nameCell)
-            };
-            return ingredient;
-        })
-                                .Where(i => i is not null)
-                                .ToArray();
-        return ingredients;
-    }
-    private string FindInstructions(string[] articles)
-    {
-        var instructionArticle = articles.FirstOrDefault(article => article.Contains("Zubereitung"));
-        if (instructionArticle == null)
-            return null;
-        var tags = CollectTags(instructionArticle, "div");
-        var instructionRows = tags.Where(r => r.Contains("instruction-row")).ToList();
-        return string.Join("\r\n", instructionRows.Select(r =>
-        {
-            var textTags = CollectTags(r, "span").Where(t => t.Contains("instruction__text"));
-            return string.Join(" ", textTags.Select(t =>
-            {
-                t = t.Remove(0, t.IndexOf(">") + 1);
-                t = t.Substring(0, t.IndexOf("<"));
-                return t;
-            }));
-        }));
-    }
-    private sealed class RecipeImport()
-    {
-        public string Title { get; internal set; }
-        public byte[][] Pictures { get; internal set; }
-        public RecipeIngredients Ingredients { get; internal set; }
-        public string Instructions { get; internal set; }
-        public string Description { get; internal set; }
-        public string Uri { get; internal set; }
-        public int Portions { get; internal set; }
-        public int WorkTime { get; internal set; }
-    }
-    private sealed class RecipeIngredients()
-    {
-        public RecipeIngredient?[]? Items { get; internal set; }
-        public int Quantity { get; internal set; }
-    }
-    private sealed class RecipeIngredient()
-    {
-        public string Quantity { get; internal set; }
-        public string Name { get; internal set; }
-    }
-    private Task<string[]> ExtractUris(string html)
-    {
-        List<string> uriList = new List<string>();
-        var Links = CollectTags(html, "a");
-        return Task.FromResult(new string[0]);
-    }
-
-    public async Task<bool> CanHandleAsync(Stream stream, string fileName, CancellationToken ct = default)
-    {
-        if (lastReader is not null)
-            lastReader.Dispose();
-        lastReader = new StreamReader(stream);
-        try
-        {
-            var responseContent = lastReader.ReadToEnd();
-            _lastRecipe = await ReadSingleRecipe(fileName, responseContent);
-            if (string.IsNullOrWhiteSpace(_lastRecipe.Key))
-                _lastRecipe = await ReadRecipeCollection(fileName, responseContent, ct);
-            if (string.IsNullOrWhiteSpace(_lastRecipe.Key) || _lastRecipe.Value == null || _lastRecipe.Value.Length == 0)
-                throw new Exception("no recipes found");
-            return true;
+            // JPEG: FF D8
+            if (bytes[0] == 0xFF && bytes[1] == 0xD8) return ".jpg";
+            // PNG: 89 50 4E 47
+            if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) return ".png";
+            // GIF: 47 49 46 38
+            if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38) return ".gif";
         }
-        catch
+        return ".bin";
+    }
+    private static string GetContentTypeFromExtension(string ext)
+    {
+        ext = ext?.ToLowerInvariant() ?? string.Empty;
+        return ext switch
         {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".gif" => "image/gif",
+            _ => "application/octet-stream"
+        };
+    }
+    private static string SanitizeFileName(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return "file";
+        foreach (var c in Path.GetInvalidFileNameChars())
+        {
+            input = input.Replace(c, '_');
+        }
+        return input;
+    }
+    private async Task<bool> CreateNewRecipe(string targetCookbookId, string userId, List<string> created, RecipeImport imported, List<RecipeCreateStep> steps, CancellationToken ct)
+    {
+        var (ok, error, recipe) = await Recipes.CreateAsync(userId, targetCookbookId, imported.Title ?? "Importiertes Rezept", imported.Description, imported.Uri, imported.Portions, steps, ct).ConfigureAwait(false);
+        if (!ok || recipe == null)
+        {
+            Logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);
             return false;
         }
+
+        created.Add(recipe.Id);
+
+        // Attach pictures (if any)
+        if (imported.Pictures != null && imported.Pictures.Length > 0)
+        {
+            for (int i = 0; i < imported.Pictures.Length; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+                var imgBytes = imported.Pictures[i];
+                if (imgBytes == null || imgBytes.Length == 0) continue;
+
+                var ext = GetImageExtension(imgBytes);
+                var imgFileName = SanitizeFileName($"{imported.Title ?? "image"}-{i + 1}{ext}");
+                var contentType = GetContentTypeFromExtension(ext);
+                await Recipes.AddImageAsync(userId, recipe.Id, new MemoryStream(imgBytes), imgFileName, contentType, ct).ConfigureAwait(false);
+            }
+        }
+
+        return true;
     }
 
-    private async Task<KeyValuePair<string, RecipeImport[]>> ReadRecipeCollection(string fileName, string responseContent, CancellationToken ct)
+    protected readonly IRecipeService Recipes = recipes;
+    protected readonly ILogger<UrlReceiptImportHandler> Logger = logger;
+    protected abstract Task<KeyValuePair<string, RecipeImport[]>> ReadSingleRecipe(string fileName, string responseContent);    
+    protected virtual Task<string[]> ExtractRecipeUriCollection(string html)
+    {
+        return Task.FromResult(new string[0]);
+    }
+    protected virtual async Task<KeyValuePair<string, RecipeImport[]>> ReadRecipeCollection(string fileName, string responseContent, CancellationToken ct)
     {
         List<RecipeImport> results = new List<RecipeImport>();
-        var uris = await ExtractUris(responseContent);
+        var uris = await ExtractRecipeUriCollection(responseContent);
         foreach (var uri in uris)
         {
             ct.ThrowIfCancellationRequested();
@@ -384,72 +403,26 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
         }
         return new KeyValuePair<string, RecipeImport[]>(fileName, results.ToArray());
     }
-
-    private async Task<KeyValuePair<string, RecipeImport[]>> ReadSingleRecipe(string fileName, string responseContent)
+    public async Task<bool> CanHandleAsync(Stream stream, string fileName, CancellationToken ct = default)
     {
+        if (lastReader is not null)
+            lastReader.Dispose();
+        lastReader = new StreamReader(stream);
         try
         {
-            var headContent = FindTag(responseContent, false, "head");
-
-            RecipeImport recipe = new RecipeImport();
-            recipe.Title = WebUtility.HtmlDecode(FindTagValue(headContent, "title").Split('|').First());
-            if (string.IsNullOrWhiteSpace(recipe.Title))
-                recipe.Title = WebUtility.HtmlDecode(FindTagValue(headContent, "meta|name=og:title").Split('|').First());
-            recipe.Uri = WebUtility.HtmlDecode(FindTagValue(headContent, "meta|property=og:url").Split('|').First());
-
-            responseContent = FindTagValue(responseContent, "body", "main");
-            var contentTitle = FindTagValue(responseContent, "h1");
-            if (!string.IsNullOrWhiteSpace(contentTitle))
-                recipe.Title = contentTitle;
-            var articles = CollectTags(responseContent, "section");
-            if (articles.Length == 0)
-                throw new ApplicationException("no sections");
-
-            recipe.Pictures = await FindPicturesAsync(headContent);
-            recipe.Ingredients = FindIngredients(articles);
-            if (recipe.Ingredients == null)
-                throw new ApplicationException("no ingredients");
-            recipe.Instructions = FindInstructions(articles);
-            if (recipe.Instructions == null)
-                throw new ApplicationException("no instructions");
-
-            recipe.WorkTime = (int)ParseGermanTimeSpan(FindMetaValue(responseContent, "Arbeitszeit")).TotalMinutes;
-
-            return new KeyValuePair<string, RecipeImport[]>(fileName, new RecipeImport[] { recipe });
+            var responseContent = lastReader.ReadToEnd();
+            _lastRecipe = await ReadSingleRecipe(fileName, responseContent);
+            if (string.IsNullOrWhiteSpace(_lastRecipe.Key))
+                _lastRecipe = await ReadRecipeCollection(fileName, responseContent, ct);
+            if (string.IsNullOrWhiteSpace(_lastRecipe.Key) || _lastRecipe.Value == null || _lastRecipe.Value.Length == 0)
+                throw new Exception("no recipes found");
+            return true;
         }
         catch
         {
-            return new KeyValuePair<string, RecipeImport[]>();
+            return false;
         }
     }
-
-    public static TimeSpan ParseGermanTimeSpan(string input)
-    {
-        var pattern = @"(?:(\d+)\s*Std\.)?\s*(?:(\d+)\s*Min\.)?";
-        var match = Regex.Match(input, pattern);
-
-        if (!match.Success)
-            return TimeSpan.Zero;
-
-        int hours = match.Groups[1].Success ? int.Parse(match.Groups[1].Value) : 0;
-        int minutes = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
-
-        return new TimeSpan(hours, minutes, 0);
-    }
-
-    private string FindMetaValue(string responseContent, string name = "")
-    {
-        var labels = CollectTags(responseContent, "div|class=recipe-meta-property-group__labels");
-        foreach (var div in labels)
-        {
-            var value = FindTagValue(div, "div|class=recipe-meta-property-group__value").Trim();
-            var title = FindTagValue(div, "div|class=recipe-meta-property-group__title").Trim();
-            if (title == name)
-                return value;
-        }
-        return string.Empty;
-    }
-
     public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string targetCookbookId, string userId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(fileName))
@@ -458,7 +431,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
         // Only accept if CanHandleAsync parsed this file earlier and cached result
         if (_lastRecipe.Key != fileName || _lastRecipe.Value == null || _lastRecipe.Value.Length == 0)
         {
-            _logger.LogInformation("No cached parse result for {FileName}", fileName);
+            Logger.LogInformation("No cached parse result for {FileName}", fileName);
             return new ImportResult(false, "No cached parse result for this filename. Call CanHandleAsync first.", new List<string>());
         }
 
@@ -507,13 +480,13 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
                         RequiresOvernightRest: false,
                         Ingredients: stepIngredients)
                 };
-                var existingRecipe = await _recipes.FindByUri(userId, imported.Uri ?? string.Empty, ct).ConfigureAwait(false);
+                var existingRecipe = await Recipes.FindByUri(userId, imported.Uri ?? string.Empty, ct).ConfigureAwait(false);
                 if (existingRecipe is not null)
                 {
-                    var (ok, error) = await _recipes.UpdateAsync(userId, existingRecipe.Id, imported.Title, imported.Description, steps, ct).ConfigureAwait(false);
+                    var (ok, error) = await Recipes.UpdateAsync(userId, existingRecipe.Id, imported.Title, imported.Description, steps, ct).ConfigureAwait(false);
                     if (!ok)
                     {
-                        _logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);
+                        Logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);
                         continue;
                     }
 
@@ -529,7 +502,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
                             var ext = GetImageExtension(imgBytes);
                             var imgFileName = SanitizeFileName($"{imported.Title ?? "image"}-{i + 1}{ext}");
                             var contentType = GetContentTypeFromExtension(ext);
-                            await _recipes.AddImageAsync(userId, existingRecipe.Id, new MemoryStream(imgBytes), imgFileName, contentType, ct).ConfigureAwait(false);
+                            await Recipes.AddImageAsync(userId, existingRecipe.Id, new MemoryStream(imgBytes), imgFileName, contentType, ct).ConfigureAwait(false);
                         }
                     }
                     continue;
@@ -543,7 +516,7 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while importing Chefkoch recipe {FileName}", fileName);
+                Logger.LogError(ex, "Error while importing Chefkoch recipe {FileName}", fileName);
             }
         }
 
@@ -554,70 +527,270 @@ public class UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptI
         }
         return new ImportResult(true, null, created);
     }
-
-    private async Task<bool> CreateNewRecipe(string targetCookbookId, string userId, List<string> created, RecipeImport imported, List<RecipeCreateStep> steps, CancellationToken ct)
+}
+public class SecondSourceUrlReceiptImportHandler : BaseUrlReceiptImportHandler, IImportHandler
+{
+    public SecondSourceUrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptImportHandler> logger) : base (recipes, logger)
     {
-        var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, imported.Title ?? "Importiertes Rezept", imported.Description, imported.Uri, imported.Portions, steps, ct).ConfigureAwait(false);
-        if (!ok || recipe == null)
+    }
+
+    protected override async Task<KeyValuePair<string, RecipeImport[]>> ReadSingleRecipe(string fileName, string responseContent)
+    {
+        try
         {
-            _logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);
-            return false;
+            RecipeImport recipe = new RecipeImport();
+            recipe.Title = FindTitle(responseContent);
+            recipe.Uri = FindUrl(responseContent);
+            recipe.Pictures = await FindPicturesAsync(responseContent);
+
+            responseContent = FindTagValue(responseContent, "body", "main");
+            var articles = CollectTags(responseContent, "section");
+            if (articles.Length == 0)
+                throw new ApplicationException("no sections");
+            recipe.Ingredients = FindIngredients(articles);
+            if (recipe.Ingredients == null)
+                throw new ApplicationException("no ingredients");
+            recipe.Instructions = FindInstructions(articles);
+            if (string.IsNullOrWhiteSpace(recipe.Instructions))
+                throw new ApplicationException("no instructions");
+
+            recipe.WorkTime = (int)ParseGermanTimeSpan(FindMetaValue(articles)).TotalMinutes;
+
+            return new KeyValuePair<string, RecipeImport[]>(fileName, new RecipeImport[] { recipe });
         }
-
-        created.Add(recipe.Id);
-
-        // Attach pictures (if any)
-        if (imported.Pictures != null && imported.Pictures.Length > 0)
+        catch
         {
-            for (int i = 0; i < imported.Pictures.Length; i++)
-            {
-                ct.ThrowIfCancellationRequested();
-                var imgBytes = imported.Pictures[i];
-                if (imgBytes == null || imgBytes.Length == 0) continue;
+            return new KeyValuePair<string, RecipeImport[]>();
+        }
+    }
 
-                var ext = GetImageExtension(imgBytes);
-                var imgFileName = SanitizeFileName($"{imported.Title ?? "image"}-{i + 1}{ext}");
-                var contentType = GetContentTypeFromExtension(ext);
-                await _recipes.AddImageAsync(userId, recipe.Id, new MemoryStream(imgBytes), imgFileName, contentType, ct).ConfigureAwait(false);
+    private string FindMetaValue(string[] articles)
+    {
+        List<KeyValuePair<int, string>> resultSet = new List<KeyValuePair<int, string>>();
+        foreach (var section in articles)
+        {
+            var innerSections = CollectTags(section, "section").Where(d => d.Contains("recipe-duration-text"));
+            foreach (var innerSection in innerSections)
+            {
+                var table = FindTag(innerSection, false, "ul");
+                var rows = CollectTags(table, "li");
+                var currentItems = rows.Select(row =>
+                {
+                    var node = CreateNode(row);
+                    if (node.InnerText.Contains("Vorbereitungszeit"))
+                    {
+                        var timeText = node.InnerText.Replace("Vorbereitungszeit", "").Trim();
+                        return new KeyValuePair<int, string>(1, timeText);
+                    }
+                    if (node.InnerText.Contains("Zubereitungszeit"))
+                    {
+                        var timeText = node.InnerText.Replace("Zubereitungszeit", "").Trim();
+                        return new KeyValuePair<int, string>(2, timeText);
+                    }
+                    if (node.InnerText.Contains("Gesamtzeit"))
+                    {
+                        var timeText = node.InnerText.Replace("Gesamtzeit", "").Trim();
+                        return new KeyValuePair<int, string>(99, timeText);
+                    }                    
+                    return new KeyValuePair<int, string>(0, null);
+                })
+                                        .Where(i => i.Key !=  0)
+                                        .ToArray();
+                resultSet.AddRange(currentItems);
             }
         }
-
-        return true;
+        return resultSet.OrderByDescending(i => i.Key).FirstOrDefault().Value ?? string.Empty;
     }
 
-    private static string GetImageExtension(byte[] bytes)
+    private string FindInstructions(string[] articles)
     {
-        if (bytes.Length >= 4)
+        var result = "";        
+        foreach (var section in articles)
         {
-            // JPEG: FF D8
-            if (bytes[0] == 0xFF && bytes[1] == 0xD8) return ".jpg";
-            // PNG: 89 50 4E 47
-            if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) return ".png";
-            // GIF: 47 49 46 38
-            if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38) return ".gif";
+            var innerSections = CollectTags(section.Remove(0, 1), "section").Where(d => d.Substring(0, d.IndexOf(">")).Contains("recipe-steps"));
+            foreach (var innerSection in innerSections)
+            {
+                var node = CreateNode(innerSection);
+                var innerText = ParseNodesTexts(node);
+                result += innerText;
+            }
+            if (innerSections.Any())
+                result += "\r\n\r\n";
         }
-        return ".bin";
+        return result;
     }
 
-    private static string GetContentTypeFromExtension(string ext)
+    private string ParseNodesTexts(XmlNode? node)
     {
-        ext = ext?.ToLowerInvariant() ?? string.Empty;
-        return ext switch
-        {
-            ".png" => "image/png",
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".gif" => "image/gif",
-            _ => "application/octet-stream"
-        };
+        if (node.ChildNodes.Count == 0)
+            return node.InnerText;
+        var result = "";
+        foreach (var childNode in node.ChildNodes.OfType<XmlNode>().Where(node => node.Name != "style"))
+            result += ParseNodesTexts(childNode) + "\r\n";
+        return result;
     }
 
-    private static string SanitizeFileName(string input)
+    private RecipeIngredients FindIngredients(string[] articles)
     {
-        if (string.IsNullOrEmpty(input)) return "file";
-        foreach (var c in Path.GetInvalidFileNameChars())
+        var result = new RecipeIngredients() { Items = new RecipeIngredient[0] };
+        foreach (var section in articles)
         {
-            input = input.Replace(c, '_');
+            var innerSections = CollectTags(section, "section").Where(d => d.Contains("recipe-ingredients"));
+            foreach (var innerSection in innerSections)
+            {
+                var sectionTitle = FindTagValue(innerSection, "h5");
+                var table = FindTag(innerSection, false, "table");
+                var rows = CollectTags(table, "tr");
+                var currentItems = rows.Select(row =>
+                {
+                    var node = CreateNode(row);
+                    var quantityCell = node.ChildNodes.OfType<XmlNode>().FirstOrDefault(n => n.Name == "td")?.ChildNodes.OfType<XmlNode>().FirstOrDefault(n => n.Name == "p");
+                    var nameCell = node.ChildNodes.OfType<XmlNode>().Skip(1).FirstOrDefault(n => n.Name == "td")?.ChildNodes.OfType<XmlNode>().FirstOrDefault(n => n.Name == "p");
+                    if (quantityCell is null || nameCell is null)
+                        return null;
+                    var ingredient = new RecipeIngredient()
+                    {
+                        Quantity = quantityCell.InnerText,
+                        Name = GetNodeText(nameCell)
+                    };
+                    return ingredient;
+                })
+                                        .Where(i => i is not null)
+                                        .ToArray();
+                result.Items = result.Items.Concat(currentItems).ToArray();
+            }
         }
-        return input;
+        return result;
+    }
+
+    protected override Task<string[]> ExtractRecipeUriCollection(string html)
+    {
+        return base.ExtractRecipeUriCollection(html);
+    }
+}
+public class UrlReceiptImportHandler : BaseUrlReceiptImportHandler, IImportHandler
+{
+    public UrlReceiptImportHandler(IRecipeService recipes, ILogger<UrlReceiptImportHandler> logger) : base (recipes, logger)
+    {
+    }
+    protected override string FindTitle(string html)
+    {
+        html = FindTagValue(html, "body", "main");
+        var contentTitle = FindTagValue(html, "h1");
+        if (!string.IsNullOrWhiteSpace(contentTitle))
+            return contentTitle;
+        return base.FindTitle(html);
+    }
+    protected override async Task<byte[][]> FindPicturesAsync(string html)
+    {
+        var tags = CollectTags(html, "div|class=ds-slider__item").Where(t => t.Contains("ds-slider-image__image-wrap")).SelectMany(t => CollectTagValues(t, "img")).ToArray();
+        List<byte[]> imageDataCollection = new List<byte[]>();
+        foreach (var imageUri in tags)
+            try
+            {
+                var pictureTempPath = await DownloadFileAsync(imageUri);
+                try
+                {
+                    byte[] imageArray = File.ReadAllBytes(pictureTempPath);
+                    imageDataCollection.Add(imageArray);
+                }
+                finally
+                {
+                    File.Delete(pictureTempPath);
+                }
+            }
+            catch { }
+        return imageDataCollection.Concat(await base.FindPicturesAsync(html)).ToArray();
+    }
+    private RecipeIngredients FindIngredients(string[] articles)
+    {
+        RecipeIngredients ingredients = new RecipeIngredients();
+        var ingredientsArticle = articles.FirstOrDefault(article => article.Contains("recipe-ingredients"));
+        if (ingredientsArticle == null)
+            return null;
+        ingredients.Quantity = int.Parse(FindTagValue(ingredientsArticle, "input"));
+        var ingredientTable = FindTag(ingredientsArticle, false, "table");
+        var rows = CollectTags(ingredientTable, "tr");
+        ingredients.Items = rows.Select(row =>
+        {
+            var node = CreateNode(row);
+            var quantityCell = node.ChildNodes.OfType<XmlNode>().FirstOrDefault(n => n.Name == "td");
+            var nameCell = node.ChildNodes.OfType<XmlNode>().Skip(1).FirstOrDefault(n => n.Name == "td");
+
+            if (quantityCell is null || nameCell is null)
+                return null;
+
+            var ingredient = new RecipeIngredient()
+            {
+                Quantity = quantityCell.InnerText,
+                Name = GetNodeText(nameCell)
+            };
+            return ingredient;
+        })
+                                .Where(i => i is not null)
+                                .ToArray();
+        return ingredients;
+    }
+    private string FindInstructions(string[] articles)
+    {
+        var instructionArticle = articles.FirstOrDefault(article => article.Contains("Zubereitung"));
+        if (instructionArticle == null)
+            return null;
+        var tags = CollectTags(instructionArticle, "div");
+        var instructionRows = tags.Where(r => r.Contains("instruction-row")).ToList();
+        return string.Join("\r\n", instructionRows.Select(r =>
+        {
+            var textTags = CollectTags(r, "span").Where(t => t.Contains("instruction__text"));
+            return string.Join(" ", textTags.Select(t =>
+            {
+                t = t.Remove(0, t.IndexOf(">") + 1);
+                t = t.Substring(0, t.IndexOf("<"));
+                return t;
+            }));
+        }));
+    }
+    private string FindMetaValue(string responseContent, string name = "")
+    {
+        var labels = CollectTags(responseContent, "div|class=recipe-meta-property-group__labels");
+        foreach (var div in labels)
+        {
+            var value = FindTagValue(div, "div|class=recipe-meta-property-group__value").Trim();
+            var title = FindTagValue(div, "div|class=recipe-meta-property-group__title").Trim();
+            if (title == name)
+                return value;
+        }
+        return string.Empty;
+    }
+
+    protected override async Task<KeyValuePair<string, RecipeImport[]>> ReadSingleRecipe(string fileName, string responseContent)
+    {
+        try
+        {
+            var headContent = FindTag(responseContent, false, "head");
+
+            RecipeImport recipe = new RecipeImport();
+            recipe.Title = FindTitle(responseContent);
+            recipe.Uri = FindUrl(responseContent);
+            recipe.Pictures = await FindPicturesAsync(responseContent);
+
+            responseContent = FindTagValue(responseContent, "body", "main");            
+            var articles = CollectTags(responseContent, "section");
+            if (articles.Length == 0)
+                throw new ApplicationException("no sections");            
+            recipe.Ingredients = FindIngredients(articles);
+            if (recipe.Ingredients == null)
+                throw new ApplicationException("no ingredients");
+            recipe.Instructions = FindInstructions(articles);
+            if (recipe.Instructions == null)
+                throw new ApplicationException("no instructions");
+
+            recipe.WorkTime = (int)ParseGermanTimeSpan(FindMetaValue(responseContent, "Arbeitszeit")).TotalMinutes;
+
+            return new KeyValuePair<string, RecipeImport[]>(fileName, new RecipeImport[] { recipe });
+        }
+        catch
+        {
+            return new KeyValuePair<string, RecipeImport[]>();
+        }
     }
 }

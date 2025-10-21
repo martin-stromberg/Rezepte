@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rezepte.Web.Data;
 
@@ -10,9 +11,11 @@ using Rezepte.Web.Data;
 namespace Rezepte.Web.Migrations
 {
     [DbContext(typeof(RezepteDbContext))]
-    partial class RezepteDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251019063026_ExtendUserSettingsAndAppSettings")]
+    partial class ExtendUserSettingsAndAppSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
@@ -59,58 +62,6 @@ namespace Rezepte.Web.Migrations
                     b.HasKey("Key");
 
                     b.ToTable("AppSettings");
-                });
-
-            modelBuilder.Entity("Rezepte.Web.Entities.CalendarEvent", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Portions")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(1);
-
-                    b.Property<string>("RecipeId")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Recurrence")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<int>("RecurrenceDays")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<TimeSpan>("TimeOfDay")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecipeId");
-
-                    b.HasIndex("UserId", "StartDate");
-
-                    b.ToTable("CalendarEvents");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.Cookbook", b =>
@@ -363,25 +314,12 @@ namespace Rezepte.Web.Migrations
                     b.Property<bool>("GoogleVisionEnabled")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("RequireAiConfirmation")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("UserId");
 
                     b.HasIndex("UserId")
                         .IsUnique();
 
                     b.ToTable("UserSettings");
-                });
-
-            modelBuilder.Entity("Rezepte.Web.Entities.CalendarEvent", b =>
-                {
-                    b.HasOne("Rezepte.Web.Entities.Recipe", "Recipe")
-                        .WithMany()
-                        .HasForeignKey("RecipeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Recipe");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.RecipeCookbook", b =>

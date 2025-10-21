@@ -15,7 +15,7 @@
 
     <div class="mb-3">
         <label class="form-label">Wiederherstellen (ZIP-Datei)</label>
-        <InputFile OnChange="OnFileSelected" />
+        <InputFile id="restoreFile" OnChange="OnFileSelected" />
         @if (selectedFileName != null)
         {
             <div class="mt-2">
@@ -42,7 +42,6 @@
 
 @code {
     private IBrowserFile? selectedFile;
-    // removed persisted Stream field - Open the stream only when performing the upload
     private string? selectedFileName;
     private bool isBusy;
     private string? message;
@@ -86,12 +85,12 @@
         }
     }
 
-    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    private Task OnFileSelected(InputFileChangeEventArgs e)
     {
         selectedFile = e.File;
         selectedFileName = selectedFile?.Name;
-        // Update UI
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task RestoreAsync()
@@ -102,35 +101,20 @@
             return;
         }
 
-        // optional: JS confirm before destructive restore
-        var ok = await JS.InvokeAsync<bool>("confirm", "Wirklich wiederherstellen? Bestehende Daten werden überschrieben.");
-        if (!ok) return;
+        var okConfirm = await JS.InvokeAsync<bool>("confirm", "Wirklich wiederherstellen? Bestehende Daten werden überschrieben.");
+        if (!okConfirm) return;
 
         isBusy = true;
         message = null;
         try
         {
-            // Open the IBrowserFile stream only when performing the upload.
-            var maxAllowedSize = 1024L * 1024L * 500; // 500 MB; adjust as needed
-            var stream = selectedFile.OpenReadStream(maxAllowedSize);
+            // Use absolute (root-based) API path so fetch resolves correctly from any route
+            var uploadUrl = "/api/admin/exports/restore";
+            var success = await JS.InvokeAsync<bool>("backupRestore.uploadFileToApi", "restoreFile", uploadUrl);
 
-            using var content = new MultipartFormDataContent();
-            using var streamContent = new StreamContent(stream);
-            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedFile.ContentType ?? "application/zip");
-            content.Add(streamContent, "file", selectedFile.Name);
-
-            var response = await Api.Http.PostAsync("api/admin/exports/restore", content).ConfigureAwait(false);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            if (!success)
             {
-                message = "Nicht angemeldet oder keine Berechtigung (401).";
-                return;
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                message = $"Wiederherstellung fehlgeschlagen: {response.StatusCode} – {body}";
+                message = "Wiederherstellung fehlgeschlagen: Upload vom Browser an API nicht erfolgreich.";
                 return;
             }
 

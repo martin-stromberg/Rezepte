@@ -1,0 +1,67 @@
+.create-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 2000;
+    padding: 1rem; /* Abstand zum Rand auf kleinen Bildschirmen */
+}
+
+.create-menu {
+    width: min(720px, 100%);
+    max-width: 720px;
+    max-height: 90vh;
+    overflow: auto;
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    background: var(--bs-body-bg, #fff);
+    margin: 0;
+}
+
+/* Karte innerhalb der Komponente etwas kompakter */
+.create-menu .card {
+    border: none;
+    margin: 0;
+    background: transparent;
+}
+
+/* Responsives Verhalten */
+@media (max-width: 576px) {
+    .create-menu {
+        width: calc(100% - 24px);
+        max-width: calc(100% - 24px);
+        border-radius: 8px;
+        max-height: 95vh;
+    }
+}
+
+/* Visuelle Feinheiten */
+.create-menu .card-body {
+    padding: 1rem 1.25rem;
+}
+
+.create-menu .card-title {
+    margin-bottom: 0.5rem;
+}
+
+/* Scoped CSS for CreateRecipeDialog - ensures confirmation appears as top overlay */
+.confirm-overlay {
+    position: fixed;
+    inset: 0; /* top:0; left:0; right:0; bottom:0; */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.45);
+    z-index: 12000; /* deutlich über normalen Dialogen */
+    pointer-events: auto;
+}
+
+.confirm-box {
+    z-index: 12001;
+    max-width: 560px;
+    width: min(95%, 560px);
+    margin: 0 1rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
