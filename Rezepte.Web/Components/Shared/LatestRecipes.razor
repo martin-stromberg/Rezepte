@@ -1,0 +1,63 @@
+﻿@using Microsoft.AspNetCore.Components
+@inject ApiClient Api
+
+@if (!isLoading)
+    if (recipes is null || recipes.Count == 0)
+    {
+        <div class="alert alert-info">Noch keine Rezepte vorhanden.</div>
+    }
+    else
+    {
+        <h2>Zuletzt hinzugefügte Rezepte</h2>
+        <div class="recipe-grid">
+            @foreach (var recipe in recipes)
+            {
+                <a class="recipe-card" href="@($"/recipes/{recipe.Id}")" title="@recipe.Title">
+                    @if (!string.IsNullOrWhiteSpace(recipe.ImageUrl))
+                    {
+                        <img src="@recipe.ImageUrl" alt="Bild zu @recipe.Title" />
+                    }
+                    else
+                    {
+                        <div class="no-image">📷</div>
+                    }
+                    <div class="recipe-title">@recipe.Title</div>
+                </a>
+            }
+        </div>
+    }
+
+@code {
+    private List<RecipeListItemDto>? recipes;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    public async Task RefreshAsync()
+    {
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        try
+        {
+            recipes = await Api.Http.GetFromJsonAsync<List<RecipeListItemDto>>("api/recipes/latest");
+        }
+        catch
+        {
+            recipes = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private record RecipeListItemDto(string Id, string Title, string? ImageUrl);
+}
