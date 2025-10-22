@@ -59,6 +59,7 @@
 | FR-021    | 🕓 Offen      | Administrator‑Export: Admin kann vollständigen Datenexport durchführen       | API: `POST /api/admin/exports` (Admin‑Role) startet asynchronen Export‑Job. |
 | FR-022    | ✅ Erledigt   | Importfunktion: Upload von Exportformat zur Erstellung neuer Rezepte         | API: session‑basierte Import‑Flows implementiert. Endpunkte: URL‑Start `POST /api/cookbooks/import-session/start`, File‑Start `POST /api/cookbooks/import-session/start-file` (je mit/ohne `cookbookId` Varianten). `ImportOrchestrator` verwaltet Import‑Sessions (waiting/confirm/result). Client (Blazor) pollt Status, zeigt interaktive Bestätigungs‑Overlay; Fehler werden freundlich (lokalisiert, gekürzt) angezeigt. |
 | FR-023    | ✅ Erledigt   | Suche nach Rezepten                                                          | UI & API zum Finden von Rezepten anhand mehrerer Kriterien. (siehe Detailbeschreibung weiter unten) |
+| FR-024    | ✅ Erledigt   | Zufallsrezepte aus Kochbüchern anzeigen                                      | `Components/Shared/RandomFromCookbooks.razor` zeigt pro Cookbook ein zufälliges Rezept (responsive, skeletons während Laden). Nutzt API `GET /api/cookbooks` und `GET /api/recipes/by-cookbook/{id}`; clientseitiges JS‑Interop `wwwroot/js/randomFromCookbooks.js` zur Spaltenberechnung. Empfehlung: UI‑Tests / E2E‑Test für Responsive‑Verhalten und Skeleton‑Count. |
 | AUTH-005  | 🕓 Offen      | Autorisierung für Export/Import                                              | Benutzer‑Export: eigener Nutzer. Admin‑Export/All‑Data‑Import: nur `IsAdmin==true`. |
 | NFR-010   | 🕓 Offen      | Performance / Skalierung für Exporte                                         | Große Exporte asynchron; Streaming/Chunked ZIP‑Erzeugung; Rate‑Limit/Queue für Admin‑Exporte. |
 | NFR-011   | 🕓 Offen      | Sicherheit / Datenschutz beim Export                                         | PII minimieren; Optionale Verschlüsselung für Admin‑Export; Audit‑Log aller Aktionen. |
@@ -77,12 +78,13 @@
   - `CreateRecipeDialog` (komponente) zeigt interaktive Bestätigungs‑Overlay statt browser `confirm()`; Overlay ist fokussiert, z‑Index/CSS angepasst.
   - URL‑Input erhält Fokus beim Öffnen; Datei‑Uploads starten nun Session‑Flow statt direkten Sync‑Import.
   - `Components/Shared/PhotoOverlay.razor` zeigt nun quadratische Thumbnails in einem Grid; Klick öffnet ein eigenständiges Großbild‑Overlay (`large-backdrop` / `large-content`). Scoped CSS liegt in `PhotoOverlay.razor.css`. `OnShowLargeImage` EventCallback bleibt verfügbar.
+  - `Components/Shared/RandomFromCookbooks.razor` wurde hinzugefügt: wählt responsive eine Anzahl Kochbücher aus und lädt pro Cookbook ein zufälliges Rezept. Implementiert Skeleton‑Platzhalter, responsive Spaltenberechnung via `wwwroot/js/randomFromCookbooks.js` und Resize‑Handler. Empfehlung: optionaler Server‑Endpoint, der die zufällige Auswahl serverseitig liefert, würde Roundtrips reduzieren.
 - Fehler‑UX:
   - Technische Exceptions (z. B. Google/Gemini errors) werden serverseitig durch `ImportExceptionHelper.BeautifyExceptionMessage` aufbereitet; volle Details bleiben in Logs, Benutzer sieht kurze, lokalisierte Meldung.
 - Tests / Wartung:
   - Bitte bestehende Import‑Tests anpassen: Orchestrator (singleton) erfordert Scoping in Tests; Handler‑Mocks bleiben Scoped.
   - Empfohlen: Integrationstest für Session‑Flow (start → poll → confirm → result).
-  - UI‑Komponenten (z. B. `PhotoOverlay`) mit bUnit testen; E2E‑Szenarios für Klick→Großansicht empfohlen.
+  - UI‑Komponenten (z. B. `PhotoOverlay`, `RandomFromCookbooks`) mit bUnit testen; E2E‑Szenarios für Klick→Großansicht und Responsive‑Skeletons empfohlen.
 - Security:
   - Endpoints weiterhin autorisiert (Bearer/Cookie). Externe HTTP‑Calls setzen browser‑like Header (UserAgent, Accept, Referrer) um 403‑Risiken zu reduzieren.
 - Migration / Ops:
@@ -102,7 +104,7 @@
   - Antwort: `RecipeSearchResultDto[]` mit `Id, Title, Snippet, PrimaryImageUrl, Cookbooks[], Tags[]`
 - UI:
   - Search‑Box in Navbar (globaler Shortcut `"/"`), eigene Seite `Components/Pages/RecipeSearch.razor` für erweiterte Filter.
-  - Ergebnisse als Liste/Karten mit Paginierung; Highlighting des Snippets.
+  - Ergebnisse als Liste/Karten mit Paginierung; Highlighting des Snippet.
   - Accessibility: ARIA attributes, keyboard navigation, screenreader‑friendly labels.
 - Implementierungsempfehlungen:
   - SQLite: FTS5 nutzen (Virtual Table + Migrations) für gute Volltext‑Performance und Relevanz. Alternativ per EF.Functions.Like bei kleinen DBs.
