@@ -1,0 +1,203 @@
+﻿@using Microsoft.AspNetCore.Components
+@inject ApiClient Api
+@inject IJSRuntime JS
+
+<div class="random-recipes" id="@containerId">
+
+@if (isLoading || (items is not null && items.Count > 0))
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="m-0">Zufallsrezepte aus Ihren Kochbüchern</h3>
+        <div>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="RefreshAsync" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span>Aktualisieren</span>
+                }
+            </button>
+        </div>
+    </div>
+}
+
+@if (isLoading)
+{
+    <div class="random-list">
+        @for (int i = 0; i < skeletonCount; i++)
+        {
+            <div class="random-item">
+                <div class="cookbook-name skeleton skeleton-text" style="width:55%"></div>
+                <div class="small-card skeleton-card">
+                    <div class="skeleton-image skeleton"></div>
+                    <div class="recipe-title skeleton skeleton-text" style="width:70%"></div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else if (!isLoading && items is not null && items.Count > 0)
+{
+    <div class="random-list">
+        @foreach (var it in items)
+        {
+            <div class="random-item">
+                <div class="cookbook-name">@it.Cookbook.Name</div>
+                @if (it.Recipe is null)
+                {
+                    <div class="text-muted small">Kein Rezept in diesem Kochbuch.</div>
+                }
+                else
+                {
+                    <a class="recipe-card small-card" href="@($"/recipes/{it.Recipe.Id}")" title="@it.Recipe.Title">
+                        @if (!string.IsNullOrWhiteSpace(it.Recipe.ImageUrl))
+                        {
+                            <img src="@it.Recipe.ImageUrl" alt="Bild zu @it.Recipe.Title" />
+                        }
+                        else
+                        {
+                            <div class="no-image">📷</div>
+                        }
+                        <div class="recipe-title">@it.Recipe.Title</div>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+}
+</div>
+
+@code {
+    private List<(CookbookDto Cookbook, RecipeListItemDto? Recipe)>? items;
+    private bool isLoading;
+    private int skeletonCount = 1;
+    private readonly string containerId = "randcb_" + System.Guid.NewGuid().ToString("N");
+    private DotNetObjectReference<RandomFromCookbooks>? dotNetRef;
+    private const int MinItemWidth = 220; // entspricht CSS minmax(220px,...)
+    private bool deferredLoad;
+
+    public async Task RefreshAsync()
+    {
+        await LoadAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        items = new();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+        }
+
+        try
+        {
+            // try to compute visible columns first so skeletons match layout
+            var cols = await GetVisibleColumnsAsync();
+            skeletonCount = Math.Max(1, cols);
+
+            await JS.InvokeVoidAsync("randomFromCookbooks.registerResizeHandler", dotNetRef, containerId, MinItemWidth);
+
+            if (firstRender || deferredLoad)
+            {
+                deferredLoad = false;
+                await LoadAsync();
+            }
+        }
+        catch (JSException)
+        {
+            deferredLoad = true;
+        }
+        catch
+        {
+            deferredLoad = true;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnBrowserResize()
+    {
+        await RefreshAsync();
+    }
+
+    private async Task<int> GetVisibleColumnsAsync()
+    {
+        try
+        {
+            var cols = await JS.InvokeAsync<int>("randomFromCookbooks.getVisibleColumns", containerId, MinItemWidth);
+            return Math.Max(1, cols);
+        }
+        catch
+        {
+            return 1;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        items = new();
+        StateHasChanged();
+
+        try
+        {
+            var columns = await GetVisibleColumnsAsync();
+            skeletonCount = Math.Max(1, columns);
+
+            var cookbooks = await Api.Http.GetFromJsonAsync<List<CookbookDto>>("api/cookbooks");
+            if (cookbooks == null || cookbooks.Count == 0)
+            {
+                items = new();
+                return;
+            }
+
+            var selected = cookbooks.OrderBy(_ => Random.Shared.Next()).Take(columns).ToList();
+
+            foreach (var cb in selected)
+            {
+                try
+                {
+                    var list = await Api.Http.GetFromJsonAsync<List<RecipeListItemDto>>($"api/recipes/by-cookbook/{cb.Id}");
+                    RecipeListItemDto? pick = null;
+                    if (list != null && list.Count > 0)
+                    {
+                        var idx = Random.Shared.Next(list.Count);
+                        pick = list[idx];
+                    }
+                    items.Add((cb, pick));
+                }
+                catch
+                {
+                    items.Add((cb, null));
+                }
+            }
+        }
+        catch
+        {
+            items = null;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("randomFromCookbooks.unregisterResizeHandler", containerId);
+        }
+        catch { }
+        dotNetRef?.Dispose();
+    }
+
+    private record CookbookDto(string Id, string Name);
+    private record RecipeListItemDto(string Id, string Title, string? ImageUrl, string? Description);
+}
