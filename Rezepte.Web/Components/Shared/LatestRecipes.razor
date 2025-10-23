@@ -1,14 +1,28 @@
 ﻿@using Microsoft.AspNetCore.Components
 @inject ApiClient Api
+@inject IJSRuntime JS
 
-@if (!isLoading)
-    if (recipes is null || recipes.Count == 0)
+<div class="latest-recipes" id="@containerId">
+    @if (isLoading)
+    {
+        <h3>Zuletzt hinzugefügte Rezepte</h3>
+        <div class="recipe-grid">
+            @for (int i = 0; i < skeletonCount; i++)
+            {
+                <a class="recipe-card skeleton-card" role="presentation">
+                    <div class="skeleton-image skeleton"></div>
+                    <div class="recipe-title skeleton skeleton-text" style="width:70%"></div>
+                </a>
+            }
+        </div>
+    }
+    else if (recipes is null || recipes.Count == 0)
     {
         <div class="alert alert-info">Noch keine Rezepte vorhanden.</div>
     }
     else
     {
-        <h2>Zuletzt hinzugefügte Rezepte</h2>
+        <h3>Zuletzt hinzugefügte Rezepte</h3>
         <div class="recipe-grid">
             @foreach (var recipe in recipes)
             {
@@ -26,28 +40,93 @@
             }
         </div>
     }
+</div>
 
 @code {
     private List<RecipeListItemDto>? recipes;
     private bool isLoading = true;
+    private int skeletonCount = 3;
+    private readonly string containerId = "latestrec_" + System.Guid.NewGuid().ToString("N");
+    private DotNetObjectReference<LatestRecipes>? dotNetRef;
+    private const int MinItemWidth = 220; // entspricht CSS minmax(220px,...)
+    private bool deferredLoad;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
+    {
+        recipes = new();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+        }
+
+        try
+        {
+            var cols = await GetVisibleColumnsAsync();
+            // 3 Reihen => insgesamt cols * 3 Elemente
+            var desired = Math.Max(1, cols) * 3;
+            skeletonCount = desired;
+
+            await JS.InvokeVoidAsync("randomFromCookbooks.registerResizeHandler", dotNetRef, containerId, MinItemWidth);
+
+            if (firstRender || deferredLoad)
+            {
+                deferredLoad = false;
+                await LoadAsync();
+            }
+        }
+        catch (JSException)
+        {
+            // prerender / JS not available yet -> try later
+            deferredLoad = true;
+        }
+        catch
+        {
+            deferredLoad = true;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnBrowserResize()
     {
         await LoadAsync();
+    }
+
+    private async Task<int> GetVisibleColumnsAsync()
+    {
+        try
+        {
+            var cols = await JS.InvokeAsync<int>("randomFromCookbooks.getVisibleColumns", containerId, MinItemWidth);
+            return Math.Max(1, cols);
+        }
+        catch
+        {
+            return 1;
+        }
     }
 
     public async Task RefreshAsync()
     {
         await LoadAsync();
-        StateHasChanged();
     }
 
     private async Task LoadAsync()
     {
         isLoading = true;
+        recipes = new();
+        StateHasChanged();
+
         try
         {
-            recipes = await Api.Http.GetFromJsonAsync<List<RecipeListItemDto>>("api/recipes/latest");
+            var cols = await GetVisibleColumnsAsync();
+            var count = Math.Max(1, cols) * 3;
+            skeletonCount = count;
+
+            // API supports ?count parameter
+            recipes = await Api.Http.GetFromJsonAsync<List<RecipeListItemDto>>($"api/recipes/latest?count={count}");
         }
         catch
         {
@@ -56,7 +135,18 @@
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("randomFromCookbooks.unregisterResizeHandler", containerId);
+        }
+        catch { }
+        dotNetRef?.Dispose();
     }
 
     private record RecipeListItemDto(string Id, string Title, string? ImageUrl);
