@@ -47,7 +47,7 @@ public class SessionController : ControllerBase
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties
         {
             IsPersistent = dto.RememberMe,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(8)
         });
 
         // Issue API token (JWT) and cache by user; include role claim if present
