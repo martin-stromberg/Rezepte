@@ -35,6 +35,10 @@ public class SettingsController : ControllerBase
         var globalGoogle = await _settings.GetGlobalGoogleVisionEnabledAsync(ct);
         var globalGemini = await _settings.GetGlobalGeminiEnabledAsync(ct);
 
+        var globalMaxHour = await _settings.GetGlobalMaxRequestsPerHourAsync(ct);
+        var globalMaxDay = await _settings.GetGlobalMaxRequestsPerDayAsync(ct);
+        var globalDisableOnLimit = await _settings.GetGlobalDisableOnLimitReachedAsync(ct);
+
         var serviceAccountAvailable = _googleCredentialsProvider.ServiceAccountFileExists();
         var apiKeyAvailable = !string.IsNullOrWhiteSpace(_googleCredentialsProvider.GetGeminiApiKey());
         return Ok(new
@@ -47,7 +51,10 @@ public class SettingsController : ControllerBase
             RequireAiConfirmation = requireConfirm,
             GlobalAiEnabled = global,
             GlobalGoogleVisionEnabled = globalGoogle,
-            GlobalGeminiEnabled = globalGemini
+            GlobalGeminiEnabled = globalGemini,
+            GlobalMaxRequestsPerHour = globalMaxHour,
+            GlobalMaxRequestsPerDay = globalMaxDay,
+            GlobalDisableOnLimitReached = globalDisableOnLimit
         });
     }
 
@@ -99,7 +106,20 @@ public class SettingsController : ControllerBase
         var global = await _settings.GetGlobalAiEnabledAsync(ct);
         var globalGoogle = await _settings.GetGlobalGoogleVisionEnabledAsync(ct);
         var globalGemini = await _settings.GetGlobalGeminiEnabledAsync(ct);
-        return Ok(new { GlobalAiEnabled = global, GlobalGoogleVisionEnabled = globalGoogle, GlobalGeminiEnabled = globalGemini });
+
+        var globalMaxHour = await _settings.GetGlobalMaxRequestsPerHourAsync(ct);
+        var globalMaxDay = await _settings.GetGlobalMaxRequestsPerDayAsync(ct);
+        var globalDisableOnLimit = await _settings.GetGlobalDisableOnLimitReachedAsync(ct);
+
+        return Ok(new
+        {
+            GlobalAiEnabled = global,
+            GlobalGoogleVisionEnabled = globalGoogle,
+            GlobalGeminiEnabled = globalGemini,
+            GlobalMaxRequestsPerHour = globalMaxHour,
+            GlobalMaxRequestsPerDay = globalMaxDay,
+            GlobalDisableOnLimitReached = globalDisableOnLimit
+        });
     }
 
     // Admin: set global ai
@@ -126,6 +146,33 @@ public class SettingsController : ControllerBase
     public async Task<IActionResult> SetGlobalGemini([FromBody] bool enabled, CancellationToken ct)
     {
         await _settings.SetGlobalGeminiEnabledAsync(enabled, ct);
+        return NoContent();
+    }
+
+    // Admin: set max requests per hour (nullable = unlimited)
+    [HttpPut("global/ai/maxrequestsperhour")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SetGlobalMaxRequestsPerHour([FromBody] int? value, CancellationToken ct)
+    {
+        await _settings.SetGlobalMaxRequestsPerHourAsync(value, ct);
+        return NoContent();
+    }
+
+    // Admin: set max requests per day (nullable = unlimited)
+    [HttpPut("global/ai/maxrequestsperday")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SetGlobalMaxRequestsPerDay([FromBody] int? value, CancellationToken ct)
+    {
+        await _settings.SetGlobalMaxRequestsPerDayAsync(value, ct);
+        return NoContent();
+    }
+
+    // Admin: set disable-on-limit flag
+    [HttpPut("global/ai/disableonlimit")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SetGlobalDisableOnLimit([FromBody] bool disable, CancellationToken ct)
+    {
+        await _settings.SetGlobalDisableOnLimitReachedAsync(disable, ct);
         return NoContent();
     }
 }

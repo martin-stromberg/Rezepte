@@ -25,4 +25,14 @@ public interface ISettingsService
     // New: per-user confirmation requirement
     Task<bool> GetUserRequireAiConfirmationAsync(string userId, CancellationToken ct = default);
     Task SetUserRequireAiConfirmationAsync(string userId, bool required, CancellationToken ct = default);
+
+    // New: global limits and behaviour
+    Task<int?> GetGlobalMaxRequestsPerHourAsync(CancellationToken ct = default);
+    Task SetGlobalMaxRequestsPerHourAsync(int? value, CancellationToken ct = default);
+
+    Task<int?> GetGlobalMaxRequestsPerDayAsync(CancellationToken ct = default);
+    Task SetGlobalMaxRequestsPerDayAsync(int? value, CancellationToken ct = default);
+
+    Task<bool> GetGlobalDisableOnLimitReachedAsync(CancellationToken ct = default);
+    Task SetGlobalDisableOnLimitReachedAsync(bool disable, CancellationToken ct = default);
 }

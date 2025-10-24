@@ -38,9 +38,9 @@ public class AIFotoImportHandler : BaseAIImportHandler, IImportHandler
         IOptionsMonitor<AIOptions> aioptions,
         IAiUsageService _aiUsage,
         IMemoryCache cache,
+        IGeminiClient geminiClient,
         ILogger<AIFotoImportHandler> logger,
-        IGoogleCredentialsProvider googleServiceAccountProvider,
-        ISettingsService settings) : base(aioptions, _aiUsage, recipes, googleServiceAccountProvider, settings,logger)
+        ISettingsService settings) : base(aioptions, _aiUsage, recipes, geminiClient, settings,logger)
     {
         this.aioptions = aioptions;
         _cache = cache;
@@ -103,7 +103,7 @@ public class AIFotoImportHandler : BaseAIImportHandler, IImportHandler
     /// <param name="ct">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>An array of <see cref="GeminiClient.AIRecipe"/> objects extracted from the image. Returns an empty array if no
     /// recipes are found.</returns>
-    protected override async Task<GeminiClient.AIRecipe[]> ReadRecipeCollection(string fileName, Stream stream, string responseContent, CancellationToken ct)
+    protected override async Task<AIRecipe[]> ReadRecipeCollection(string fileName, Stream stream, string responseContent, CancellationToken ct)
     {
         byte[] imageBytes = await ReadImage(stream, ct).ConfigureAwait(false);
         var hash = ComputeSha256Hex(imageBytes);
@@ -173,18 +173,35 @@ public class AIFotoImportHandler : BaseAIImportHandler, IImportHandler
         
     private async Task<(bool flowControl, AIRecipe[] recipes)> ReadTextFromImage(Image image, CancellationToken ct)
     {
+        // Check global limits before making the Vision request
+        var allowedVision = await AiUsageService.TryRecordRequestAsync(UserId, "Vision.Image", ct);
+        if (!allowedVision)
+        {
+            _logger.LogWarning("Vision request blocked due to AI limits for user {UserId}", UserId);
+            return (flowControl: false, recipes: new AIRecipe[0]);
+        }
+
         var client = ImageAnnotatorClient.Create();
-        await AiUsageService.RecordRequestAsync(UserId, "Vision.Image.Requests", ct);
         var response = client.DetectDocumentText(image);
         var extractedText = response.Text;
         if (string.IsNullOrWhiteSpace(extractedText))
             return (flowControl: false, recipes: new AIRecipe[0]);
-        await AiUsageService.RecordRequestAsync(UserId, "Vision.Image.Success", ct);
 
-        await AiUsageService.RecordRequestAsync(UserId, "Gemini.Image.Requests", ct);
+        // record success marker (type = Success)
+        await AiUsageService.RecordRequestAsync(UserId, "Vision.Image", AiRequestLogType.Success, ct);
+
+        // Check and record Gemini request
+        var allowedGemini = await AiUsageService.TryRecordRequestAsync(UserId, "Gemini.Image", ct);
+        if (!allowedGemini)
+        {
+            _logger.LogWarning("Gemini request blocked due to AI limits for user {UserId}", UserId);
+            return (flowControl: false, recipes: new AIRecipe[0]);
+        }
+
         var gemini = CreateGeminiClient();
         var resultContent = await gemini.ExtractRecipeAsync(extractedText);
-        await AiUsageService.RecordRequestAsync(UserId, "Gemini.Image.Success", ct);
+        // record gemini success
+        await AiUsageService.RecordRequestAsync(UserId, "Gemini.Image", AiRequestLogType.Success, ct);
         return (flowControl: true, recipes: resultContent);
     }
     
