@@ -29,15 +29,15 @@ public class AIUrlImportHandler : BaseAIImportHandler, IImportHandler
         IRecipeService recipes, 
         ILogger<AIUrlImportHandler> logger, 
         IAiUsageService aiUsageService, 
-        IGoogleCredentialsProvider googleServiceAccountProvider,
+        IGeminiClient geminiClient,
         ISettingsService settings)
-        :base(options, aiUsageService, recipes, googleServiceAccountProvider, settings,logger)
+        :base(options, aiUsageService, recipes, geminiClient, settings, logger)
     {
     }
 
     protected override async Task<bool> IsActiveAsync()
     {
-        if (string.IsNullOrEmpty(_serviceAccountProvider.GetGeminiApiKey()))
+        if (!CreateGeminiClient().HasApiKey())
             if (!await base.IsActiveAsync())
                 return false;
         if (!await SettingsService.GetGlobalAiEnabledAsync())
@@ -79,10 +79,18 @@ public class AIUrlImportHandler : BaseAIImportHandler, IImportHandler
     /// <returns>An array of <see cref="AIRecipe"/> objects representing the extracted recipes.</returns>
     protected override async Task<AIRecipe[]> ReadRecipeCollection(string fileName, Stream stream, string responseContent, CancellationToken ct)
     {
+        // Check global limits before making the Gemini request
+        var allowed = await AiUsageService.TryRecordRequestAsync(UserId, "Gemini.Url", ct);
+        if (!allowed)
+        {
+            _logger.LogWarning("Gemini URL request blocked due to AI limits for user {UserId}", UserId);
+            return Array.Empty<AIRecipe>();
+        }
+
         var client = CreateGeminiClient();
-        await AiUsageService.RecordRequestAsync(UserId, "Gemini.Url.Request", ct);
         var extractedRecipes = await client.ExtractRecipeFromUrlAsync(responseContent);
-        await AiUsageService.RecordRequestAsync(UserId, "Gemini.Url.Success", ct);
+        // record gemini success
+        await AiUsageService.RecordRequestAsync(UserId, "Gemini.Url", AiRequestLogType.Success, ct);
         return extractedRecipes;
     }    
 }

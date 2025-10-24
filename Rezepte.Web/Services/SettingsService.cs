@@ -41,6 +41,11 @@ public class SettingsService : ISettingsService
     private const string GoogleVisionKey = "GlobalGoogleVisionEnabled";
     private const string GeminiKey = "GlobalGeminiEnabled";
 
+    // new keys
+    private const string GlobalMaxPerHourKey = "GlobalMaxRequestsPerHour";
+    private const string GlobalMaxPerDayKey = "GlobalMaxRequestsPerDay";
+    private const string GlobalDisableOnLimitKey = "GlobalDisableOnLimitReached";
+
     public async Task<bool> GetGlobalAiEnabledAsync(CancellationToken ct = default)
     {
         var kv = await _db.Set<AppSetting>().FindAsync(new object[] { AiKey }, ct);
@@ -180,6 +185,90 @@ public class SettingsService : ISettingsService
         else
         {
             kv.Value = enabled.ToString();
+            _db.Update(kv);
+        }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    // New: global limits implementation
+    public async Task<int?> GetGlobalMaxRequestsPerHourAsync(CancellationToken ct = default)
+    {
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GlobalMaxPerHourKey }, ct);
+        if (kv == null) return null;
+        if (int.TryParse(kv.Value, out var v)) return v;
+        return null;
+    }
+
+    public async Task SetGlobalMaxRequestsPerHourAsync(int? value, CancellationToken ct = default)
+    {
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GlobalMaxPerHourKey }, ct);
+        if (value == null)
+        {
+            if (kv != null) { _db.Remove(kv); await _db.SaveChangesAsync(ct); }
+            return;
+        }
+
+        if (kv == null)
+        {
+            kv = new AppSetting { Key = GlobalMaxPerHourKey, Value = value.Value.ToString() };
+            _db.Add(kv);
+        }
+        else
+        {
+            kv.Value = value.Value.ToString();
+            _db.Update(kv);
+        }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<int?> GetGlobalMaxRequestsPerDayAsync(CancellationToken ct = default)
+    {
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GlobalMaxPerDayKey }, ct);
+        if (kv == null) return null;
+        if (int.TryParse(kv.Value, out var v)) return v;
+        return null;
+    }
+
+    public async Task SetGlobalMaxRequestsPerDayAsync(int? value, CancellationToken ct = default)
+    {
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GlobalMaxPerDayKey }, ct);
+        if (value == null)
+        {
+            if (kv != null) { _db.Remove(kv); await _db.SaveChangesAsync(ct); }
+            return;
+        }
+
+        if (kv == null)
+        {
+            kv = new AppSetting { Key = GlobalMaxPerDayKey, Value = value.Value.ToString() };
+            _db.Add(kv);
+        }
+        else
+        {
+            kv.Value = value.Value.ToString();
+            _db.Update(kv);
+        }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<bool> GetGlobalDisableOnLimitReachedAsync(CancellationToken ct = default)
+    {
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GlobalDisableOnLimitKey }, ct);
+        if (kv == null) return false;
+        return bool.TryParse(kv.Value, out var v) ? v : false;
+    }
+
+    public async Task SetGlobalDisableOnLimitReachedAsync(bool disable, CancellationToken ct = default)
+    {
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GlobalDisableOnLimitKey }, ct);
+        if (kv == null)
+        {
+            kv = new AppSetting { Key = GlobalDisableOnLimitKey, Value = disable.ToString() };
+            _db.Add(kv);
+        }
+        else
+        {
+            kv.Value = disable.ToString();
             _db.Update(kv);
         }
         await _db.SaveChangesAsync(ct);

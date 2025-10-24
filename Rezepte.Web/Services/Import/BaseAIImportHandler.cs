@@ -15,7 +15,7 @@ public abstract class BaseAIImportHandler(
     IOptionsMonitor<AIOptions> aioptions, 
     IAiUsageService aiUsage, 
     IRecipeService recipeService, 
-    IGoogleCredentialsProvider serviceAccountProvider,
+    IGeminiClient geminiClient,
     ISettingsService settingsService,
     ILogger logger): BaseImportHandler, IInteractiveImportHandler
 {
@@ -26,16 +26,16 @@ public abstract class BaseAIImportHandler(
     protected readonly IRecipeService recipeService = recipeService;
     protected readonly ILogger _logger = logger;
     protected IAiUsageService AiUsageService => aiUsage;
-    protected readonly IGoogleCredentialsProvider _serviceAccountProvider = serviceAccountProvider;
+    private readonly IGeminiClient geminiClient = geminiClient;
 
-    protected GeminiClient CreateGeminiClient()
+    protected IGeminiClient CreateGeminiClient()
     {
-        return new GeminiClient(_serviceAccountProvider.GetGeminiApiKey(), _serviceAccountProvider.GetServiceAccountFilePath(), _logger);
+        return geminiClient;
     }
 
     protected virtual async Task<bool> IsActiveAsync()
     {
-        if (!_serviceAccountProvider.ServiceAccountFileExists())
+        if (!geminiClient.HasServiceAccount())
             return false;
         if (!await SettingsService.GetGlobalAiEnabledAsync())
             return false;

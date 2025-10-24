@@ -113,8 +113,9 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.Property(a => a.UserId).IsRequired().HasMaxLength(64);
             b.Property(a => a.Service).IsRequired().HasMaxLength(100);
             b.Property(a => a.Timestamp).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            b.HasIndex(a => a.UserId);
-            b.HasIndex(a => a.Timestamp);
+            b.Property(a => a.Type).IsRequired();
+            b.HasIndex(a => new { a.Type, a.Timestamp });
+            b.HasIndex(a => new { a.UserId, a.Type, a.Timestamp });
         });
 
         // CalendarEvent configuration

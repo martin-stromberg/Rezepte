@@ -46,13 +46,15 @@
 | PLAN-002  | 🕓 Offen      | Schritte werden zeitlich optimiert (z. B. Dessert vor Hauptgericht)           | Sortierlogik nach Zubereitungszeit und Rezepttyp. |
 | SHOP-001  | 🕓 Offen      | Zutaten aus Arbeitsplan können in Einkaufsliste übernommen werden            | Zutatenextraktion aus Arbeitsplan. |
 | SHOP-002  | 🕓 Offen      | Zutaten können als erledigt abgehakt werden                                  | Checkbox‑Status pro Zutat in der Einkaufsliste. |
-| KI-001    | ✅ Erledigt  | Rezepterfassung per KI aus Fotos/Webseiten (langfristig)                      | Infrastruktur: Gemini/Vision‑Clients vorhanden; Einstellungen & Laufzeit‑Guards implementiert (siehe KI-002/KI-003). Extraktion/Parser/Prompts in Weiterentwicklung. |
+| KI-001    | ✅ Erledigt   | Rezepterfassung per KI aus Fotos/Webseiten (langfristig)                      | Infrastruktur: `GeminiClient` / `ImageAnnotatorClient` vorhanden; Einstellungen & Laufzeit‑Guards implementiert (siehe KI‑002/KI‑003). Extraktion/Parser/Prompts in Weiterentwicklung. |
 | KI-002    | ✅ Erledigt   | Benutzerbezogene KI‑Einstellung (User kann KI für eigenes Konto aktivieren)  | `UserSetting` Entity, `SettingsService`, API `GET /api/settings/me` und `PUT /api/settings/me/ai` sowie Blazor‑Component `AiSettings.razor` implementiert. |
 | KI-003    | ✅ Erledigt   | Globale KI‑Deaktivierung durch Admin                                         | `AppSetting` Entity, `SettingsService`, Admin‑API `GET /api/settings/global` und `PUT /api/settings/global/ai`; UI: Admin sieht globalen Switch in `AiSettings`. |
+| KI-004    | ✅ Erledigt   | Kostenbegrenzung: Max Anfragen pro Stunde / Tag + Option bei Erreichen KI deaktivieren | UI: `AiSettings.razor` (Admin) ergänzt; API: neue Admin‑PUTs `api/settings/global/ai/maxrequestsperhour`, `.../maxrequestsperday`, `.../disableonlimit`; `SettingsService` gespeichert in `AppSetting`. |
+| KI-005    | ✅ Erledigt   | AI‑Nutzungsprotokollierung und Limit‑Durchsetzung                            | `AiRequestLog` Entity (+ `Type`), `AiUsageService` (limit check `TryRecordRequestAsync`, `RecordRequestAsync`), Tests `AiUsageServiceTests` und DI‑Registrierung implementiert. |
 | IMG-001   | ✅ Erledigt   | Bild‑Zuschneiden vor Upload (Clientseitig)                                   | `ImageCropper` Component (Cropper.js + JS Interop) + direct fetch upload (`imageCropper.uploadCroppedBlob`) implementiert; verhindert große SignalR/Base64‑Transfers. |
 | IMG-002   | ✅ Erledigt   | iOS Safari kompatibler File‑Trigger                                          | Label‑trigger für verstecktes `InputFile` (1×1 px, nicht display:none) zur zuverlässigen Öffnung des Dateidialogs. |
 | IMG-003   | ✅ Erledigt   | Einheitliche quadratische Thumbnails + Großbild‑Overlay                      | `Components/Shared/PhotoOverlay.razor` zeigt Bilder in einem Grid mit quadratischen Thumbnails (`PhotoOverlay.razor.css`: `aspect-ratio: 1/1`, `object-fit: cover`). Klick auf ein Thumbnail öffnet eine separate Großbild‑Overlay (`large-backdrop` / `large-content`) mit höherem `z-index`. `Delete`‑Button nutzt `@onclick:stopPropagation`. Empfehlung: bUnit/E2E‑Test für Klick→Overlay Verhalten. |
-| SYS-001   | ✅ Erledigt   | AI‑Aufrufe runtime‑guard                                                     | AI‑Handler (z. B. `BaseAIImportHandler`, `AIFotoImportHandler`) prüfen vor externen API‑Aufrufen zuerst `SettingsService.GetGlobalAiEnabledAsync` und `GetUserAiEnabledAsync(userId)`. |
+| SYS-001   | ✅ Erledigt   | AI‑Aufrufe runtime‑guard                                                     | AI‑Handler (z. B. `BaseAIImportHandler`, `AIFotoImportHandler`) prüfen vor externen API‑Aufrufen zuerst `SettingsService.GetGlobalAiEnabledAsync` und `GetUserAiEnabledAsync(userId)`; zusätzlicher `AiUsageService` sorgt für Limit‑Prüfung und optionales globales Deaktivieren. |
 | DB-002    | ✅ Erledigt   | Settings‑Tabellen und Mapping                                                | `UserSetting` und `AppSetting` in `RezepteDbContext` registriert; Modell‑Konfiguration und Indexe hinzugefügt; Migration erstellt/applied empfohlen. |
 | INF-001   | ✅ Erledigt   | Tokenbereitstellung für Browser‑Uploads                                      | `ITokenService` + `ApiAuthHandler` sorgen für gültige JWT; ImageCropper liest serverseitigen Token bei Blazor Server und übergibt an Fetch. |
 | FR-020    | 🕓 Offen      | Benutzer‑Export: Anwender kann eigene Rezeptesammlung exportieren            | API: `GET /api/exports/me?format=zip|json` startet Export‑Job; Backend: `IExportService.ExportUserAsync(userId, format, ct)`. |
@@ -82,52 +84,10 @@
 - Fehler‑UX:
   - Technische Exceptions (z. B. Google/Gemini errors) werden serverseitig durch `ImportExceptionHelper.BeautifyExceptionMessage` aufbereitet; volle Details bleiben in Logs, Benutzer sieht kurze, lokalisierte Meldung.
 - Tests / Wartung:
-  - Bitte bestehende Import‑Tests anpassen: Orchestrator (singleton) erfordert Scoping in Tests; Handler‑Mocks bleiben Scoped.
+  - `AiUsageService` Unit‑Tests (`AiUsageServiceTests`) hinzugefügt; Dummy `TestGeminiClient` zur Isolation. Bitte bestehende Import‑Tests anpassen: Orchestrator (singleton) erfordert Scoping in Tests; Handler‑Mocks bleiben Scoped.
   - Empfohlen: Integrationstest für Session‑Flow (start → poll → confirm → result).
   - UI‑Komponenten (z. B. `PhotoOverlay`, `RandomFromCookbooks`) mit bUnit testen; E2E‑Szenarios für Klick→Großansicht und Responsive‑Skeletons empfohlen.
 - Security:
   - Endpoints weiterhin autorisiert (Bearer/Cookie). Externe HTTP‑Calls setzen browser‑like Header (UserAgent, Accept, Referrer) um 403‑Risiken zu reduzieren.
 - Migration / Ops:
-  - Keine DB‑Schema‑Änderung nötig für Import‑Sessions (in‑memory). Falls persistent Sessions benötigt werden, planen Sie Migration und Storage.
-
-## FR-023: Suche nach Rezepten (Detailbeschreibung)
-- Ziel: Anwender sollen Rezepte schnell und zuverlässig finden können.
-- Kernfunktionen:
-  - Volltext-/Freitextsuche über `Title`, `Ingredients` (Zutaten), `Steps` (Schritte) und `Tags`.
-  - Filter: `cookbookId`, `tag`, `maxPreparationMinutes`, `difficulty` (falls vorhanden).
-  - Pagination + Sortierung (relevance, newest, title).
-  - Autocomplete/Suggest Endpoint (optional) für schnelle Vorschläge im Suchfeld.
-  - Debounce + CancellationToken auf Client‑Seite, serverseitige Timeouts.
-- API‑Contract (Vorschlag):
-  - `GET /api/recipes/search?q={q}&ingredients={ing}&tags={tags}&cookbookId={id}&page={page}&pageSize={pageSize}&sort={sort}`
-  - `GET /api/recipes/suggest?q={q}&limit=10`
-  - Antwort: `RecipeSearchResultDto[]` mit `Id, Title, Snippet, PrimaryImageUrl, Cookbooks[], Tags[]`
-- UI:
-  - Search‑Box in Navbar (globaler Shortcut `"/"`), eigene Seite `Components/Pages/RecipeSearch.razor` für erweiterte Filter.
-  - Ergebnisse als Liste/Karten mit Paginierung; Highlighting des Snippet.
-  - Accessibility: ARIA attributes, keyboard navigation, screenreader‑friendly labels.
-- Implementierungsempfehlungen:
-  - SQLite: FTS5 nutzen (Virtual Table + Migrations) für gute Volltext‑Performance und Relevanz. Alternativ per EF.Functions.Like bei kleinen DBs.
-  - Bei FTS5: virtuelle Tabelle für `Recipe` (Title, IngredientsText, StepsText) + Triggers/Sync mit Haupttabelle in Migrations.
-  - EF Core: Projektion auf DTOs, `AsNoTracking()`, `Take(pageSize)`, `Skip((page-1)*pageSize)`.
-  - Caching: MemoryCache für häufige, unveränderte Suchanfragen; Cache‑Keys inkl. Query‑Parameter.
-  - Sicherheitsaspekte: Keine sensiblen Daten in Snippets; Logging der Query‑Hashes statt Roh‑Queries bei Bedarf.
-  - Tests: Unit‑Tests für Filter/Sort‑Logik (InMemory/SQLite InMemory), Integrationstest gegen SQLite‑DB mit FTS.
-- Migration:
-  - Falls FTS5 eingesetzt wird: `dotnet ef migrations add 20251017_AddRecipeSearchFts`; `dotnet ef database update`.
-- Performance / NFRs:
-  - Max `pageSize` begrenzen (z. B. 50).
-  - Indexe auf Filterfeldern (`CookbookId`, `Tags`) sicherstellen.
-  - Asynchrone API‑Methods mit CancellationToken.
-- Monitoring & Telemetrie:
-  - Track query latencies (Histogram), slow‑query logging > 500ms.
-- Sichtbarkeit & Priorisierung:
-  - MVP: Freitext über Title + Ingredients + Tags, Pagination, einfache Sortierung.
-  - Erweiterungen: Fuzzy/typo‑tolerant Search, Synonyme, personalisierte Ranking.
-
-## Hinweise zur Umsetzung der jüngsten Änderungen
-- `ImportOrchestrator` als Singleton; Handlers scoped — ServiceRegistration in `ServiceCollectionExtensions` angepasst.
-- `StartImportSessionFromStreamAsync` (private Controller‑Methode) reduziert Duplikation für URL/File Start.
-- Client: `CreateRecipeDialog` UI‑Änderungen (overlay confirm, input focus, improved messages).
-- Import‑Fehler werden lokalisiert/gekürzt durch `ImportExceptionHelper`; Logs enthalten volle Details.
-- Testempfehlung: Integrationstest des interaktiven Imports (Session lifecycle).
+  - `AiRequestLog` um `Type` erweitert und neue Indexe hinzugefügt — Migration __erforderlich__. Führe __dotnet ef migrations add yyyyMMddHHmm_AddAiRequestLogTypeAndIndexes__ und dann __dotnet ef database update__ aus.

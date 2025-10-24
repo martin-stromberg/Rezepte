@@ -1,53 +1,66 @@
 ﻿using Google.Api;
 using Google.Apis.Auth.OAuth2;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Rezepte.Web.Entities;
+using Microsoft.Extensions.Logging;
 using Rezepte.Web.Extensions;
-using System;
-using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using static QuestPDF.Helpers.Colors;
-using static System.Net.WebRequestMethods;
 
 namespace Rezepte.Web.Services.Import;
 
-public class GeminiClient
+public class GeminiClient : IGeminiClient
 {
     private readonly HttpClient _httpClient;
-    
-    
-    public GeminiClient(string apiKey, string serviceAccountJsonPath, ILogger logger)
+    private readonly IGoogleCredentialsProvider _provider;
+    private readonly ILogger<GeminiClient> _logger;
+    private GoogleCredential? _credential;
+    private readonly object _initLock = new();
+
+    public GeminiClient(HttpClient httpClient, IGoogleCredentialsProvider provider, ILogger<GeminiClient> logger)
     {
-        _httpClient = new HttpClient();
-        _apiKey = apiKey;
-        _credential = GoogleCredential
-                .FromFile(serviceAccountJsonPath)
-                .CreateScoped("https://www.googleapis.com/auth/generative-language");
+        _httpClient = httpClient;
+        _provider = provider;
         _logger = logger;
     }
 
-    private readonly GoogleCredential _credential;
-    private readonly ILogger _logger;
-    private readonly string _apiKey;
-
     private async Task InitHttpClientAsync()
     {
-        if (!string.IsNullOrWhiteSpace(_apiKey))
-            _httpClient.DefaultRequestHeaders.Add("x-goog-api-key", _apiKey);
-        else if (_credential is not null)
+        // avoid reinitializing headers repeatedly
+        if (_httpClient.DefaultRequestHeaders.Authorization != null || _httpClient.DefaultRequestHeaders.Contains("x-goog-api-key"))
+            return;
+
+        var apiKey = _provider.GetGeminiApiKey();
+        if (!string.IsNullOrWhiteSpace(apiKey))
         {
-            var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            _httpClient.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
+            return;
         }
-        else
-            throw new InvalidOperationException("No valid authentication method configured.");
+
+        var serviceAccountPath = _provider.GetServiceAccountFilePath();
+        if (!string.IsNullOrWhiteSpace(serviceAccountPath) && System.IO.File.Exists(serviceAccountPath))
+        {
+            lock (_initLock)
+            {
+                if (_credential == null)
+                {
+                    _credential = GoogleCredential.FromFile(serviceAccountPath)
+                        .CreateScoped("https://www.googleapis.com/auth/generative-language");
+                }
+            }
+
+            if (_credential is not null)
+            {
+                var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                return;
+            }
+        }
+
+        throw new InvalidOperationException("No valid Gemini authentication configured.");
     }
 
-    public async Task<AIRecipe[]> ExtractRecipeAsync(string ocrText)
+    public async Task<AIRecipe[]> ExtractRecipeAsync(string ocrText, CancellationToken ct = default)
     {
         await InitHttpClientAsync();
 
@@ -100,23 +113,18 @@ OCR-Text:
         };
 
         var json = JsonSerializer.Serialize(requestBody);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
         var model = "gemini-2.5-flash-lite";
-        //model = "gemini-pro";
 
         _logger.LogInformation("Sending request to Gemini model {Model}", model);
-        _logger.LogInformation("Prompt: {Prompt}", prompt);
-        _logger.LogInformation("Request Body: {RequestBody}", json);
+        _logger.LogDebug("Request Body length: {Len}", json.Length);
 
-        var response = await _httpClient.PostAsync(
+        using var resp = await _httpClient.PostAsync(
             $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-            content
-        );
-        var responseJson = await response.Content.ReadAsStringAsync();
-        _logger.LogInformation("Response JSON: {ResponseJson}", responseJson);
-        response.EnsureSuccessStatusCode();
+            content, ct);
+        resp.EnsureSuccessStatusCode();
 
-
+        var responseJson = await resp.Content.ReadAsStringAsync(ct);
         using var doc = JsonDocument.Parse(responseJson);
         var text = doc.RootElement
             .GetProperty("candidates")[0]
@@ -131,7 +139,7 @@ OCR-Text:
         return new AIRecipe[] { ParseRecipe(text) };
     }
 
-    public async Task<AIRecipe[]> ExtractRecipeFromUrlAsync(string responseContent)
+    public async Task<AIRecipe[]> ExtractRecipeFromUrlAsync(string responseContent, CancellationToken ct = default)
     {
         await InitHttpClientAsync();
 
@@ -184,21 +192,18 @@ Html-Code:
         };
 
         var json = JsonSerializer.Serialize(requestBody);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
         var model = "gemini-2.5-flash-lite";
-        //model = "gemini-pro";
+
         _logger.LogInformation("Sending request to Gemini model {Model}", model);
-        _logger.LogInformation("Prompt: {Prompt}", prompt);
-        _logger.LogInformation("Request Body: {RequestBody}", json);
+        _logger.LogDebug("Request Body length: {Len}", json.Length);
 
-        var response = await _httpClient.PostAsync(
+        using var resp = await _httpClient.PostAsync(
             $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-            content
-        );
-        var responseJson = await response.Content.ReadAsStringAsync();
-        _logger.LogInformation("Response JSON: {ResponseJson}", responseJson);
-        response.EnsureSuccessStatusCode();
+            content, ct);
+        resp.EnsureSuccessStatusCode();
 
+        var responseJson = await resp.Content.ReadAsStringAsync(ct);
         using var doc = JsonDocument.Parse(responseJson);
         var text = doc.RootElement
             .GetProperty("candidates")[0]
@@ -206,23 +211,13 @@ Html-Code:
             .GetProperty("parts")[0]
             .GetProperty("text")
             .GetString();
+
         if (string.IsNullOrWhiteSpace(text))
             return Array.Empty<AIRecipe>();
 
         return new AIRecipe[] { ParseRecipe(text) };
     }
 
-    public class AIRecipe
-    {
-        public string Title { get; set; }
-        public int Portions { get; set; }
-        public List<string> Ingredients { get; set; }
-        public string Instructions { get; set; }
-        public byte[]? ImageData { get; set; }
-        public string ImageUri { get; set; }
-        public int PreparationTimeInMinutes { get; set; }
-        public int CookingTimeInMinutes { get; set; }
-    }
     private AIRecipe ParseRecipe(string recipeContent)
     {
         var informationSet = ExtractInformation(recipeContent);
@@ -326,5 +321,18 @@ Html-Code:
             .Where(line => line.StartsWith("**"))
             .Select(line => line.Trim('*').Trim(':'));
         return names.Select(name => new KeyValuePair<string, string>(name, ParseInformation(recipeContent, name))).ToArray();
+    }
+
+    public bool HasServiceAccount()
+    {
+        if (!_provider.ServiceAccountFileExists())
+            return false;
+        return true;
+    }
+    public bool HasApiKey()
+    {
+        if (string.IsNullOrWhiteSpace(_provider.GetGeminiApiKey()))
+            return false;
+        return true;
     }
 }

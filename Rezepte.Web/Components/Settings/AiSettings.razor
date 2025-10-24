@@ -29,6 +29,28 @@
                     <input class="form-check-input" type="checkbox" id="globalGemini" checked="@(globalAiEnabled && globalGeminiEnabled)" @onchange="OnGlobalGeminiToggle" disabled="@(isSaving || !globalAiEnabled)" />
                     <label class="form-check-label" for="globalGemini">Gemini global aktiv (Admin)</label>
                 </div>
+
+                <!-- New: global limits for admins -->
+                <div class="mt-3">
+                    <h6 class="small">Limit Einstellungen</h6>
+
+                    <div class="mb-2">
+                        <label class="form-label small" for="maxPerHour">Max Anfragen pro Stunde</label>
+                        <input id="maxPerHour" class="form-control form-control-sm" type="number" min="0" value="@globalMaxRequestsPerHourString" @onchange="OnGlobalMaxPerHourChanged" disabled="@(isSaving || !globalAiEnabled)" />
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small" for="maxPerDay">Max Anfragen pro Tag</label>
+                        <input id="maxPerDay" class="form-control form-control-sm" type="number" min="0" value="@globalMaxRequestsPerDayString" @onchange="OnGlobalMaxPerDayChanged" disabled="@(isSaving || !globalAiEnabled)" />
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="disableOnLimit" checked="@globalDisableOnLimitReached" @onchange="OnGlobalDisableOnLimitChanged" disabled="@(isSaving || !globalAiEnabled)" />
+                        <label class="form-check-label" for="disableOnLimit">KI global deaktivieren, wenn Limit erreicht</label>
+                    </div>
+
+                    <div class="small text-muted mt-1">Setzen Sie 0 für unbegrenzte Anfragen.</div>
+                </div>
             </div>
         }
 
@@ -196,6 +218,15 @@
     // New: require confirmation flag
     private bool requireAiConfirmation;
 
+    // New: global limits (admins)
+    private int? globalMaxRequestsPerHour;
+    private int? globalMaxRequestsPerDay;
+    private bool globalDisableOnLimitReached;
+
+    // helpers for input value binding (string to preserve empty state)
+    private string? globalMaxRequestsPerHourString => globalMaxRequestsPerHour?.ToString() ?? "";
+    private string? globalMaxRequestsPerDayString => globalMaxRequestsPerDay?.ToString() ?? "";
+
     // Info overlays
     private bool showInfoGoogle;
     private bool showInfoGemini;
@@ -248,6 +279,14 @@
                     globalGoogleVisionEnabled = ggv;
                 if (TryGetBoolean(root, "GlobalGeminiEnabled", "globalGeminiEnabled", out var ggm))
                     globalGeminiEnabled = ggm;
+
+                // new global limit properties
+                if (TryGetInt(root, "GlobalMaxRequestsPerHour", "globalMaxRequestsPerHour", out var maxHour))
+                    globalMaxRequestsPerHour = maxHour;
+                if (TryGetInt(root, "GlobalMaxRequestsPerDay", "globalMaxRequestsPerDay", out var maxDay))
+                    globalMaxRequestsPerDay = maxDay;
+                if (TryGetBoolean(root, "GlobalDisableOnLimitReached", "globalDisableOnLimitReached", out var dis))
+                    globalDisableOnLimitReached = dis;
             }
 
             var auth = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -281,10 +320,35 @@
         return false;
     }
 
+    private static bool TryGetInt(JsonElement root, string prop1, string prop2, out int value)
+    {
+        value = 0;
+        if (root.ValueKind != JsonValueKind.Object) return false;
+
+        if (root.TryGetProperty(prop1, out var el) || root.TryGetProperty(prop2, out el))
+        {
+            if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var n)) { value = n; return true; }
+            if (el.ValueKind == JsonValueKind.String)
+            {
+                var s = el.GetString();
+                if (!string.IsNullOrEmpty(s) && int.TryParse(s, out var b)) { value = b; return true; }
+            }
+        }
+        return false;
+    }
+
     private static bool ParseChangeEventBool(ChangeEventArgs e, bool fallback)
     {
         if (e.Value is bool b) return b;
         if (e.Value is string s && bool.TryParse(s, out var pb)) return pb;
+        return fallback;
+    }
+
+    private static int ParseChangeEventInt(ChangeEventArgs e, int fallback)
+    {
+        if (e.Value is int i) return i;
+        if (e.Value is long l) return (int)l;
+        if (e.Value is string s && int.TryParse(s, out var v)) return v;
         return fallback;
     }
 
@@ -464,6 +528,66 @@
             }
 
             await Client.Http.PostAsJsonAsync("api/logs", new { Action = "ToggleGlobalGemini", Success = ok.IsSuccessStatusCode, Time = DateTime.UtcNow });
+        }
+        catch (Exception ex)
+        {
+            message = $"Speichern fehlgeschlagen: {ex.Message}";
+        }
+        finally { isSaving = false; }
+    }
+
+    // New: handlers for global limit inputs
+    private async Task OnGlobalMaxPerHourChanged(ChangeEventArgs e)
+    {
+        isSaving = true;
+        message = null;
+        try
+        {
+            var newVal = ParseChangeEventInt(e, globalMaxRequestsPerHour ?? 0);
+            globalMaxRequestsPerHour = newVal >= 0 ? newVal : 0;
+            var ok = await Client.PutAsJsonAsync("api/settings/global/ai/maxrequestsperhour", globalMaxRequestsPerHour);
+            if (!ok.IsSuccessStatusCode) message = "Speichern fehlgeschlagen.";
+
+            await Client.Http.PostAsJsonAsync("api/logs", new { Action = "SetGlobalMaxPerHour", Value = globalMaxRequestsPerHour, Success = ok.IsSuccessStatusCode, Time = DateTime.UtcNow });
+        }
+        catch (Exception ex)
+        {
+            message = $"Speichern fehlgeschlagen: {ex.Message}";
+        }
+        finally { isSaving = false; }
+    }
+
+    private async Task OnGlobalMaxPerDayChanged(ChangeEventArgs e)
+    {
+        isSaving = true;
+        message = null;
+        try
+        {
+            var newVal = ParseChangeEventInt(e, globalMaxRequestsPerDay ?? 0);
+            globalMaxRequestsPerDay = newVal >= 0 ? newVal : 0;
+            var ok = await Client.PutAsJsonAsync("api/settings/global/ai/maxrequestsperday", globalMaxRequestsPerDay);
+            if (!ok.IsSuccessStatusCode) message = "Speichern fehlgeschlagen.";
+
+            await Client.Http.PostAsJsonAsync("api/logs", new { Action = "SetGlobalMaxPerDay", Value = globalMaxRequestsPerDay, Success = ok.IsSuccessStatusCode, Time = DateTime.UtcNow });
+        }
+        catch (Exception ex)
+        {
+            message = $"Speichern fehlgeschlagen: {ex.Message}";
+        }
+        finally { isSaving = false; }
+    }
+
+    private async Task OnGlobalDisableOnLimitChanged(ChangeEventArgs e)
+    {
+        isSaving = true;
+        message = null;
+        try
+        {
+            globalDisableOnLimitReached = ParseChangeEventBool(e, globalDisableOnLimitReached);
+            var ok = await Client.PutAsJsonAsync("api/settings/global/ai/disableonlimit", globalDisableOnLimitReached);
+            if (!ok.IsSuccessStatusCode) message = "Speichern fehlgeschlagen.";
+
+            await Client.Http.PostAsJsonAsync("api/logs", new { Action = "SetGlobalDisableOnLimit", Value = globalDisableOnLimitReached, Success = ok.IsSuccessStatusCode, Time = DateTime.UtcNow });
         }
         catch (Exception ex)
         {
