@@ -123,7 +123,7 @@ public static class ServiceCollectionExtensions
                 CookieContainer = new CookieContainer()
             }) { BaseAddress = new Uri(nav.BaseUri) };
         });
-
+        
         // Application services
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICookbookService, CookbookService>();
@@ -140,6 +140,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAiUsageService, AiUsageService>();
         services.AddScoped<ISettingsService, SettingsService>();
         services.AddScoped<ICalendarService, CalendarService>();
+        services.AddScoped<IGeminiClient, GeminiClient>();
 
         // ImportOrchestrator: singleton that creates scopes for handlers (handlers stay scoped)
         services.AddSingleton<ImportOrchestrator>();

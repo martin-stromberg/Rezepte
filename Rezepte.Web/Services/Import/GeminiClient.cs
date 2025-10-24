@@ -1,5 +1,6 @@
 ﻿using Google.Api;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Http;
 using Microsoft.Extensions.Logging;
 using Rezepte.Web.Extensions;
 using System.Net.Http.Headers;
@@ -11,15 +12,15 @@ namespace Rezepte.Web.Services.Import;
 
 public class GeminiClient : IGeminiClient
 {
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient _apiClient;
     private readonly IGoogleCredentialsProvider _provider;
     private readonly ILogger<GeminiClient> _logger;
     private GoogleCredential? _credential;
     private readonly object _initLock = new();
 
-    public GeminiClient(HttpClient httpClient, IGoogleCredentialsProvider provider, ILogger<GeminiClient> logger)
+    public GeminiClient(System.Net.Http.IHttpClientFactory apiClient, IGoogleCredentialsProvider provider, ILogger<GeminiClient> logger)
     {
-        _httpClient = httpClient;
+        _apiClient = apiClient.CreateClient();
         _provider = provider;
         _logger = logger;
     }
@@ -27,13 +28,13 @@ public class GeminiClient : IGeminiClient
     private async Task InitHttpClientAsync()
     {
         // avoid reinitializing headers repeatedly
-        if (_httpClient.DefaultRequestHeaders.Authorization != null || _httpClient.DefaultRequestHeaders.Contains("x-goog-api-key"))
+        if (_apiClient.DefaultRequestHeaders.Authorization != null || _apiClient.DefaultRequestHeaders.Contains("x-goog-api-key"))
             return;
 
         var apiKey = _provider.GetGeminiApiKey();
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
-            _httpClient.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
+            _apiClient.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
             return;
         }
 
@@ -52,7 +53,7 @@ public class GeminiClient : IGeminiClient
             if (_credential is not null)
             {
                 var accessToken = await _credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                _apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 return;
             }
         }
@@ -119,7 +120,7 @@ OCR-Text:
         _logger.LogInformation("Sending request to Gemini model {Model}", model);
         _logger.LogDebug("Request Body length: {Len}", json.Length);
 
-        using var resp = await _httpClient.PostAsync(
+        using var resp = await _apiClient.PostAsync(
             $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
             content, ct);
         resp.EnsureSuccessStatusCode();
@@ -198,7 +199,7 @@ Html-Code:
         _logger.LogInformation("Sending request to Gemini model {Model}", model);
         _logger.LogDebug("Request Body length: {Len}", json.Length);
 
-        using var resp = await _httpClient.PostAsync(
+        using var resp = await _apiClient.PostAsync(
             $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
             content, ct);
         resp.EnsureSuccessStatusCode();
