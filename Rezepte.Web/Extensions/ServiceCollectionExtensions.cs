@@ -11,6 +11,7 @@ using Rezepte.Web.Services;
 using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.BackgroundJobs.Handlers;
 using Rezepte.Web.Services.Import;
+using Rezepte.Web.Services.Import.Url;
 using Rezepte.Web.ViewModels;
 using System.Net;
 using System.Security.Cryptography;
@@ -133,8 +134,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IImportHandler, BackupImportHandler>();
-        services.AddScoped<IImportHandler, UrlReceiptImportHandler>();
+        services.AddScoped<IImportHandler, ChefkochReceiptImportHandler>();
         services.AddScoped<IImportHandler, SecondSourceUrlReceiptImportHandler>();
+        services.AddScoped<IImportHandler, ThirdSourceUrlReceiptImportHandler>();
         services.AddScoped<IImportHandler, AIFotoImportHandler>();
         services.AddScoped<IImportHandler, AIUrlImportHandler>();
         services.AddScoped<IAiUsageService, AiUsageService>();

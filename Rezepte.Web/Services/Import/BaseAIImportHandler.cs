@@ -5,12 +5,6 @@ using static Rezepte.Web.Services.Import.GeminiClient;
 using System.Text.RegularExpressions;
 
 namespace Rezepte.Web.Services.Import;
-
-public class BaseImportHandler
-{
-    public string UserId { protected get; set; }
-
-}
 public abstract class BaseAIImportHandler(
     IOptionsMonitor<AIOptions> aioptions, 
     IAiUsageService aiUsage, 
@@ -178,79 +172,6 @@ public abstract class BaseAIImportHandler(
         }
 
     }
-    private static RecipeCreateIngredient ParseIngredientLine(string line)
-    {
-        if (string.IsNullOrWhiteSpace(line))
-            return new RecipeCreateIngredient(0m, null, string.Empty);
-
-        var qty = line.Trim().TrimStart('*', '-', '•').Trim();
-
-        // Unicode vulgar fractions map
-        var vulgar = new Dictionary<char, decimal>
-        {
-            ['½'] = 0.5m,
-            ['⅓'] = 1m / 3m,
-            ['⅔'] = 2m / 3m,
-            ['¼'] = 0.25m,
-            ['¾'] = 0.75m,
-            ['⅛'] = 0.125m
-        };
-
-        decimal amount = 0m;
-        string? unit = null;
-        string name = qty;
-
-        // Mixed number: "1 1/2 ..." or "1-1/2 ..."
-        var m = System.Text.RegularExpressions.Regex.Match(qty, @"^\s*(\d+)[\s\-]+(\d+)\/(\d+)\s*(.*)$");
-        if (m.Success)
-        {
-            var whole = int.Parse(m.Groups[1].Value);
-            var num = int.Parse(m.Groups[2].Value);
-            var den = int.Parse(m.Groups[3].Value);
-            if (den != 0)
-                amount = whole + (decimal)num / den;
-            var rest = m.Groups[4].Value.Trim();
-            AssignUnitAndName(rest, out unit, out name);
-            return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, string.IsNullOrWhiteSpace(name) ? qty : name);
-        }
-
-        // Simple fraction: "1/2 ..."
-        m = System.Text.RegularExpressions.Regex.Match(qty, @"^\s*(\d+)\/(\d+)\s*(.*)$");
-        if (m.Success)
-        {
-            var num = int.Parse(m.Groups[1].Value);
-            var den = int.Parse(m.Groups[2].Value);
-            if (den != 0)
-                amount = (decimal)num / den;
-            var rest = m.Groups[3].Value.Trim();
-            AssignUnitAndName(rest, out unit, out name);
-            return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, string.IsNullOrWhiteSpace(name) ? qty : name);
-        }
-
-        // Decimal or integer: "1.5 g ..." or "1,5 g ..." or "2 g"
-        m = System.Text.RegularExpressions.Regex.Match(qty, @"^\s*(\d+[.,]?\d*)\s*(.*)$");
-        if (m.Success)
-        {
-            var numStr = m.Groups[1].Value.Replace(',', '.');
-            if (decimal.TryParse(numStr, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var val))
-                amount = val;
-            var rest = m.Groups[2].Value.Trim();
-            AssignUnitAndName(rest, out unit, out name);
-            return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, string.IsNullOrWhiteSpace(name) ? qty : name);
-        }
-
-        // Leading unicode vulgar fraction: "½ Zwiebel ..."
-        if (qty.Length > 0 && vulgar.TryGetValue(qty[0], out var v))
-        {
-            amount = v;
-            var rest = qty.Substring(1).Trim();
-            AssignUnitAndName(rest, out unit, out name);
-            return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, string.IsNullOrWhiteSpace(name) ? qty : name);
-        }
-
-        // No amount detected — treat whole line as name
-        return new RecipeCreateIngredient(0m, null, qty);
-    }
     private static string SanitizeFileName(string input)
     {
         if (string.IsNullOrEmpty(input)) return "file";
@@ -273,27 +194,7 @@ public abstract class BaseAIImportHandler(
             _ => "application/octet-stream"
         };
     }
-    static void AssignUnitAndName(string rest, out string? parsedUnit, out string parsedName)
-    {
-        parsedUnit = null;
-        parsedName = rest ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(rest))
-            return;
-
-        var parts = rest.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 1)
-        {
-            // Ein einzelnes Token: eher Bezeichnung als Einheit -> setzen als Name
-            parsedName = parts[0];
-            parsedUnit = null;
-        }
-        else
-        {
-            // Zwei Teile: erst Teil als Einheit, zweiter als Name
-            parsedUnit = parts[0];
-            parsedName = parts[1];
-        }
-    }
+    
 
     public async Task<ImportResult> HandleInteractiveAsync(Stream stream, string fileName, string targetCookbookId, string userId, IImportInteraction interaction, CancellationToken ct = default)
     {
