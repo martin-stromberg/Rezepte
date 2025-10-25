@@ -1,0 +1,216 @@
+﻿@using Rezepte.Web.Dtos
+@using System.Globalization
+@using System.Text.Json
+@inject ApiClient Api
+@inject NavigationManager Navigation
+
+<div class="random-recipes" id="@containerId">
+
+    @if (isLoading || (items is not null && items.Count > 0))
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="m-0">🗓️ Geplante Rezepte</h3>
+            <div>
+                <a class="btn btn-sm btn-outline-secondary" href="/calendar"disabled="@isLoading">
+                        <span>Kalender öffnen</span>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="random-list">
+            @for (int i = 0; i < skeletonCount; i++)
+            {
+                <div class="random-item">
+                    <div class="cookbook-name skeleton skeleton-text" style="width:55%"></div>
+                    <div class="small-card skeleton-card">
+                        <div class="skeleton-image skeleton"></div>
+                        <div class="recipe-title skeleton skeleton-text" style="width:70%"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (!isLoading && (items is null || items.Count == 0))
+    {
+        <div class="text-muted small">Keine geplanten Rezepte in den nächsten 3 Tagen.</div>
+    }
+    else
+    {
+        <div class="random-list">
+            @foreach (var it in items!)
+            {
+                <div class="random-item">
+                    @if (it.Recipe is null)
+                    {
+                        <div class="text-muted small">Rezept nicht gefunden.</div>
+                    }
+                    else
+                    {
+                        <a class="recipe-card small-card" href="@($"/recipes/{it.Recipe.Id}")" title="@it.Recipe.Title">
+                            @if (!string.IsNullOrWhiteSpace(it.Recipe.ImageUrl))
+                            {
+                                <img src="@it.Recipe.ImageUrl" alt="Bild zu @it.Recipe.Title" />
+                            }
+                            else
+                            {
+                                <div class="no-image">📷</div>
+                            }
+                            <div class="recipe-title">@it.Recipe.Title</div>
+                        </a>
+                        <div class="small text-muted mt-1">@GetDayLabel(it.ScheduledFor)</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private record RecipeListItemDto(string Id, string Title, string? ImageUrl, string? Description);
+    private record ScheduledItem(RecipeListItemDto? Recipe, DateTime ScheduledFor);
+
+    private List<ScheduledItem>? items;
+    private bool isLoading;
+    private int skeletonCount = 1;
+    private readonly string containerId = "sched_" + System.Guid.NewGuid().ToString("N");
+
+    public async Task RefreshAsync()
+    {
+        await LoadAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        items = new();
+        StateHasChanged();
+
+        try
+        {
+            var from = DateTime.UtcNow.Date;
+            var to = from.AddDays(3); // exclusive end -> includes today + 2 days
+            var url = $"api/calendar?from={Uri.EscapeDataString(from.ToString("o"))}&to={Uri.EscapeDataString(to.ToString("o"))}";
+            var res = await Api.Http.GetAsync(url);
+            if (!res.IsSuccessStatusCode)
+            {
+                items = new();
+                return;
+            }
+
+            var root = await res.Content.ReadFromJsonAsync<JsonElement>();
+            if (!root.TryGetProperty("items", out var itemsEl) || itemsEl.ValueKind != JsonValueKind.Array)
+            {
+                items = new();
+                return;
+            }
+
+            var occurrences = new List<(string recipeId, DateTime occurrence)>();
+            foreach (var it in itemsEl.EnumerateArray())
+            {
+                if (!it.TryGetProperty("recipeId", out var rid) || rid.ValueKind != JsonValueKind.String) continue;
+                if (!it.TryGetProperty("occurrence", out var occ)) continue;
+
+                DateTime occDt;
+                try
+                {
+                    occDt = occ.GetDateTime();
+                }
+                catch
+                {
+                    continue;
+                }
+
+                var recipeId = rid.GetString();
+                if (string.IsNullOrWhiteSpace(recipeId)) continue;
+                occurrences.Add((recipeId!, occDt));
+            }
+
+            if (occurrences.Count == 0)
+            {
+                items = new();
+                return;
+            }
+
+            // Fetch metadata for unique recipes
+            var uniqueIds = occurrences.Select(x => x.recipeId).Distinct().ToArray();
+            var recipeMap = new Dictionary<string, RecipeListItemDto>(StringComparer.Ordinal);
+
+            foreach (var id in uniqueIds)
+            {
+                try
+                {
+                    var rRes = await Api.Http.GetAsync($"api/recipes/{Uri.EscapeDataString(id)}");
+                    if (!rRes.IsSuccessStatusCode)
+                    {
+                        recipeMap[id] = new RecipeListItemDto(id, "Unbekannt", null, null);
+                        continue;
+                    }
+
+                    var rJson = await rRes.Content.ReadFromJsonAsync<JsonElement>();
+                    var title = rJson.TryGetProperty("title", out var tEl) && tEl.ValueKind == JsonValueKind.String ? tEl.GetString()! : "Unbekannt";
+                    string? desc = null;
+                    if (rJson.TryGetProperty("description", out var dEl) && dEl.ValueKind == JsonValueKind.String) desc = dEl.GetString();
+
+                    // try to find imageUrl: property "imageUrl" or first element of "images" array with "url"
+                    string? img = null;
+                    if (rJson.TryGetProperty("imageUrl", out var iu) && iu.ValueKind == JsonValueKind.String)
+                    {
+                        img = iu.GetString();
+                    }
+                    else if (rJson.TryGetProperty("images", out var imgs) && imgs.ValueKind == JsonValueKind.Array && imgs.GetArrayLength() > 0)
+                    {
+                        var first = imgs[0];
+                        if (first.ValueKind == JsonValueKind.Object && first.TryGetProperty("url", out var urlEl) && urlEl.ValueKind == JsonValueKind.String)
+                        {
+                            img = urlEl.GetString();
+                        }
+                    }
+
+                    recipeMap[id] = new RecipeListItemDto(id, title, img, desc);
+                }
+                catch
+                {
+                    recipeMap[id] = new RecipeListItemDto(id, "Unbekannt", null, null);
+                }
+            }
+
+            // Build final list preserving occurrences (can show multiple entries for same recipe on different dates)
+            items = occurrences
+                .Select(o =>
+                {
+                    var meta = recipeMap.TryGetValue(o.recipeId, out var m) ? m : new RecipeListItemDto(o.recipeId, "Unbekannt", null, null);
+                    return new ScheduledItem(meta, o.occurrence);
+                })
+                .OrderBy(x => x.ScheduledFor)
+                .ToList();
+        }
+        catch
+        {
+            items = null;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private static string GetDayLabel(DateTime scheduledUtc)
+    {
+        // compare on local dates
+        var scheduledLocalDate = scheduledUtc.ToLocalTime().Date;
+        var today = DateTime.Now.Date;
+        if (scheduledLocalDate == today) return "Heute";
+        if (scheduledLocalDate == today.AddDays(1)) return "Morgen";
+        if (scheduledLocalDate == today.AddDays(2)) return scheduledLocalDate.ToString("dddd", CultureInfo.CurrentCulture);
+        return scheduledLocalDate.ToString("dd.MM.yyyy", CultureInfo.CurrentCulture);
+    }
+}

@@ -99,10 +99,10 @@ else
                                                     <div class="text-muted small mt-1">@it.Occurrence.ToLocalTime():t · Portionen: @it.Portions</div>
                                                 </div>
                                                 <div class="action-buttons d-flex flex-column gap-1">
-                                                    <button class="btn btn-outline-secondary btn-icon" title="Bearbeiten" @onclick="() => Edit(it.EventId)" aria-label="Bearbeiten">
+                                                    <button type="button" class="btn btn-outline-secondary btn-icon" title="Bearbeiten" @onclick="() => Edit(it.EventId)" @onclick:stopPropagation aria-label="Bearbeiten">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-danger btn-icon" title="Löschen" @onclick="() => Delete(it.EventId)" aria-label="Löschen">
+                                                    <button type="button" class="btn btn-outline-danger btn-icon" title="Löschen" @onclick="() => Delete(it.EventId)" @onclick:stopPropagation aria-label="Löschen">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </div>
@@ -116,10 +116,10 @@ else
                                                     <div class="text-muted small">@it.Occurrence.ToLocalTime():t · Portionen: @it.Portions</div>
                                                 </div>
                                                 <div class="action-buttons d-flex flex-column gap-1">
-                                                    <button class="btn btn-outline-secondary btn-icon" title="Bearbeiten" @onclick="() => Edit(it.EventId)" aria-label="Bearbeiten">
+                                                    <button type="button" class="btn btn-outline-secondary btn-icon" title="Bearbeiten" @onclick="() => Edit(it.EventId)" @onclick:stopPropagation aria-label="Bearbeiten">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-danger btn-icon" title="Löschen" @onclick="() => Delete(it.EventId)" aria-label="Löschen">
+                                                    <button type="button" class="btn btn-outline-danger btn-icon" title="Löschen" @onclick="() => Delete(it.EventId)" @onclick:stopPropagation aria-label="Löschen">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </div>
