@@ -92,3 +92,22 @@
   .recipe-thumb { width: 56px; height: 56px; }
   .btn-icon { width: 32px; height: 32px; }
 }
+/* Stelle sicher, dass Aktionstasten über dem stretched-link liegen (global) */
+.recipe-item {
+    position: relative;
+}
+
+    .recipe-item .stretched-link {
+        z-index: 1;
+    }
+
+    .recipe-item .action-buttons {
+        position: relative;
+        z-index: 5;
+        pointer-events: auto;
+    }
+
+        .recipe-item .action-buttons button {
+            position: relative;
+            z-index: 6;
+        }
