@@ -64,12 +64,47 @@ public class BaseImportHandler
             ['⅛'] = 0.125m
         };
 
+        // Common units (normalized, lowercase)
+        var knownUnits = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "g","gr","gramm","kg","ml","l","cl",
+            "tsp","teelöffel","tl","el","esslöffel","essl","st","stück","stücke","stk",
+            "prise","dose","dosen","becher","bund","paket","packung","pkg","glas",
+            "pz","pkt","spritzer"
+        };
+
+        static string NormalizeToken(string token) =>
+            token.Trim().TrimEnd('.',',',';').ToLowerInvariant();
+
+        void DetectUnitAndName(string rest, out string? parsedUnit, out string parsedName)
+        {
+            parsedUnit = null;
+            parsedName = rest ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(rest))
+                return;
+
+            var parts = rest.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            var first = NormalizeToken(parts[0]);
+
+            // if first token looks like a unit -> split, otherwise treat whole rest as name
+            if (knownUnits.Contains(first) || Regex.IsMatch(first, @"^(?:\d*(?:g|kg|ml|l|tsp|tl|el|st|stk|dose|packung|paket|pkg))$", RegexOptions.IgnoreCase))
+            {
+                parsedUnit = parts[0];
+                parsedName = parts.Length > 1 ? parts[1] : string.Empty;
+            }
+            else
+            {
+                parsedUnit = null;
+                parsedName = rest;
+            }
+        }
+
         decimal amount = 0m;
         string? unit = null;
         string name = qty;
 
         // Mixed number: "1 1/2 ..." or "1-1/2 ..."
-        var m = System.Text.RegularExpressions.Regex.Match(qty, @"^\s*(\d+)[\s\-]+(\d+)\/(\d+)\s*(.*)$");
+        var m = Regex.Match(qty, @"^\s*(\d+)[\s\-]+(\d+)\/(\d+)\s*(.*)$");
         if (m.Success)
         {
             var whole = int.Parse(m.Groups[1].Value);
@@ -78,12 +113,12 @@ public class BaseImportHandler
             if (den != 0)
                 amount = whole + (decimal)num / den;
             var rest = m.Groups[4].Value.Trim();
-            AssignUnitAndName(rest, out unit, out name);
+            DetectUnitAndName(rest, out unit, out name);
             return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, string.IsNullOrWhiteSpace(name) ? qty : name);
         }
 
         // Simple fraction: "1/2 ..."
-        m = System.Text.RegularExpressions.Regex.Match(qty, @"^\s*(\d+)\/(\d+)\s*(.*)$");
+        m = Regex.Match(qty, @"^\s*(\d+)\/(\d+)\s*(.*)$");
         if (m.Success)
         {
             var num = int.Parse(m.Groups[1].Value);
@@ -91,19 +126,19 @@ public class BaseImportHandler
             if (den != 0)
                 amount = (decimal)num / den;
             var rest = m.Groups[3].Value.Trim();
-            AssignUnitAndName(rest, out unit, out name);
+            DetectUnitAndName(rest, out unit, out name);
             return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, string.IsNullOrWhiteSpace(name) ? qty : name);
         }
 
         // Decimal or integer: "1.5 g ..." or "1,5 g ..." or "2 g"
-        m = System.Text.RegularExpressions.Regex.Match(qty, @"^\s*(\d+[.,]?\d*)\s*(.*)$");
+        m = Regex.Match(qty, @"^\s*(\d+[.,]?\d*)\s*(.*)$");
         if (m.Success)
         {
             var numStr = m.Groups[1].Value.Replace(',', '.');
-            if (decimal.TryParse(numStr, NumberStyles.Number, CultureInfo.InvariantCulture, out var val))
+            if (decimal.TryParse(numStr, System.Globalization.NumberStyles.Number, CultureInfo.InvariantCulture, out var val))
                 amount = val;
             var rest = m.Groups[2].Value.Trim();
-            AssignUnitAndName(rest, out unit, out name);
+            DetectUnitAndName(rest, out unit, out name);
             return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, string.IsNullOrWhiteSpace(name) ? qty : name);
         }
 
@@ -112,12 +147,12 @@ public class BaseImportHandler
         {
             amount = v;
             var rest = qty.Substring(1).Trim();
-            AssignUnitAndName(rest, out unit, out name);
+            DetectUnitAndName(rest, out unit, out name);
             return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, string.IsNullOrWhiteSpace(name) ? qty : name);
         }
 
         // Trailing quantity pattern: "Rahmspinat, tiefgefroren 400 g" or "Tomaten 2kg"
-        m = System.Text.RegularExpressions.Regex.Match(qty, @"^\s*(.+?)\s+(\d+[.,]?\d*|\d+\/\d+|[½¼¾⅓⅔⅛])\s*([^\d].*)?$");
+        m = Regex.Match(qty, @"^\s*(.+?)\s+(\d+[.,]?\d*|\d+\/\d+|[½¼¾⅓⅔⅛])\s*([^\d].*)?$");
         if (m.Success)
         {
             var namePart = m.Groups[1].Value.Trim();
@@ -138,16 +173,15 @@ public class BaseImportHandler
             else
             {
                 var normalized = numPart.Replace(',', '.');
-                decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out amount);
+                decimal.TryParse(normalized, System.Globalization.NumberStyles.Number, CultureInfo.InvariantCulture, out amount);
             }
 
             // trailing may contain unit and/or extra name parts ("g", "g blanchiert")
             if (!string.IsNullOrWhiteSpace(trailing))
             {
-                var tParts = trailing.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
-                unit = tParts.Length >= 1 ? tParts[0] : null;
-                if (tParts.Length == 2)
-                    name = $"{namePart} {tParts[1]}";
+                DetectUnitAndName(trailing, out unit, out var extraName);
+                if (!string.IsNullOrWhiteSpace(extraName))
+                    name = $"{namePart} {extraName}";
                 else
                     name = namePart;
             }

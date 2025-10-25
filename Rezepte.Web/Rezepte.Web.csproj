@@ -29,4 +29,18 @@
     </Content>
   </ItemGroup>
 
+  <!-- Verhindere, dass die JSON beim Publish mit kopiert wird (gilt für alle Konfigurationen) -->
+  <ItemGroup>
+    <Content Update="test.recipe-import.json">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Debug: kopiere nur ins Build-Output, nicht ins Publish-Verzeichnis -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <None Update="test.recipe-import.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

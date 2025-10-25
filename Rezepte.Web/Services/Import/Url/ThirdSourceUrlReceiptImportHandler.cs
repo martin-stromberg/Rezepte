@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+﻿using Rezepte.Web.Components.Shared;
+using Rezepte.Web.Entities;
 using Rezepte.Web.Extensions;
 using System.Globalization;
 using System.Text.Json;
@@ -8,9 +8,10 @@ using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace Rezepte.Web.Services.Import.Url;
-
 /// <summary>
-/// Unterstützung für L I D L.de Rezeptseiten
+/// Unterstützung für 
+/// - L I D L.de Rezeptseiten
+/// - A l d i S u e d.de
 /// </summary>
 public class ThirdSourceUrlReceiptImportHandler: BaseUrlReceiptImportHandler, IImportHandler
 {
@@ -33,40 +34,38 @@ public class ThirdSourceUrlReceiptImportHandler: BaseUrlReceiptImportHandler, II
             url = FindTagValue(html, "link|rel=canonical");        
         return url;
     }
+    
     protected override async Task<KeyValuePair<string, RecipeImport[]>> ReadSingleRecipe(string fileName, string responseContent)
     {
         try
         {
-            RecipeImport recipe = new RecipeImport();
-
-            responseContent = FindTagValue(responseContent, "body");
-            var scripts = CollectTags(responseContent, "script");
+            List<RecipeImport> recipes = new List<RecipeImport>();
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             };
-            List<RecipeImport> recipes = new List<RecipeImport>();
-            foreach (var script in scripts)
+            foreach (var scriptContent in CollectScriptContents(responseContent))
+            {
                 try
                 {
-                    var match = Regex.Match(
-    script,
-    @"<script\b[^>]*?(?:type\s*=\s*[""']application/ld\+json[""'])?[^>]*>(.*?)</script>",
-    RegexOptions.Singleline | RegexOptions.IgnoreCase
-);
-                    if (!match.Success)
-                        continue; 
-                    var scriptContent = match.Groups[1].Value.Replace("\r", "").Replace("\n", "");
                     var elem = System.Text.Json.JsonSerializer.Deserialize<List<RootObject>>(scriptContent, options);
                     await foreach (var r in CropRecipesAsync(elem))
                     {
                         recipes.Add(r);
                     }
+                    continue;
                 }
-                catch
+                catch { }
+                try
                 {
-
+                    var elemSingle = System.Text.Json.JsonSerializer.Deserialize<RootObject>(scriptContent, options);
+                    await foreach (var r in CropRecipesAsync(new List<RootObject>() { elemSingle }))
+                    {
+                        recipes.Add(r);
+                    }
                 }
+                catch { }
+            }
             if (!recipes.Any())
                 throw new ApplicationException("no recipes");
             return new KeyValuePair<string, RecipeImport[]>(fileName, recipes.ToArray());
@@ -103,23 +102,44 @@ public class ThirdSourceUrlReceiptImportHandler: BaseUrlReceiptImportHandler, II
                         .ToArray(),
                     Quantity = e.RecipeYield.ToInt32(0)
                 },
-                Instructions = string.Join("\r\n\r\n", e.RecipeInstructions?.Select(ri => ri.Text).ToArray() ?? Array.Empty<string>()),
+                Instructions = new RecipeInstructions(){
+                    Steps = e.RecipeInstructions?.Select(text => new RecipeInstruction()
+                    {
+                        Text = text.Text
+                    }).ToArray()
+                },
                 WorkTime = ParseIsoDurationToMinutes(e.PrepTime) + ParseIsoDurationToMinutes(e.CookTime),
                 Portions = e.RecipeYield.ToInt32(0)
             };
 
-            var pictureTempPath = await DownloadFileAsync(e.Image.Trim('\'', '"'));
-            try
+            if (e.Image is not null && !string.IsNullOrWhiteSpace(e.Image.Url))
             {
-                byte[] imageArray = File.ReadAllBytes(pictureTempPath);
-                recipe.Pictures = new byte[][] { imageArray };
+                var pictureTempPath = await DownloadFileAsync(e.Image.Url.Trim('\'', '"'));
+                try
+                {
+                    byte[] imageArray = File.ReadAllBytes(pictureTempPath);
+                    recipe.Pictures = new byte[][] { imageArray };
+                }
+                finally
+                {
+                    File.Delete(pictureTempPath);
+                }
             }
-            finally
-            {
-                File.Delete(pictureTempPath);
-            }
-            yield return recipe;
+            
+            if (IsComplete(recipe))
+                yield return recipe;
         }
+    }
+
+    private bool IsComplete(RecipeImport recipe)
+    {
+        return !string.IsNullOrWhiteSpace(recipe.Title)
+            && recipe.Ingredients is not null
+            && recipe.Ingredients.Items is not null
+            && recipe.Ingredients.Items.Any()
+            && recipe.Instructions is not null
+            && recipe.Instructions.Steps is not null
+            && recipe.Instructions.Steps.Any();
     }
 
     public class RootObject
@@ -140,7 +160,9 @@ public class ThirdSourceUrlReceiptImportHandler: BaseUrlReceiptImportHandler, II
         public string ThumbnailUrl { get; set; }
         public Author Author { get; set; }
         public MainEntityOfPage MainEntityOfPage { get; set; }
-        public string Image { get; set; }
+
+        [JsonConverter(typeof(ImageConverter))]
+        public ImageWrapper Image { get; set; }
         public string Description { get; set; }
         public string Keywords { get; set; }
         public string RecipeYield { get; set; }
@@ -148,7 +170,7 @@ public class ThirdSourceUrlReceiptImportHandler: BaseUrlReceiptImportHandler, II
         public string CookTime { get; set; }
         public Nutrition Nutrition { get; set; }
         public AggregateRating AggregateRating { get; set; }
-        public List<RecipeInstruction> RecipeInstructions { get; set; }
+        public List<InstructionEntry> RecipeInstructions { get; set; }
         public List<Tool> Tool { get; set; }
         public List<string> RecipeIngredient { get; set; }
         public string RecipeCategory { get; set; }
@@ -209,7 +231,7 @@ public class ThirdSourceUrlReceiptImportHandler: BaseUrlReceiptImportHandler, II
         public string RatingCount { get; set; }
     }
 
-    public class RecipeInstruction
+    public class InstructionEntry
     {
         [JsonPropertyName("@type")]
         public string Type { get; set; }
@@ -223,6 +245,36 @@ public class ThirdSourceUrlReceiptImportHandler: BaseUrlReceiptImportHandler, II
         public string Type { get; set; }
         public string Item { get; set; }
         public int RequiredQuantity { get; set; }
+    }
+
+    public class ImageWrapper
+    {
+        public string Url { get; set; }
+    }
+    public class ImageConverter : JsonConverter<ImageWrapper>
+    {
+        public override ImageWrapper Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                string url = reader.GetString();
+                return new ImageWrapper { Url = url };
+            }
+            else if (reader.TokenType == JsonTokenType.StartObject)
+            {
+                using var jsonDoc = JsonDocument.ParseValue(ref reader);
+                var root = jsonDoc.RootElement;
+                string url = root.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null;
+                return new ImageWrapper { Url = url };
+            }
+
+            throw new JsonException("Invalid format for ImageWrapper");
+        }
+
+        public override void Write(Utf8JsonWriter writer, ImageWrapper value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.Url);
+        }
     }
 
 }

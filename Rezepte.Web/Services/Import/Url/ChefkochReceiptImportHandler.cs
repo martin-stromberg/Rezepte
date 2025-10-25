@@ -9,6 +9,9 @@ using static Rezepte.Web.Services.Import.GeminiClient;
 using static System.Collections.Specialized.BitVector32;
 
 namespace Rezepte.Web.Services.Import.Url;
+/// <summary>
+/// Unterstützung für C h e f k o c h.de
+/// </summary>
 public class ChefkochReceiptImportHandler : BaseUrlReceiptImportHandler, IImportHandler
 {
     public ChefkochReceiptImportHandler(IRecipeService recipes, ILogger<ChefkochReceiptImportHandler> logger) : base (recipes, logger)
@@ -72,23 +75,29 @@ public class ChefkochReceiptImportHandler : BaseUrlReceiptImportHandler, IImport
                                 .ToArray();
         return ingredients;
     }
-    private string FindInstructions(string[] articles)
+    private RecipeInstructions FindInstructions(string[] articles)
     {
         var instructionArticle = articles.FirstOrDefault(article => article.Contains("Zubereitung"));
         if (instructionArticle == null)
             return null;
         var tags = CollectTags(instructionArticle, "div");
         var instructionRows = tags.Where(r => r.Contains("instruction-row")).ToList();
-        return string.Join("\r\n", instructionRows.Select(r =>
+        return new RecipeInstructions()
         {
-            var textTags = CollectTags(r, "span").Where(t => t.Contains("instruction__text"));
-            return string.Join(" ", textTags.Select(t =>
+            Steps = instructionRows.Select(r =>
             {
-                t = t.Remove(0, t.IndexOf(">") + 1);
-                t = t.Substring(0, t.IndexOf("<"));
-                return t;
-            }));
-        }));
+                var textTags = CollectTags(r, "span").Where(t => t.Contains("instruction__text"));
+                return new RecipeInstruction()
+                {
+                    Text = string.Join(" ", textTags.Select(t =>
+                    {
+                        t = t.Remove(0, t.IndexOf(">") + 1);
+                        t = t.Substring(0, t.IndexOf("<"));
+                        return t;
+                    }))
+                };
+            }).ToArray()
+        };
     }
     private string FindMetaValue(string responseContent, string name = "")
     {
@@ -122,7 +131,9 @@ public class ChefkochReceiptImportHandler : BaseUrlReceiptImportHandler, IImport
             if (recipe.Ingredients == null)
                 throw new ApplicationException("no ingredients");
             recipe.Instructions = FindInstructions(articles);
-            if (recipe.Instructions == null)
+            if (recipe.Instructions is null)
+                throw new ApplicationException("no instructions");
+            if (recipe.Instructions.Steps is null || recipe.Instructions.Steps.Length == 0)
                 throw new ApplicationException("no instructions");
 
             recipe.WorkTime = (int)ParseGermanTimeSpan(FindMetaValue(responseContent, "Arbeitszeit")).TotalMinutes;

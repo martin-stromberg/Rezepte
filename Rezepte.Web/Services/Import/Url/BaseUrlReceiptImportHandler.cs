@@ -14,11 +14,19 @@ public abstract class BaseUrlReceiptImportHandler(IRecipeService recipes, ILogge
         public string Title { get; internal set; }
         public byte[][] Pictures { get; internal set; }
         public RecipeIngredients Ingredients { get; internal set; }
-        public string Instructions { get; internal set; }
+        public RecipeInstructions Instructions { get; internal set; }
         public string Description { get; internal set; }
         public string Uri { get; internal set; }
         public int Portions { get; internal set; }
         public int WorkTime { get; internal set; }
+    }
+    protected sealed class RecipeInstructions
+    {
+        public RecipeInstruction[] Steps { get; set; }
+    }
+    protected sealed class RecipeInstruction
+    {
+        public string Text { get; set; }
     }
     protected sealed class RecipeIngredients()
     {
@@ -172,11 +180,22 @@ public abstract class BaseUrlReceiptImportHandler(IRecipeService recipes, ILogge
     {
         var pictureUri = FindTagValue(html, "head", "meta|property=og:image");
         if (string.IsNullOrWhiteSpace(pictureUri)) return null;
-        var pictureTempPath = await DownloadFileAsync(pictureUri.Trim('\'', '"'));
+        byte[]? imageArray = await DownloadImageAsync(pictureUri.Trim('\'', '"'));
+        if (imageArray == null || imageArray.Length == 0)
+            return null;
+        return new byte[][] { imageArray };
+    }
+    protected async Task<byte[]?> DownloadImageAsync(string uri)
+    {
+        var pictureTempPath = await DownloadFileAsync(uri.Trim('\'', '"'));
         try
         {
             byte[] imageArray = File.ReadAllBytes(pictureTempPath);
-            return new byte[][] { imageArray };
+            return imageArray;
+        }
+        catch
+        {
+            return null;
         }
         finally
         {
@@ -196,6 +215,33 @@ public abstract class BaseUrlReceiptImportHandler(IRecipeService recipes, ILogge
         if (node.ChildNodes.Count == 0)
             return node.InnerText;
         return string.Join(" ", node.ChildNodes.Cast<XmlNode>().Select(n => GetNodeText(n))).Replace("  ", " ").Trim();
+    }
+    protected IEnumerable<string> CollectScriptContents(string html)
+    {
+        var scripts = CollectTags(html, "script");
+        foreach (var script in scripts)
+        {
+            var scriptContent = "";
+            try
+            {
+                var match = Regex.Match(
+                    script,
+                    @"<script\b[^>]*?(?:type\s*=\s*[""']application/ld\+json[""'])?[^>]*>(.*?)</script>",
+                    RegexOptions.Singleline | RegexOptions.IgnoreCase
+                    );
+                if (!match.Success)
+                    continue;
+                scriptContent = match.Groups[1].Value.Replace("\r", "").Replace("\n", "");
+                if (string.IsNullOrWhiteSpace(scriptContent))
+                    continue;
+            }
+            catch
+            {
+
+            }
+            if (!string.IsNullOrWhiteSpace(scriptContent))
+                yield return scriptContent;
+        }
     }
 
     protected string[] CollectTags(string content, string tagName)
@@ -470,15 +516,15 @@ public abstract class BaseUrlReceiptImportHandler(IRecipeService recipes, ILogge
                         return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, name);
                     }).ToList();
 
-                var steps = new List<RecipeCreateStep>
+                var steps = imported.Instructions.Steps.Select((step, i) =>
                 {
-                    new RecipeCreateStep(
+                    return new RecipeCreateStep(
                         Title: null,
-                        Description: imported.Instructions ?? string.Empty,
-                        DurationMinutes: imported.WorkTime,
+                        Description: step.Text ?? string.Empty,
+                        DurationMinutes: 0,
                         RequiresOvernightRest: false,
-                        Ingredients: stepIngredients)
-                };
+                        Ingredients: i == 0 ? stepIngredients : new List<RecipeCreateIngredient>());
+                }).ToList();
                 var existingRecipe = await Recipes.FindByUri(userId, imported.Uri ?? string.Empty, ct).ConfigureAwait(false);
                 if (existingRecipe is not null)
                 {

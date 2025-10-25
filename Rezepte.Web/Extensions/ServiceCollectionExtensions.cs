@@ -137,12 +137,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportHandler, ChefkochReceiptImportHandler>();
         services.AddScoped<IImportHandler, SecondSourceUrlReceiptImportHandler>();
         services.AddScoped<IImportHandler, ThirdSourceUrlReceiptImportHandler>();
+        services.AddScoped<IImportHandler, FourthSourceUrlReceiptImportHandler>();
+        services.AddScoped<IImportHandler, FifthSourceUrlRecipeImportHandler>();
+        services.AddScoped<IImportHandler, SixthSourceUrlRecipeImportHandler>();
         services.AddScoped<IImportHandler, AIFotoImportHandler>();
         services.AddScoped<IImportHandler, AIUrlImportHandler>();
         services.AddScoped<IAiUsageService, AiUsageService>();
         services.AddScoped<ISettingsService, SettingsService>();
         services.AddScoped<ICalendarService, CalendarService>();
         services.AddScoped<IGeminiClient, GeminiClient>();
+        services.AddScoped<ITestRecipeImportService, TestRecipeImportService>();
 
         // ImportOrchestrator: singleton that creates scopes for handlers (handlers stay scoped)
         services.AddSingleton<ImportOrchestrator>();
