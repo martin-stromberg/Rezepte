@@ -1,5 +1,6 @@
 ﻿@using System.Net.Http.Headers
 @using System.Text.Json
+@using System.Net.Http.Json
 @using Microsoft.AspNetCore.Components.Web
 @inject ApiClient Api
 @inject NavigationManager Navigation
@@ -32,6 +33,21 @@
                     <button class="btn btn-outline-secondary" @onclick="ToggleUrlImport" disabled="@isBusy">
                         Rezept von URL laden
                     </button>
+
+                    @* Neue Option: Testlauf sichtbar wenn Server Test-URLs liefert *@
+                    @if (testRunAvailable)
+                    {
+                        <button class="btn btn-outline-success" @onclick="RunTestlaufAsync" disabled="@isBusy">
+                            @if (isBusy && currentAction == ActionKind.TestRun)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <span>Testlauf</span>
+                            }
+                        </button>
+                    }
 
                     <button class="btn btn-link text-muted" @onclick="CloseClicked" disabled="@isBusy">Abbrechen</button>
                 </div>
@@ -88,7 +104,7 @@
 @code {
     public record DialogResult(bool Success, string? Error, List<string>? CreatedIds);
 
-    private enum ActionKind { None, CreateEmpty, ImportFile, ImportUrl }
+    private enum ActionKind { None, CreateEmpty, ImportFile, ImportUrl, TestRun }
 
     private bool isOpen;
     private bool isBusy;
@@ -108,6 +124,9 @@
     // optional cookbok id to associate created/imported recipes with a cookbook
     private string? _cookbookId;
 
+    // Neue Felder für Testlauf
+    private bool testRunAvailable;
+
     [Parameter] public EventCallback<DialogResult> OnClosed { get; set; }
 
     // Public API for parent via @ref
@@ -118,6 +137,8 @@
         message = null;
         importUrl = string.Empty;
         showUrl = false;
+        // prüfe asynchron ob Test-URLs vorhanden sind
+        _ = LoadTestUrlsFlagAsync();
         StateHasChanged();
     }
     public void Hide()
@@ -478,6 +499,178 @@
     private void Close(DialogResult result)
     {
         _ = CloseAsync(result);
+    }
+
+    private async Task LoadTestUrlsFlagAsync()
+    {
+        try
+        {
+            var res = await Api.Http.GetAsync("api/import/test-urls");
+            if (!res.IsSuccessStatusCode)
+            {
+                testRunAvailable = false;
+                return;
+            }
+            var urls = await res.Content.ReadFromJsonAsync<string[]>() ?? Array.Empty<string>();
+            testRunAvailable = urls.Length > 0;
+            StateHasChanged();
+        }
+        catch
+        {
+            testRunAvailable = false;
+        }
+    }
+
+    private async Task RunTestlaufAsync()
+    {
+        isBusy = true;
+        currentAction = ActionKind.TestRun;
+        message = "Starte Testlauf...";
+        StateHasChanged();
+        var totalSuccess = false;
+
+        try
+        {
+            var urlsRes = await Api.Http.GetAsync("api/import/test-urls");
+            if (!urlsRes.IsSuccessStatusCode)
+            {
+                var body = await urlsRes.Content.ReadAsStringAsync();
+                message = $"Fehler beim Laden der Test-URLs: {urlsRes.StatusCode} - {body}";
+                return;
+            }
+
+            var urls = await urlsRes.Content.ReadFromJsonAsync<string[]>() ?? Array.Empty<string>();
+            if (urls.Length == 0)
+            {
+                message = "Keine Test-URLs gefunden.";
+                return;
+            }
+
+            var failuireCount = 0;
+            var successCount = 0;
+            foreach (var url in urls)
+            {
+                // 1) Lösche vorhandenes Rezept falls vorhanden
+                var delRes = await Api.Http.PostAsJsonAsync("api/import/test-delete", new { Url = url });
+                if (!delRes.IsSuccessStatusCode)
+                {
+                    var body = await delRes.Content.ReadAsStringAsync();
+                    message = $"Fehler beim Löschen vorhandener Rezepte für {url}: {delRes.StatusCode} - {body}";
+                    // fahre fort mit nächsten URL
+                }
+                else
+                {
+                    message = $"Vorhandene Rezepte für {url} wurden entfernt (falls vorhanden).";
+                    StateHasChanged();
+                }
+
+                // 2) Starte Import wie in ImportFromUrlAsync (synchron sequenziell)
+                var endpoint = string.IsNullOrWhiteSpace(_cookbookId)
+                    ? $"api/cookbooks/import-session/start"
+                    : $"api/cookbooks/{_cookbookId}/import-session/start";
+                var startRes = await Api.Http.PostAsJsonAsync(endpoint, new { Url = url });
+                if (!startRes.IsSuccessStatusCode)
+                {
+                    var body = await startRes.Content.ReadAsStringAsync();
+                    message = $"Fehler beim Starten des Imports für {url}: {startRes.StatusCode} - {body}";
+                    StateHasChanged();
+                    // fahre mit nächster URL fort
+                    continue;
+                }
+
+                var startJson = await startRes.Content.ReadFromJsonAsync<JsonElement>();
+                string? sessionId = null;
+                if (startJson.ValueKind != JsonValueKind.Undefined && startJson.TryGetProperty("sessionId", out var sidEl) && sidEl.ValueKind == JsonValueKind.String)
+                {
+                    sessionId = sidEl.GetString();
+                }
+
+                if (string.IsNullOrEmpty(sessionId))
+                {
+                    message = $"Fehler: Keine Import-Session für {url} erhalten.";
+                    StateHasChanged();
+                    continue;
+                }
+
+                // Poll loop für diese URL
+                var currentSuccess = false;
+                while (true)
+                {
+                    await Task.Delay(800);
+                    var statusEndpoint = string.IsNullOrWhiteSpace(_cookbookId)
+                        ? $"api/cookbooks/import-session/{sessionId}/status"
+                        : $"api/cookbooks/{_cookbookId}/import-session/{sessionId}/status";
+                    var statusRes = await Api.Http.GetAsync(statusEndpoint);
+                    if (!statusRes.IsSuccessStatusCode)
+                    {
+                        var body = await statusRes.Content.ReadAsStringAsync();
+                        message = $"Fehler beim Abfragen des Import‑Status für {url}: {statusRes.StatusCode} - {body}";
+                        StateHasChanged();
+                        break;
+                    }
+                    var statusJson = await statusRes.Content.ReadFromJsonAsync<JsonElement>();
+                    var waiting = statusJson.GetProperty("waitingForConfirmation").GetBoolean();
+                    var statusText = statusJson.GetProperty("status").GetString();
+                    message = $"{url}: {statusText}";
+                    StateHasChanged();
+
+                    if (waiting)
+                    {
+                        var prompt = statusJson.GetProperty("confirmationPrompt").GetString() ?? "Bestätigen?";
+                        var accepted = await ShowUserConfirmationAsync(prompt);
+                        var confirmEndpoint = string.IsNullOrWhiteSpace(_cookbookId)
+                            ? $"api/cookbooks/import-session/{sessionId}/confirm"
+                            : $"api/cookbooks/{_cookbookId}/import-session/{sessionId}/confirm";
+                        var confirmRes = await Api.Http.PostAsJsonAsync(confirmEndpoint, new { Accepted = accepted });
+                        if (!confirmRes.IsSuccessStatusCode)
+                        {
+                            var body = await confirmRes.Content.ReadAsStringAsync();
+                            message = $"Fehler beim Bestätigen für {url}: {confirmRes.StatusCode} - {body}";
+                            StateHasChanged();
+                            break;
+                        }
+                    }
+
+                    if (statusJson.TryGetProperty("result", out var resultEl) && resultEl.ValueKind != JsonValueKind.Null)
+                    {
+                        var success = resultEl.GetProperty("success").GetBoolean();
+                        if (success)
+                        {
+                            message = $"{url}: Import erfolgreich.";
+                            currentSuccess = true;
+                            StateHasChanged();
+                            break;
+                        }
+                        else
+                        {
+                            var err = resultEl.GetProperty("error").GetString() ?? "Unbekannter Importfehler";
+                            message = $"{url}: Import fehlgeschlagen: {err}";
+                            StateHasChanged();
+                            break;
+                        }
+                    }
+                } // poll loop Ende
+
+                if (currentSuccess)
+                    successCount++;
+                else
+                    failuireCount++;
+            } // foreach URLs
+
+            totalSuccess = failuireCount == 0;
+        }
+        catch (Exception ex)
+        {
+            message = "Testlauf fehlgeschlagen: " + ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+            currentAction = ActionKind.None;
+            StateHasChanged();
+        }
+        if (totalSuccess)
+            await CloseAsync(new DialogResult(true, null, null));
     }
 }
 

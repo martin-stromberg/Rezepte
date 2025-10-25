@@ -144,8 +144,8 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     {
         var recipe = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct);
         if (recipe is null) return (false, "Rezept nicht gefunden.");
-        if (recipe.UserId != CurrentUserId)
-            return (false, "Rezept nicht im Besitz des angemeldeten Benutzers.");
+        if (recipe.UserId != userId)
+            return (false, "Ein Wechsel der Benutzerzugehörigkeit ist nicht zulässig.");
         if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3) return (false, "Der Titel muss mindestens 3 Zeichen haben.");
 
         recipe.Title = title.Trim();
