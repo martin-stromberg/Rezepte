@@ -130,6 +130,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICookbookService, CookbookService>();
         services.AddScoped<IRecipeService, RecipeService>();
         services.AddScoped<IExportService, ExportService>();
+        services.AddScoped<IShoppingListService, ShoppingListService>();
+
+        // Register other services
         services.AddScoped<IBackgroundJobHandler, ExportUserJobHandler>();
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<IImportService, ImportService>();

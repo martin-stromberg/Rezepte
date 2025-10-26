@@ -1,0 +1,670 @@
+﻿@page "/shopping"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using System.Text.Json
+@using System.Net.Http.Json
+@using Rezepte.Web.Models
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject ApiClient Api
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Einkaufsliste</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Einkaufslisten</h3>
+
+    <div class="d-inline-flex align-items-center gap-2">
+        <div class="form-check form-switch me-2">
+            <input class="form-check-input" type="checkbox" id="modeSwitch" checked="@isSimpleMode" @onchange="async e => await ToggleModeAsync((bool?)e.Value ?? false)" />
+            <label class="form-check-label small" for="modeSwitch">@((isSimpleMode) ? "Einfachmodus" : "Erweitert")</label>
+        </div>
+
+        @if (!isSimpleMode)
+        {
+            <InputText class="form-control form-control-sm" style="width:220px;" placeholder="Neue Liste" @bind-value="newListName" />
+            <button type="button" class="btn btn-primary btn-sm" @onclick="CreateListAsync" disabled="@string.IsNullOrWhiteSpace(newListName)">Erstellen</button>
+        }
+    </div>
+</div>
+
+<div class="row">
+    @if (!isSimpleMode)
+    {
+        <div class="col-12 col-md-4 mb-3">
+            <div class="card p-2">
+                <div class="mb-2 fw-semibold">Listen</div>
+                @if (lists?.Count > 0)
+                {
+                    <ul class="list-group">
+                        @foreach (var l in lists!)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <a class="flex-grow-1" href="javascript:void(0)" @onclick="() => SelectList(l.Id)">@l.Name</a>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" title="Umbenennen" @onclick="() => RenameListPrompt(l.Id)">✏️</button>
+                                    <button class="btn btn-outline-danger" title="Löschen" @onclick="() => DeleteListAsync(l.Id)">🗑️</button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-muted small">Keine Listen vorhanden.</div>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="@((isSimpleMode) ? "col-12" : "col-12 col-md-8")">
+        @if (selectedList is null)
+        {
+            <div class="card p-3 text-muted">Wähle eine Liste aus oder lege eine neue an.</div>
+        }
+        else
+        {
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h5 class="m-0">@selectedList.Name</h5>
+                        <div class="small text-muted">@selectedList.Groups.Count() Artikelgruppen</div>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm me-2" @onclick="ExportSelectedToClipboardAsync">Kopieren</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="SaveAllAsync">Speichern</button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <input class="form-control form-control-sm d-inline-block me-2" style="width:220px;" placeholder="Neue Gruppe" @bind="newGroupName" @bind:event="oninput" />
+                    <button class="btn btn-sm btn-outline-primary" @onclick="AddGroup" disabled="@string.IsNullOrWhiteSpace(newGroupName)">Gruppe anlegen</button>
+                </div>
+
+                @if (!selectedList.Groups.Any())
+                {
+                    <div class="text-muted small">Noch keine Gruppen.</div>
+                }
+
+                @for (int gi = 0; gi < selectedList.Groups.Count; gi++)
+                {
+                    var group = selectedList.Groups[gi];
+                    <div class="mb-3 border rounded p-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            @if (selectedList.Groups.Count > 1)
+                            {
+                                <div class="fw-semibold">@group.Name</div>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-secondary" @onclick="() => RenameGroupPrompt(group.Id)">✏️</button>
+                                    <button class="btn btn-outline-danger" @onclick="() => RemoveGroup(group.Id)">🗑️</button>
+                                </div>
+                            }                          
+                        </div>
+
+                        <div class="mb-2 d-flex gap-2">
+                            @if (gi == 0)
+                            {
+                                <input class="form-control form-control-sm" placeholder="Zutat" style="width:40%" @bind="group.NewItemName" @bind:event="oninput" @ref="firstItemInputRef" />
+                            }
+                            else
+                            {
+                                <input class="form-control form-control-sm" placeholder="Zutat" style="width:40%" @bind="group.NewItemName" @bind:event="oninput" />
+                            }
+                            <input class="form-control form-control-sm" placeholder="Menge" style="width:20%" @bind="group.NewItemQuantity" @bind:event="oninput" />
+                            <input class="form-control form-control-sm" placeholder="Einheit" style="width:20%" @bind="group.NewItemUnit" @bind:event="oninput" />
+                            <button class="btn btn-sm btn-primary" @onclick="() => AddItem(group)" disabled="@string.IsNullOrWhiteSpace(group.NewItemName)">Hinzufügen</button>
+                        </div>
+
+                        @if (group.Items.Any())
+                        {
+                            <ul class="list-group list-group-flush">
+                                @foreach (var it in group.Items)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="fw-semibold">@it.Name</div>
+                                            <div class="small text-muted">@it.Quantity @it.Unit</div>
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-secondary" @onclick="() => EditItemPrompt(group.Id, it.Id)">✏️</button>
+                                            <button class="btn btn-outline-danger" @onclick="() => RemoveItem(group.Id, it.Id)">🗑️</button>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string newListName = string.Empty;
+    private string newGroupName = string.Empty;
+
+    private List<ShoppingListModel> lists = new();
+    private ShoppingListModel? selectedList;
+
+    // Fokus-Handling für schnelle Eingabe
+    private ElementReference firstItemInputRef;
+    private bool shouldFocusFirstItem;
+
+    // Flag: Wenn Laden während Prerender geworfen hat, erneut nach interaktivem Render ausführen
+    private bool pendingLoadAfterPrerender;
+
+    // Simple / Advanced mode
+    private bool isSimpleMode = false;
+
+    protected override Task OnInitializedAsync()
+    {
+        // Don't call JS interop here (may run during prerender). Defer to OnAfterRenderAsync.
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // load user preference first so UI renders in correct mode
+                await LoadUserSettingsAsync();
+
+                await LoadAllAsync();
+
+                // Wenn keine Listen vorhanden sind, automatisch eine Standardliste anlegen.
+                if (lists == null || lists.Count == 0)
+                {
+                    await CreateDefaultListAsync();
+                }
+
+                // ensure first list is selected on initial load
+                if (selectedList == null && lists.Count > 0)
+                {
+                    selectedList = lists.First();
+                    shouldFocusFirstItem = true;
+                }
+
+                pendingLoadAfterPrerender = false;
+            }
+            catch (InvalidOperationException)
+            {
+                // Static prerendering: JS interop not allowed yet. Schedule load for the interactive render.
+                pendingLoadAfterPrerender = true;
+            }
+        }
+        else if (pendingLoadAfterPrerender)
+        {
+            try
+            {
+                await LoadUserSettingsAsync();
+                await LoadAllAsync();
+
+                if (lists == null || lists.Count == 0)
+                {
+                    await CreateDefaultListAsync();
+                }
+
+                if (selectedList == null && lists.Count > 0)
+                {
+                    selectedList = lists.First();
+                    shouldFocusFirstItem = true;
+                }
+            }
+            catch
+            {
+                // If it still fails, swallow or log via ILogger if available.
+            }
+            finally
+            {
+                pendingLoadAfterPrerender = false;
+            }
+        }
+
+        if (shouldFocusFirstItem)
+        {
+            try
+            {
+                await firstItemInputRef.FocusAsync();
+            }
+            catch
+            {
+                // ignore if focus fails
+            }
+            finally
+            {
+                shouldFocusFirstItem = false;
+            }
+        }
+    }
+
+    // Loads per-user settings from server (including SimpleMode)
+    private async Task LoadUserSettingsAsync()
+    {
+        try
+        {
+            var res = await Api.Http.GetAsync("api/settings/me");
+            if (!res.IsSuccessStatusCode) return;
+            var json = await res.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(json)) return;
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("SimpleMode", out var p) || root.TryGetProperty("simpleMode", out p))
+                {
+                    if (p.ValueKind == JsonValueKind.True) isSimpleMode = true;
+                    else if (p.ValueKind == JsonValueKind.False) isSimpleMode = false;
+                }
+            }
+        }
+        catch
+        {
+            // ignore errors for settings load; keep default mode
+        }
+    }
+
+    private async Task ToggleModeAsync(bool toSimple)
+    {
+        // no change
+        if (toSimple == isSimpleMode) return;
+
+        if (toSimple)
+        {
+            // switching to simple mode
+            if (lists == null || lists.Count == 0)
+            {
+                // ensure at least one list exists
+                await CreateDefaultListAsync();
+                isSimpleMode = true;
+                selectedList = lists.FirstOrDefault();
+                // persist preference
+                await PersistSimpleModeAsync(isSimpleMode);
+                StateHasChanged();
+                return;
+            }
+
+            if (lists.Count > 1)
+            {
+                var confirmed = await JS.InvokeAsync<bool>("confirm", "Beim Wechsel in den Einfachmodus werden alle Listen zu einer einzigen Liste zusammengeführt. Fortfahren?");
+                if (!confirmed)
+                {
+                    // user cancelled -> keep advanced mode
+                    return;
+                }
+
+                await MergeListsAsync();
+            }
+
+            // select the (single) list after merge
+            selectedList = lists.FirstOrDefault();
+            isSimpleMode = true;
+            // persist preference
+            await PersistSimpleModeAsync(isSimpleMode);
+            shouldFocusFirstItem = true;
+            StateHasChanged();
+        }
+        else
+        {
+            // switching to advanced mode: just toggle and persist
+            isSimpleMode = false;
+            await PersistSimpleModeAsync(isSimpleMode);
+            StateHasChanged();
+        }
+    }
+
+    private async Task PersistSimpleModeAsync(bool simpleMode)
+    {
+        try
+        {
+            var ct = CancellationToken.None;
+            await Api.PutAsJsonAsync("api/settings/me/shoppinglistsimplemode", simpleMode, ct);
+        }
+        catch
+        {
+            // ignore persist errors (optionally log)
+        }
+    }
+
+    private async Task CreateDefaultListAsync()
+    {
+        var ct = CancellationToken.None;
+        var model = new Rezepte.Web.Models.ShoppingList
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Einkaufsliste",
+            Groups = new List<Rezepte.Web.Models.ShoppingGroup>
+            {
+                new Rezepte.Web.Models.ShoppingGroup
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = "Allgemein",
+                    Items = new List<Rezepte.Web.Models.ShoppingItem>()
+                }
+            }
+        };
+
+        var res = await Api.PostAsJsonAsync("api/shoppinglists", model, ct);
+        res.EnsureSuccessStatusCode();
+        await LoadAllAsync();
+        selectedList = lists.FirstOrDefault(l => l.Id == model.Id) ?? lists.FirstOrDefault();
+    }
+
+    private async Task MergeListsAsync()
+    {
+        if (lists == null || lists.Count == 0) return;
+
+        // keep the first list as target
+        var target = lists[0];
+
+        // merge groups from the others into target
+        var others = lists.Skip(1).ToList();
+        foreach (var other in others)
+        {
+            // move groups (keep ids)
+            foreach (var g in other.Groups)
+            {
+                // avoid accidental id conflict by ensuring unique ids (if necessary)
+                if (target.Groups.Any(x => x.Id == g.Id))
+                {
+                    g.Id = Guid.NewGuid().ToString();
+                }
+                target.Groups.Add(g);
+            }
+        }
+
+        // persist merged target
+        selectedList = target;
+        await SaveSelectedAsync();
+
+        // delete other lists on server
+        var ct = CancellationToken.None;
+        foreach (var other in others)
+        {
+            await Api.Http.DeleteAsync($"api/shoppinglists/{Uri.EscapeDataString(other.Id)}", ct);
+        }
+
+        // refresh lists from server
+        await LoadAllAsync();
+
+        // ensure single selection
+        selectedList = lists.FirstOrDefault(l => l.Id == target.Id) ?? lists.FirstOrDefault();
+    }
+
+    private async Task CreateListAsync()
+    {
+        var ct = CancellationToken.None;
+        // Create server DTO with a default group so user can immediately add items
+        var model = new Rezepte.Web.Models.ShoppingList
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = newListName.Trim(),
+            Groups = new List<Rezepte.Web.Models.ShoppingGroup>
+            {
+                new Rezepte.Web.Models.ShoppingGroup
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = "Allgemein",
+                    Items = new List<Rezepte.Web.Models.ShoppingItem>()
+                }
+            }
+        };
+
+        var res = await Api.PostAsJsonAsync("api/shoppinglists", model, ct);
+        res.EnsureSuccessStatusCode();
+        var created = await res.Content.ReadFromJsonAsync<Rezepte.Web.Models.ShoppingList>(cancellationToken: ct);
+
+        // refresh local lists from server
+        await LoadAllAsync();
+        // select created entry if present and focus first item's input
+        if (created != null)
+        {
+            SelectList(created.Id);
+        }
+        newListName = string.Empty;
+    }
+
+    private void SelectList(string id)
+    {
+        selectedList = lists.FirstOrDefault(l => l.Id == id);
+        shouldFocusFirstItem = true;
+        StateHasChanged();
+    }
+
+    private async Task DeleteListAsync(string id)
+    {
+        var ct = CancellationToken.None;
+        var res = await Api.Http.DeleteAsync($"api/shoppinglists/{Uri.EscapeDataString(id)}", ct);
+        if (res.IsSuccessStatusCode)
+        {
+            // refresh
+            await LoadAllAsync();
+            if (selectedList?.Id == id) selectedList = lists.FirstOrDefault();
+        }
+        else
+        {
+            // optional: show error to user
+        }
+    }
+
+    private async Task RenameListPrompt(string id)
+    {
+        var list = lists.FirstOrDefault(l => l.Id == id);
+        if (list == null) return;
+        var newName = await JS.InvokeAsync<string>("prompt", $"Neuer Name für Liste \"{list.Name}\"", list.Name);
+        if (!string.IsNullOrWhiteSpace(newName))
+        {
+            list.Name = newName.Trim();
+            await SaveSelectedAsync();
+        }
+    }
+
+    private async Task SaveAllAsync()
+    {
+        // Save currently selected list to server
+        await SaveSelectedAsync();
+    }
+
+    private async Task SaveSelectedAsync()
+    {
+        if (selectedList == null) return;
+        var ct = CancellationToken.None;
+        var serverModel = ToServer(selectedList);
+        var res = await Api.PutAsJsonAsync($"api/shoppinglists/{Uri.EscapeDataString(serverModel.Id)}", serverModel, ct);
+        if (res.IsSuccessStatusCode)
+        {
+            await LoadAllAsync();
+            // keep selection
+            selectedList = lists.FirstOrDefault(l => l.Id == serverModel.Id);
+        }
+        else
+        {
+            // optional: show error
+        }
+    }
+
+    private async Task LoadAllAsync()
+    {
+        try
+        {
+            var ct = CancellationToken.None;
+            var serverLists = await Api.GetAsync<List<Rezepte.Web.Models.ShoppingList>>("api/shoppinglists", ct);
+            lists = serverLists?.Select(FromServer).ToList() ?? new();
+
+            // ensure first list is selected if nothing is selected yet
+            if (selectedList == null && lists.Count > 0)
+            {
+                selectedList = lists.First();
+            }
+        }
+        catch
+        {
+            lists = new();
+        }
+        StateHasChanged();
+    }
+
+    private async Task AddGroup()
+    {
+        if (selectedList == null) return;
+        var g = new ShoppingGroupModel(Guid.NewGuid().ToString(), newGroupName.Trim());
+        selectedList.Groups.Add(g);
+        newGroupName = string.Empty;
+        await SaveSelectedAsync();
+        // after adding a group, make sure UI shows group names and focus first input
+        shouldFocusFirstItem = true;
+    }
+
+    private async Task RemoveGroup(string groupId)
+    {
+        if (selectedList == null) return;
+        selectedList.Groups.RemoveAll(g => g.Id == groupId);
+        await SaveSelectedAsync();
+    }
+
+    private async Task RenameGroupPrompt(string groupId)
+    {
+        if (selectedList == null) return;
+        var g = selectedList.Groups.FirstOrDefault(x => x.Id == groupId);
+        if (g == null) return;
+        var newName = await JS.InvokeAsync<string>("prompt", $"Neuer Name für Gruppe \"{g.Name}\"", g.Name);
+        if (!string.IsNullOrWhiteSpace(newName))
+        {
+            g.Name = newName.Trim();
+            await SaveSelectedAsync();
+        }
+    }
+
+    private async Task AddItem(ShoppingGroupModel group)
+    {
+        if (selectedList == null) return;
+        var item = new ShoppingItemModel(Guid.NewGuid().ToString(), group.NewItemName.Trim(), group.NewItemQuantity?.Trim() ?? string.Empty, group.NewItemUnit?.Trim() ?? string.Empty);
+        group.Items.Add(item);
+        group.NewItemName = string.Empty;
+        group.NewItemQuantity = string.Empty;
+        group.NewItemUnit = string.Empty;
+        await SaveSelectedAsync();
+        // keep focus on first input for fast entry
+        shouldFocusFirstItem = true;
+    }
+
+    private async Task RemoveItem(string groupId, string itemId)
+    {
+        if (selectedList == null) return;
+        var g = selectedList.Groups.FirstOrDefault(x => x.Id == groupId);
+        if (g == null) return;
+        g.Items.RemoveAll(i => i.Id == itemId);
+        await SaveSelectedAsync();
+    }
+
+    private async Task EditItemPrompt(string groupId, string itemId)
+    {
+        if (selectedList == null) return;
+        var g = selectedList.Groups.FirstOrDefault(x => x.Id == groupId);
+        var it = g?.Items.FirstOrDefault(i => i.Id == itemId);
+        if (it == null) return;
+
+        var name = await JS.InvokeAsync<string>("prompt", "Zutat", it.Name);
+        if (string.IsNullOrWhiteSpace(name)) return;
+        var qty = await JS.InvokeAsync<string>("prompt", "Menge", it.Quantity);
+        if (qty == null) return;
+        var unit = await JS.InvokeAsync<string>("prompt", "Einheit", it.Unit);
+        if (unit == null) return;
+
+        it.Name = name.Trim();
+        it.Quantity = qty.Trim();
+        it.Unit = unit.Trim();
+        await SaveSelectedAsync();
+    }
+
+    private async Task ExportSelectedToClipboardAsync()
+    {
+        if (selectedList == null) return;
+        var text = selectedList.ToDisplayString();
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        await JS.InvokeVoidAsync("alert", "Liste in die Zwischenablage kopiert");
+    }
+
+    // Mapping between local UI model and server model
+    private Rezepte.Web.Models.ShoppingList ToServer(ShoppingListModel m)
+    {
+        return new Rezepte.Web.Models.ShoppingList
+        {
+            Id = m.Id,
+            Name = m.Name,
+            Groups = m.Groups.Select(g => new Rezepte.Web.Models.ShoppingGroup
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Items = g.Items.Select(i => new Rezepte.Web.Models.ShoppingItem
+                {
+                    Id = i.Id,
+                    Name = i.Name,
+                    Quantity = i.Quantity,
+                    Unit = i.Unit
+                }).ToList()
+            }).ToList()
+        };
+    }
+
+    private ShoppingListModel FromServer(Rezepte.Web.Models.ShoppingList s)
+    {
+        var model = new ShoppingListModel(s.Id, s.Name);
+        model.Groups = s.Groups?.Select(g => new ShoppingGroupModel(g.Id, g.Name)
+        {
+            Items = g.Items?.Select(i => new ShoppingItemModel(i.Id, i.Name, i.Quantity ?? string.Empty, i.Unit ?? string.Empty)).ToList() ?? new()
+        }).ToList() ?? new();
+        return model;
+    }
+
+    // Models (klein, lokal in der Komponente)
+    private sealed class ShoppingListModel
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public List<ShoppingGroupModel> Groups { get; set; } = new();
+        public ShoppingListModel(string id, string name) { Id = id; Name = name; }
+
+        public string ToDisplayString()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(Name);
+            foreach (var g in Groups)
+            {
+                sb.AppendLine();
+                sb.AppendLine(g.Name);
+                foreach (var i in g.Items)
+                {
+                    sb.AppendLine($"- {i.Quantity} {i.Unit} {i.Name}".Trim());
+                }
+            }
+            return sb.ToString();
+        }
+    }
+
+    private sealed class ShoppingGroupModel
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public List<ShoppingItemModel> Items { get; set; } = new();
+        // helper fields for quick add UI
+        public string? NewItemName { get; set; }
+        public string? NewItemQuantity { get; set; }
+        public string? NewItemUnit { get; set; }
+        public ShoppingGroupModel(string id, string name) { Id = id; Name = name; }
+    }
+
+    private sealed class ShoppingItemModel
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string Quantity { get; set; }
+        public string Unit { get; set; }
+        public ShoppingItemModel(string id, string name, string quantity, string unit) { Id = id; Name = name; Quantity = quantity; Unit = unit; }
+    }
+}

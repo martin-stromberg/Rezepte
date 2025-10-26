@@ -73,11 +73,12 @@ public class RedirectToRegisterMiddleware
             path.StartsWith("/_blazor", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/_framework", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/_content", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/_vs", StringComparison.OrdinalIgnoreCase))
+            path.StartsWith("/_vs", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/manifest.json", StringComparison.OrdinalIgnoreCase))
             return true;
 
         // Exclude typical static file extensions regardless of path (hashed filenames etc.)
-        var staticExtensions = new[] { ".css", ".js", ".map", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff2", ".woff", ".ttf", ".eot", ".webmanifest" };
+        var staticExtensions = new[] { ".css", ".js", ".map", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff2", ".woff", ".ttf", ".eot", ".webmanifest", ".json" };
         var hasStaticExt = staticExtensions.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
         if (hasStaticExt) return true;
 

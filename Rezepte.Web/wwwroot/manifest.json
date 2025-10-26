@@ -1,15 +1,20 @@
 {
-  "name": "Kochrezepte",
+  "name": "Rezepte",
   "short_name": "Rezepte",
-  "icons": [
-    {
-        "src": "/icons/rezepte-180x180.png",
-        "sizes": "180x180",
-        "type": "image/png"
-    }
-  ],
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ff5722"
+  "theme_color": "#0d6efd",
+  "icons": [
+    {
+      "src": "/icons/rezepte-180x180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/rezepte_64x64.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
 }

@@ -39,13 +39,15 @@
 | STEP-003  | ✅ Erledigt   | Schritt hat Zutatenliste                                                     | Zutaten als Collection in Schritt‑Entity. |
 | STEP-004  | ✅ Erledigt   | Schritt hat Zubereitungsdauer                                                | Property `DurationMinutes` in Schritt‑Entity. |
 | STEP-005  | ✅ Erledigt   | Schritt kann Ruhezeit über Nacht enthalten                                   | Boolean‑Flag `RequiresOvernightRest` in Schritt‑Entity. |
-| CAL-001   | 🕓 Teilweise  | Jeder Benutzer hat einen Kalender                                            | Kalender‑View mit Benutzerbindung. |
-| CAL-002   | 🕓 Teilweise  | Rezepte können im Kalender eingeplant werden                                 | Rezept‑Zuordnung zu Datum mit Vorbereitungslogik. Offen: Rezepte mit tagesübergreifenden Vorbereitungen |
-| CAL-003   | 🕓 Offen      | Vorbereitungen an Vortagen werden automatisch erkannt                        | Algorithmus zur Rückrechnung basierend auf Dauer und Ruhezeit. |
+| CAL-001   | ✅ Erledigt   | Jeder Benutzer hat einen Kalender                                            | Kalender‑View (`Components/Pages/Calendar.razor`) und API (`CalendarController`) sind implementiert; Ereignisse sind benutzergebunden. |
+| CAL-002   | ✅ Erledigt   | Rezepte können im Kalender eingeplant werden                                 | Kalender-Ereignisse unterstützen Rezept-Zuordnung, Portionen, Wiederholung; UI zum Erstellen/Bearbeiten vorhanden. |
+| CAL-003   | 🕓 Offen      | Vorbereitungen an Vortagen werden automatisch erkannt                        | Algorithmus zur Rückrechnung basierend auf Dauer und Ruhezeit. (noch offen) |
 | PLAN-001  | 🕓 Offen      | Arbeitsplan kombiniert mehrere Rezepte                                       | Arbeitsplan‑Entity mit Rezeptreferenzen. |
 | PLAN-002  | 🕓 Offen      | Schritte werden zeitlich optimiert (z. B. Dessert vor Hauptgericht)           | Sortierlogik nach Zubereitungszeit und Rezepttyp. |
-| SHOP-001  | 🕓 Offen      | Zutaten aus Arbeitsplan können in Einkaufsliste übernommen werden            | Zutatenextraktion aus Arbeitsplan. |
-| SHOP-002  | 🕓 Offen      | Zutaten können als erledigt abgehakt werden                                  | Checkbox‑Status pro Zutat in der Einkaufsliste. |
+| SHOP-001  | 🕓 Offen      | Zutaten aus Arbeitsplan können in Einkaufsliste übernommen werden            | `Components/Pages/ShoppingList.razor` implementiert; API: `ShoppingListsController` (`GET /api/shoppinglists`, `POST /api/shoppinglists`, `PUT /api/shoppinglists/{id}`, `DELETE /api/shoppinglists/{id}`) vorhanden. Rezept‑Integration: `POST /api/shoppinglists/{id}/groups/from-recipe` erstellt/benennt Gruppe aus Rezept‑Zutaten. |
+| SHOP-002  | 🕓 Offen      | Zutaten können als erledigt abgehakt werden                                  | UI: `ShoppingList.razor` mit Gruppen/Items und CRUD; Status per Zutat per UI möglich (Checkbox‑Status vorgesehen); Persistenz via `PUT /api/shoppinglists/{id}`. |
+| SHOP-003  | ✅ Erledigt   | Zutaten aus Rezepten können in Einkaufsliste übernommen werden               | `Components/Pages/ShoppingList.razor` implementiert; API: `ShoppingListsController` (`GET /api/shoppinglists`, `POST /api/shoppinglists`, `PUT /api/shoppinglists/{id}`, `DELETE /api/shoppinglists/{id}`) vorhanden. Rezept‑Integration: `POST /api/shoppinglists/{id}/groups/from-recipe` erstellt/benennt Gruppe aus Rezept‑Zutaten. |
+| FR-025    | ✅ Erledigt   | Einkaufsliste (Seite)                                                        | Neue Seite `Components/Pages/ShoppingList.razor` (Route `/shopping`) implementiert; Auth‑geschützt; unterstützt Simple/Advanced Mode, Erstellung/Umbenennung/Löschen von Listen, Gruppenverwaltung, Item‑CRUD, Export in Zwischenablage und Persistenz über `ShoppingListsController`. Integration: `RecipePage.razor` bietet „Zur Einkaufsliste“ Button, mappt Zutaten und erstellt bzw. erweitert Listen über API (siehe `CreateListWithRecipeGroupAsync` und `AddGroupToListAsync`). |
 | KI-001    | ✅ Erledigt   | Rezepterfassung per KI aus Fotos/Webseiten (langfristig)                      | Infrastruktur: `GeminiClient` / `ImageAnnotatorClient` vorhanden; Einstellungen & Laufzeit‑Guards implementiert (siehe KI‑002/KI‑003). Extraktion/Parser/Prompts in Weiterentwicklung. |
 | KI-002    | ✅ Erledigt   | Benutzerbezogene KI‑Einstellung (User kann KI für eigenes Konto aktivieren)  | `UserSetting` Entity, `SettingsService`, API `GET /api/settings/me` und `PUT /api/settings/me/ai` sowie Blazor‑Component `AiSettings.razor` implementiert. |
 | KI-003    | ✅ Erledigt   | Globale KI‑Deaktivierung durch Admin                                         | `AppSetting` Entity, `SettingsService`, Admin‑API `GET /api/settings/global` und `PUT /api/settings/global/ai`; UI: Admin sieht globalen Switch in `AiSettings`. |
@@ -65,9 +67,8 @@
 | AUTH-005  | 🕓 Offen      | Autorisierung für Export/Import                                              | Benutzer‑Export: eigener Nutzer. Admin‑Export/All‑Data‑Import: nur `IsAdmin==true`. |
 | NFR-010   | 🕓 Offen      | Performance / Skalierung für Exporte                                         | Große Exporte asynchron; Streaming/Chunked ZIP‑Erzeugung; Rate‑Limit/Queue für Admin‑Exporte. |
 | NFR-011   | 🕓 Offen      | Sicherheit / Datenschutz beim Export                                         | PII minimieren; Optionale Verschlüsselung für Admin‑Export; Audit‑Log aller Aktionen. |
-| NFR-012   | 🕓 Offen      | Import‑Validierung & Safety                                                  | `dryRun` gibt Schema‑ und Konflikt‑Report; Upload‑Limits und Quotas. |
+| NFR-012   | 🕓 Offen      | Import‑Validierung & Safety                                                  | `dryRun` gibt Schema‑und Konflikt‑Report; Upload‑Limits und Quotas. |
 | NFR-013   | 🕓 Offen      | Kompatibilität & Upgrade‑Sicherheit                                          | Export enthält `formatVersion` im Manifest; Import ignoriert unbekannte Felder. |
-
 
 ## Ergänzungen / Hinweise (neu)
 - Import‑Orchestrator:
@@ -81,13 +82,62 @@
   - URL‑Input erhält Fokus beim Öffnen; Datei‑Uploads starten nun Session‑Flow statt direkten Sync‑Import.
   - `Components/Shared/PhotoOverlay.razor` zeigt nun quadratische Thumbnails in einem Grid; Klick öffnet ein eigenständiges Großbild‑Overlay (`large-backdrop` / `large-content`). Scoped CSS liegt in `PhotoOverlay.razor.css`. `OnShowLargeImage` EventCallback bleibt verfügbar.
   - `Components/Shared/RandomFromCookbooks.razor` wurde hinzugefügt: wählt responsive eine Anzahl Kochbücher aus und lädt pro Cookbook ein zufälliges Rezept. Implementiert Skeleton‑Platzhalter, responsive Spaltenberechnung via `wwwroot/js/randomFromCookbooks.js` und Resize‑Handler. Empfehlung: optionaler Server‑Endpoint, der die zufällige Auswahl serverseitig liefert, würde Roundtrips reduzieren.
+  - `Components/Pages/ScheduledRecipes.razor` zeigt geplante Rezepte auf der Startseite (heute + 2 Tage) im selben Karten‑Layout wie `RandomFromCookbooks`.
+  - Shopping‑Liste:
+    - Neue Seite `Components/Pages/ShoppingList.razor` (Route `/shopping`) implementiert; Auth‑geschützt.
+    - UI unterstützt Simple/Advanced Mode (per Benutzer‑Einstellung `api/settings/me/shoppinglistsimplemode`), Listen‑/Gruppen‑/Item‑CRUD, Merge von Listen beim Wechsel in SimpleMode, Export in Zwischenablage.
+    - Recipe‑Integration über `RecipePage.razor`: Button „Zur Einkaufsliste“ mappt `RecipeStep.Ingredients` → `ShoppingItem` und nutzt API‑Endpunkt `POST /api/shoppinglists/{id}/groups/from-recipe` oder erstellt bei Bedarf via `POST /api/shoppinglists`.
+    - Server: `ShoppingListsController` stellt die erforderlichen Endpunkte (`GET`, `POST`, `PUT`, `DELETE`, `POST /{id}/groups/from-recipe`) bereit; Controller validiert und persistiert via `IShoppingListService`.
 - Fehler‑UX:
   - Technische Exceptions (z. B. Google/Gemini errors) werden serverseitig durch `ImportExceptionHelper.BeautifyExceptionMessage` aufbereitet; volle Details bleiben in Logs, Benutzer sieht kurze, lokalisierte Meldung.
 - Tests / Wartung:
   - `AiUsageService` Unit‑Tests (`AiUsageServiceTests`) hinzugefügt; Dummy `TestGeminiClient` zur Isolation. Bitte bestehende Import‑Tests anpassen: Orchestrator (singleton) erfordert Scoping in Tests; Handler‑Mocks bleiben Scoped.
   - Empfohlen: Integrationstest für Session‑Flow (start → poll → confirm → result).
-  - UI‑Komponenten (z. B. `PhotoOverlay`, `RandomFromCookbooks`) mit bUnit testen; E2E‑Szenarios für Klick→Großansicht und Responsive‑Skeletons empfohlen.
+  - UI‑Komponenten (z. B. `PhotoOverlay`, `RandomFromCookbooks`, `ShoppingList`) mit bUnit testen; E2E‑Szenarios für Klick→Großansicht, Responsive‑Skeletons und schnelle Item‑Eingabe empfohlen.
 - Security:
   - Endpoints weiterhin autorisiert (Bearer/Cookie). Externe HTTP‑Calls setzen browser‑like Header (UserAgent, Accept, Referrer) um 403‑Risiken zu reduzieren.
 - Migration / Ops:
   - `AiRequestLog` um `Type` erweitert und neue Indexe hinzugefügt — Migration __erforderlich__. Führe __dotnet ef migrations add yyyyMMddHHmm_AddAiRequestLogTypeAndIndexes__ und dann __dotnet ef database update__ aus.
+
+## Offene Aufgaben — konkrete Umsetzungsschritte (Kurzliste)
+- CAL-003: Algorithmus designen + Unit‑Tests
+  - Ziel: für jedes Kalender‑Event frühere Vorbereitungsschritte zurückrechnen (Berücksichtigung `DurationMinutes`, `RequiresOvernightRest`, Puffer).
+  - Deliverable: `ICalendarPlannerService` mit `GetPreparationScheduleAsync(userId, DateTime day, ct)`.
+- PLAN-001 / PLAN-002: Arbeitsplan & Optimierer
+  - MVP: Arbeitsplan‑Entity + API zum Erstellen/Abrufen.
+  - Optimierungsphase: heuristische Scheduler (Greedy / Constraint Solver) als BackgroundJob; Metriken zur Evaluierung.
+- SHOP-001 / SHOP-002: Einkaufsliste — Verifikation & Tests
+  - Implementierung abgeschlossen; noch ausstehend: Unit‑ und E2E‑Tests für schnelle Eingabe‑Fokus, Merge‑Workflow beim Wechsel des Modus und Recipe→List Integration.
+  - UI: Testfälle für Simple/Advanced Mode, Gruppen‑CRUD, Item‑CRUD und Export.
+- FR-020 / FR-021 (Export):
+  - Implementiere Streaming ZIP‑Erzeugung (`IExportService`) und Queue für Admin‑Exporte (BackgroundService).
+  - Audit‑Log und PII‑Filter (NFR‑011) beachten.
+  - API: Export‑Jobs mit Status (queued/running/done/error), Download‑SAS/TempLink.
+- AUTH-005: Autorisierung für Export/Import
+  - Policy `IsAdmin` für Admin Exporte / All‑Data Import; Policy `IsOwnerOrAdmin` für Benutzer‑Export.
+- NFR-010..NFR-013: Architektur‑Ergänzungen
+  - Exporte: Streaming + Pagination für große Datenmengen; Load‑Test schreiben / Profiling (siehe Hinweise).
+  - Import: `dryRun` Report, Quotas, fail‑safe.
+  - Kompatibilität: `formatVersion` im Export‑Manifest, Import tolerant gegenüber unbekannten Feldern.
+- Tests / CI:
+  - Integrationstest für Import Session Flow.
+  - E2E Szenarios für UI‑Komponenten (Playwright).
+  - CI: Migrationen in Pipeline laufen lassen; DB‑Update optional in Deploy‑Stage.
+
+## Prioritäten (Empfohlen)
+- Kurzfristig (High): NFR‑011 (Datenschutz bei Export), AUTH‑005 (Autorisierung), FR‑020 (Benutzer‑Export minimal).
+- Mittelfristig (Medium): NFR‑010 (Performance Exporte), FR‑021 (Admin‑Export + Queue), SHOP‑001/002 Tests & Verifikation.
+- Langfristig (Low): PLAN‑001/002 (Advanced Scheduling), CAL‑003 Feinschliff.
+
+## Deploy / Migration Reminder
+- Neue Migration für `AiRequestLog` ist erforderlich. Lokales Vorgehen:
+  - __dotnet ef migrations add yyyyMMddHHmm_AddAiRequestLogTypeAndIndexes__
+  - __dotnet ef database update__
+- CI/CD: Migration optional in Deploy‑Job; bei Shared DB Abstimmung vor dem Ausrollen.
+
+## Hinweise für Entwickler
+- Singletons (z. B. `ImportOrchestrator`) dürfen keine Scoped Services direkt injizieren — Factory / `IServiceScopeFactory` wird bereits verwendet.
+- Vermeide Blocking‑Calls in BackgroundServices; alle IO‑Methoden `async`/`await`.
+- Sensible Informationen (Export‑Keys, PII) nicht in Logs.
+- ShoppingList‑Hinweis: `Components/Pages/ShoppingList.razor` ist UI‑zentrisch; Business‑Logik (z. B. Zusammenführen, Mapping von Rezept‑Zutaten) gehört in `IShoppingListService`/`ShoppingListsController`. Tests für `ShoppingListsController` und `IShoppingListService` empfohlen.
+

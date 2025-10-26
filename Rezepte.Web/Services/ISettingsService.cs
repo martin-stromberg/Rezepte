@@ -15,6 +15,10 @@ public interface ISettingsService
     Task<bool> GetUserGeminiEnabledAsync(string userId, CancellationToken ct = default);
     Task SetUserGeminiEnabledAsync(string userId, bool enabled, CancellationToken ct = default);
 
+    // New: per-user simple mode preference
+    Task<bool> GetUserShoppingListSimpleModeAsync(string userId, CancellationToken ct = default);
+    Task SetUserShoppingListSimpleModeAsync(string userId, bool simpleMode, CancellationToken ct = default);
+
     // global per-service toggles
     Task<bool> GetGlobalGoogleVisionEnabledAsync(CancellationToken ct = default);
     Task SetGlobalGoogleVisionEnabledAsync(bool enabled, CancellationToken ct = default);

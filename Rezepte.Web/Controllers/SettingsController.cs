@@ -31,6 +31,8 @@ public class SettingsController : ControllerBase
         var userGemini = await _settings.GetUserGeminiEnabledAsync(userId, ct);
         var requireConfirm = await _settings.GetUserRequireAiConfirmationAsync(userId, ct);
 
+        var simpleMode = await _settings.GetUserShoppingListSimpleModeAsync(userId, ct); // NEW
+
         var global = await _settings.GetGlobalAiEnabledAsync(ct);
         var globalGoogle = await _settings.GetGlobalGoogleVisionEnabledAsync(ct);
         var globalGemini = await _settings.GetGlobalGeminiEnabledAsync(ct);
@@ -49,6 +51,7 @@ public class SettingsController : ControllerBase
             UserGoogleVisionEnabled = userGoogle,
             UserGeminiEnabled = userGemini,
             RequireAiConfirmation = requireConfirm,
+            SimpleMode = simpleMode, // NEW
             GlobalAiEnabled = global,
             GlobalGoogleVisionEnabled = globalGoogle,
             GlobalGeminiEnabled = globalGemini,
@@ -95,6 +98,16 @@ public class SettingsController : ControllerBase
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
         await _settings.SetUserRequireAiConfirmationAsync(userId, required, ct);
+        return NoContent();
+    }
+
+    // PUT api/settings/me/simplemode
+    [HttpPut("me/shoppinglistsimplemode")]
+    public async Task<IActionResult> SetMyShoppingListSimpleMode([FromBody] bool simpleMode, CancellationToken ct)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        await _settings.SetUserShoppingListSimpleModeAsync(userId, simpleMode, ct);
         return NoContent();
     }
 

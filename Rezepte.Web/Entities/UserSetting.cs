@@ -7,4 +7,5 @@ public class UserSetting
     public bool GoogleVisionEnabled { get; set; } = true;
     public bool GeminiEnabled { get; set; } = true;
     public bool RequireAiConfirmation { get; set; } = false;
+    public bool ShoppingListSimpleModeEnabled { get; set; } = false; // New: persistiert, ob der Anwender den Einfachmodus bevorzugt
 }

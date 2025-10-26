@@ -40,8 +40,18 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Antiforgery only for non-API routes
-app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
+// Antiforgery only for non-API and non-static routes (exclude static asset paths like /_framework, /manifest.json, /icons, /css, /js)
+app.UseWhen(ctx =>
+{
+    var path = ctx.Request.Path;
+    return !path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
+           && !path.StartsWithSegments("/_framework", StringComparison.OrdinalIgnoreCase)
+           && !path.StartsWithSegments("/icons", StringComparison.OrdinalIgnoreCase)
+           && !path.StartsWithSegments("/css", StringComparison.OrdinalIgnoreCase)
+           && !path.StartsWithSegments("/js", StringComparison.OrdinalIgnoreCase)
+           && !path.Equals("/manifest.json", StringComparison.OrdinalIgnoreCase);
+},
+branch =>
 {
     branch.UseAntiforgery();
 });

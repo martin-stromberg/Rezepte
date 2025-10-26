@@ -14,12 +14,10 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeImage> RecipeImages { get; set; } = null!;
     public DbSet<AiRequestLog> AiRequestLogs => Set<AiRequestLog>();
-
     public DbSet<UserSetting> UserSettings => Set<UserSetting>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
-
-    // Calendar events
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
+    public DbSet<ShoppingListEntity> ShoppingLists => Set<ShoppingListEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -157,6 +155,17 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.HasKey(a => a.Key);
             b.Property(a => a.Key).IsRequired().HasMaxLength(128);
             b.Property(a => a.Value).IsRequired();
+        });
+
+        // Configuration for ShoppingListEntity
+        modelBuilder.Entity<ShoppingListEntity>(b =>
+        {
+            b.HasKey(s => s.Id);
+            b.Property(s => s.UserId).IsRequired().HasMaxLength(64);
+            b.Property(s => s.Data).IsRequired();
+            b.Property(s => s.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(s => s.ModifiedAt).IsRequired(false);
+            b.HasIndex(s => new { s.UserId, s.CreatedAt });
         });
     }
 }

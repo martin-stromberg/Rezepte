@@ -37,6 +37,30 @@ public class SettingsService : ISettingsService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<bool> GetUserShoppingListSimpleModeAsync(string userId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        var s = await _db.Set<UserSetting>().FindAsync(new object[] { userId }, ct);
+        return s?.ShoppingListSimpleModeEnabled ?? false;
+    }
+
+    public async Task SetUserShoppingListSimpleModeAsync(string userId, bool simpleMode, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(userId)) throw new ArgumentNullException(nameof(userId));
+        var set = await _db.Set<UserSetting>().FindAsync(new object[] { userId }, ct);
+        if (set == null)
+        {
+            set = new UserSetting { UserId = userId, ShoppingListSimpleModeEnabled = simpleMode };
+            _db.Add(set);
+        }
+        else
+        {
+            set.ShoppingListSimpleModeEnabled = simpleMode;
+            _db.Update(set);
+        }
+        await _db.SaveChangesAsync(ct);
+    }    
+
     private const string AiKey = "AiEnabled";
     private const string GoogleVisionKey = "GlobalGoogleVisionEnabled";
     private const string GeminiKey = "GlobalGeminiEnabled";

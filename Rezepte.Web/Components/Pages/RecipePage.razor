@@ -7,6 +7,8 @@
 @using Rezepte.Web.Components.Shared
 @using Rezepte.Web.Configuration
 @using Rezepte.Web.Models
+@using System.Net.Http.Json
+@using System.Globalization
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject ApiClient Api
@@ -22,6 +24,7 @@
         @if (!isLoading && recipe is not null)
         {
             <button class="btn btn-sm btn-success me-2" @onclick="OpenScheduleDialog">Termin planen</button>
+            <button class="btn btn-sm btn-outline-primary me-2" @onclick="AddIngredientsToShoppingListAsync">Zur Einkaufsliste</button>
         }
     </span>
     @if (isOwner && !isLoading && recipe is not null)
@@ -185,6 +188,46 @@ else
                   OnCancel="CloseCropper" />
 }
 
+@if (showShoppingModal)
+{
+    <div class="modal-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1050"></div>
+    <div class="shopping-modal card p-3" style="position:fixed;left:50%;top:20%;transform:translateX(-50%);z-index:1060;max-width:600px;width:90%;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="m-0">Ziel-Einkaufsliste wählen</h6>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="() => { showShoppingModal = false; shoppingLists = null; }">Schließen</button>
+        </div>
+
+        @if (shoppingLists == null)
+        {
+            <div>Lade…</div>
+        }
+        else if (shoppingLists.Count == 0)
+        {
+            <div class="text-muted">Keine Listen gefunden.</div>
+        }
+        else
+        {
+            <div class="list-group mb-3">
+                @foreach (var l in shoppingLists)
+                {
+                    <label class="list-group-item d-flex align-items-center justify-content-between">
+                        <div>
+                            <input type="radio" name="shoppingListSelect" value="@l.Id" @onchange="() => selectedShoppingListId = l.Id" checked="@(selectedShoppingListId == l.Id)" />
+                            <span class="ms-2">@l.Name</span>
+                        </div>
+                        <div class="small text-muted">@((l.Groups?.Count ?? 0)) Gruppen</div>
+                    </label>
+                }
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button class="btn btn-secondary" @onclick="() => { showShoppingModal = false; shoppingLists = null; }" disabled="@isProcessingShopping">Abbrechen</button>
+                <button class="btn btn-primary" @onclick="ConfirmAddToSelectedListAsync" disabled="@(isProcessingShopping || string.IsNullOrEmpty(selectedShoppingListId))">Auswählen und hinzufügen</button>
+            </div>
+        }
+    </div>
+}
+
 @* Kalender‑Dialog für Termin anlegen/bearbeiten (Modal aktivieren) *@
 @if (showCalendarDialog && recipe is not null)
 {
@@ -216,6 +259,12 @@ else
     private bool showAssignOverlay = false;
     private bool isInAnyCookbook = false;
 
+    // Shopping-list integration state
+    private bool showShoppingModal;
+    private List<Rezepte.Web.Models.ShoppingList>? shoppingLists;
+    private string? selectedShoppingListId;
+    private bool isProcessingShopping;
+
     private int TotalMinutes => recipe?.Steps?.Sum(s => s.DurationMinutes) ?? 0;
     private int RestNights => recipe?.Steps?.Count(s => s.RequiresOvernightRest) ?? 0;
 
@@ -243,6 +292,109 @@ else
 
         showCalendarDialog = true;
         StateHasChanged();
+    }
+
+    private async Task AddIngredientsToShoppingListAsync()
+    {
+        if (isLoading || recipe is null) return;
+
+        try
+        {
+            // get all shopping lists for user
+            shoppingLists = await Api.Http.GetFromJsonAsync<List<Rezepte.Web.Models.ShoppingList>>("api/shoppinglists");
+        }
+        catch
+        {
+            shoppingLists = new List<Rezepte.Web.Models.ShoppingList>();
+        }
+
+        if (shoppingLists == null || shoppingLists.Count == 0)
+        {
+            // create a new list with the recipe-group directly
+            await CreateListWithRecipeGroupAsync();
+            await JS.InvokeVoidAsync("alert", "Neue Einkaufsliste erstellt und Zutaten hinzugefügt.");
+            return;
+        }
+
+        if (shoppingLists.Count == 1)
+        {
+            await AddGroupToListAsync(shoppingLists[0].Id);
+            await JS.InvokeVoidAsync("alert", "Zutaten zur Einkaufsliste hinzugefügt.");
+            return;
+        }
+
+        // multiple lists -> show modal for selection
+        selectedShoppingListId = shoppingLists.FirstOrDefault()?.Id;
+        showShoppingModal = true;
+    }
+
+    private async Task ConfirmAddToSelectedListAsync()
+    {
+        if (string.IsNullOrEmpty(selectedShoppingListId) || recipe is null) return;
+        isProcessingShopping = true;
+        try
+        {
+            await AddGroupToListAsync(selectedShoppingListId);
+            await JS.InvokeVoidAsync("alert", "Zutaten zur Einkaufsliste hinzugefügt.");
+        }
+        catch
+        {
+            await JS.InvokeVoidAsync("alert", "Fehler beim Hinzufügen zur Einkaufsliste.");
+        }
+        finally
+        {
+            isProcessingShopping = false;
+            showShoppingModal = false;
+            shoppingLists = null;
+        }
+    }
+
+    private async Task CreateListWithRecipeGroupAsync()
+    {
+        if (recipe is null) return;
+        var ct = CancellationToken.None;
+        var model = new Rezepte.Web.Models.ShoppingList
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Einkaufsliste",
+            Groups = new List<Rezepte.Web.Models.ShoppingGroup>
+            {
+                new Rezepte.Web.Models.ShoppingGroup
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = recipe.Title ?? "Einkauf",
+                    Items = recipe.Steps.SelectMany(s => s.Ingredients ?? new())
+                                 .Select(MapIngredientToShoppingItem)
+                                 .ToList()
+                }
+            }
+        };
+
+        var res = await Api.PostAsJsonAsync("api/shoppinglists", model, ct);
+        res.EnsureSuccessStatusCode();
+        // refresh nothing else here; action completed
+    }
+
+    private Rezepte.Web.Models.ShoppingItem MapIngredientToShoppingItem(RecipeIngredientDto i)
+    {
+        return new Rezepte.Web.Models.ShoppingItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = i.Name ?? string.Empty,
+            Quantity = (i.Amount != 0) ? i.Amount.ToString(CultureInfo.InvariantCulture) : string.Empty,
+            Unit = i.Unit ?? string.Empty
+        };
+    }
+
+    private async Task AddGroupToListAsync(string listId)
+    {
+        if (recipe is null) return;
+        var ct = CancellationToken.None;
+
+        // Server erledigt: prüfen ob einzelne leere Gruppe existiert, umbenennen oder neue Gruppe anlegen.
+        var payload = new { RecipeId = Id };
+        var res = await Api.Http.PostAsJsonAsync($"api/shoppinglists/{Uri.EscapeDataString(listId)}/groups/from-recipe", payload, ct);
+        res.EnsureSuccessStatusCode();
     }
 
     private async Task OnCalendarSaved()
