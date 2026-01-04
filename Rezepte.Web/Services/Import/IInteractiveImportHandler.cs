@@ -10,5 +10,5 @@ public interface IInteractiveImportHandler : IImportHandler
     /// Handle the import interactively. The orchestrator provides an interaction object
     /// that the handler can use to ask for confirmation from the user.
     /// </summary>
-    Task<ImportResult> HandleInteractiveAsync(Stream stream, string fileName, string targetCookbookId, string userId, IImportInteraction interaction, CancellationToken ct = default);
+    Task<ImportResult> HandleInteractiveAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, IImportInteraction interaction, CancellationToken ct = default);
 }

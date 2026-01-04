@@ -34,7 +34,7 @@ public class ImportService(IEnumerable<IImportHandler> handlers, ILogger<ImportS
             stream.Seek(0, SeekOrigin.Begin);
             try
             {
-                var res = await handler.HandleAsync(stream, fileName, targetCookbookId, userId, ct).ConfigureAwait(false);
+                var res = await handler.HandleAsync(stream, fileName, null, targetCookbookId, userId, ct).ConfigureAwait(false);
                 _logger.LogInformation("Import handled by {Handler}, success={Success}", handler.GetType().Name, res.Success);
                 return res;
             }

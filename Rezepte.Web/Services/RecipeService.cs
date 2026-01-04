@@ -16,7 +16,7 @@ public interface IRecipeService
     Task<List<Recipe>> GetByCookbookAsync(string userId, string cookbookId, CancellationToken ct);
     Task<List<Recipe>> GetAvailableForCookbookAsync(string userId, string cookbookId, CancellationToken ct);
     Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
-    Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
+    Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct);
     Task<(bool ok, string? error, List<Recipe> created)> AddExistingToCookbookAsync(string userId, string cookbookId, IEnumerable<string> recipeIds, CancellationToken ct);
     Task<(bool ok, string? error)> RemoveFromCookbookAsync(string userId, string cookbookId, string recipeId, CancellationToken ct);
@@ -140,7 +140,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
         return (true, null, entity);
     }
 
-    public async Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
+    public async Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
     {
         var recipe = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct);
         if (recipe is null) return (false, "Rezept nicht gefunden.");
@@ -150,6 +150,8 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
 
         recipe.Title = title.Trim();
         recipe.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        recipe.Uri = string.IsNullOrWhiteSpace(uri) ? null : uri.Trim();
+        recipe.Portions = portions ?? recipe.Portions;
 
         // Remove old steps + ingredients
         var oldSteps = await _db.RecipeSteps.Where(s => s.RecipeId == recipe.Id).ToListAsync(ct);

@@ -13,5 +13,5 @@ public interface IImportHandler
     /// <summary>
     /// Führe den Import aus. Gibt CreatedRecipeIds zurück.
     /// </summary>
-    Task<ImportResult> HandleAsync(Stream stream, string fileName, string targetCookbookId, string userId, CancellationToken ct = default);
+    Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default);
 }

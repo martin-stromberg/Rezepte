@@ -85,6 +85,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
             r.UserId,
             r.Title,
             r.Description,
+            r.Portions,
             r.Steps
                 .OrderBy(s => s.StepIndex)
                 .Select(s => new RecipeStepDto(
@@ -95,8 +96,9 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
                     s.DurationMinutes,
                     s.RequiresOvernightRest,
                     s.Ingredients.Select(i => new RecipeIngredientDto(i.Id, i.Amount, i.Unit, i.Name)).ToList()
-                )).ToList(),
+                )).ToList(),            
             ImageUrl: lastImage?.Url,
+            sourceUri: r.Uri,
             ImageCount: imageCount,
             RecipeCookbooks: r.RecipeCookbooks.Select(rc => new RecipeCookbookDtp(rc.Id, rc.RecipeId, rc.CookbookId)).ToList()
         );
@@ -141,7 +143,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
         return CreatedAtAction(nameof(GetById), new { id = recipe.Id }, new { id = recipe.Id });
     }
 
-    public record UpdateRecipeRequest(string Title, string? Description, List<CreateRecipeStep> Steps);
+    public record UpdateRecipeRequest(string Title, string? Description, string? Uri, int? Portions, List<CreateRecipeStep> Steps);
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateRecipeRequest dto, CancellationToken ct)
@@ -156,7 +158,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
             (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
         )).ToList() ?? new List<RecipeCreateStep>();
 
-        var (ok, error) = await _recipes.UpdateAsync(userId, id, dto.Title, dto.Description, steps, ct);
+        var (ok, error) = await _recipes.UpdateAsync(userId, id, dto.Title, dto.Description, dto.Uri, dto.Portions, steps, ct);
         if (!ok)
             return BadRequest(new { message = error ?? "Speichern fehlgeschlagen." });
         return NoContent();
@@ -318,7 +320,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
 
     // DTO für die Startseite
     public record RecipeListItemDto(string Id, string Title, string? ImageUrl, string? Description);
-    public record RecipeDto(string Id, string OwnerId, string Title, string? Description, List<RecipeStepDto> Steps, string? ImageUrl, int ImageCount, List<RecipeCookbookDtp> RecipeCookbooks);
+    public record RecipeDto(string Id, string OwnerId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? ImageUrl, string? sourceUri, int ImageCount, List<RecipeCookbookDtp> RecipeCookbooks);
     public record RecipeCookbookDtp (string Id, string RecipeId, string CookbookId);
     public record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     public record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);

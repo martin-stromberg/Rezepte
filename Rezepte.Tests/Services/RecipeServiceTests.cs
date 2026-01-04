@@ -99,7 +99,7 @@ public class RecipeServiceTests
         }, CancellationToken.None);
         ok1.Should().BeTrue();
 
-        (bool ok2, string? err2) = await sut.UpdateAsync(UserA, recipe!.Id, "Gemüsesalat", "Frisch", new[]
+        (bool ok2, string? err2) = await sut.UpdateAsync(UserA, recipe!.Id, "Gemüsesalat", "Frisch", null, null, new[]
         {
             new RecipeCreateStep(null, "Mischen", 3, false, Array.Empty<RecipeCreateIngredient>())
         }, CancellationToken.None);

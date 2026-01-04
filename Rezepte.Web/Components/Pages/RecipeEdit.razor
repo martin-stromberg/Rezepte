@@ -47,6 +47,16 @@ else
                 <label class="form-label">Beschreibung</label>
                 <textarea class="form-control" rows="3" @bind="description"></textarea>
             </div>
+            <div class="row g-3">
+                <div class="col-12 col-md-4 mb-3">
+                    <label class="form-label">Portionen</label>
+                    <input class="form-control" type="number" min="1" @bind="numberOfPortions" />
+                </div>
+                <div class="col-12 col-md-8 mb-3">
+                    <label class="form-label">Quelle (URL)</label>
+                    <input class="form-control" type="url" @bind="sourceUri" placeholder="https://..." />
+                </div>
+            </div>
         </div>
     </div>
 
@@ -157,6 +167,9 @@ else
             // Create mode: ensure one editable initial step
             title = string.Empty;
             description = null;
+            // sensible defaults for new recipe
+            numberOfPortions = 1;
+            sourceUri = null;
             steps.Add(new StepModel());
             isLoading = false;
             return;
@@ -168,6 +181,8 @@ else
             if (dto is null) { loadError = true; return; }
             title = dto.Title;
             description = dto.Description;
+            numberOfPortions = dto.NumberOfPortions;
+            sourceUri = dto.sourceUri;
             foreach (var s in dto.Steps.OrderBy(s => s.StepIndex))
             {
                 steps.Add(new StepModel
@@ -213,6 +228,8 @@ else
                 cookbookId = string.IsNullOrEmpty(CookbookId) ? null : CookbookId,
                 title,
                 description,
+                uri = string.IsNullOrWhiteSpace(sourceUri) ? null : sourceUri,
+                portions = numberOfPortions,
                 steps = steps.Select(s => new
                 {
                     title = string.IsNullOrWhiteSpace(s.Title) ? null : s.Title,
@@ -231,7 +248,8 @@ else
                     var obj = await res.Content.ReadFromJsonAsync<Dictionary<string, string>>();
                     if (obj is not null && obj.TryGetValue("id", out var id))
                     {
-                        Nav.NavigateTo($"/recipes/{id}");
+                        // Force full navigation to ensure the Router renders the view page
+                        Nav.NavigateTo($"/recipes/{id}", forceLoad: true);
                     }
                 }
                 else
@@ -247,6 +265,8 @@ else
             {
                 title,
                 description,
+                uri = string.IsNullOrWhiteSpace(sourceUri) ? null : sourceUri,
+                portions = numberOfPortions,
                 steps = steps.Select(s => new
                 {
                     title = string.IsNullOrWhiteSpace(s.Title) ? null : s.Title,
@@ -262,7 +282,8 @@ else
                 var res = await Api.Http.PutAsJsonAsync($"api/recipes/{Id}", updatePayload);
                 if (res.IsSuccessStatusCode)
                 {
-                    Nav.NavigateTo($"/recipes/{Id}");
+                    // Force full navigation so the RecipePage is shown instead of the edit form
+                    Nav.NavigateTo($"/recipes/{Id}", forceLoad: true);
                 }
             }
             finally { isBusy = false; }
@@ -307,7 +328,7 @@ else
         largeImageUrl = url;
     }
 
-    private record RecipeDto(string Id, string CookbookId, string Title, string? Description, List<RecipeStepDto> Steps);
+    private record RecipeDto(string Id, string CookbookId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? sourceUri = null);
     private record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     private record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
 
@@ -326,6 +347,10 @@ else
         public string? Unit { get; set; }
         public string Name { get; set; } = string.Empty;
     }
+
+    // new fields for editable properties
+    private int numberOfPortions;
+    private string? sourceUri;
 }
 
 

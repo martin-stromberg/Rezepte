@@ -88,8 +88,8 @@ public class AIUrlImportHandler : BaseAIImportHandler, IImportHandler
         }
 
         var client = CreateGeminiClient();
-        var extractedRecipes = await client.ExtractRecipeFromUrlAsync(responseContent);
-        // record gemini success
+        var extractedRecipes = (await client.ExtractRecipeFromUrlAsync(responseContent));
+        
         await AiUsageService.RecordRequestAsync(UserId, "Gemini.Url", AiRequestLogType.Success, ct);
         return extractedRecipes;
     }    

@@ -40,6 +40,18 @@
                     <i class="bi bi-heart"></i>
                 }
             </button>
+
+            @if (!string.IsNullOrWhiteSpace(recipe.sourceUri))
+            {
+                <a class="btn btn-sm btn-outline-secondary"
+                   href="@recipe.sourceUri"
+                   title="Quelle aufrufen"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   aria-label="Quelle aufrufen (öffnet neues Fenster)">
+                    ↗
+                </a>
+            }
         </div>
     }
 </h5>
@@ -101,6 +113,12 @@ else
                     <span><i class="bi bi-moon"></i> Ruhenächte: @RestNights</span>
                 }
             </div>
+            @if (recipe.NumberOfPortions > 0)
+            {
+                <div class="d-flex flex-wrap gap-3 align-items-center small text-secondary mb-2">
+                    <span><i class="bi bi-people-fill"></i> Portionen: @recipe.NumberOfPortions </span>
+                </div>
+            }
         </div>
     </div>
 
@@ -164,17 +182,6 @@ else
                           RecipeId="@Id"
                           OnClose="CloseAssignOverlay"
                           OnSaved="OnCookbookAssignmentsSaved" />
-
-<!-- Großansicht -->
-@if (!string.IsNullOrEmpty(largeImageUrl))
-{
-    <div class="overlay-backdrop" @onclick="CloseLargeImage">
-        <div class="overlay-content overlay-large" @onclick:stopPropagation>
-            <button class="btn btn-sm btn-danger overlay-close" @onclick="CloseLargeImage">×</button>
-            <img src="@largeImageUrl" class="large-img" />
-        </div>
-    </div>
-}
 
 @if (showCropper)
 {
@@ -414,7 +421,7 @@ else
         }
     }
 
-    private record RecipeDto(string Id, string CookbookId, string OwnerId, string Title, string? Description, List<RecipeStepDto> Steps, string? ImageUrl = null, int ImageCount = 0);
+    private record RecipeDto(string Id, string CookbookId, string OwnerId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? ImageUrl = null, string? sourceUri = null, int ImageCount = 0);
     private record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     private record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
     private record RecipeImageDto(string Id, string Url);
