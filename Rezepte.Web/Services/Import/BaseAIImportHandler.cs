@@ -96,7 +96,7 @@ public abstract class BaseAIImportHandler(
         }
     }
     protected abstract Task<AIRecipe[]> ReadRecipeCollection(string fileName, Stream stream, string responseContent, CancellationToken ct);
-    public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string targetCookbookId, string userId, CancellationToken ct = default)
+    public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
     {
         if (IsSimulationModeActive)
         {
@@ -132,7 +132,7 @@ public abstract class BaseAIImportHandler(
                         Ingredients: stepIngredients)
                 };
 
-                var (ok, error, recipe) = await recipeService.CreateAsync(userId, targetCookbookId, importedRecipe.Title ?? "Importiertes Fotorezept", null, null, importedRecipe.Portions, steps, ct).ConfigureAwait(false);
+                var (ok, error, recipe) = await recipeService.CreateAsync(userId, targetCookbookId, importedRecipe.Title ?? "Importiertes Fotorezept", null, uri, importedRecipe.Portions, steps, ct).ConfigureAwait(false);
                 if (!ok || recipe == null)
                 {
                     logger.LogWarning("Failed to create recipe from AI import: {Title} - {Error}", importedRecipe.Title, error);
@@ -196,13 +196,13 @@ public abstract class BaseAIImportHandler(
     }
     
 
-    public async Task<ImportResult> HandleInteractiveAsync(Stream stream, string fileName, string targetCookbookId, string userId, IImportInteraction interaction, CancellationToken ct = default)
+    public async Task<ImportResult> HandleInteractiveAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, IImportInteraction interaction, CancellationToken ct = default)
     {
         if (!await HandleConfirmation(interaction))
             return new ImportResult(false, "Import cancelled by user.", new List<string>());
 
         await interaction.ReportStatusAsync("Importiere Rezepte...");
-        return await HandleAsync(stream, fileName, targetCookbookId, userId, ct);
+        return await HandleAsync(stream, fileName, uri, targetCookbookId, userId, ct);
     }
 
     protected virtual async Task<bool> HandleConfirmation(IImportInteraction interaction)

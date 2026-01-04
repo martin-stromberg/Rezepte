@@ -333,7 +333,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var fileName = Path.GetFileName(uri.LocalPath);
         if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-url";
 
-        return await StartImportSessionFromStreamAsync(ms, fileName, cookbookId, orchestrator, GetUserId()!, ct);
+        return await StartImportSessionFromStreamAsync(ms, fileName, uri.ToString(), cookbookId, orchestrator, GetUserId()!, ct);
     }
 
     // GET api/cookbooks/{cookbookId}/import-session/{sessionId}/status
@@ -429,7 +429,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var fileName = Path.GetFileName(uri.LocalPath);
         if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-url";
 
-        return await StartImportSessionFromStreamAsync(ms, fileName, null, orchestrator, GetUserId()!, ct);
+        return await StartImportSessionFromStreamAsync(ms, fileName, uri.ToString(), null, orchestrator, GetUserId()!, ct);
     }
 
     // GET api/cookbooks/import-session/{sessionId}/status
@@ -476,7 +476,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
             await file.CopyToAsync(ms, ct).ConfigureAwait(false);
             ms.Seek(0, SeekOrigin.Begin);
 
-            return await StartImportSessionFromStreamAsync(ms, file.FileName, cookbookId, orchestrator, userId, ct);
+            return await StartImportSessionFromStreamAsync(ms, file.FileName, null, cookbookId, orchestrator, userId, ct);
         }
         catch (OperationCanceledException)
         {
@@ -504,7 +504,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
             await file.CopyToAsync(ms, ct).ConfigureAwait(false);
             ms.Seek(0, SeekOrigin.Begin);
 
-            return await StartImportSessionFromStreamAsync(ms, file.FileName, null, orchestrator, userId, ct);
+            return await StartImportSessionFromStreamAsync(ms, file.FileName, null, null, orchestrator, userId, ct);
         }
         catch (OperationCanceledException)
         {
@@ -517,7 +517,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // private helper that centralizes starting an import session from an already-read stream
-    private async Task<IActionResult> StartImportSessionFromStreamAsync(Stream ms, string fileName, string? cookbookId, ImportOrchestrator orchestrator, string userId, CancellationToken ct)
+    private async Task<IActionResult> StartImportSessionFromStreamAsync(Stream ms, string fileName, string? uri, string? cookbookId, ImportOrchestrator orchestrator, string userId, CancellationToken ct)
     {
         if (ms == null) return BadRequest(new { message = "No stream provided." });
         if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-stream";
@@ -527,7 +527,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
             // Ensure stream position is at start for orchestrator
             if (ms.CanSeek) ms.Seek(0, SeekOrigin.Begin);
 
-            var sessionId = await orchestrator.StartImportAsync(ms, fileName, cookbookId, userId, ct).ConfigureAwait(false);
+            var sessionId = await orchestrator.StartImportAsync(ms, fileName, uri, cookbookId, userId, ct).ConfigureAwait(false);
             return Ok(new { sessionId });
         }
         catch (OperationCanceledException)

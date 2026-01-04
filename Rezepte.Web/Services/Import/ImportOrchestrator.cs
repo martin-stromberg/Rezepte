@@ -29,7 +29,7 @@ public sealed class ImportOrchestrator
 
     public ImportSession? GetSession(string id) => _sessions.TryGetValue(id, out var s) ? s : null;
 
-    public async Task<string> StartImportAsync(Stream stream, string fileName, string targetCookbookId, string userId, CancellationToken ct = default)
+    public async Task<string> StartImportAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
     {
         // Make an independent in-memory copy of the provided stream so background processing
         // does not depend on the caller keeping the original stream open.
@@ -93,7 +93,7 @@ public sealed class ImportOrchestrator
                         var interaction = new SessionInteraction(session, _logger);
                         // note: pass fresh stream (seek to 0)
                         if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
-                        var res = await interactive.HandleInteractiveAsync(workStream, fileName, targetCookbookId, userId, interaction, ct).ConfigureAwait(false);
+                        var res = await interactive.HandleInteractiveAsync(workStream, fileName, uri, targetCookbookId, userId, interaction, ct).ConfigureAwait(false);
                         if (!res.Success)
                             continue;
                         session.Result = res;
@@ -103,7 +103,7 @@ public sealed class ImportOrchestrator
                     else
                     {
                         if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
-                        var res = await handler.HandleAsync(workStream, fileName, targetCookbookId, userId, ct).ConfigureAwait(false);
+                        var res = await handler.HandleAsync(workStream, fileName, uri, targetCookbookId, userId, ct).ConfigureAwait(false);
                         session.Result = res;
                         session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
                         break;

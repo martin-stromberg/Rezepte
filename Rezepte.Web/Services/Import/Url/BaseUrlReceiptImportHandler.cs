@@ -468,7 +468,7 @@ public abstract class BaseUrlReceiptImportHandler(IRecipeService recipes, ILogge
             return false;
         }
     }
-    public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string targetCookbookId, string userId, CancellationToken ct = default)
+    public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(fileName))
             return new ImportResult(false, "filename is required", new List<string>());
@@ -528,7 +528,7 @@ public abstract class BaseUrlReceiptImportHandler(IRecipeService recipes, ILogge
                 var existingRecipe = await Recipes.FindByUri(userId, imported.Uri ?? string.Empty, ct).ConfigureAwait(false);
                 if (existingRecipe is not null)
                 {
-                    var (ok, error) = await Recipes.UpdateAsync(userId, existingRecipe.Id, imported.Title, imported.Description, steps, ct).ConfigureAwait(false);
+                    var (ok, error) = await Recipes.UpdateAsync(userId, existingRecipe.Id, imported.Title, imported.Description, imported.Uri, imported.Portions, steps, ct).ConfigureAwait(false);
                     if (!ok)
                     {
                         Logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);

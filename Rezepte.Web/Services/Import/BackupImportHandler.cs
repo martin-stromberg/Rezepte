@@ -31,7 +31,7 @@ public class BackupImportHandler(IRecipeService recipes, ILogger<BackupImportHan
         }
     }
 
-    public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string targetCookbookId, string userId, CancellationToken ct = default)
+    public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
     {
         var created = new List<string>();
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
@@ -63,7 +63,7 @@ public class BackupImportHandler(IRecipeService recipes, ILogger<BackupImportHan
                     (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
                 )).ToList() ?? new List<RecipeCreateStep>();
 
-                var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, r.Title ?? string.Empty, r.Description, r.Uri, r.Portions, steps, ct).ConfigureAwait(false);
+                var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, r.Title ?? string.Empty, r.Description, r.Uri ?? uri, r.Portions, steps, ct).ConfigureAwait(false);
                 if (!ok || recipe == null)
                 {
                     _logger.LogWarning("Could not create recipe from import: {Title} -> {Error}", r.Title, error);
