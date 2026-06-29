@@ -53,6 +53,7 @@ main.container {
 .nav-user-button {
     align-items: center;
     display: inline-flex;
+    gap: 0.4rem;
     justify-content: center;
     min-height: 2.25rem;
     min-width: 2.25rem;
@@ -79,6 +80,10 @@ main.container {
 .nav-user-button .bi {
     font-size: 1.25rem;
     line-height: 1;
+}
+
+.nav-mobile-label {
+    display: none;
 }
 
 .user-dropdown {
@@ -116,6 +121,16 @@ main.container {
         align-items: flex-start;
         gap: 0.25rem;
         width: 100%;
+    }
+
+    .nav-icon-link,
+    .nav-user-button {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .nav-mobile-label {
+        display: inline;
     }
 
     .nav-actions .dropdown {
