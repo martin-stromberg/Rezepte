@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Nav
 
@@ -14,9 +15,6 @@
         <div class="collapse navbar-collapse" id="mainNavbar">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Start</NavLink>
-                </li>
-                <li class="nav-item">
                     <NavLink class="nav-link d-flex align-items-center" href="/cookbooks" title="Kochbücher">
                         <span class="me-1">📚</span>
                         <span class="d-none d-sm-inline">Kochbücher</span>
@@ -31,27 +29,42 @@
             </ul>
 
             <!-- Search box in title bar -->
-            <form class="d-flex ms-3 me-2" role="search" @onsubmit="OnSubmitSearch" action="recipes/search">
+            <form class="nav-search-form d-flex w-100 my-2 my-lg-0 ms-lg-3 me-lg-2" role="search" @onsubmit="OnSubmitSearch" action="recipes/search">
                 <InputText id="nav-search" name="q" class="form-control form-control-sm" placeholder="Rezepte suchen..." aria-label="Suche Rezepte" @bind-Value="searchQuery" @bind-Value:event="oninput" />
                 <button type="submit" class="btn btn-sm btn-outline-light ms-2" aria-label="Suche starten">🔍</button>
             </form>
 
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center nav-actions">
                 <AuthorizeView>
-                    <Authorized>                        
-                        <li class="nav-item d-flex align-items-center me-2 text-white-50">
-                            Hallo, @context.User.Identity?.Name
-                        </li>
+                    <Authorized>
+                        @{
+                            var userName = context.User.Identity?.Name ?? "Angemeldeter Benutzer";
+                            var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                            var roleName = context.User.IsInRole("Admin") ? "Admin" : "Benutzer";
+                        }
                         <li class="nav-item">
-                            <form action="api/session/logout?returnUrl=/login" method="post" class="d-inline" formname="logout">
-                                <button type="submit" class="nav-link btn btn-link text-decoration-none">Abmelden</button>
-                            </form>
-                        </li>
-                        <li class="nav-item">
-                            <NavLink class="nav-link d-flex align-items-center" href="/settings" title="Einrichtung / Benutzerverwaltung">
-                                <span class="me-1">⚙️</span>
-                                <span class="d-none d-sm-inline">Einrichtung</span>
+                            <NavLink class="nav-link nav-icon-link" href="/settings" title="Einrichtung" aria-label="Einrichtung">
+                                <span class="bi bi-gear-fill" aria-hidden="true"></span>
                             </NavLink>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <button type="button" class="nav-link nav-user-button dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Benutzermenü öffnen">
+                                <span class="bi bi-person-circle" aria-hidden="true"></span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end user-dropdown">
+                                <div class="dropdown-header user-dropdown-header">
+                                    <div class="user-dropdown-name">@userName</div>
+                                    <div class="user-dropdown-role">@roleName</div>
+                                    @if (!string.IsNullOrWhiteSpace(userId))
+                                    {
+                                        <div class="user-dropdown-id">ID: @userId</div>
+                                    }
+                                </div>
+                                <div class="dropdown-divider"></div>
+                                <form action="api/session/logout?returnUrl=/login" method="post" formname="logout">
+                                    <button type="submit" class="dropdown-item">Abmelden</button>
+                                </form>
+                            </div>
                         </li>
                     </Authorized>
                     <NotAuthorized>

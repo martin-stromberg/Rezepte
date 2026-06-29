@@ -8,6 +8,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - JWT-Authentifizierung fuer API-Aufrufe.
 - Erster registrierter Benutzer wird automatisch Administrator.
 - Admin-Bereich fuer Benutzerverwaltung und globale Einstellungen.
+- Responsive Navigation mit kompaktem Benutzer- und Einstellungsbereich.
 - Kochbuecher mit Sortierung, Detailseiten und Zuordnung mehrerer Rezepte.
 - Rezeptverwaltung mit Zutaten, Zubereitungsschritten, Portionsangaben und Bildern.
 - Bild-Upload mit Validierung, zugeschnittenen Thumbnails und Grossbildansicht.
@@ -122,4 +123,5 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 ## Weiterfuehrende Dokumentation
 
 - `Docs/Anforderungskatalog.md`: fachlicher Status und geplante Erweiterungen.
+- `Docs/help/navigation.md`: Bedienhinweise zur Navigation, Einrichtung und zum Benutzermenue.
 - `Docs/install.md`: manuelle Installationsnotizen fuer Linux/systemd.
