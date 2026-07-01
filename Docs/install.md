@@ -2,7 +2,7 @@
 
 - Veröffentlichung ausführen
   Kontifuration: Release
-  Framework net9.0
+  Framework net10.0
   Bereitstellungsmodus: Framework-abhängig
   Ziellaufzeit: linux-x64
 

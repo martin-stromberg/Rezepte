@@ -403,3 +403,4 @@ FodyWeavers.xsd
 *.db-wal
 /Rezepte.Web/.config/dotnet-tools.json
 /Rezepte.Web/appsettings.Production.json
+issue.md
