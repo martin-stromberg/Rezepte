@@ -1,4 +1,4 @@
-﻿# Anforderungskatalog – Kochrezepte-Verwaltungssystem (Blazor Server, .NET 9, SQLite)
+# Anforderungskatalog – Kochrezepte-Verwaltungssystem (Blazor Server, .NET 10, SQLite)
 
 | Kennung   | Status        | Anforderung                                                                  | Umsetzungsbeschreibung |
 |-----------|---------------|------------------------------------------------------------------------------|------------------------|

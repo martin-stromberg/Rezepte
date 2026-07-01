@@ -21,7 +21,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 
 ## Tech-Stack
 
-- .NET 9
+- .NET 10
 - ASP.NET Core / Blazor Server mit Interactive Server Components
 - Entity Framework Core mit SQLite
 - xUnit, FluentAssertions, Moq und EF-Core InMemory fuer Tests
@@ -50,7 +50,7 @@ Wichtige Bereiche in `Rezepte.Web`:
 
 ## Voraussetzungen
 
-- .NET SDK 9 oder neuer
+- .NET SDK 10 oder neuer
 - Fuer den Standardbetrieb keine externe Datenbank; SQLite wird lokal verwendet
 - Optional fuer KI-Funktionen:
   - `google.application-credentials.json`
@@ -109,7 +109,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 Typischer Publish-Befehl:
 
 ```powershell
-dotnet publish Rezepte.Web -c Release -f net9.0 -r linux-x64 --self-contained false
+dotnet publish Rezepte.Web -c Release -f net10.0 -r linux-x64 --self-contained false
 ```
 
 In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
@@ -123,5 +123,6 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 ## Weiterfuehrende Dokumentation
 
 - `Docs/Anforderungskatalog.md`: fachlicher Status und geplante Erweiterungen.
+- `Docs/dependencies.md`: Abhaengigkeits- und Sicherheitsstrategie, inklusive dokumentierter Behandlung verbleibender NuGet-Sicherheitswarnungen.
 - `Docs/help/navigation.md`: Bedienhinweise zur Navigation, Einrichtung und zum Benutzermenue.
 - `Docs/install.md`: manuelle Installationsnotizen fuer Linux/systemd.
