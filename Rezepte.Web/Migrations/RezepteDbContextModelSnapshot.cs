@@ -312,6 +312,94 @@ namespace Rezepte.Web.Migrations
                     b.ToTable("RecipeSteps");
                 });
 
+            modelBuilder.Entity("Rezepte.Web.Entities.ShoppingListGroup", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OrderIndex")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("RecipeId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.HasIndex("UserId", "OrderIndex");
+
+                    b.ToTable("ShoppingListGroups");
+                });
+
+            modelBuilder.Entity("Rezepte.Web.Entities.ShoppingListItem", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("GroupId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsChecked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OrderIndex")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId", "OrderIndex");
+
+                    b.ToTable("ShoppingListItems");
+                });
+
             modelBuilder.Entity("Rezepte.Web.Entities.User", b =>
                 {
                     b.Property<string>("Id")
@@ -435,6 +523,27 @@ namespace Rezepte.Web.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Rezepte.Web.Entities.ShoppingListGroup", b =>
+                {
+                    b.HasOne("Rezepte.Web.Entities.Recipe", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Rezepte.Web.Entities.ShoppingListItem", b =>
+                {
+                    b.HasOne("Rezepte.Web.Entities.ShoppingListGroup", "Group")
+                        .WithMany("Items")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("Rezepte.Web.Entities.Cookbook", b =>
                 {
                     b.Navigation("RecipeCookbooks");
@@ -452,6 +561,11 @@ namespace Rezepte.Web.Migrations
             modelBuilder.Entity("Rezepte.Web.Entities.RecipeStep", b =>
                 {
                     b.Navigation("Ingredients");
+                });
+
+            modelBuilder.Entity("Rezepte.Web.Entities.ShoppingListGroup", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

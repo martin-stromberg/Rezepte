@@ -1,0 +1,263 @@
+@page "/shopping-list"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Security.Claims
+@using Rezepte.Web.Entities
+@using Rezepte.Web.Services
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IShoppingListService ShoppingListService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Einkaufsliste</PageTitle>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h2 class="h4 mb-0">Einkaufsliste</h2>
+    <button type="button" class="btn btn-sm btn-primary" @onclick="AddGroupAsync" title="Gruppe hinzufuegen">
+        <span class="bi bi-folder-plus" aria-hidden="true"></span>
+        <span class="ms-1">Gruppe</span>
+    </button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert @(isError ? "alert-danger" : "alert-success") py-2">@message</div>
+}
+
+@if (isLoading)
+{
+    <div class="text-muted">Lade...</div>
+}
+else
+{
+    <div class="shopping-list-grid">
+        @foreach (var group in groups)
+        {
+            var draft = DraftFor(group.Id);
+            <section class="shopping-group">
+                <div class="shopping-group-header">
+                    <input class="form-control form-control-sm shopping-group-title"
+                           value="@group.Name"
+                           @onchange="async e => await RenameGroupAsync(group, e.Value?.ToString() ?? string.Empty)"
+                           aria-label="Gruppenname" />
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            title="Gruppe loeschen"
+                            aria-label="Gruppe loeschen"
+                            @onclick="async () => await DeleteGroupAsync(group.Id)">
+                        <span class="bi bi-trash" aria-hidden="true"></span>
+                    </button>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(group.RecipeId))
+                {
+                    <div class="small text-muted mb-2">Aus Rezept uebernommen</div>
+                }
+
+                <form class="shopping-add-row" @onsubmit="async () => await AddItemAsync(group.Id)" @onsubmit:preventDefault="true">
+                    <input class="form-control form-control-sm"
+                           type="number"
+                           min="0"
+                           step="0.01"
+                           placeholder="Menge"
+                           aria-label="Menge"
+                           @bind="draft.AmountText" />
+                    <input class="form-control form-control-sm"
+                           placeholder="Einheit"
+                           aria-label="Einheit"
+                           @bind="draft.Unit" />
+                    <input class="form-control form-control-sm"
+                           placeholder="Zutat hinzufuegen"
+                           aria-label="Zutat hinzufuegen"
+                           @bind="draft.Name" />
+                    <button type="submit" class="btn btn-sm btn-success" title="Zutat hinzufuegen" aria-label="Zutat hinzufuegen">
+                        <span class="bi bi-plus-lg" aria-hidden="true"></span>
+                    </button>
+                </form>
+
+                @if (group.Items.Count == 0)
+                {
+                    <div class="text-muted small py-3">Noch keine Zutaten in dieser Gruppe.</div>
+                }
+                else
+                {
+                    <div class="shopping-items">
+                        @foreach (var item in group.Items)
+                        {
+                            <div class="shopping-item @(item.IsChecked ? "is-checked" : string.Empty)">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       checked="@item.IsChecked"
+                                       aria-label="@($"{item.Name} abhaken")"
+                                       @onchange="async e => await SetItemCheckedAsync(item.Id, e.Value is bool checkedValue && checkedValue)" />
+                                <input class="form-control form-control-sm shopping-item-amount"
+                                       type="number"
+                                       min="0"
+                                       step="0.01"
+                                       value="@FormatAmount(item.Amount)"
+                                       aria-label="Menge"
+                                       @onchange="async e => await UpdateItemAmountAsync(item, e.Value?.ToString())" />
+                                <input class="form-control form-control-sm shopping-item-unit"
+                                       value="@item.Unit"
+                                       aria-label="Einheit"
+                                       @onchange="async e => await UpdateItemUnitAsync(item, e.Value?.ToString())" />
+                                <input class="form-control form-control-sm shopping-item-name"
+                                       value="@item.Name"
+                                       aria-label="Zutat"
+                                       @onchange="async e => await UpdateItemNameAsync(item, e.Value?.ToString() ?? string.Empty)" />
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        title="Zutat loeschen"
+                                        aria-label="Zutat loeschen"
+                                        @onclick="async () => await DeleteItemAsync(item.Id)">
+                                    <span class="bi bi-x-lg" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        }
+    </div>
+}
+
+@code {
+    private readonly Dictionary<string, ItemDraft> drafts = new();
+    private List<ShoppingListGroup> groups = new();
+    private string? userId;
+    private string? message;
+    private bool isError;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            groups = await ShoppingListService.GetGroupsAsync(userId, CancellationToken.None);
+        }
+        isLoading = false;
+    }
+
+    private async Task AddGroupAsync()
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var result = await ShoppingListService.AddGroupAsync(userId, "Neue Gruppe", CancellationToken.None);
+        await AfterMutationAsync(result.ok, result.error);
+    }
+
+    private async Task RenameGroupAsync(ShoppingListGroup group, string name)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var result = await ShoppingListService.RenameGroupAsync(userId, group.Id, name, CancellationToken.None);
+        await AfterMutationAsync(result.ok, result.error);
+    }
+
+    private async Task DeleteGroupAsync(string groupId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var result = await ShoppingListService.DeleteGroupAsync(userId, groupId, CancellationToken.None);
+        drafts.Remove(groupId);
+        await AfterMutationAsync(result.ok, result.error);
+    }
+
+    private async Task AddItemAsync(string groupId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var draft = DraftFor(groupId);
+        var amount = ParseAmount(draft.AmountText);
+        var result = await ShoppingListService.AddItemAsync(userId, groupId, amount, draft.Unit, draft.Name, CancellationToken.None);
+        if (result.ok)
+        {
+            draft.AmountText = string.Empty;
+            draft.Unit = string.Empty;
+            draft.Name = string.Empty;
+        }
+        await AfterMutationAsync(result.ok, result.error);
+    }
+
+    private async Task UpdateItemAmountAsync(ShoppingListItem item, string? amountText)
+    {
+        await UpdateItemAsync(item, ParseAmount(amountText), item.Unit, item.Name);
+    }
+
+    private async Task UpdateItemUnitAsync(ShoppingListItem item, string? unit)
+    {
+        await UpdateItemAsync(item, item.Amount, unit, item.Name);
+    }
+
+    private async Task UpdateItemNameAsync(ShoppingListItem item, string name)
+    {
+        await UpdateItemAsync(item, item.Amount, item.Unit, name);
+    }
+
+    private async Task UpdateItemAsync(ShoppingListItem item, decimal amount, string? unit, string name)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var result = await ShoppingListService.UpdateItemAsync(userId, item.Id, amount, unit, name, CancellationToken.None);
+        await AfterMutationAsync(result.ok, result.error);
+    }
+
+    private async Task SetItemCheckedAsync(string itemId, bool isChecked)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var result = await ShoppingListService.SetItemCheckedAsync(userId, itemId, isChecked, CancellationToken.None);
+        await AfterMutationAsync(result.ok, result.error, successMessage: null);
+    }
+
+    private async Task DeleteItemAsync(string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var result = await ShoppingListService.DeleteItemAsync(userId, itemId, CancellationToken.None);
+        await AfterMutationAsync(result.ok, result.error);
+    }
+
+    private async Task AfterMutationAsync(bool ok, string? error, string? successMessage = "")
+    {
+        isError = !ok;
+        message = ok ? successMessage : error;
+        await LoadAsync();
+    }
+
+    private ItemDraft DraftFor(string groupId)
+    {
+        if (!drafts.TryGetValue(groupId, out var draft))
+        {
+            draft = new ItemDraft();
+            drafts[groupId] = draft;
+        }
+
+        return draft;
+    }
+
+    private static decimal ParseAmount(string? value)
+    {
+        if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) ||
+            decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out amount))
+        {
+            return amount;
+        }
+
+        return 0;
+    }
+
+    private static string FormatAmount(decimal amount)
+    {
+        return amount == 0 ? string.Empty : amount.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
+    private sealed class ItemDraft
+    {
+        public string AmountText { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+}

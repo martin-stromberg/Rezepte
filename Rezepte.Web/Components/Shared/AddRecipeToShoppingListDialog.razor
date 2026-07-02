@@ -1,0 +1,151 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Rezepte.Web.Services
+@inject IShoppingListService ShoppingListService
+@inject AuthenticationStateProvider AuthStateProvider
+
+@if (Show)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="shoppingListDialogTitle">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="shoppingListDialogTitle" class="modal-title">Zutaten uebernehmen</h5>
+                    <button type="button" class="btn-close" aria-label="Schliessen" @onclick="CloseAsync"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrWhiteSpace(message))
+                    {
+                        <div class="alert @(isError ? "alert-danger" : "alert-success") py-2">@message</div>
+                    }
+
+                    @if (isLoading)
+                    {
+                        <div class="text-muted">Lade Zutaten...</div>
+                    }
+                    else if (ingredients.Count == 0)
+                    {
+                        <div class="alert alert-info mb-0">Dieses Rezept hat keine Zutaten.</div>
+                    }
+                    else
+                    {
+                        <div class="small text-muted mb-2">Gruppe: @RecipeTitle</div>
+                        <div class="list-group">
+                            @foreach (var ingredient in ingredients)
+                            {
+                                <label class="list-group-item d-flex align-items-start gap-2">
+                                    <input class="form-check-input mt-1"
+                                           type="checkbox"
+                                           checked="@selectedIngredientIds.Contains(ingredient.Id)"
+                                           @onchange="e => ToggleIngredient(ingredient.Id, e.Value is bool checkedValue && checkedValue)" />
+                                    <span>
+                                        <span class="d-block">@FormatIngredient(ingredient)</span>
+                                        @if (!string.IsNullOrWhiteSpace(ingredient.StepTitle))
+                                        {
+                                            <span class="small text-muted">@ingredient.StepTitle</span>
+                                        }
+                                    </span>
+                                </label>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CloseAsync">Abbrechen</button>
+                    <button type="button" class="btn btn-success" disabled="@(isLoading || selectedIngredientIds.Count == 0)" @onclick="AddAsync">
+                        <span class="bi bi-cart-plus" aria-hidden="true"></span>
+                        <span class="ms-1">Uebernehmen</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string RecipeId { get; set; } = string.Empty;
+    [Parameter] public string RecipeTitle { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnAdded { get; set; }
+
+    private readonly HashSet<string> selectedIngredientIds = new();
+    private List<ShoppingListRecipeIngredient> ingredients = new();
+    private bool isLoading;
+    private bool wasShown;
+    private string? userId;
+    private string? message;
+    private bool isError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Show && (!wasShown || ingredients.Count == 0))
+        {
+            wasShown = true;
+            await LoadAsync();
+        }
+        else if (!Show)
+        {
+            wasShown = false;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        message = null;
+        selectedIngredientIds.Clear();
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        ingredients = string.IsNullOrWhiteSpace(userId)
+            ? new List<ShoppingListRecipeIngredient>()
+            : await ShoppingListService.GetRecipeIngredientsAsync(userId, RecipeId, CancellationToken.None);
+
+        foreach (var ingredient in ingredients)
+        {
+            selectedIngredientIds.Add(ingredient.Id);
+        }
+
+        isLoading = false;
+    }
+
+    private void ToggleIngredient(string ingredientId, bool isSelected)
+    {
+        if (isSelected)
+        {
+            selectedIngredientIds.Add(ingredientId);
+        }
+        else
+        {
+            selectedIngredientIds.Remove(ingredientId);
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var result = await ShoppingListService.AddRecipeIngredientsAsync(userId, RecipeId, selectedIngredientIds.ToList(), CancellationToken.None);
+        if (!result.ok)
+        {
+            isError = true;
+            message = result.error;
+            return;
+        }
+
+        await OnAdded.InvokeAsync();
+        await CloseAsync();
+    }
+
+    private async Task CloseAsync()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private static string FormatIngredient(ShoppingListRecipeIngredient ingredient)
+    {
+        var amount = ingredient.Amount == 0 ? string.Empty : ingredient.Amount.ToString("0.##");
+        return string.Join(" ", new[] { amount, ingredient.Unit, ingredient.Name }.Where(v => !string.IsNullOrWhiteSpace(v)));
+    }
+}
