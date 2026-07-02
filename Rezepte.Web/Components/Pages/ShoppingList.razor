@@ -1,6 +1,7 @@
 @page "/shopping-list"
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
 @using System.Globalization
 @using System.Security.Claims
 @using Rezepte.Web.Entities
@@ -8,16 +9,36 @@
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject IShoppingListService ShoppingListService
+@inject ISettingsService SettingsService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Einkaufsliste</PageTitle>
 
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <h2 class="h4 mb-0">Einkaufsliste</h2>
-    <button type="button" class="btn btn-sm btn-primary" @onclick="AddGroupAsync" title="Gruppe hinzufuegen">
-        <span class="bi bi-folder-plus" aria-hidden="true"></span>
-        <span class="ms-1">Gruppe</span>
-    </button>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <div class="btn-group btn-group-sm" role="group" aria-label="Anzeigemodus">
+            <button type="button"
+                    class="btn @(isEditMode ? "btn-outline-secondary" : "btn-secondary")"
+                    aria-pressed="@(!isEditMode)"
+                    @onclick="async () => await SetEditModeAsync(false)">
+                Ansicht
+            </button>
+            <button type="button"
+                    class="btn @(isEditMode ? "btn-secondary" : "btn-outline-secondary")"
+                    aria-pressed="@isEditMode"
+                    @onclick="async () => await SetEditModeAsync(true)">
+                Bearbeiten
+            </button>
+        </div>
+        @if (isEditMode)
+        {
+            <button type="button" class="btn btn-sm btn-primary" @onclick="AddGroupAsync" title="Gruppe hinzufuegen">
+                <span class="bi bi-folder-plus" aria-hidden="true"></span>
+                <span class="ms-1">Gruppe</span>
+            </button>
+        }
+    </div>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(message))
@@ -36,45 +57,31 @@ else
         {
             var draft = DraftFor(group.Id);
             <section class="shopping-group">
-                <div class="shopping-group-header">
-                    <input class="form-control form-control-sm shopping-group-title"
-                           value="@group.Name"
-                           @onchange="async e => await RenameGroupAsync(group, e.Value?.ToString() ?? string.Empty)"
-                           aria-label="Gruppenname" />
-                    <button type="button"
-                            class="btn btn-sm btn-outline-danger"
-                            title="Gruppe loeschen"
-                            aria-label="Gruppe loeschen"
-                            @onclick="async () => await DeleteGroupAsync(group.Id)">
-                        <span class="bi bi-trash" aria-hidden="true"></span>
-                    </button>
-                </div>
+                @if (isEditMode)
+                {
+                    <div class="shopping-group-header">
+                        <input class="form-control form-control-sm shopping-group-title"
+                               value="@group.Name"
+                               @onchange="async e => await RenameGroupAsync(group, e.Value?.ToString() ?? string.Empty)"
+                               aria-label="Gruppenname" />
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Gruppe loeschen"
+                                aria-label="Gruppe loeschen"
+                                @onclick="async () => await DeleteGroupAsync(group.Id)">
+                            <span class="bi bi-trash" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <h3 class="h6 mb-2">@group.Name</h3>
+                }
 
                 @if (!string.IsNullOrWhiteSpace(group.RecipeId))
                 {
                     <div class="small text-muted mb-2">Aus Rezept uebernommen</div>
                 }
-
-                <form class="shopping-add-row" @onsubmit="async () => await AddItemAsync(group.Id)" @onsubmit:preventDefault="true">
-                    <input class="form-control form-control-sm"
-                           type="number"
-                           min="0"
-                           step="0.01"
-                           placeholder="Menge"
-                           aria-label="Menge"
-                           @bind="draft.AmountText" />
-                    <input class="form-control form-control-sm"
-                           placeholder="Einheit"
-                           aria-label="Einheit"
-                           @bind="draft.Unit" />
-                    <input class="form-control form-control-sm"
-                           placeholder="Zutat hinzufuegen"
-                           aria-label="Zutat hinzufuegen"
-                           @bind="draft.Name" />
-                    <button type="submit" class="btn btn-sm btn-success" title="Zutat hinzufuegen" aria-label="Zutat hinzufuegen">
-                        <span class="bi bi-plus-lg" aria-hidden="true"></span>
-                    </button>
-                </form>
 
                 @if (group.Items.Count == 0)
                 {
@@ -91,31 +98,63 @@ else
                                        checked="@item.IsChecked"
                                        aria-label="@($"{item.Name} abhaken")"
                                        @onchange="async e => await SetItemCheckedAsync(item.Id, e.Value is bool checkedValue && checkedValue)" />
-                                <input class="form-control form-control-sm shopping-item-amount"
-                                       type="number"
-                                       min="0"
-                                       step="0.01"
-                                       value="@FormatAmount(item.Amount)"
-                                       aria-label="Menge"
-                                       @onchange="async e => await UpdateItemAmountAsync(item, e.Value?.ToString())" />
-                                <input class="form-control form-control-sm shopping-item-unit"
-                                       value="@item.Unit"
-                                       aria-label="Einheit"
-                                       @onchange="async e => await UpdateItemUnitAsync(item, e.Value?.ToString())" />
-                                <input class="form-control form-control-sm shopping-item-name"
-                                       value="@item.Name"
-                                       aria-label="Zutat"
-                                       @onchange="async e => await UpdateItemNameAsync(item, e.Value?.ToString() ?? string.Empty)" />
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-danger"
-                                        title="Zutat loeschen"
-                                        aria-label="Zutat loeschen"
-                                        @onclick="async () => await DeleteItemAsync(item.Id)">
-                                    <span class="bi bi-x-lg" aria-hidden="true"></span>
-                                </button>
+                                @if (isEditMode)
+                                {
+                                    <input class="form-control form-control-sm shopping-item-amount"
+                                           type="number"
+                                           min="0"
+                                           step="0.01"
+                                           value="@FormatAmount(item.Amount)"
+                                           aria-label="Menge"
+                                           @onchange="async e => await UpdateItemAmountAsync(item, e.Value?.ToString())" />
+                                    <input class="form-control form-control-sm shopping-item-unit"
+                                           value="@item.Unit"
+                                           aria-label="Einheit"
+                                           @onchange="async e => await UpdateItemUnitAsync(item, e.Value?.ToString())" />
+                                    <input class="form-control form-control-sm shopping-item-name"
+                                           value="@item.Name"
+                                           aria-label="Zutat"
+                                           @onchange="async e => await UpdateItemNameAsync(item, e.Value?.ToString() ?? string.Empty)" />
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Zutat loeschen"
+                                            aria-label="Zutat loeschen"
+                                            @onclick="async () => await DeleteItemAsync(item.Id)">
+                                        <span class="bi bi-x-lg" aria-hidden="true"></span>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="shopping-item-text">@FormatIngredient(item)</span>
+                                }
                             </div>
                         }
                     </div>
+                }
+
+                @if (isEditMode)
+                {
+                    <form class="shopping-add-row" @onsubmit="async () => await AddItemAsync(group.Id)" @onsubmit:preventDefault="true">
+                        <input class="form-control form-control-sm"
+                               @ref="draft.AmountInput"
+                               type="number"
+                               min="0"
+                               step="0.01"
+                               placeholder="Menge"
+                               aria-label="Menge"
+                               @bind="draft.AmountText" />
+                        <input class="form-control form-control-sm"
+                               placeholder="Einheit"
+                               aria-label="Einheit"
+                               @bind="draft.Unit" />
+                        <input class="form-control form-control-sm"
+                               placeholder="Zutat hinzufuegen"
+                               aria-label="Zutat hinzufuegen"
+                               @bind="draft.Name" />
+                        <button type="submit" class="btn btn-sm btn-success" title="Zutat hinzufuegen" aria-label="Zutat hinzufuegen">
+                            <span class="bi bi-plus-lg" aria-hidden="true"></span>
+                        </button>
+                    </form>
                 }
             </section>
         }
@@ -129,12 +168,38 @@ else
     private string? message;
     private bool isError;
     private bool isLoading = true;
+    private bool isEditMode;
+    private string? pendingFocusGroupId;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            isEditMode = await SettingsService.GetUserShoppingListEditModeAsync(userId, CancellationToken.None);
+        }
+
         await LoadAsync();
+        if (isEditMode && groups.Count == 1)
+        {
+            pendingFocusGroupId = groups[0].Id;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!isEditMode || string.IsNullOrWhiteSpace(pendingFocusGroupId))
+        {
+            return;
+        }
+
+        var focusGroupId = pendingFocusGroupId;
+        pendingFocusGroupId = null;
+        if (drafts.TryGetValue(focusGroupId, out var draft))
+        {
+            await draft.AmountInput.FocusAsync();
+        }
     }
 
     private async Task LoadAsync()
@@ -151,7 +216,7 @@ else
     {
         if (string.IsNullOrWhiteSpace(userId)) return;
         var result = await ShoppingListService.AddGroupAsync(userId, "Neue Gruppe", CancellationToken.None);
-        await AfterMutationAsync(result.ok, result.error);
+        await AfterMutationAsync(result.ok, result.error, focusGroupId: result.group?.Id);
     }
 
     private async Task RenameGroupAsync(ShoppingListGroup group, string name)
@@ -181,7 +246,26 @@ else
             draft.Unit = string.Empty;
             draft.Name = string.Empty;
         }
-        await AfterMutationAsync(result.ok, result.error);
+        await AfterMutationAsync(result.ok, result.error, focusGroupId: groupId);
+    }
+
+    private async Task SetEditModeAsync(bool editMode)
+    {
+        if (isEditMode == editMode)
+        {
+            return;
+        }
+
+        isEditMode = editMode;
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            await SettingsService.SetUserShoppingListEditModeAsync(userId, editMode, CancellationToken.None);
+        }
+
+        if (isEditMode && groups.Count == 1)
+        {
+            pendingFocusGroupId = groups[0].Id;
+        }
     }
 
     private async Task UpdateItemAmountAsync(ShoppingListItem item, string? amountText)
@@ -220,11 +304,15 @@ else
         await AfterMutationAsync(result.ok, result.error);
     }
 
-    private async Task AfterMutationAsync(bool ok, string? error, string? successMessage = "")
+    private async Task AfterMutationAsync(bool ok, string? error, string? successMessage = "", string? focusGroupId = null)
     {
         isError = !ok;
         message = ok ? successMessage : error;
         await LoadAsync();
+        if (ok && isEditMode && !string.IsNullOrWhiteSpace(focusGroupId))
+        {
+            pendingFocusGroupId = focusGroupId;
+        }
     }
 
     private ItemDraft DraftFor(string groupId)
@@ -254,10 +342,16 @@ else
         return amount == 0 ? string.Empty : amount.ToString("0.##", CultureInfo.InvariantCulture);
     }
 
+    private static string FormatIngredient(ShoppingListItem item)
+    {
+        return string.Join(" ", new[] { FormatAmount(item.Amount), item.Unit, item.Name }.Where(v => !string.IsNullOrWhiteSpace(v)));
+    }
+
     private sealed class ItemDraft
     {
         public string AmountText { get; set; } = string.Empty;
         public string Unit { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public ElementReference AmountInput { get; set; }
     }
 }

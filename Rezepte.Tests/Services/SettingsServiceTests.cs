@@ -92,4 +92,22 @@ public class SettingsServiceTests
         global.Should().BeFalse();
         user.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task ShoppingListEditMode_ShouldPersistPerUser()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        (await sut.GetUserShoppingListEditModeAsync("user-1", CancellationToken.None)).Should().BeFalse();
+
+        await sut.SetUserShoppingListEditModeAsync("user-1", true, CancellationToken.None);
+        await sut.SetUserShoppingListEditModeAsync("user-2", false, CancellationToken.None);
+
+        (await sut.GetUserShoppingListEditModeAsync("user-1", CancellationToken.None)).Should().BeTrue();
+        (await sut.GetUserShoppingListEditModeAsync("user-2", CancellationToken.None)).Should().BeFalse();
+
+        await sut.SetUserShoppingListEditModeAsync("user-1", false, CancellationToken.None);
+        (await sut.GetUserShoppingListEditModeAsync("user-1", CancellationToken.None)).Should().BeFalse();
+    }
 }

@@ -29,7 +29,7 @@
 
 .shopping-add-row {
     grid-template-columns: minmax(4.5rem, 0.4fr) minmax(4.5rem, 0.5fr) minmax(8rem, 1fr) auto;
-    margin-bottom: 0.75rem;
+    margin-top: 0.75rem;
 }
 
 .shopping-items {
@@ -41,7 +41,12 @@
     grid-template-columns: auto minmax(4.5rem, 0.4fr) minmax(4.5rem, 0.5fr) minmax(8rem, 1fr) auto;
 }
 
-.shopping-item.is-checked .shopping-item-name {
+.shopping-item:has(.shopping-item-text) {
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.shopping-item.is-checked .shopping-item-name,
+.shopping-item.is-checked .shopping-item-text {
     color: var(--app-muted);
     text-decoration: line-through;
 }

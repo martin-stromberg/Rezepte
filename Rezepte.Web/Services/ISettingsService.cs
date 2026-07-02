@@ -26,6 +26,10 @@ public interface ISettingsService
     Task<bool> GetUserRequireAiConfirmationAsync(string userId, CancellationToken ct = default);
     Task SetUserRequireAiConfirmationAsync(string userId, bool required, CancellationToken ct = default);
 
+    // per-user shopping list display mode
+    Task<bool> GetUserShoppingListEditModeAsync(string userId, CancellationToken ct = default);
+    Task SetUserShoppingListEditModeAsync(string userId, bool editMode, CancellationToken ct = default);
+
     // New: global limits and behaviour
     Task<int?> GetGlobalMaxRequestsPerHourAsync(CancellationToken ct = default);
     Task SetGlobalMaxRequestsPerHourAsync(int? value, CancellationToken ct = default);
