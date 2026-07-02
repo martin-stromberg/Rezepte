@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+ï»¿using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Entities;
 using System.Collections.Generic;
 
@@ -20,6 +20,8 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
 
     // Calendar events
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
+    public DbSet<ShoppingListGroup> ShoppingListGroups => Set<ShoppingListGroup>();
+    public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,7 +48,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             // Real CLR-Eigenschaft OrderIndex konfigurieren (nicht als Shadow-Property)
             b.Property(c => c.OrderIndex).HasDefaultValue(0);
 
-            // Index auf UserId + OrderIndex für schnelle Sortierung
+            // Index auf UserId + OrderIndex fï¿½r schnelle Sortierung
             b.HasIndex(c => new { c.UserId, c.OrderIndex });
 
             b.HasIndex(c => c.Name).IsUnique(false);
@@ -142,7 +144,46 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.HasIndex(e => e.RecipeId);
         });
 
-        // Konfiguration für UserSetting
+        modelBuilder.Entity<ShoppingListGroup>(b =>
+        {
+            b.HasKey(g => g.Id);
+            b.Property(g => g.UserId).IsRequired().HasMaxLength(64);
+            b.Property(g => g.Name).IsRequired().HasMaxLength(128);
+            b.Property(g => g.RecipeId).HasMaxLength(64).IsRequired(false);
+            b.Property(g => g.OrderIndex).HasDefaultValue(0);
+            b.Property(g => g.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(g => g.ModifiedAt).IsRequired(false);
+
+            b.HasOne(g => g.Recipe)
+                .WithMany()
+                .HasForeignKey(g => g.RecipeId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            b.HasIndex(g => new { g.UserId, g.OrderIndex });
+            b.HasIndex(g => g.RecipeId);
+        });
+
+        modelBuilder.Entity<ShoppingListItem>(b =>
+        {
+            b.HasKey(i => i.Id);
+            b.Property(i => i.GroupId).IsRequired().HasMaxLength(64);
+            b.Property(i => i.Amount).HasColumnType("TEXT");
+            b.Property(i => i.Unit).HasMaxLength(64);
+            b.Property(i => i.Name).IsRequired().HasMaxLength(200);
+            b.Property(i => i.IsChecked).HasDefaultValue(false);
+            b.Property(i => i.OrderIndex).HasDefaultValue(0);
+            b.Property(i => i.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(i => i.ModifiedAt).IsRequired(false);
+
+            b.HasOne(i => i.Group)
+                .WithMany(g => g.Items)
+                .HasForeignKey(i => i.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasIndex(i => new { i.GroupId, i.OrderIndex });
+        });
+
+        // Konfiguration fï¿½r UserSetting
         modelBuilder.Entity<UserSetting>(b =>
         {
             b.HasKey(u => u.UserId);
@@ -151,7 +192,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.HasIndex(u => u.UserId).IsUnique();
         });
 
-        // Konfiguration für AppSetting
+        // Konfiguration fï¿½r AppSetting
         modelBuilder.Entity<AppSetting>(b =>
         {
             b.HasKey(a => a.Key);

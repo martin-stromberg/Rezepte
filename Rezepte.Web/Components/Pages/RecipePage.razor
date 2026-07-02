@@ -27,6 +27,9 @@
     @if (isOwner && !isLoading && recipe is not null)
     {
         <div class="btn-group">
+            <button class="btn btn-sm btn-outline-secondary" title="Zutaten zur Einkaufsliste" @onclick="OpenShoppingListDialog">
+                <span class="bi bi-cart-plus" aria-hidden="true"></span>
+            </button>
             <a class="btn btn-sm btn-outline-secondary" href="/recipes/@Id/edit" title="Bearbeiten">✏️</a>
 
             @* Favoriten / Zuordnungen zu Kochbüchern *@
@@ -171,6 +174,12 @@ else
     </div>
 }
 
+<AddRecipeToShoppingListDialog Show="@showShoppingListDialog"
+                               RecipeId="@Id"
+                               RecipeTitle="@(recipe?.Title ?? "Rezept")"
+                               OnClose="CloseShoppingListDialog"
+                               OnAdded="OnShoppingListAdded" />
+
 <PhotoOverlay Show="@showImagesOverlay"
               RezeptId="@Id"
               Mode="view"
@@ -222,6 +231,7 @@ else
     // Assign overlay
     private bool showAssignOverlay = false;
     private bool isInAnyCookbook = false;
+    private bool showShoppingListDialog = false;
 
     private int TotalMinutes => recipe?.Steps?.Sum(s => s.DurationMinutes) ?? 0;
     private int RestNights => recipe?.Steps?.Count(s => s.RequiresOvernightRest) ?? 0;
@@ -383,6 +393,23 @@ else
     private void OpenAssignOverlay()
     {
         showAssignOverlay = true;
+    }
+
+    private void OpenShoppingListDialog()
+    {
+        showShoppingListDialog = true;
+    }
+
+    private Task CloseShoppingListDialog()
+    {
+        showShoppingListDialog = false;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnShoppingListAdded()
+    {
+        showShoppingListDialog = false;
+        await JS.InvokeVoidAsync("console.log", $"Recipe {Id} added to shopping list.");
     }
 
     private void CloseAssignOverlay()

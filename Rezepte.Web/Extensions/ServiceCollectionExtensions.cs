@@ -145,6 +145,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAiUsageService, AiUsageService>();
         services.AddScoped<ISettingsService, SettingsService>();
         services.AddScoped<ICalendarService, CalendarService>();
+        services.AddScoped<IShoppingListService, ShoppingListService>();
         services.AddScoped<IGeminiClient, GeminiClient>();
         services.AddScoped<ITestRecipeImportService, TestRecipeImportService>();
 

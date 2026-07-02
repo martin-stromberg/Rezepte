@@ -11,6 +11,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Responsive Navigation mit kompaktem Benutzer- und Einstellungsbereich.
 - Kochbuecher mit Sortierung, Detailseiten und Zuordnung mehrerer Rezepte.
 - Rezeptverwaltung mit Zutaten, Zubereitungsschritten, Portionsangaben und Bildern.
+- Einkaufsliste mit Gruppen, abhakbaren Zutaten und Uebernahme von Rezeptzutaten.
 - Bild-Upload mit Validierung, zugeschnittenen Thumbnails und Grossbildansicht.
 - Suche nach Rezepten und Anzeige neuester bzw. zufaelliger Rezepte.
 - Kalenderansicht fuer geplante Rezepte.
@@ -125,4 +126,5 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 - `Docs/Anforderungskatalog.md`: fachlicher Status und geplante Erweiterungen.
 - `Docs/dependencies.md`: Abhaengigkeits- und Sicherheitsstrategie, inklusive dokumentierter Behandlung verbleibender NuGet-Sicherheitswarnungen.
 - `Docs/help/navigation.md`: Bedienhinweise zur Navigation, Einrichtung und zum Benutzermenue.
+- `Docs/help/shopping-list.md`: Bedienhinweise zur Einkaufsliste und Rezeptuebernahme.
 - `Docs/install.md`: manuelle Installationsnotizen fuer Linux/systemd.

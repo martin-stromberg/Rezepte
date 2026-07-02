@@ -45,6 +45,7 @@ public class SettingsService : ISettingsService
     private const string GlobalMaxPerHourKey = "GlobalMaxRequestsPerHour";
     private const string GlobalMaxPerDayKey = "GlobalMaxRequestsPerDay";
     private const string GlobalDisableOnLimitKey = "GlobalDisableOnLimitReached";
+    private const string ShoppingListEditModePrefix = "ShoppingListEditMode:";
 
     public async Task<bool> GetGlobalAiEnabledAsync(CancellationToken ct = default)
     {
@@ -142,6 +143,34 @@ public class SettingsService : ISettingsService
         }
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task<bool> GetUserShoppingListEditModeAsync(string userId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { ShoppingListEditModeKey(userId) }, ct);
+        return kv is not null && bool.TryParse(kv.Value, out var value) && value;
+    }
+
+    public async Task SetUserShoppingListEditModeAsync(string userId, bool editMode, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(userId)) throw new ArgumentNullException(nameof(userId));
+        var key = ShoppingListEditModeKey(userId);
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { key }, ct);
+        if (kv == null)
+        {
+            kv = new AppSetting { Key = key, Value = editMode.ToString() };
+            _db.Add(kv);
+        }
+        else
+        {
+            kv.Value = editMode.ToString();
+            _db.Update(kv);
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    private static string ShoppingListEditModeKey(string userId) => ShoppingListEditModePrefix + userId;
 
     // global per-service toggles
     public async Task<bool> GetGlobalGoogleVisionEnabledAsync(CancellationToken ct = default)

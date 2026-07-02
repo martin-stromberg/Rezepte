@@ -1,0 +1,74 @@
+.shopping-list-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.shopping-group {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.shopping-group-header,
+.shopping-add-row,
+.shopping-item {
+    align-items: center;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.shopping-group-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    margin-bottom: 0.75rem;
+}
+
+.shopping-group-title {
+    font-weight: 600;
+}
+
+.shopping-add-row {
+    grid-template-columns: minmax(4.5rem, 0.4fr) minmax(4.5rem, 0.5fr) minmax(8rem, 1fr) auto;
+    margin-top: 0.75rem;
+}
+
+.shopping-items {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.shopping-item {
+    grid-template-columns: auto minmax(4.5rem, 0.4fr) minmax(4.5rem, 0.5fr) minmax(8rem, 1fr) auto;
+}
+
+.shopping-item:has(.shopping-item-text) {
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.shopping-item.is-checked .shopping-item-name,
+.shopping-item.is-checked .shopping-item-text {
+    color: var(--app-muted);
+    text-decoration: line-through;
+}
+
+@media (max-width: 575.98px) {
+    .shopping-add-row,
+    .shopping-item {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .shopping-add-row .form-control,
+    .shopping-item .form-control {
+        grid-column: 1 / -1;
+    }
+
+    .shopping-item .form-check-input {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .shopping-item .btn {
+        grid-column: 3;
+        grid-row: 1;
+    }
+}
