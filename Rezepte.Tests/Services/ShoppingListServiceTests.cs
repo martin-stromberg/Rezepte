@@ -115,4 +115,175 @@ public class ShoppingListServiceTests
         result.error.Should().Be("Gruppe nicht gefunden.");
         (await db.ShoppingListItems.CountAsync()).Should().Be(0);
     }
+
+    [Fact]
+    public async Task GetRecipeIngredientGroupsAsync_ShouldReturnMainRecipeAndSideDishes()
+    {
+        using var db = CreateDb();
+        var side = new Recipe
+        {
+            UserId = UserA,
+            Title = "Salat",
+            Steps = { new RecipeStep { StepIndex = 0, Description = "Waschen", Ingredients = { new RecipeIngredient { Amount = 1, Name = "Kopf Salat" } } } }
+        };
+        var main = new Recipe
+        {
+            UserId = UserA,
+            Title = "Lasagne",
+            Steps = { new RecipeStep { StepIndex = 0, Description = "Backen", Ingredients = { new RecipeIngredient { Amount = 2, Name = "Tomaten" } } } }
+        };
+        main.SideDishes.Add(new RecipeSideDish { Recipe = main, SideDishRecipe = side, SideDishRecipeId = side.Id });
+        db.Recipes.AddRange(main, side);
+        await db.SaveChangesAsync();
+        var sut = new ShoppingListService(db);
+
+        var groups = await sut.GetRecipeIngredientGroupsAsync(UserA, main.Id, CancellationToken.None);
+
+        groups.Should().HaveCount(2);
+        groups[0].RecipeTitle.Should().Be("Lasagne");
+        groups[0].IsMainRecipe.Should().BeTrue();
+        groups[1].RecipeTitle.Should().Be("Salat");
+        groups[1].IsMainRecipe.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AddRecipeIngredientGroupsAsync_ShouldCreateSeparateGroupsForSelections()
+    {
+        using var db = CreateDb();
+        var side = new Recipe
+        {
+            UserId = UserA,
+            Title = "Salat",
+            Steps = { new RecipeStep { StepIndex = 0, Description = "Waschen", Ingredients = { new RecipeIngredient { Amount = 1, Name = "Kopf Salat" } } } }
+        };
+        var main = new Recipe
+        {
+            UserId = UserA,
+            Title = "Lasagne",
+            Steps = { new RecipeStep { StepIndex = 0, Description = "Backen", Ingredients = { new RecipeIngredient { Amount = 2, Name = "Tomaten" } } } }
+        };
+        main.SideDishes.Add(new RecipeSideDish { Recipe = main, SideDishRecipe = side, SideDishRecipeId = side.Id });
+        db.Recipes.AddRange(main, side);
+        await db.SaveChangesAsync();
+        var mainIngredientId = main.Steps.Single().Ingredients.Single().Id;
+        var sideIngredientId = side.Steps.Single().Ingredients.Single().Id;
+        var sut = new ShoppingListService(db);
+
+        var result = await sut.AddRecipeIngredientGroupsAsync(
+            UserA,
+            main.Id,
+            new[]
+            {
+                new ShoppingListRecipeIngredientSelection(main.Id, new[] { mainIngredientId }),
+                new ShoppingListRecipeIngredientSelection(side.Id, new[] { sideIngredientId })
+            },
+            CancellationToken.None);
+
+        result.ok.Should().BeTrue();
+        result.groups.Should().HaveCount(2);
+        var groups = await sut.GetGroupsAsync(UserA, CancellationToken.None);
+        groups.Select(g => g.Name).Should().Contain(new[] { "Lasagne", "Salat" });
+    }
+
+    [Fact]
+    public async Task AddRecipeIngredientGroupsAsync_ShouldRejectUnlinkedRecipeIngredient()
+    {
+        using var db = CreateDb();
+        var main = new Recipe { UserId = UserA, Title = "Lasagne" };
+        var unlinked = new Recipe
+        {
+            UserId = UserA,
+            Title = "Salat",
+            Steps = { new RecipeStep { StepIndex = 0, Description = "Waschen", Ingredients = { new RecipeIngredient { Amount = 1, Name = "Kopf Salat" } } } }
+        };
+        db.Recipes.AddRange(main, unlinked);
+        await db.SaveChangesAsync();
+        var sut = new ShoppingListService(db);
+
+        var result = await sut.AddRecipeIngredientGroupsAsync(
+            UserA,
+            main.Id,
+            new[] { new ShoppingListRecipeIngredientSelection(unlinked.Id, new[] { unlinked.Steps.Single().Ingredients.Single().Id }) },
+            CancellationToken.None);
+
+        result.ok.Should().BeFalse();
+        result.error.Should().Be("Mindestens eine ausgewaehlte Zutat passt nicht zum Rezept.");
+    }
+
+    [Fact]
+    public async Task AddRecipeIngredientGroupsAsync_ShouldRejectMixedValidAndUnlinkedSelections()
+    {
+        using var db = CreateDb();
+        var main = new Recipe
+        {
+            UserId = UserA,
+            Title = "Lasagne",
+            Steps = { new RecipeStep { StepIndex = 0, Description = "Backen", Ingredients = { new RecipeIngredient { Amount = 2, Name = "Tomaten" } } } }
+        };
+        var unlinked = new Recipe
+        {
+            UserId = UserA,
+            Title = "Salat",
+            Steps = { new RecipeStep { StepIndex = 0, Description = "Waschen", Ingredients = { new RecipeIngredient { Amount = 1, Name = "Kopf Salat" } } } }
+        };
+        db.Recipes.AddRange(main, unlinked);
+        await db.SaveChangesAsync();
+        var sut = new ShoppingListService(db);
+
+        var result = await sut.AddRecipeIngredientGroupsAsync(
+            UserA,
+            main.Id,
+            new[]
+            {
+                new ShoppingListRecipeIngredientSelection(main.Id, new[] { main.Steps.Single().Ingredients.Single().Id }),
+                new ShoppingListRecipeIngredientSelection(unlinked.Id, new[] { unlinked.Steps.Single().Ingredients.Single().Id })
+            },
+            CancellationToken.None);
+
+        result.ok.Should().BeFalse();
+        result.error.Should().Be("Mindestens eine ausgewaehlte Zutat passt nicht zum Rezept.");
+        (await db.ShoppingListGroups.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AddRecipeIngredientGroupsAsync_ShouldMergeDuplicateRecipeSelections()
+    {
+        using var db = CreateDb();
+        var main = new Recipe
+        {
+            UserId = UserA,
+            Title = "Lasagne",
+            Steps =
+            {
+                new RecipeStep
+                {
+                    StepIndex = 0,
+                    Description = "Backen",
+                    Ingredients =
+                    {
+                        new RecipeIngredient { Amount = 2, Name = "Tomaten" },
+                        new RecipeIngredient { Amount = 1, Name = "Kaese" }
+                    }
+                }
+            }
+        };
+        db.Recipes.Add(main);
+        await db.SaveChangesAsync();
+        var ingredientIds = main.Steps.Single().Ingredients.Select(i => i.Id).ToList();
+        var sut = new ShoppingListService(db);
+
+        var result = await sut.AddRecipeIngredientGroupsAsync(
+            UserA,
+            main.Id,
+            new[]
+            {
+                new ShoppingListRecipeIngredientSelection(main.Id, new[] { ingredientIds[0] }),
+                new ShoppingListRecipeIngredientSelection(main.Id, new[] { ingredientIds[1] })
+            },
+            CancellationToken.None);
+
+        result.ok.Should().BeTrue();
+        result.groups.Should().ContainSingle();
+        result.groups.Single().Items.Should().HaveCount(2);
+    }
 }

@@ -13,10 +13,13 @@ namespace Rezepte.Web.Services;
 public interface IRecipeService
 {
     Task<Recipe?> GetByIdAsync(string userId, string id, CancellationToken ct);
+    Task<List<RecipeSideDishInfo>> GetSideDishesAsync(string userId, string recipeId, CancellationToken ct);
     Task<List<Recipe>> GetByCookbookAsync(string userId, string cookbookId, CancellationToken ct);
     Task<List<Recipe>> GetAvailableForCookbookAsync(string userId, string cookbookId, CancellationToken ct);
     Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
+    Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct);
     Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
+    Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct);
     Task<(bool ok, string? error, List<Recipe> created)> AddExistingToCookbookAsync(string userId, string cookbookId, IEnumerable<string> recipeIds, CancellationToken ct);
     Task<(bool ok, string? error)> RemoveFromCookbookAsync(string userId, string cookbookId, string recipeId, CancellationToken ct);
@@ -34,6 +37,7 @@ public interface IRecipeService
 
 public record RecipeCreateIngredient(decimal Amount, string? Unit, string Name);
 public record RecipeCreateStep(string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, IReadOnlyList<RecipeCreateIngredient> Ingredients);
+public record RecipeSideDishInfo(string Id, string Title, string? Description, string? ImageUrl, int Portions);
 
 public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor) : IRecipeService
 {
@@ -53,14 +57,47 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
 
     public async Task<Recipe?> GetByIdAsync(string userId, string id, CancellationToken ct)
     {
-        return await _db.Recipes
+        var recipe = await _db.Recipes
             .AsNoTracking()
             .Include(r => r.RecipeCookbooks)
+            .Include(r => r.SideDishes)
+                .ThenInclude(sd => sd.SideDishRecipe)
             .Include(r => r.Steps)
                 .ThenInclude(s => s.Ingredients)
             .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct);
+        if (recipe is not null)
+        {
+            recipe.SideDishes = recipe.SideDishes
+                .OrderBy(sd => sd.OrderIndex)
+                .ThenBy(sd => sd.SideDishRecipe?.Title)
+                .ToList();
+        }
+
+        return recipe;
     }
 
+    public async Task<List<RecipeSideDishInfo>> GetSideDishesAsync(string userId, string recipeId, CancellationToken ct)
+    {
+        var recipe = await _db.Recipes
+            .AsNoTracking()
+            .Include(r => r.SideDishes)
+                .ThenInclude(sd => sd.SideDishRecipe)
+                    .ThenInclude(r => r.Images)
+            .FirstOrDefaultAsync(r => r.Id == recipeId && r.UserId == userId, ct);
+        if (recipe is null) return new List<RecipeSideDishInfo>();
+
+        return recipe.SideDishes
+            .Where(sd => sd.SideDishRecipe is not null && sd.SideDishRecipe.UserId == userId)
+            .OrderBy(sd => sd.OrderIndex)
+            .ThenBy(sd => sd.SideDishRecipe!.Title)
+            .Select(sd => new RecipeSideDishInfo(
+                sd.SideDishRecipeId,
+                sd.SideDishRecipe!.Title,
+                sd.SideDishRecipe.Description,
+                sd.SideDishRecipe.Images.OrderByDescending(i => i.CreatedAt).Select(i => i.Url).FirstOrDefault(),
+                sd.SideDishRecipe.Portions))
+            .ToList();
+    }
     public async Task<List<Recipe>> GetByCookbookAsync(string userId, string cookbookId, CancellationToken ct)
     {
         return await _db.Recipes.AsNoTracking()
@@ -78,11 +115,17 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             .ToListAsync(ct);
     }
 
-    public async Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
+    public Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
+    {
+        return CreateAsync(userId, cookbookId, title, description, uri, portions, steps, null, ct);
+    }
+
+    public async Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3) return (false, "Der Titel muss mindestens 3 Zeichen haben.", null);
         var cookbookExists = await _db.Cookbooks.AsNoTracking().AnyAsync(c => c.Id == cookbookId && c.UserId == userId, ct);
         if (!cookbookExists && !string.IsNullOrWhiteSpace(cookbookId)) return (false, "Kochbuch nicht gefunden.", null);
+        var sideDishIds = NormalizeRecipeIds(sideDishRecipeIds);
 
         var entity = new Recipe
         {
@@ -106,7 +149,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             for (var i = 0; i < steps.Count; i++)
             {
                 var s = steps[i];
-                if (string.IsNullOrWhiteSpace(s.Description)) return (false, "Jeder Zubereitungsschritt benötigt eine Beschreibung.", null);
+                if (string.IsNullOrWhiteSpace(s.Description)) return (false, "Jeder Zubereitungsschritt benoetigt eine Beschreibung.", null);
                 if (s.DurationMinutes < 0) return (false, "Zubereitungsdauer darf nicht negativ sein.", null);
                 var step = new RecipeStep
                 {
@@ -123,7 +166,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
                 {
                     foreach (var ing in s.Ingredients)
                     {
-                        if (string.IsNullOrWhiteSpace(ing.Name)) return (false, "Zutaten benötigen eine Bezeichnung.", null);
+                        if (string.IsNullOrWhiteSpace(ing.Name)) return (false, "Zutaten benoetigen eine Bezeichnung.", null);
                         _db.RecipeIngredients.Add(new RecipeIngredient
                         {
                             StepId = step.Id,
@@ -136,17 +179,32 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             }
         }
 
+        var sideDishResult = await ValidateSideDishIdsAsync(entity.Id, userId, sideDishIds, ct);
+        if (!sideDishResult.ok) return (false, sideDishResult.error, null);
+        ReplaceSideDishes(entity, sideDishIds);
+
         await _db.SaveChangesAsync(ct);
         return (true, null, entity);
     }
 
-    public async Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
+    public Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
     {
-        var recipe = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct);
+        return UpdateAsync(userId, id, title, description, uri, portions, steps, null, ct);
+    }
+
+    public async Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct)
+    {
+        var recipe = await _db.Recipes
+            .Include(r => r.SideDishes)
+            .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct);
         if (recipe is null) return (false, "Rezept nicht gefunden.");
         if (recipe.UserId != userId)
-            return (false, "Ein Wechsel der Benutzerzugehörigkeit ist nicht zulässig.");
+            return (false, "Ein Wechsel der Benutzerzugehoerigkeit ist nicht zulaessig.");
         if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3) return (false, "Der Titel muss mindestens 3 Zeichen haben.");
+
+        var sideDishIds = NormalizeRecipeIds(sideDishRecipeIds);
+        var sideDishResult = await ValidateSideDishIdsAsync(recipe.Id, userId, sideDishIds, ct);
+        if (!sideDishResult.ok) return (false, sideDishResult.error);
 
         recipe.Title = title.Trim();
         recipe.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
@@ -166,7 +224,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             for (var i = 0; i < steps.Count; i++)
             {
                 var s = steps[i];
-                if (string.IsNullOrWhiteSpace(s.Description)) return (false, "Jeder Zubereitungsschritt benötigt eine Beschreibung.");
+                if (string.IsNullOrWhiteSpace(s.Description)) return (false, "Jeder Zubereitungsschritt benoetigt eine Beschreibung.");
                 if (s.DurationMinutes < 0) return (false, "Zubereitungsdauer darf nicht negativ sein.");
                 var step = new RecipeStep
                 {
@@ -183,7 +241,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
                 {
                     foreach (var ing in s.Ingredients)
                     {
-                        if (string.IsNullOrWhiteSpace(ing.Name)) return (false, "Zutaten benötigen eine Bezeichnung.");
+                        if (string.IsNullOrWhiteSpace(ing.Name)) return (false, "Zutaten benoetigen eine Bezeichnung.");
                         _db.RecipeIngredients.Add(new RecipeIngredient
                         {
                             StepId = step.Id,
@@ -196,6 +254,8 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             }
         }
 
+        ReplaceSideDishes(recipe, sideDishIds);
+
         await _db.SaveChangesAsync(ct);
         return (true, null);
     }
@@ -206,6 +266,10 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
         if (recipe is null) return (false, "Rezept nicht gefunden.");
         if (recipe.UserId != CurrentUserId)
             return (false, "Rezept nicht im Besitz des angemeldeten Benutzers.");
+        var sideDishLinks = await _db.RecipeSideDishes
+            .Where(sd => sd.RecipeId == id || sd.SideDishRecipeId == id)
+            .ToListAsync(ct);
+        _db.RecipeSideDishes.RemoveRange(sideDishLinks);
         _db.Recipes.Remove(recipe);
         await _db.SaveChangesAsync(ct);
         return (true, null);
@@ -443,6 +507,50 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     {
         public int TotalCount { get; set; }
         public IEnumerable<SearchResultItem> Items { get; set; } = Array.Empty<SearchResultItem>();
+    }
+    private static List<string> NormalizeRecipeIds(IReadOnlyCollection<string>? recipeIds)
+    {
+        return recipeIds?
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList() ?? new List<string>();
+    }
+
+    private async Task<(bool ok, string? error)> ValidateSideDishIdsAsync(string recipeId, string userId, IReadOnlyList<string> sideDishRecipeIds, CancellationToken ct)
+    {
+        if (sideDishRecipeIds.Count == 0) return (true, null);
+        if (sideDishRecipeIds.Contains(recipeId, StringComparer.Ordinal))
+        {
+            return (false, "Ein Rezept kann nicht seine eigene Beilage sein.");
+        }
+
+        var existingIds = await _db.Recipes
+            .AsNoTracking()
+            .Where(r => r.UserId == userId && sideDishRecipeIds.Contains(r.Id))
+            .Select(r => r.Id)
+            .ToListAsync(ct);
+        if (existingIds.Count != sideDishRecipeIds.Count)
+        {
+            return (false, "Mindestens eine Beilage wurde nicht gefunden.");
+        }
+
+        return (true, null);
+    }
+
+    private static void ReplaceSideDishes(Recipe recipe, IReadOnlyList<string> sideDishRecipeIds)
+    {
+        recipe.SideDishes.Clear();
+
+        for (var i = 0; i < sideDishRecipeIds.Count; i++)
+        {
+            recipe.SideDishes.Add(new RecipeSideDish
+            {
+                RecipeId = recipe.Id,
+                SideDishRecipeId = sideDishRecipeIds[i],
+                OrderIndex = i
+            });
+        }
     }
     public sealed class SearchResultItem
     {

@@ -11,6 +11,8 @@ public class Recipe
     public ICollection<RecipeStep> Steps { get; set; } = new List<RecipeStep>();
     public ICollection<RecipeImage> Images { get; set; } = new List<RecipeImage>();
     public ICollection<RecipeCookbook> RecipeCookbooks { get; set; } = new List<RecipeCookbook>();
+    public ICollection<RecipeSideDish> SideDishes { get; set; } = new List<RecipeSideDish>();
+    public ICollection<RecipeSideDish> UsedAsSideDishFor { get; set; } = new List<RecipeSideDish>();
     public string? Uri { get; internal set; }
     public int Portions { get; set; } = 0;
 }

@@ -90,6 +90,30 @@
                     <input type="number" min="1" class="form-control" @bind="form.Portions" />
                 </div>
 
+                @if (EditingId == null && sideDishSuggestions.Count > 0)
+                {
+                    <div class="mb-2">
+                        <label class="form-label">Beilagen</label>
+                        <div class="list-group">
+                            @foreach (var sideDish in sideDishSuggestions)
+                            {
+                                <label class="list-group-item d-flex align-items-center gap-2">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           checked="@selectedSideDishIds.Contains(sideDish.Id)"
+                                           @onchange="e => ToggleSideDish(sideDish.Id, e.Value is bool checkedValue && checkedValue)" />
+                                    <span>@sideDish.Title</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(submitError))
+                {
+                    <div class="alert alert-danger py-2">@submitError</div>
+                }
+
                 <div class="mb-2">
                     <label class="form-label">Wöchentlich an</label>
                     <div>
@@ -247,10 +271,16 @@ else
     private string? selectedRecipeTitle;
     private string? selectedRecipeSnippet;
     private string? selectedRecipeImageUrl;
+    private string? submitError;
+    private List<RecipeSideDishDto> sideDishSuggestions = new();
+    private HashSet<string> selectedSideDishIds = new();
+    private bool mainCalendarEventCreated;
+    private HashSet<string> createdSideDishIds = new();
 
     // DTOs / local types
     private record RecipeSearchResultDto(string Id, string Title, string? Snippet, string? PrimaryImageUrl, int? DefaultPortions);
     private record RecipeSearchResponseDto(RecipeSearchResultDto[] Items, int Total);
+    private record RecipeSideDishDto(string Id, string Title, string? Description, string? ImageUrl, int Portions);
 
     private record CreateDto(string? RecipeId, DateTime StartDate, TimeSpan TimeOfDay, Int32 Portions, RecurrenceType Recurrence, WeekDays RecurrenceDays);
     private record UpdateDto(DateTime StartDate, TimeSpan TimeOfDay, Int32 Portions, RecurrenceType Recurrence, WeekDays RecurrenceDays);
@@ -293,6 +323,10 @@ else
                         selectedRecipeTitle = dto.Title;
                         selectedRecipeSnippet = dto.Description;
                         selectedRecipeImageUrl = dto.ImageUrl;
+                        if (EditingId == null)
+                        {
+                            await LoadSideDishSuggestionsAsync(form.RecipeId);
+                        }
                     }
                 }
                 catch
@@ -309,6 +343,11 @@ else
             selectedRecipeTitle = null;
             selectedRecipeSnippet = null;
             selectedRecipeImageUrl = null;
+            sideDishSuggestions.Clear();
+            selectedSideDishIds.Clear();
+            createdSideDishIds.Clear();
+            mainCalendarEventCreated = false;
+            submitError = null;
         }
 
         await base.OnParametersSetAsync();
@@ -321,6 +360,7 @@ else
 
     private async Task SubmitForm()
     {
+        submitError = null;
         form.RecurrenceDays = bindWeekDays.Where(p => p.Value).Select(p => p.Key).Aggregate(WeekDays.None, (acc, d) => acc | d);
 
         // Map selected period to a representative TimeSpan before sending to API
@@ -330,9 +370,21 @@ else
         {
             if (EditingId == null)
             {
-                var dto = new CreateDto(form.RecipeId, form.StartDate, form.TimeOfDay, form.Portions, form.Recurrence, form.RecurrenceDays);
-                var resp = await Client.Http.PostAsJsonAsync("/api/calendar", dto);
-                resp.EnsureSuccessStatusCode();
+                if (!mainCalendarEventCreated)
+                {
+                    var dto = new CreateDto(form.RecipeId, form.StartDate, form.TimeOfDay, form.Portions, form.Recurrence, form.RecurrenceDays);
+                    var resp = await Client.Http.PostAsJsonAsync("/api/calendar", dto);
+                    resp.EnsureSuccessStatusCode();
+                    mainCalendarEventCreated = true;
+                }
+
+                foreach (var sideDishId in selectedSideDishIds.Where(id => !createdSideDishIds.Contains(id)).ToList())
+                {
+                    var sideDishDto = new CreateDto(sideDishId, form.StartDate, form.TimeOfDay, form.Portions, form.Recurrence, form.RecurrenceDays);
+                    var sideDishResp = await Client.Http.PostAsJsonAsync("/api/calendar", sideDishDto);
+                    sideDishResp.EnsureSuccessStatusCode();
+                    createdSideDishIds.Add(sideDishId);
+                }
             }
             else
             {
@@ -345,7 +397,9 @@ else
         }
         catch
         {
-            throw;
+            submitError = mainCalendarEventCreated
+                ? "Der Haupttermin wurde gespeichert. Nicht alle Beilagen konnten hinzugefuegt werden; erneutes Speichern versucht nur die fehlenden Beilagen."
+                : "Termin konnte nicht gespeichert werden.";
         }
     }
 
@@ -459,6 +513,8 @@ else
     private async Task SelectRecipe(RecipeSearchResultDto r)
     {
         form.RecipeId = r.Id;
+        mainCalendarEventCreated = false;
+        createdSideDishIds.Clear();
         selectedRecipeTitle = r.Title;
         selectedRecipeSnippet = r.Snippet;
         selectedRecipeImageUrl = r.PrimaryImageUrl;
@@ -466,6 +522,7 @@ else
         {
             form.Portions = r.DefaultPortions.Value;
         }
+        await LoadSideDishSuggestionsAsync(r.Id);
         showRecipePicker = false;
         await InvokeAsync(StateHasChanged);
     }
@@ -473,9 +530,45 @@ else
     private void RemoveSelectedRecipe()
     {
         form.RecipeId = null;
+        mainCalendarEventCreated = false;
+        createdSideDishIds.Clear();
         selectedRecipeTitle = null;
         selectedRecipeSnippet = null;
         selectedRecipeImageUrl = null;
+        sideDishSuggestions.Clear();
+        selectedSideDishIds.Clear();
+    }
+
+    private async Task LoadSideDishSuggestionsAsync(string? recipeId)
+    {
+        sideDishSuggestions.Clear();
+        selectedSideDishIds.Clear();
+        createdSideDishIds.Clear();
+        mainCalendarEventCreated = false;
+        if (string.IsNullOrWhiteSpace(recipeId)) return;
+
+        try
+        {
+            sideDishSuggestions = await Client.Http.GetFromJsonAsync<List<RecipeSideDishDto>>($"/api/recipes/{recipeId}/side-dishes") ?? new List<RecipeSideDishDto>();
+            selectedSideDishIds = sideDishSuggestions.Select(sd => sd.Id).ToHashSet();
+        }
+        catch
+        {
+            sideDishSuggestions = new List<RecipeSideDishDto>();
+            selectedSideDishIds.Clear();
+        }
+    }
+
+    private void ToggleSideDish(string recipeId, bool isSelected)
+    {
+        if (isSelected)
+        {
+            selectedSideDishIds.Add(recipeId);
+        }
+        else
+        {
+            selectedSideDishIds.Remove(recipeId);
+        }
     }
 
     private class FormModel

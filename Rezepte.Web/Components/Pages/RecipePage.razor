@@ -122,6 +122,18 @@ else
                     <span><i class="bi bi-people-fill"></i> Portionen: @recipe.NumberOfPortions </span>
                 </div>
             }
+            @if (recipe.SideDishes?.Count > 0)
+            {
+                <div class="mt-3">
+                    <div class="fw-semibold small text-secondary mb-2">Beilagen</div>
+                    <div class="list-group">
+                        @foreach (var sideDish in recipe.SideDishes)
+                        {
+                            <a class="list-group-item list-group-item-action" href="@($"/recipes/{sideDish.Id}")">@sideDish.Title</a>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     </div>
 
@@ -448,8 +460,9 @@ else
         }
     }
 
-    private record RecipeDto(string Id, string CookbookId, string OwnerId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? ImageUrl = null, string? sourceUri = null, int ImageCount = 0);
+    private record RecipeDto(string Id, string CookbookId, string OwnerId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? ImageUrl = null, string? sourceUri = null, int ImageCount = 0, List<RecipeSideDishDto>? SideDishes = null);
     private record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     private record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
     private record RecipeImageDto(string Id, string Url);
+    private record RecipeSideDishDto(string Id, string Title, string? Description, string? ImageUrl, int Portions);
 }

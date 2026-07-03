@@ -99,7 +99,7 @@ public class RecipeServiceTests
         }, CancellationToken.None);
         ok1.Should().BeTrue();
 
-        (bool ok2, string? err2) = await sut.UpdateAsync(UserA, recipe!.Id, "Gemüsesalat", "Frisch", null, null, new[]
+        (bool ok2, string? err2) = await sut.UpdateAsync(UserA, recipe!.Id, "Gemï¿½sesalat", "Frisch", null, null, new[]
         {
             new RecipeCreateStep(null, "Mischen", 3, false, Array.Empty<RecipeCreateIngredient>())
         }, CancellationToken.None);
@@ -107,7 +107,7 @@ public class RecipeServiceTests
         ok2.Should().BeTrue();
         err2.Should().BeNull();
         var loaded = await sut.GetByIdAsync(UserA, recipe.Id, CancellationToken.None);
-        loaded!.Title.Should().Be("Gemüsesalat");
+        loaded!.Title.Should().Be("Gemï¿½sesalat");
         loaded.Steps.Should().HaveCount(1);
         loaded.Steps.First().Description.Should().Be("Mischen");
     }
@@ -257,5 +257,86 @@ public class RecipeServiceTests
         ok.Should().BeTrue();
         err.Should().BeNull();
         created.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldStoreSideDishes_WithoutDuplicates()
+    {
+        using var db = CreateDb();
+        var cookbook = new Rezepte.Web.Entities.Cookbook { Name = "Test", UserId = UserA };
+        var side = new Recipe { UserId = UserA, Title = "Salat" };
+        db.Cookbooks.Add(cookbook);
+        db.Recipes.Add(side);
+        await db.SaveChangesAsync();
+
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        var result = await sut.CreateAsync(UserA, cookbook.Id, "Teller", null, null, null, Array.Empty<RecipeCreateStep>(), new[] { side.Id, side.Id }, CancellationToken.None);
+
+        result.ok.Should().BeTrue();
+        var loaded = await sut.GetByIdAsync(UserA, result.recipe!.Id, CancellationToken.None);
+        loaded!.SideDishes.Should().ContainSingle();
+        loaded.SideDishes.Single().SideDishRecipeId.Should().Be(side.Id);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldRejectForeignSideDish()
+    {
+        using var db = CreateDb();
+        var cookbook = new Rezepte.Web.Entities.Cookbook { Name = "Test", UserId = UserA };
+        var foreignSide = new Recipe { UserId = UserB, Title = "Fremd" };
+        db.Cookbooks.Add(cookbook);
+        db.Recipes.Add(foreignSide);
+        await db.SaveChangesAsync();
+
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        var result = await sut.CreateAsync(UserA, cookbook.Id, "Teller", null, null, null, Array.Empty<RecipeCreateStep>(), new[] { foreignSide.Id }, CancellationToken.None);
+
+        result.ok.Should().BeFalse();
+        result.error.Should().Be("Mindestens eine Beilage wurde nicht gefunden.");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldReplaceSideDishes_AndRejectSelfReference()
+    {
+        using var db = CreateDb();
+        var cookbook = new Rezepte.Web.Entities.Cookbook { Name = "Test", UserId = UserA };
+        db.Cookbooks.Add(cookbook);
+        await db.SaveChangesAsync();
+
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        var sideA = (await sut.CreateAsync(UserA, cookbook.Id, "Salat", null, null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None)).recipe!;
+        var sideB = (await sut.CreateAsync(UserA, cookbook.Id, "Kartoffeln", null, null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None)).recipe!;
+        var main = (await sut.CreateAsync(UserA, cookbook.Id, "Hauptgericht", null, null, null, Array.Empty<RecipeCreateStep>(), new[] { sideA.Id }, CancellationToken.None)).recipe!;
+
+        var update = await sut.UpdateAsync(UserA, main.Id, "Hauptgericht", null, null, null, Array.Empty<RecipeCreateStep>(), new[] { sideB.Id }, CancellationToken.None);
+        var loaded = await sut.GetByIdAsync(UserA, main.Id, CancellationToken.None);
+        var self = await sut.UpdateAsync(UserA, main.Id, "Manipuliert", "Soll nicht bleiben", null, null, Array.Empty<RecipeCreateStep>(), new[] { main.Id }, CancellationToken.None);
+        var afterFailedUpdate = await sut.GetByIdAsync(UserA, main.Id, CancellationToken.None);
+
+        update.ok.Should().BeTrue();
+        loaded!.SideDishes.Should().ContainSingle(sd => sd.SideDishRecipeId == sideB.Id);
+        self.ok.Should().BeFalse();
+        self.error.Should().Be("Ein Rezept kann nicht seine eigene Beilage sein.");
+        afterFailedUpdate!.Title.Should().Be("Hauptgericht");
+        afterFailedUpdate.Description.Should().BeNull();
+        afterFailedUpdate.SideDishes.Should().ContainSingle(sd => sd.SideDishRecipeId == sideB.Id);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ShouldReturnSideDishes_InConfiguredOrder()
+    {
+        using var db = CreateDb();
+        var cookbook = new Rezepte.Web.Entities.Cookbook { Name = "Test", UserId = UserA };
+        db.Cookbooks.Add(cookbook);
+        await db.SaveChangesAsync();
+
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        var sideA = (await sut.CreateAsync(UserA, cookbook.Id, "A-Salat", null, null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None)).recipe!;
+        var sideB = (await sut.CreateAsync(UserA, cookbook.Id, "B-Kartoffeln", null, null, null, Array.Empty<RecipeCreateStep>(), CancellationToken.None)).recipe!;
+        var main = (await sut.CreateAsync(UserA, cookbook.Id, "Hauptgericht", null, null, null, Array.Empty<RecipeCreateStep>(), new[] { sideB.Id, sideA.Id }, CancellationToken.None)).recipe!;
+
+        var loaded = await sut.GetByIdAsync(UserA, main.Id, CancellationToken.None);
+
+        loaded!.SideDishes.Select(sd => sd.SideDishRecipeId).Should().ContainInOrder(sideB.Id, sideA.Id);
     }
 }
