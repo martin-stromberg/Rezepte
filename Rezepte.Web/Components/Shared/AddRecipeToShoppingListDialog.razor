@@ -32,8 +32,20 @@
                     {
                         @foreach (var group in ingredientGroups)
                         {
-                            <div class="small text-muted mb-2 mt-@(group.IsMainRecipe ? "0" : "3")">
-                                Gruppe: @group.RecipeTitle@(group.IsMainRecipe ? string.Empty : " (Beilage)")
+                            <div class="d-flex align-items-center justify-content-between gap-3 mb-2 mt-@(group.IsMainRecipe ? "0" : "3")">
+                                <div class="small text-muted">
+                                    Gruppe: @group.RecipeTitle@(group.IsMainRecipe ? string.Empty : " (Beilage)")
+                                </div>
+                                @if (group.Ingredients.Count > 0)
+                                {
+                                    <label class="form-check form-check-inline small mb-0">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               checked="@AreAllGroupIngredientsSelected(group)"
+                                               @onchange="e => ToggleIngredientGroup(group, e.Value is bool checkedValue && checkedValue)" />
+                                        <span class="form-check-label">Alle</span>
+                                    </label>
+                                }
                             </div>
                             <div class="list-group">
                                 @foreach (var ingredient in group.Ingredients)
@@ -129,6 +141,20 @@
         else
         {
             selectedIngredientIds.Remove(ingredientId);
+        }
+    }
+
+    private bool AreAllGroupIngredientsSelected(ShoppingListRecipeIngredientGroup group)
+    {
+        return group.Ingredients.Count > 0
+            && group.Ingredients.All(ingredient => selectedIngredientIds.Contains(ingredient.Id));
+    }
+
+    private void ToggleIngredientGroup(ShoppingListRecipeIngredientGroup group, bool isSelected)
+    {
+        foreach (var ingredient in group.Ingredients)
+        {
+            ToggleIngredient(ingredient.Id, isSelected);
         }
     }
 

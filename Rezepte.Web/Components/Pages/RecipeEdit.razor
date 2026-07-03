@@ -64,7 +64,7 @@ else
         <div class="card-body">
             <h6>Beilagen</h6>
             <div class="input-group mb-2">
-                <input class="form-control" placeholder="Rezept als Beilage suchen..." @bind="sideDishSearchQuery" />
+                <input class="form-control" placeholder="Rezept, Rezept-ID oder Rezept-URL als Beilage suchen..." @bind="sideDishSearchQuery" />
                 <button type="button" class="btn btn-outline-secondary" @onclick="SearchSideDishesAsync" disabled="@isSearchingSideDishes">Suchen</button>
             </div>
             @if (sideDishSearchResults.Count > 0)
@@ -386,6 +386,18 @@ else
         isSearchingSideDishes = true;
         try
         {
+            var exactRecipeId = ExtractRecipeId(q);
+            if (!string.IsNullOrWhiteSpace(exactRecipeId))
+            {
+                var exactMatch = await LoadRecipeSearchResultByIdAsync(exactRecipeId);
+                if (exactMatch is not null && CanAddSideDish(exactMatch.Id))
+                {
+                    sideDishSearchResults.Add(exactMatch);
+                }
+
+                return;
+            }
+
             var url = $"api/recipes/search?q={Uri.EscapeDataString(q)}&page=1&pageSize=10";
             var response = await Api.Http.GetFromJsonAsync<RecipeSearchResponseDto>(url);
             sideDishSearchResults = response?.Items?
@@ -396,6 +408,48 @@ else
         {
             isSearchingSideDishes = false;
         }
+    }
+
+    private async Task<RecipeSearchResultDto?> LoadRecipeSearchResultByIdAsync(string recipeId)
+    {
+        try
+        {
+            var dto = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Uri.EscapeDataString(recipeId)}");
+            return dto is null
+                ? null
+                : new RecipeSearchResultDto(dto.Id, dto.Title, dto.Description, dto.ImageUrl, dto.NumberOfPortions);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
+
+    private static string? ExtractRecipeId(string value)
+    {
+        var trimmed = value.Trim();
+        if (IsRecipeId(trimmed)) return trimmed;
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            var segments = uri.AbsolutePath
+                .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            for (var i = 0; i < segments.Length - 1; i++)
+            {
+                if (string.Equals(segments[i], "recipes", StringComparison.OrdinalIgnoreCase)
+                    && IsRecipeId(segments[i + 1]))
+                {
+                    return segments[i + 1];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsRecipeId(string value)
+    {
+        return value.Length is >= 8 and <= 64 && value.All(Uri.IsHexDigit);
     }
 
     private bool CanAddSideDish(string id)
@@ -417,7 +471,7 @@ else
         sideDishes.RemoveAll(sd => sd.Id == id);
     }
 
-    private record RecipeDto(string Id, string CookbookId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? sourceUri = null, List<SideDishDto>? SideDishes = null);
+    private record RecipeDto(string Id, string CookbookId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? ImageUrl = null, string? sourceUri = null, List<SideDishDto>? SideDishes = null);
     private record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     private record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
     private record SideDishDto(string Id, string Title, string? Description, string? ImageUrl, int Portions);
