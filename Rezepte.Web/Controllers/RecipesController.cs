@@ -100,9 +100,29 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
             ImageUrl: lastImage?.Url,
             sourceUri: r.Uri,
             ImageCount: imageCount,
-            RecipeCookbooks: r.RecipeCookbooks.Select(rc => new RecipeCookbookDtp(rc.Id, rc.RecipeId, rc.CookbookId)).ToList()
+            RecipeCookbooks: r.RecipeCookbooks.Select(rc => new RecipeCookbookDtp(rc.Id, rc.RecipeId, rc.CookbookId)).ToList(),
+            SideDishes: r.SideDishes
+                .Where(sd => sd.SideDishRecipe is not null)
+                .OrderBy(sd => sd.OrderIndex)
+                .ThenBy(sd => sd.SideDishRecipe!.Title)
+                .Select(sd => new RecipeSideDishDto(
+                    sd.SideDishRecipeId,
+                    sd.SideDishRecipe!.Title,
+                    sd.SideDishRecipe.Description,
+                    _recipes.GetImages(sd.SideDishRecipeId, 0, 1).OrderByDescending(i => i.CreatedAt).Select(i => i.Url).FirstOrDefault(),
+                    sd.SideDishRecipe.Portions))
+                .ToList()
         );
         return Ok(dto);
+    }
+
+    [HttpGet("{id}/side-dishes")]
+    public async Task<IActionResult> GetSideDishes(string id, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        var sideDishes = await _recipes.GetSideDishesAsync(userId, id, ct);
+        return Ok(sideDishes.Select(sd => new RecipeSideDishDto(sd.Id, sd.Title, sd.Description, sd.ImageUrl, sd.Portions)).ToList());
     }
 
     [HttpGet("{id}/cookbooks")]
@@ -119,7 +139,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
     }
 
     public record AddExistingRequest(List<string> RecipeIds);
-    public record CreateRecipeRequest(string? CookbookId, string Title, string? Description, string? Uri, int? Portions, List<CreateRecipeStep> Steps);
+    public record CreateRecipeRequest(string? CookbookId, string Title, string? Description, string? Uri, int? Portions, List<CreateRecipeStep> Steps, List<string>? SideDishRecipeIds);
     public record CreateRecipeStep(string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<CreateRecipeIngredient> Ingredients);
     public record CreateRecipeIngredient(decimal Amount, string? Unit, string Name);
 
@@ -136,14 +156,14 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
             (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
         )).ToList() ?? new List<RecipeCreateStep>();
 
-        var (ok, error, recipe) = await _recipes.CreateAsync(userId, dto.CookbookId, dto.Title, dto.Description, dto.Uri, dto.Portions, steps, ct);
+        var (ok, error, recipe) = await _recipes.CreateAsync(userId, dto.CookbookId, dto.Title, dto.Description, dto.Uri, dto.Portions, steps, dto.SideDishRecipeIds, ct);
         if (!ok || recipe is null)
             return BadRequest(new { message = error ?? "Anlegen fehlgeschlagen." });
 
         return CreatedAtAction(nameof(GetById), new { id = recipe.Id }, new { id = recipe.Id });
     }
 
-    public record UpdateRecipeRequest(string Title, string? Description, string? Uri, int? Portions, List<CreateRecipeStep> Steps);
+    public record UpdateRecipeRequest(string Title, string? Description, string? Uri, int? Portions, List<CreateRecipeStep> Steps, List<string>? SideDishRecipeIds);
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateRecipeRequest dto, CancellationToken ct)
@@ -158,7 +178,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
             (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
         )).ToList() ?? new List<RecipeCreateStep>();
 
-        var (ok, error) = await _recipes.UpdateAsync(userId, id, dto.Title, dto.Description, dto.Uri, dto.Portions, steps, ct);
+        var (ok, error) = await _recipes.UpdateAsync(userId, id, dto.Title, dto.Description, dto.Uri, dto.Portions, steps, dto.SideDishRecipeIds, ct);
         if (!ok)
             return BadRequest(new { message = error ?? "Speichern fehlgeschlagen." });
         return NoContent();
@@ -320,8 +340,9 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
 
     // DTO für die Startseite
     public record RecipeListItemDto(string Id, string Title, string? ImageUrl, string? Description);
-    public record RecipeDto(string Id, string OwnerId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? ImageUrl, string? sourceUri, int ImageCount, List<RecipeCookbookDtp> RecipeCookbooks);
+    public record RecipeDto(string Id, string OwnerId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? ImageUrl, string? sourceUri, int ImageCount, List<RecipeCookbookDtp> RecipeCookbooks, List<RecipeSideDishDto> SideDishes);
     public record RecipeCookbookDtp (string Id, string RecipeId, string CookbookId);
+    public record RecipeSideDishDto(string Id, string Title, string? Description, string? ImageUrl, int Portions);
     public record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     public record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
 

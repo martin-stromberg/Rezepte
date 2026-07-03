@@ -16,10 +16,14 @@ public interface IShoppingListService
     Task<(bool ok, string? error)> SetItemCheckedAsync(string userId, string itemId, bool isChecked, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteItemAsync(string userId, string itemId, CancellationToken ct);
     Task<List<ShoppingListRecipeIngredient>> GetRecipeIngredientsAsync(string userId, string recipeId, CancellationToken ct);
+    Task<List<ShoppingListRecipeIngredientGroup>> GetRecipeIngredientGroupsAsync(string userId, string recipeId, CancellationToken ct);
     Task<(bool ok, string? error, ShoppingListGroup? group)> AddRecipeIngredientsAsync(string userId, string recipeId, IReadOnlyCollection<string> ingredientIds, CancellationToken ct);
+    Task<(bool ok, string? error, List<ShoppingListGroup> groups)> AddRecipeIngredientGroupsAsync(string userId, string recipeId, IReadOnlyCollection<ShoppingListRecipeIngredientSelection> selections, CancellationToken ct);
 }
 
 public sealed record ShoppingListRecipeIngredient(string Id, decimal Amount, string? Unit, string Name, string? StepTitle);
+public sealed record ShoppingListRecipeIngredientGroup(string RecipeId, string RecipeTitle, bool IsMainRecipe, List<ShoppingListRecipeIngredient> Ingredients);
+public sealed record ShoppingListRecipeIngredientSelection(string RecipeId, IReadOnlyCollection<string> IngredientIds);
 
 public class ShoppingListService(RezepteDbContext db) : IShoppingListService
 {
@@ -195,6 +199,33 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
             .ToList();
     }
 
+    public async Task<List<ShoppingListRecipeIngredientGroup>> GetRecipeIngredientGroupsAsync(string userId, string recipeId, CancellationToken ct)
+    {
+        var recipe = await _db.Recipes
+            .AsNoTracking()
+            .Include(r => r.Steps)
+                .ThenInclude(s => s.Ingredients)
+            .Include(r => r.SideDishes)
+                .ThenInclude(sd => sd.SideDishRecipe)
+                    .ThenInclude(r => r.Steps)
+                        .ThenInclude(s => s.Ingredients)
+            .FirstOrDefaultAsync(r => r.Id == recipeId && r.UserId == userId, ct);
+        if (recipe is null) return new List<ShoppingListRecipeIngredientGroup>();
+
+        var groups = new List<ShoppingListRecipeIngredientGroup>
+        {
+            ToIngredientGroup(recipe, isMainRecipe: true)
+        };
+
+        groups.AddRange(recipe.SideDishes
+            .Where(sd => sd.SideDishRecipe is not null && sd.SideDishRecipe.UserId == userId)
+            .OrderBy(sd => sd.OrderIndex)
+            .ThenBy(sd => sd.SideDishRecipe!.Title)
+            .Select(sd => ToIngredientGroup(sd.SideDishRecipe!, isMainRecipe: false)));
+
+        return groups;
+    }
+
     public async Task<(bool ok, string? error, ShoppingListGroup? group)> AddRecipeIngredientsAsync(string userId, string recipeId, IReadOnlyCollection<string> ingredientIds, CancellationToken ct)
     {
         if (ingredientIds.Count == 0) return (false, "Bitte mindestens eine Zutat auswaehlen.", null);
@@ -234,6 +265,101 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
         _db.ShoppingListGroups.Add(group);
         await _db.SaveChangesAsync(ct);
         return (true, null, group);
+    }
+
+    public async Task<(bool ok, string? error, List<ShoppingListGroup> groups)> AddRecipeIngredientGroupsAsync(string userId, string recipeId, IReadOnlyCollection<ShoppingListRecipeIngredientSelection> selections, CancellationToken ct)
+    {
+        if (selections.Count == 0) return (false, "Bitte mindestens eine Zutat auswaehlen.", new List<ShoppingListGroup>());
+
+        var recipe = await _db.Recipes
+            .Include(r => r.Steps)
+                .ThenInclude(s => s.Ingredients)
+            .Include(r => r.SideDishes)
+                .ThenInclude(sd => sd.SideDishRecipe)
+                    .ThenInclude(r => r.Steps)
+                        .ThenInclude(s => s.Ingredients)
+            .FirstOrDefaultAsync(r => r.Id == recipeId && r.UserId == userId, ct);
+        if (recipe is null) return (false, "Rezept nicht gefunden.", new List<ShoppingListGroup>());
+
+        var allowedRecipes = new List<Recipe> { recipe };
+        allowedRecipes.AddRange(recipe.SideDishes
+            .Where(sd => sd.SideDishRecipe is not null && sd.SideDishRecipe.UserId == userId)
+            .OrderBy(sd => sd.OrderIndex)
+            .Select(sd => sd.SideDishRecipe!));
+
+        var selectionsByRecipe = selections
+            .Where(s => !string.IsNullOrWhiteSpace(s.RecipeId))
+            .GroupBy(s => s.RecipeId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.SelectMany(s => s.IngredientIds ?? Array.Empty<string>())
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .ToHashSet());
+        var allowedRecipeIds = allowedRecipes.Select(r => r.Id).ToHashSet();
+        if (selectionsByRecipe.Keys.Any(recipeIdInSelection => !allowedRecipeIds.Contains(recipeIdInSelection)))
+        {
+            return (false, "Mindestens eine ausgewaehlte Zutat passt nicht zum Rezept.", new List<ShoppingListGroup>());
+        }
+
+        var createdGroups = new List<ShoppingListGroup>();
+        var groupOrder = await NextGroupOrderAsync(userId, ct);
+        foreach (var allowedRecipe in allowedRecipes)
+        {
+            if (!selectionsByRecipe.TryGetValue(allowedRecipe.Id, out var selectedIds) || selectedIds.Count == 0)
+            {
+                continue;
+            }
+
+            var selected = allowedRecipe.Steps
+                .OrderBy(s => s.StepIndex)
+                .SelectMany(s => s.Ingredients)
+                .Where(i => selectedIds.Contains(i.Id))
+                .ToList();
+            if (selected.Count != selectedIds.Count)
+            {
+                return (false, "Mindestens eine ausgewaehlte Zutat passt nicht zum Rezept.", new List<ShoppingListGroup>());
+            }
+
+            var group = new ShoppingListGroup
+            {
+                UserId = userId,
+                Name = allowedRecipe.Title,
+                RecipeId = allowedRecipe.Id,
+                OrderIndex = groupOrder++
+            };
+
+            var itemOrder = 0;
+            foreach (var ingredient in selected)
+            {
+                group.Items.Add(new ShoppingListItem
+                {
+                    Amount = ingredient.Amount,
+                    Unit = ingredient.Unit,
+                    Name = ingredient.Name,
+                    OrderIndex = itemOrder++
+                });
+            }
+
+            _db.ShoppingListGroups.Add(group);
+            createdGroups.Add(group);
+        }
+
+        if (createdGroups.Count == 0) return (false, "Bitte mindestens eine Zutat auswaehlen.", new List<ShoppingListGroup>());
+
+        await _db.SaveChangesAsync(ct);
+        return (true, null, createdGroups);
+    }
+
+    private static ShoppingListRecipeIngredientGroup ToIngredientGroup(Recipe recipe, bool isMainRecipe)
+    {
+        var ingredients = recipe.Steps
+            .OrderBy(s => s.StepIndex)
+            .SelectMany(s => s.Ingredients
+                .OrderBy(i => i.Name)
+                .Select(i => new ShoppingListRecipeIngredient(i.Id, i.Amount, i.Unit, i.Name, s.Title)))
+            .ToList();
+
+        return new ShoppingListRecipeIngredientGroup(recipe.Id, recipe.Title, isMainRecipe, ingredients);
     }
 
     private async Task<ShoppingListGroup?> FindGroupAsync(string userId, string groupId, CancellationToken ct)

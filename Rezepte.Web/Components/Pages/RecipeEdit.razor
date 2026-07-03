@@ -60,6 +60,50 @@ else
         </div>
     </div>
 
+    <div class="card mb-3">
+        <div class="card-body">
+            <h6>Beilagen</h6>
+            <div class="input-group mb-2">
+                <input class="form-control" placeholder="Rezept als Beilage suchen..." @bind="sideDishSearchQuery" />
+                <button type="button" class="btn btn-outline-secondary" @onclick="SearchSideDishesAsync" disabled="@isSearchingSideDishes">Suchen</button>
+            </div>
+            @if (sideDishSearchResults.Count > 0)
+            {
+                <div class="list-group mb-3">
+                    @foreach (var result in sideDishSearchResults)
+                    {
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold">@result.Title</div>
+                                @if (!string.IsNullOrWhiteSpace(result.Snippet))
+                                {
+                                    <div class="small text-muted">@result.Snippet</div>
+                                }
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => AddSideDish(result)" disabled="@(!CanAddSideDish(result.Id))">Hinzufuegen</button>
+                        </div>
+                    }
+                </div>
+            }
+            @if (sideDishes.Count == 0)
+            {
+                <div class="text-muted small">Keine Beilagen hinterlegt.</div>
+            }
+            else
+            {
+                <div class="list-group">
+                    @foreach (var sideDish in sideDishes)
+                    {
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>@sideDish.Title</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveSideDish(sideDish.Id)">Entfernen</button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
     <div class="accordion" id="recipeStepsEdit">
         @for (var i = 0; i < steps.Count; i++)
         {
@@ -170,6 +214,8 @@ else
             // sensible defaults for new recipe
             numberOfPortions = 1;
             sourceUri = null;
+            sideDishes.Clear();
+            sideDishSearchResults.Clear();
             steps.Add(new StepModel());
             isLoading = false;
             return;
@@ -183,6 +229,7 @@ else
             description = dto.Description;
             numberOfPortions = dto.NumberOfPortions;
             sourceUri = dto.sourceUri;
+            sideDishes = (dto.SideDishes ?? new List<SideDishDto>()).Select(sd => new SideDishModel(sd.Id, sd.Title, sd.Description, sd.ImageUrl, sd.Portions)).ToList();
             foreach (var s in dto.Steps.OrderBy(s => s.StepIndex))
             {
                 steps.Add(new StepModel
@@ -230,6 +277,7 @@ else
                 description,
                 uri = string.IsNullOrWhiteSpace(sourceUri) ? null : sourceUri,
                 portions = numberOfPortions,
+                sideDishRecipeIds = sideDishes.Select(sd => sd.Id).ToList(),
                 steps = steps.Select(s => new
                 {
                     title = string.IsNullOrWhiteSpace(s.Title) ? null : s.Title,
@@ -267,6 +315,7 @@ else
                 description,
                 uri = string.IsNullOrWhiteSpace(sourceUri) ? null : sourceUri,
                 portions = numberOfPortions,
+                sideDishRecipeIds = sideDishes.Select(sd => sd.Id).ToList(),
                 steps = steps.Select(s => new
                 {
                     title = string.IsNullOrWhiteSpace(s.Title) ? null : s.Title,
@@ -328,9 +377,53 @@ else
         largeImageUrl = url;
     }
 
-    private record RecipeDto(string Id, string CookbookId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? sourceUri = null);
+    private async Task SearchSideDishesAsync()
+    {
+        var q = sideDishSearchQuery?.Trim();
+        sideDishSearchResults.Clear();
+        if (string.IsNullOrWhiteSpace(q)) return;
+
+        isSearchingSideDishes = true;
+        try
+        {
+            var url = $"api/recipes/search?q={Uri.EscapeDataString(q)}&page=1&pageSize=10";
+            var response = await Api.Http.GetFromJsonAsync<RecipeSearchResponseDto>(url);
+            sideDishSearchResults = response?.Items?
+                .Where(item => CanAddSideDish(item.Id))
+                .ToList() ?? new List<RecipeSearchResultDto>();
+        }
+        finally
+        {
+            isSearchingSideDishes = false;
+        }
+    }
+
+    private bool CanAddSideDish(string id)
+    {
+        return !string.IsNullOrWhiteSpace(id)
+            && (IsNew || !string.Equals(id, Id, StringComparison.Ordinal))
+            && !sideDishes.Any(sd => string.Equals(sd.Id, id, StringComparison.Ordinal));
+    }
+
+    private void AddSideDish(RecipeSearchResultDto result)
+    {
+        if (!CanAddSideDish(result.Id)) return;
+        sideDishes.Add(new SideDishModel(result.Id, result.Title, result.Snippet, result.PrimaryImageUrl, result.DefaultPortions ?? 0));
+        sideDishSearchResults.RemoveAll(r => r.Id == result.Id);
+    }
+
+    private void RemoveSideDish(string id)
+    {
+        sideDishes.RemoveAll(sd => sd.Id == id);
+    }
+
+    private record RecipeDto(string Id, string CookbookId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? sourceUri = null, List<SideDishDto>? SideDishes = null);
     private record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     private record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
+    private record SideDishDto(string Id, string Title, string? Description, string? ImageUrl, int Portions);
+    private record SideDishModel(string Id, string Title, string? Description, string? ImageUrl, int Portions);
+    private record RecipeSearchResponseDto(List<RecipeSearchResultDto> Items, int Total);
+    private record RecipeSearchResultDto(string Id, string Title, string? Snippet, string? PrimaryImageUrl, int? DefaultPortions);
 
     private class StepModel
     {
@@ -351,6 +444,10 @@ else
     // new fields for editable properties
     private int numberOfPortions;
     private string? sourceUri;
+    private string sideDishSearchQuery = string.Empty;
+    private bool isSearchingSideDishes;
+    private List<SideDishModel> sideDishes = new();
+    private List<RecipeSearchResultDto> sideDishSearchResults = new();
 }
 
 

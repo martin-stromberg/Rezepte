@@ -11,6 +11,8 @@ Die Einkaufsliste ist ueber den Hauptmenuepunkt `Einkaufsliste` erreichbar.
 
 ## Zutaten aus Rezepten uebernehmen
 
-Auf einer Rezeptdetailseite oeffnet der Einkaufslisten-Button einen Dialog mit den Zutaten des Rezepts. Alle Zutaten sind vorausgewaehlt und koennen vor dem Uebernehmen ab- oder angewaehlt werden.
+Auf einer Rezeptdetailseite oeffnet der Einkaufslisten-Button einen Dialog mit den Zutaten des Rezepts. Alle Zutaten des Hauptrezepts sind vorausgewaehlt und koennen vor dem Uebernehmen ab- oder angewaehlt werden.
 
-Beim Uebernehmen wird eine neue Gruppe mit dem Rezeptnamen angelegt. Diese Gruppe bleibt mit dem Rezept verknuepft, die Eintraege koennen danach aber wie normale Einkaufslisteneintraege gepflegt und abgehakt werden.
+Sind beim Rezept Beilagen hinterlegt, zeigt der Dialog zusaetzliche Gruppen fuer die Beilagenrezepte. Die Zutaten dieser Beilagen sind sichtbar, aber nicht vorausgewaehlt. Die Gruppierung zeigt, zu welchem Rezept die Zutaten gehoeren.
+
+Beim Uebernehmen wird pro ausgewaehltem Rezept eine neue Gruppe mit dem jeweiligen Rezeptnamen angelegt. Diese Gruppen bleiben mit dem Rezept verknuepft, die Eintraege koennen danach aber wie normale Einkaufslisteneintraege gepflegt und abgehakt werden.

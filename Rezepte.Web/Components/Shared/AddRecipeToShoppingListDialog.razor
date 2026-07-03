@@ -24,31 +24,40 @@
                     {
                         <div class="text-muted">Lade Zutaten...</div>
                     }
-                    else if (ingredients.Count == 0)
+                    else if (ingredientGroups.Sum(g => g.Ingredients.Count) == 0)
                     {
                         <div class="alert alert-info mb-0">Dieses Rezept hat keine Zutaten.</div>
                     }
                     else
                     {
-                        <div class="small text-muted mb-2">Gruppe: @RecipeTitle</div>
-                        <div class="list-group">
-                            @foreach (var ingredient in ingredients)
-                            {
-                                <label class="list-group-item d-flex align-items-start gap-2">
-                                    <input class="form-check-input mt-1"
-                                           type="checkbox"
-                                           checked="@selectedIngredientIds.Contains(ingredient.Id)"
-                                           @onchange="e => ToggleIngredient(ingredient.Id, e.Value is bool checkedValue && checkedValue)" />
-                                    <span>
-                                        <span class="d-block">@FormatIngredient(ingredient)</span>
-                                        @if (!string.IsNullOrWhiteSpace(ingredient.StepTitle))
-                                        {
-                                            <span class="small text-muted">@ingredient.StepTitle</span>
-                                        }
-                                    </span>
-                                </label>
-                            }
-                        </div>
+                        @foreach (var group in ingredientGroups)
+                        {
+                            <div class="small text-muted mb-2 mt-@(group.IsMainRecipe ? "0" : "3")">
+                                Gruppe: @group.RecipeTitle@(group.IsMainRecipe ? string.Empty : " (Beilage)")
+                            </div>
+                            <div class="list-group">
+                                @foreach (var ingredient in group.Ingredients)
+                                {
+                                    <label class="list-group-item d-flex align-items-start gap-2">
+                                        <input class="form-check-input mt-1"
+                                               type="checkbox"
+                                               checked="@selectedIngredientIds.Contains(ingredient.Id)"
+                                               @onchange="e => ToggleIngredient(ingredient.Id, e.Value is bool checkedValue && checkedValue)" />
+                                        <span>
+                                            <span class="d-block">@FormatIngredient(ingredient)</span>
+                                            @if (!string.IsNullOrWhiteSpace(ingredient.StepTitle))
+                                            {
+                                                <span class="small text-muted">@ingredient.StepTitle</span>
+                                            }
+                                        </span>
+                                    </label>
+                                }
+                            </div>
+                        }
+                        @if (ingredientGroups.Any(g => !g.IsMainRecipe))
+                        {
+                            <div class="form-text mt-2">Zutaten der Beilagen sind nicht vorausgewaehlt.</div>
+                        }
                     }
                 </div>
                 <div class="modal-footer">
@@ -71,7 +80,7 @@
     [Parameter] public EventCallback OnAdded { get; set; }
 
     private readonly HashSet<string> selectedIngredientIds = new();
-    private List<ShoppingListRecipeIngredient> ingredients = new();
+    private List<ShoppingListRecipeIngredientGroup> ingredientGroups = new();
     private bool isLoading;
     private bool wasShown;
     private string? userId;
@@ -80,7 +89,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Show && (!wasShown || ingredients.Count == 0))
+        if (Show && (!wasShown || ingredientGroups.Count == 0))
         {
             wasShown = true;
             await LoadAsync();
@@ -99,11 +108,11 @@
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        ingredients = string.IsNullOrWhiteSpace(userId)
-            ? new List<ShoppingListRecipeIngredient>()
-            : await ShoppingListService.GetRecipeIngredientsAsync(userId, RecipeId, CancellationToken.None);
+        ingredientGroups = string.IsNullOrWhiteSpace(userId)
+            ? new List<ShoppingListRecipeIngredientGroup>()
+            : await ShoppingListService.GetRecipeIngredientGroupsAsync(userId, RecipeId, CancellationToken.None);
 
-        foreach (var ingredient in ingredients)
+        foreach (var ingredient in ingredientGroups.Where(g => g.IsMainRecipe).SelectMany(g => g.Ingredients))
         {
             selectedIngredientIds.Add(ingredient.Id);
         }
@@ -126,7 +135,13 @@
     private async Task AddAsync()
     {
         if (string.IsNullOrWhiteSpace(userId)) return;
-        var result = await ShoppingListService.AddRecipeIngredientsAsync(userId, RecipeId, selectedIngredientIds.ToList(), CancellationToken.None);
+        var selections = ingredientGroups
+            .Select(g => new ShoppingListRecipeIngredientSelection(
+                g.RecipeId,
+                g.Ingredients.Where(i => selectedIngredientIds.Contains(i.Id)).Select(i => i.Id).ToList()))
+            .Where(s => s.IngredientIds.Count > 0)
+            .ToList();
+        var result = await ShoppingListService.AddRecipeIngredientGroupsAsync(userId, RecipeId, selections, CancellationToken.None);
         if (!result.ok)
         {
             isError = true;

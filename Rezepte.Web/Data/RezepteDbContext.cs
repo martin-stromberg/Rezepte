@@ -11,6 +11,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<RecipeStep> RecipeSteps => Set<RecipeStep>();
     public DbSet<RecipeCookbook> RecipeCookbooks => Set<RecipeCookbook>();
+    public DbSet<RecipeSideDish> RecipeSideDishes => Set<RecipeSideDish>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeImage> RecipeImages { get; set; } = null!;
     public DbSet<AiRequestLog> AiRequestLogs => Set<AiRequestLog>();
@@ -77,6 +78,27 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
                 .HasForeignKey(rc => rc.RecipeId)
                 .OnDelete(DeleteBehavior.Cascade);
             buildAction.HasIndex(rc => new { rc.CookbookId, rc.RecipeId }).IsUnique();
+        });
+
+        modelBuilder.Entity<RecipeSideDish>(b =>
+        {
+            b.HasKey(sd => sd.Id);
+            b.Property(sd => sd.RecipeId).IsRequired().HasMaxLength(64);
+            b.Property(sd => sd.SideDishRecipeId).IsRequired().HasMaxLength(64);
+            b.Property(sd => sd.OrderIndex).HasDefaultValue(0);
+
+            b.HasOne(sd => sd.Recipe)
+                .WithMany(r => r.SideDishes)
+                .HasForeignKey(sd => sd.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasOne(sd => sd.SideDishRecipe)
+                .WithMany(r => r.UsedAsSideDishFor)
+                .HasForeignKey(sd => sd.SideDishRecipeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasIndex(sd => new { sd.RecipeId, sd.SideDishRecipeId }).IsUnique();
+            b.HasIndex(sd => sd.SideDishRecipeId);
         });
 
         modelBuilder.Entity<RecipeStep>(b =>
