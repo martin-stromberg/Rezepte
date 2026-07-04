@@ -105,17 +105,20 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 
 ## Deployment
 
-`Docs/install.md` beschreibt ein framework-abhaengiges Publish fuer `linux-x64` und den Betrieb als systemd-Service, zum Beispiel aus `/var/www/rezepte`.
+`Docs/install.md` ist die verbindliche Schritt-fuer-Schritt-Anleitung fuer Publish, Runtime-Pruefung und systemd-Betrieb auf Linux, zum Beispiel aus `/var/www/rezepte`.
 
-Typischer Publish-Befehl:
+Typischer framework-abhaengiger Publish-Befehl:
 
 ```powershell
 dotnet publish Rezepte.Web -c Release -f net10.0 -r linux-x64 --self-contained false
 ```
 
+Bei framework-abhaengigem Publish muessen auf dem Server passende .NET-10-Shared-Frameworks fuer `Microsoft.NETCore.App` und `Microsoft.AspNetCore.App` installiert sein. Wenn die Server-Runtime nicht verlaesslich bereitsteht, sollte stattdessen die in `Docs/install.md` dokumentierte self-contained Alternative verwendet werden.
+
 In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 
 - eigener `Jwt:Key`
+- passende .NET-10-Shared-Frameworks oder self-contained Publish
 - persistenter Speicherort fuer SQLite-Datenbank und Logs
 - HTTPS/TLS vor der Anwendung
 - Google-Credentials nur bei aktivierten KI-Funktionen
