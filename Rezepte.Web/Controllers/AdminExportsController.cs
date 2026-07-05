@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Rezepte.Web.Services;
+using Rezepte.Web.Services.BackgroundJobs;
 
 namespace Rezepte.Web.Controllers;
 
@@ -13,11 +14,13 @@ namespace Rezepte.Web.Controllers;
 public class AdminExportsController : ControllerBase
 {
     private readonly IExportService _exportService;
+    private readonly IBackgroundJobQueue _jobQueue;
     private readonly ILogger<AdminExportsController> _logger;
 
-    public AdminExportsController(IExportService exportService, ILogger<AdminExportsController> logger)
+    public AdminExportsController(IExportService exportService, IBackgroundJobQueue jobQueue, ILogger<AdminExportsController> logger)
     {
         _exportService = exportService;
+        _jobQueue = jobQueue;
         _logger = logger;
     }
 
@@ -26,7 +29,7 @@ public class AdminExportsController : ControllerBase
     /// <summary>
     /// Admin-Export: Exportiert alle Daten (inkl. Benutzer).
     /// POST /api/admin/exports?includePdf=true
-    /// Liefert ZIP-Stream zurück.
+    /// Startet einen Hintergrundjob und liefert dessen Job-ID zurueck.
     /// </summary>
     [HttpPost]
     public async Task<IActionResult> ExportAll([FromQuery] bool includeImages = false, [FromQuery] bool includePdf = false, CancellationToken ct = default)
@@ -35,12 +38,18 @@ public class AdminExportsController : ControllerBase
         if (string.IsNullOrEmpty(adminId))
             return Unauthorized();
 
-        _logger.LogInformation("Admin {AdminId} started full export includePdf={IncludePdf}", adminId, includePdf);
+        _logger.LogInformation("Admin {AdminId} queued full export includePdf={IncludePdf} includeImages={IncludeImages}", adminId, includePdf, includeImages);
 
-        Stream zipStream;
         try
         {
-            zipStream = await _exportService.ExportAllAsync(adminId, includeImages, includePdf, ct).ConfigureAwait(false);
+            var payloadJson = new ExportJobPayload(includeImages, includePdf).ToJson();
+            var jobId = await _jobQueue.EnqueueAsync("export:all", payloadJson, adminId, ct).ConfigureAwait(false);
+            return Accepted(new
+            {
+                jobId,
+                statusUrl = Url.ActionLink("GetJobStatus", "Jobs", new { id = jobId }),
+                downloadUrl = Url.ActionLink("DownloadJobResult", "Jobs", new { id = jobId })
+            });
         }
         catch (OperationCanceledException)
         {
@@ -51,10 +60,6 @@ public class AdminExportsController : ControllerBase
             _logger.LogError(ex, "Admin export failed (admin={AdminId})", adminId);
             return Problem(title: "Admin export failed", detail: ex.Message, statusCode: 500);
         }
-
-        zipStream.Seek(0, SeekOrigin.Begin);
-        var fileName = $"export-all-{DateTime.UtcNow:yyyyMMddHHmm}.zip";
-        return File(zipStream, "application/zip", fileName);
     }
 
     /// <summary>
@@ -82,11 +87,11 @@ public class AdminExportsController : ControllerBase
             ms.Seek(0, SeekOrigin.Begin);
 
             // Delegiere die eigentliche Wiederherstellungslogik an den Service.
-            // Implementierung ist vorsichtig: legt nur fehlende Entitäten an, überschreibt nichts.
+            // Implementierung ist vorsichtig: legt nur fehlende Entitaeten an, ueberschreibt nichts.
             await _exportService.RestoreFromZipAsync(ms, adminId, ct).ConfigureAwait(false);
 
             _logger.LogInformation("Admin {AdminId} uploaded restore file ({Size} bytes) and restore was started.", adminId, file.Length);
-            // Rückgabe 200 OK oder 202 Accepted je nach Implementationsentscheid (hier: synchron ausgeführt -> OK)
+            // Rueckgabe 200 OK oder 202 Accepted je nach Implementationsentscheid (hier: synchron ausgefuehrt -> OK)
             return Ok("Restore completed.");
         }
         catch (OperationCanceledException)
