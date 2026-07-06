@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Entities;
+using Rezepte.Web.Services.BackgroundJobs;
 using System.Collections.Generic;
 
 namespace Rezepte.Web.Data;
@@ -23,6 +24,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
     public DbSet<ShoppingListGroup> ShoppingListGroups => Set<ShoppingListGroup>();
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
+    public DbSet<BackgroundJob> BackgroundJobs => Set<BackgroundJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,7 +51,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             // Real CLR-Eigenschaft OrderIndex konfigurieren (nicht als Shadow-Property)
             b.Property(c => c.OrderIndex).HasDefaultValue(0);
 
-            // Index auf UserId + OrderIndex f�r schnelle Sortierung
+            // Index auf UserId + OrderIndex fuer schnelle Sortierung
             b.HasIndex(c => new { c.UserId, c.OrderIndex });
 
             b.HasIndex(c => c.Name).IsUnique(false);
@@ -205,7 +207,22 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.HasIndex(i => new { i.GroupId, i.OrderIndex });
         });
 
-        // Konfiguration f�r UserSetting
+        modelBuilder.Entity<BackgroundJob>(b =>
+        {
+            b.HasKey(j => j.Id);
+            b.Property(j => j.JobType).IsRequired().HasMaxLength(100);
+            b.Property(j => j.InitiatorUserId).HasMaxLength(64);
+            b.Property(j => j.CreatedAt).IsRequired();
+            b.Property(j => j.Status).IsRequired();
+            b.Property(j => j.Progress).HasDefaultValue(0);
+            b.Property(j => j.PayloadJson).HasColumnType("TEXT");
+            b.Property(j => j.ResultMessage).HasColumnType("TEXT");
+            b.Property(j => j.Error).HasColumnType("TEXT");
+            b.HasIndex(j => new { j.Status, j.CreatedAt });
+            b.HasIndex(j => j.InitiatorUserId);
+        });
+
+        // Konfiguration fuer UserSetting
         modelBuilder.Entity<UserSetting>(b =>
         {
             b.HasKey(u => u.UserId);
@@ -214,7 +231,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.HasIndex(u => u.UserId).IsUnique();
         });
 
-        // Konfiguration f�r AppSetting
+        // Konfiguration fuer AppSetting
         modelBuilder.Entity<AppSetting>(b =>
         {
             b.HasKey(a => a.Key);
@@ -223,3 +240,4 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
         });
     }
 }
+

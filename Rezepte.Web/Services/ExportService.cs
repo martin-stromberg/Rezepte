@@ -23,8 +23,8 @@ public interface IExportService
 
     /// <summary>
     /// Stellt Daten aus einem Export-ZIP wieder her.
-    /// Achtung: Implementierung ist vorsichtig — legt fehlende Entitäten an, überschreibt
-    /// bestehende nicht. Prüfe und erweitere nach Bedarf (Transaktionen, Validierung, BackgroundJob).
+    /// Achtung: Implementierung ist vorsichtig - legt fehlende Entitaeten an, ueberschreibt
+    /// bestehende nicht. Pruefe und erweitere nach Bedarf (Transaktionen, Validierung, BackgroundJob).
     /// </summary>
     Task RestoreFromZipAsync(Stream zipStream, string adminUserId, CancellationToken ct = default);
 }
@@ -36,7 +36,7 @@ public interface IExportService
 public interface IPdfGenerator
 {
     /// <summary>
-    /// Erzeugt ein PDF für das gegebene Rezept (z.B. HTML-to-PDF) und liefert die Binärdaten zurück.
+    /// Erzeugt ein PDF fuer das gegebene Rezept (z.B. HTML-to-PDF) und liefert die Binaerdaten zurueck.
     /// </summary>
     Task<byte[]?> GenerateRecipePdfAsync(ExportRecipeDto recipe, CancellationToken ct = default);
 }
@@ -312,19 +312,19 @@ public class ExportService : BaseService, IExportService
         if (exportRoot == null)
             throw new InvalidOperationException("Invalid export archive: recipes.json could not be parsed.");
 
-        // Beginne DB-Transaktion für atomare Wiederherstellung
+        // Beginne DB-Transaktion fuer atomare Wiederherstellung
         await using var tx = await _db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
         try
         {
-            // --- NEU: Entferne vorhandene Daten, behalte nur das Konto des ausführenden Benutzers ---
+            // --- NEU: Entferne vorhandene Daten, behalte nur das Konto des ausfuehrenden Benutzers ---
             if (string.IsNullOrEmpty(adminUserId))
                 throw new InvalidOperationException("adminUserId must be provided to perform destructive restore.");
 
             _logger.LogInformation("Destructive restore: deleting existing data except user {AdminUserId}", adminUserId);
 
-            // Lösche Dependents zuerst, dann übergeordnete Entitäten.
-            // Verwende ExecuteDeleteAsync für performante Batch-Löschungen (EF Core 7+).
-            // Falls ExecuteDeleteAsync in eurer Umgebung nicht verfügbar ist, ersetzt durch RemoveRange()-Pattern.
+            // Loesche Dependents zuerst, dann uebergeordnete Entitaeten.
+            // Verwende ExecuteDeleteAsync fuer performante Batch-Loeschungen (EF Core 7+).
+            // Falls ExecuteDeleteAsync in eurer Umgebung nicht verfuegbar ist, ersetzt durch RemoveRange()-Pattern.
             await _db.RecipeImages.ExecuteDeleteAsync(ct).ConfigureAwait(false);
             await _db.RecipeIngredients.ExecuteDeleteAsync(ct).ConfigureAwait(false);
             await _db.RecipeSteps.ExecuteDeleteAsync(ct).ConfigureAwait(false);
@@ -332,7 +332,7 @@ public class ExportService : BaseService, IExportService
             await _db.Recipes.ExecuteDeleteAsync(ct).ConfigureAwait(false);
             await _db.Cookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);            
 
-            // Benutzer: alle löschen außer adminUserId (das Konto bleibt erhalten)
+            // Benutzer: alle loeschen ausser adminUserId (das Konto bleibt erhalten)
             await _db.Users.Where(u => u.Id != adminUserId).ExecuteDeleteAsync(ct).ConfigureAwait(false);
 
             // Stelle sicher, dass DB in konsistentem Zustand ist bevor wir neue Daten anlegen
@@ -341,11 +341,26 @@ public class ExportService : BaseService, IExportService
             // 1) Benutzer anlegen (nur wenn nicht existierend). Passwort-Hash wird nicht wiederhergestellt.
             if (exportRoot.Users != null)
             {
+                var existingUserNames = await _db.Users
+                    .AsNoTracking()
+                    .Select(u => u.Username)
+                    .ToListAsync(ct)
+                    .ConfigureAwait(false);
+                var knownUserNames = existingUserNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
                 foreach (var u in exportRoot.Users)
                 {
                     ct.ThrowIfCancellationRequested();
                     var exists = await _db.Users.AnyAsync(x => x.Id == u.Id, ct).ConfigureAwait(false);
                     if (exists) continue;
+                    if (!knownUserNames.Add(u.UserName))
+                    {
+                        _logger.LogInformation(
+                            "Skipping restored user {RestoredUserId} because username {Username} already exists. Owned data will be assigned to restore admin if needed.",
+                            u.Id,
+                            u.UserName);
+                        continue;
+                    }
 
                     var newUser = new Rezepte.Web.Entities.User
                     {
@@ -408,7 +423,7 @@ public class ExportService : BaseService, IExportService
 
                         foreach (var cb in r.Cookbooks ?? Enumerable.Empty<ExportRecipeCookbookDto>())
                         {
-                            // Prüfe, ob Cookbook existiert
+                            // Pruefe, ob Cookbook existiert
                             var cbExists = await _db.Cookbooks.AnyAsync(x => x.Id == cb.CookbookId, ct).ConfigureAwait(false);
                             if (!cbExists) continue;
                             var rc = new Rezepte.Web.Entities.RecipeCookbook
@@ -476,7 +491,7 @@ public class ExportService : BaseService, IExportService
                             var entry = archive.GetEntry(normalized);
                             if (entry == null) continue;
 
-                            // Prüfe, ob Bild bereits existiert (vergleich auf FileName + RecipeId)
+                            // Pruefe, ob Bild bereits existiert (Vergleich auf FileName + RecipeId)
                             var fileName = Path.GetFileName(normalized);
                             var imgExists = await _db.RecipeImages.AnyAsync(x => x.RecipeId == r.Id && x.FileName == fileName, ct).ConfigureAwait(false);
                             if (imgExists) continue;

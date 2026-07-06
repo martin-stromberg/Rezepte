@@ -19,7 +19,7 @@
         @if (selectedFileName != null)
         {
             <div class="mt-2">
-                <small class="text-muted">Ausgewählt: @selectedFileName</small>
+                <small class="text-muted">Ausgewaehlt: @selectedFileName</small>
             </div>
         }
     </div>
@@ -32,7 +32,10 @@
 
     @if (isBusy)
     {
-        <div class="mt-2 text-muted">Vorgang läuft…</div>
+        <div class="progress mt-3" role="progressbar" aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" style="width: @progress%">@progress%</div>
+        </div>
+        <div class="mt-2 text-muted">Vorgang laeuft...</div>
     }
     @if (!string.IsNullOrEmpty(message))
     {
@@ -44,6 +47,7 @@
     private IBrowserFile? selectedFile;
     private string? selectedFileName;
     private bool isBusy;
+    private int progress;
     private string? message;
 
     private async Task ExportAllAsync()
@@ -52,9 +56,11 @@
         message = null;
         try
         {
-            var query = $"includePdf=false&includeImages=true";
-            var req = new HttpRequestMessage(HttpMethod.Post, $"api/admin/exports?{query}");
-            var response = await Api.Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            var response = await Api.Http.PostAsJsonAsync("api/jobs/exports/all", new
+            {
+                includeImages = true,
+                includePdf = false
+            });
 
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
@@ -68,12 +74,15 @@
                 return;
             }
 
-            var fileName = GetFileNameFromResponse(response) ?? $"export-all-{DateTime.UtcNow:yyyyMMddHHmm}.zip";
-            var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            using var streamRef = new DotNetStreamReference(stream: stream);
-            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef).ConfigureAwait(false);
+            var started = await response.Content.ReadFromJsonAsync<JobStartResponse>();
+            if (started?.JobId is null)
+            {
+                message = "Export konnte nicht gestartet werden.";
+                return;
+            }
 
-            message = "Download gestartet.";
+            message = "Export gestartet.";
+            await PollAndDownloadAsync(started.JobId.Value);
         }
         catch (Exception ex)
         {
@@ -83,6 +92,57 @@
         {
             isBusy = false;
         }
+    }
+
+    private async Task PollAndDownloadAsync(Guid jobId)
+    {
+        while (true)
+        {
+            var status = await Api.Http.GetFromJsonAsync<JobStatusResponse>($"api/jobs/{jobId}");
+            if (status is null)
+            {
+                message = "Exportstatus konnte nicht gelesen werden.";
+                return;
+            }
+
+            progress = Math.Clamp(status.Progress, 0, 100);
+            StateHasChanged();
+
+            if (status.Status == 2)
+            {
+                if (await DownloadAsync(status.DownloadUrl ?? $"api/jobs/{jobId}/download"))
+                {
+                    message = "Download gestartet.";
+                }
+                return;
+            }
+
+            if (status.Status == 3 || status.Status == 4)
+            {
+                message = string.IsNullOrWhiteSpace(status.Error)
+                    ? "Export fehlgeschlagen."
+                    : $"Export fehlgeschlagen: {status.Error}";
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+    }
+
+    private async Task<bool> DownloadAsync(string url)
+    {
+        var response = await Api.Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        if (!response.IsSuccessStatusCode)
+        {
+            message = $"Download fehlgeschlagen: {response.StatusCode}";
+            return false;
+        }
+
+        var fileName = GetFileNameFromResponse(response) ?? $"export-all-{DateTime.UtcNow:yyyyMMddHHmm}.zip";
+        var stream = await response.Content.ReadAsStreamAsync();
+        using var streamRef = new DotNetStreamReference(stream: stream);
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        return true;
     }
 
     private Task OnFileSelected(InputFileChangeEventArgs e)
@@ -97,11 +157,11 @@
     {
         if (selectedFile == null)
         {
-            message = "Keine Datei ausgewählt.";
+            message = "Keine Datei ausgewaehlt.";
             return;
         }
 
-        var okConfirm = await JS.InvokeAsync<bool>("confirm", "Wirklich wiederherstellen? Bestehende Daten werden überschrieben.");
+        var okConfirm = await JS.InvokeAsync<bool>("confirm", "Wirklich wiederherstellen? Bestehende Daten werden ueberschrieben.");
         if (!okConfirm) return;
 
         isBusy = true;
@@ -139,5 +199,18 @@
             return fn.Trim('"');
 
         return null;
+    }
+
+    private sealed class JobStartResponse
+    {
+        public Guid? JobId { get; set; }
+    }
+
+    private sealed class JobStatusResponse
+    {
+        public int Status { get; set; }
+        public int Progress { get; set; }
+        public string? Error { get; set; }
+        public string? DownloadUrl { get; set; }
     }
 }

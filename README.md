@@ -17,7 +17,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Kalenderansicht fuer geplante Rezepte mit optionaler Uebernahme hinterlegter Beilagen.
 - Import von Rezepten aus Backups, Dateien, URLs und unterstuetzten Webseiten.
 - Optionale KI-Importe ueber Google Vision und Gemini.
-- Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben.
+- Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
 
 ## Tech-Stack
@@ -129,6 +129,7 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 - `Docs/Anforderungskatalog.md`: fachlicher Status und geplante Erweiterungen.
 - `Docs/dependencies.md`: Abhaengigkeits- und Sicherheitsstrategie, inklusive dokumentierter Behandlung verbleibender NuGet-Sicherheitswarnungen.
 - `Docs/help/navigation.md`: Bedienhinweise zur Navigation, Einrichtung und zum Benutzermenue.
+- `Docs/help/exports.md`: Bedienhinweise zu Datenexporten, Sicherungen und Fortschrittsanzeige.
 - `Docs/help/side-dishes.md`: Bedienhinweise zu Beilagen in Rezepten, Kalender und Einkaufsliste.
 - `Docs/help/shopping-list.md`: Bedienhinweise zur Einkaufsliste und Rezeptuebernahme.
 - `Docs/install.md`: manuelle Installationsnotizen fuer Linux/systemd.
