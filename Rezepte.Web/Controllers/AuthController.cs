@@ -48,7 +48,7 @@ public class AuthController(IUserService userService) : ControllerBase
         {
             if (Request.HasFormContentType)
             {
-                return LocalRedirect("/register?error=1");
+                return RedirectToRegisterError("Username and password are required.");
             }
             return BadRequest(new { message = "Username and password are required." });
         }
@@ -58,7 +58,7 @@ public class AuthController(IUserService userService) : ControllerBase
         {
             if (Request.HasFormContentType)
             {
-                return LocalRedirect("/register?error=1");
+                return RedirectToRegisterError(error ?? "Registration failed.");
             }
             return BadRequest(new { message = error ?? "Registration failed." });
         }
@@ -74,4 +74,9 @@ public class AuthController(IUserService userService) : ControllerBase
 
     /// <summary>Form DTO used by the website registration page.</summary>
     public record RegisterRequestForm(string? Email, string Username, string Password);
+
+    private LocalRedirectResult RedirectToRegisterError(string message)
+    {
+        return LocalRedirect($"/register?error={Uri.EscapeDataString(message)}");
+    }
 }
