@@ -32,12 +32,12 @@ public class UserProfileViewModel
             var res = await _http.GetAsync("api/users/me", ct);
             if (res.StatusCode == HttpStatusCode.Unauthorized)
             {
-                Fail("Nicht angemeldet.");
+                Fail("Not signed in.");
                 return;
             }
             if (!res.IsSuccessStatusCode)
             {
-                var msg = await ReadErrorAsync(res) ?? "Profil konnte nicht geladen werden.";
+                var msg = await ReadErrorAsync(res) ?? "Profile could not be loaded.";
                 Fail(msg);
                 return;
             }
@@ -45,11 +45,11 @@ public class UserProfileViewModel
             var me = await res.Content.ReadFromJsonAsync<UserProfileDto>(cancellationToken: ct);
             if (me is null)
             {
-                Fail("Benutzer nicht gefunden.");
+                Fail("User not found.");
                 return;
             }
 
-            // Bestehende Instanz aktualisieren, nicht ersetzen -> Binding bleibt erhalten
+            // Update the existing instance instead of replacing it so bindings remain intact.
             Profile.Id = me.Id;
             Profile.Username = me.Username;
             Profile.Email = me.Email ?? string.Empty;
@@ -58,7 +58,7 @@ public class UserProfileViewModel
         }
         catch
         {
-            Fail("Profil konnte nicht geladen werden.");
+            Fail("Profile could not be loaded.");
         }
         finally
         {
@@ -78,7 +78,7 @@ public class UserProfileViewModel
             var res = await _http.PutAsJsonAsync("api/users/me", payload, ct);
             if (!res.IsSuccessStatusCode)
             {
-                var msg = await ReadErrorAsync(res) ?? "Profil konnte nicht gespeichert werden.";
+                var msg = await ReadErrorAsync(res) ?? "Profile could not be saved.";
                 Fail(msg);
                 return;
             }
@@ -88,11 +88,11 @@ public class UserProfileViewModel
                 Profile.Username = updated.Username;
                 Profile.Email = updated.Email ?? string.Empty;
             }
-            Ok("Profil gespeichert.");
+            Ok("Profile saved.");
         }
         catch
         {
-            Fail("Profil konnte nicht gespeichert werden.");
+            Fail("Profile could not be saved.");
         }
         finally
         {
@@ -105,7 +105,7 @@ public class UserProfileViewModel
         ResetMessage();
         if (Password.NewPassword != Password.ConfirmPassword)
         {
-            Fail("Die neuen Passwörter stimmen nicht überein.");
+            Fail("The new passwords do not match.");
             return;
         }
 
@@ -116,19 +116,19 @@ public class UserProfileViewModel
             var res = await _http.PostAsJsonAsync("api/users/me/change-password", payload, ct);
             if (!res.IsSuccessStatusCode)
             {
-                var msg = await ReadErrorAsync(res) ?? "Passwort konnte nicht geändert werden.";
+                var msg = await ReadErrorAsync(res) ?? "Password could not be changed.";
                 Fail(msg);
                 return;
             }
-            // Felder leeren, Instanz beibehalten
+            // Clear fields while keeping the instance for binding.
             Password.CurrentPassword = string.Empty;
             Password.NewPassword = string.Empty;
             Password.ConfirmPassword = string.Empty;
-            Ok("Passwort geändert.");
+            Ok("Password changed.");
         }
         catch
         {
-            Fail("Passwort konnte nicht geändert werden.");
+            Fail("Password could not be changed.");
         }
         finally
         {
@@ -157,7 +157,7 @@ public class UserProfileViewModel
     {
         public string Id { get; set; } = string.Empty;
 
-        [Required, MinLength(3)]
+        [Required]
         public string? Username { get; set; }
 
         [EmailAddress]

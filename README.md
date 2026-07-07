@@ -5,6 +5,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 ## Funktionsumfang
 
 - Benutzerregistrierung, Login und Logout mit Cookie-Authentifizierung fuer die Weboberflaeche.
+- Serverseitige Username-Validierung fuer Registrierung, Profil und Admin-Benutzerverwaltung.
 - JWT-Authentifizierung fuer API-Aufrufe.
 - Erster registrierter Benutzer wird automatisch Administrator.
 - Admin-Bereich fuer Benutzerverwaltung und globale Einstellungen.
@@ -98,6 +99,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 ## Daten und Sicherheit
 
 - Passwoerter werden serverseitig gehasht gespeichert.
+- Benutzernamen werden zentral serverseitig auf Laenge, erlaubte Zeichen, reservierte Namen sowie IP-/Domain- und offiziell wirkende Muster geprueft.
 - Website-Zugriffe verwenden ein HTTP-only Auth-Cookie.
 - API-Controller sind ueber JWT abgesichert; Admin-Endpunkte verlangen die Rolle `Admin`.
 - Die Registrierung ist nur offen, solange noch kein Benutzer existiert.
@@ -129,6 +131,7 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 - `Docs/Anforderungskatalog.md`: fachlicher Status und geplante Erweiterungen.
 - `Docs/dependencies.md`: Abhaengigkeits- und Sicherheitsstrategie, inklusive dokumentierter Behandlung verbleibender NuGet-Sicherheitswarnungen.
 - `Docs/help/navigation.md`: Bedienhinweise zur Navigation, Einrichtung und zum Benutzermenue.
+- `Docs/help/user-accounts.md`: Bedienhinweise zu Registrierung, Profil und Admin-Benutzerverwaltung.
 - `Docs/help/exports.md`: Bedienhinweise zu Datenexporten, Sicherungen und Fortschrittsanzeige.
 - `Docs/help/side-dishes.md`: Bedienhinweise zu Beilagen in Rezepten, Kalender und Einkaufsliste.
 - `Docs/help/shopping-list.md`: Bedienhinweise zur Einkaufsliste und Rezeptuebernahme.

@@ -37,7 +37,7 @@ public class UserAdminViewModel
             Users = items;
             Ok();
         }
-        catch { Fail("Benutzer konnten nicht geladen werden."); }
+        catch { Fail("Users could not be loaded."); }
         finally { IsLoading = false; Notify(); }
     }
 
@@ -47,8 +47,8 @@ public class UserAdminViewModel
     {
         Reset();
         // Validate inputs (avoid null-forgiving)
-        if (string.IsNullOrWhiteSpace(NewUser.Username)) { Fail("Benutzername ist erforderlich."); Notify(); return; }
-        if (string.IsNullOrWhiteSpace(NewUser.Password)) { Fail("Passwort ist erforderlich."); Notify(); return; }
+        if (string.IsNullOrWhiteSpace(NewUser.Username)) { Fail("Username is required."); Notify(); return; }
+        if (string.IsNullOrWhiteSpace(NewUser.Password)) { Fail("Password is required."); Notify(); return; }
         var username = NewUser.Username.Trim();
         var emailRaw = NewUser.Email;
         var email = string.IsNullOrWhiteSpace(emailRaw) ? null : emailRaw.Trim();
@@ -62,7 +62,7 @@ public class UserAdminViewModel
             var res = await _api.Http.PostAsJsonAsync("api/admin/users", payload, ct);
             if (!res.IsSuccessStatusCode)
             {
-                Fail("Anlegen fehlgeschlagen."); return;
+                Fail(await ReadErrorAsync(res) ?? "Create failed."); return;
             }
             var created = await res.Content.ReadFromJsonAsync<UserRow>(cancellationToken: ct);
             if (created is not null)
@@ -75,9 +75,9 @@ public class UserAdminViewModel
             NewUser.Email = string.Empty;
             NewUser.Password = string.Empty;
             NewUser.IsAdmin = false;
-            Ok("Benutzer angelegt.");
+            Ok("User created.");
         }
-        catch { Fail("Anlegen fehlgeschlagen."); }
+        catch { Fail("Create failed."); }
         finally { IsBusy = false; Notify(); }
     }
 
@@ -87,10 +87,10 @@ public class UserAdminViewModel
         try
         {
             var res = await _api.Http.PutAsJsonAsync($"api/admin/users/{user.Id}", user, ct);
-            if (!res.IsSuccessStatusCode) { Fail("Speichern fehlgeschlagen."); return; }
-            Ok("Gespeichert.");
+            if (!res.IsSuccessStatusCode) { Fail(await ReadErrorAsync(res) ?? "Save failed."); return; }
+            Ok("Saved.");
         }
-        catch { Fail("Speichern fehlgeschlagen."); }
+        catch { Fail("Save failed."); }
         finally { IsBusy = false; Notify(); }
     }
 
@@ -100,11 +100,24 @@ public class UserAdminViewModel
         try
         {
             var res = await _api.Http.DeleteAsync($"api/admin/users/{user.Id}", ct);
-            if (!res.IsSuccessStatusCode) { Fail("Löschen fehlgeschlagen."); return; }
-            Users.Remove(user); Ok("Gelöscht.");
+            if (!res.IsSuccessStatusCode) { Fail("Delete failed."); return; }
+            Users.Remove(user); Ok("Deleted.");
         }
-        catch { Fail("Löschen fehlgeschlagen."); }
+        catch { Fail("Delete failed."); }
         finally { IsBusy = false; Notify(); }
+    }
+
+    private static async Task<string?> ReadErrorAsync(HttpResponseMessage res)
+    {
+        try
+        {
+            var obj = await res.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+            if (obj is not null && obj.TryGetValue("message", out var value) && value is string message)
+                return message;
+        }
+        catch { }
+
+        return null;
     }
 
     private void Ok(string? message = null) { IsError = false; Message = message; }
@@ -115,14 +128,14 @@ public class UserAdminViewModel
     public class UserRow
     {
         public string Id { get; set; } = string.Empty;
-        [Required, MinLength(3)] public string Username { get; set; } = string.Empty;
+        [Required] public string Username { get; set; } = string.Empty;
         public string? Email { get; set; }
         public bool IsAdmin { get; set; }
     }
 
     public class NewUserModel
     {
-        [Required, MinLength(3)]
+        [Required]
         public string? Username { get; set; }
         [EmailAddress]
         public string? Email { get; set; }

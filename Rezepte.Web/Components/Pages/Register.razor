@@ -1,5 +1,6 @@
 @page "/register"
 @inject NavigationManager Nav
+@using Microsoft.AspNetCore.Components
 
 <PageTitle>Rezepte - Ersteinrichtung</PageTitle>
 
@@ -7,7 +8,7 @@
     <div class="card shadow-soft">
         <div class="card-header"><h3 class="mb-0">Registrieren</h3></div>
         <div class="card-body p-4">
-            <!-- Browser-postendes Formular: Werte gehen über name-Attribute direkt an den API-Endpunkt -->
+            <!-- Browser-posting form: values are sent through name attributes directly to the API endpoint. -->
             <EditForm Model="model" Action="api/auth/register" Method="post" FormName="register">
                 <DataAnnotationsValidator />
                 <ValidationSummary />
@@ -28,12 +29,20 @@
                     <button class="btn btn-accent" type="submit">Registrieren</button>
                 </div>
             </EditForm>
+
+            @if (!string.IsNullOrWhiteSpace(Error))
+            {
+                <div class="alert alert-danger mt-3" role="alert">@Error</div>
+            }
         </div>
     </div>
 </div>
 
 @code {
     private RegisterModel model = new();
+
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? Error { get; set; }
 
     private class RegisterModel
     {
