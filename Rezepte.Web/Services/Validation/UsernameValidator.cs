@@ -4,11 +4,11 @@ namespace Rezepte.Web.Services.Validation;
 
 public sealed partial class UsernameValidator : IUsernameValidator
 {
-    public const string LengthMessage = "Der Benutzername muss zwischen 3 und 20 Zeichen lang sein.";
-    public const string CharactersMessage = "Der Benutzername darf nur Buchstaben, Zahlen, Unterstrich und Bindestrich enthalten.";
-    public const string ReservedMessage = "Der Benutzername ist reserviert.";
-    public const string GenericBlockedMessage = "Dieser Benutzername kann nicht verwendet werden. Bitte wählen Sie einen anderen Namen.";
-    public const string IpOrDomainMessage = "Der Benutzername darf keine IP-Adresse oder Domain sein.";
+    public const string LengthMessage = "The username must be between 3 and 20 characters long.";
+    public const string CharactersMessage = "The username may only contain letters, numbers, underscores, and hyphens.";
+    public const string ReservedMessage = "The username is reserved.";
+    public const string GenericBlockedMessage = "This username cannot be used. Please choose another name.";
+    public const string IpOrDomainMessage = "The username must not be an IP address or domain.";
 
     private static readonly HashSet<string> ReservedNames = new(StringComparer.OrdinalIgnoreCase)
     {

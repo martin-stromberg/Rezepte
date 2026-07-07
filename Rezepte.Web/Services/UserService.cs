@@ -127,7 +127,7 @@ public class UserService(RezepteDbContext db, IUsernameValidator usernameValidat
             return (false, validation.ErrorMessage, null);
 
         if (await _db.Users.AnyAsync(u => u.Username == normalizedUsername, ct))
-            return (false, "Benutzername ist bereits vergeben.", null);
+            return (false, "The username is already taken.", null);
 
         var isFirst = !await _db.Users.AnyAsync(ct);
         var entity = new Entities.User
@@ -188,14 +188,14 @@ public class UserService(RezepteDbContext db, IUsernameValidator usernameValidat
         if (!string.IsNullOrWhiteSpace(email))
         {
             if (!email.Contains('@') || email.Length > 256)
-                return (false, "Die E-Mail ist ungültig.", null);
+                return (false, "The email address is invalid.", null);
         }
 
         if (!string.Equals(entity.Username, normalizedUsername, StringComparison.Ordinal))
         {
             var exists = await _db.Users.AnyAsync(u => u.Username == normalizedUsername, ct);
             if (exists)
-                return (false, "Benutzername ist bereits vergeben.", null);
+                return (false, "The username is already taken.", null);
         }
 
         entity.Username = normalizedUsername;
@@ -213,10 +213,10 @@ public class UserService(RezepteDbContext db, IUsernameValidator usernameValidat
         if (entity is null) return (false, "User not found.");
 
         if (!PasswordHasher.Verify(currentPassword, entity.PasswordHash))
-            return (false, "Aktuelles Passwort ist falsch.");
+            return (false, "The current password is incorrect.");
 
         if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-            return (false, "Das neue Passwort muss mindestens 6 Zeichen haben.");
+            return (false, "The new password must be at least 6 characters long.");
 
         entity.PasswordHash = PasswordHasher.Hash(newPassword);
         await _db.SaveChangesAsync(ct);
@@ -245,13 +245,13 @@ public class UserService(RezepteDbContext db, IUsernameValidator usernameValidat
         if (!string.Equals(entity.Username, normalizedUsername, StringComparison.Ordinal))
         {
             var exists = await _db.Users.AnyAsync(u => u.Username == normalizedUsername && u.Id != id, ct);
-            if (exists) return (false, "Benutzername ist bereits vergeben.");
+            if (exists) return (false, "The username is already taken.");
         }
 
         if (!string.IsNullOrWhiteSpace(email))
         {
             if (!email.Contains('@') || email.Length > 256)
-                return (false, "Die E-Mail ist ungültig.");
+                return (false, "The email address is invalid.");
         }
 
         entity.Username = normalizedUsername;

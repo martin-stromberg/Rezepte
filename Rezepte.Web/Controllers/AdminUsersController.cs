@@ -38,14 +38,14 @@ public class AdminUsersController(IUserService users) : ControllerBase
         if (!string.IsNullOrWhiteSpace(dto.Email))
         {
             if (!dto.Email.Contains('@') || dto.Email.Length > 256)
-                return BadRequest(new { message = "Die E-Mail ist ungültig." });
+                return BadRequest(new { message = "The email address is invalid." });
         }
         if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
-            return BadRequest(new { message = "Das Passwort muss mindestens 6 Zeichen haben." });
+            return BadRequest(new { message = "The password must be at least 6 characters long." });
 
         var (ok, error, user) = await _users.RegisterAsync(dto.Username, dto.Password, ct);
         if (!ok || user is null)
-            return BadRequest(new { message = error ?? "Anlegen fehlgeschlagen." });
+            return BadRequest(new { message = error ?? "Create failed." });
 
         // Optionally set admin flag
         if (dto.IsAdmin && !user.IsAdmin)
@@ -67,7 +67,7 @@ public class AdminUsersController(IUserService users) : ControllerBase
     public async Task<IActionResult> Update(string id, [FromBody] UpdateUserRequest dto, CancellationToken ct)
     {
         var (ok, error) = await _users.UpdateUserAsync(id, dto.Username, dto.Email, dto.IsAdmin, ct);
-        if (!ok) return BadRequest(new { message = error ?? "Aktualisieren fehlgeschlagen." });
+        if (!ok) return BadRequest(new { message = error ?? "Update failed." });
         return NoContent();
     }
 
