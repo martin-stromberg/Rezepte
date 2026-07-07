@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Data;
 using Rezepte.Web.Services;
+using Rezepte.Web.Services.Validation;
 using Xunit;
 
 namespace Rezepte.Tests.Services;
@@ -18,7 +19,7 @@ public class UserServiceTests
         return new RezepteDbContext(options);
     }
 
-    private static UserService CreateSut(RezepteDbContext db) => new(db);
+    private static UserService CreateSut(RezepteDbContext db) => new(db, new UsernameValidator());
 
     [Fact]
     public async Task RegisterAsync_ShouldCreateFirstUserAsAdmin_WhenNoUsersExist()
@@ -78,7 +79,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        var (_, _, user) = await sut.RegisterAsync("ed", "pw", CancellationToken.None);
+        var (_, _, user) = await sut.RegisterAsync("edgar", "pw", CancellationToken.None);
         user.Should().NotBeNull();
 
         var (ok, error, updated) = await sut.UpdateProfileAsync(user!.Id, "edward", "ed@example.com", CancellationToken.None);
@@ -87,6 +88,46 @@ public class UserServiceTests
         error.Should().BeNull();
         updated!.Username.Should().Be("edward");
         updated.Email.Should().Be("ed@example.com");
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ShouldFail_WhenUsernameIsReserved()
+    {
+        using var db = CreateDb();
+        var sut = CreateSut(db);
+
+        var (ok, error, user) = await sut.RegisterAsync("admin", "password123", CancellationToken.None);
+
+        ok.Should().BeFalse();
+        error.Should().Be(UsernameValidator.ReservedMessage);
+        user.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateProfileAsync_ShouldFail_WhenUsernameIsInvalid()
+    {
+        using var db = CreateDb();
+        var sut = CreateSut(db);
+        var (_, _, user) = await sut.RegisterAsync("profileUser", "pw", CancellationToken.None);
+
+        var (ok, error, updated) = await sut.UpdateProfileAsync(user!.Id, "support_team", null, CancellationToken.None);
+
+        ok.Should().BeFalse();
+        error.Should().Be(UsernameValidator.GenericBlockedMessage);
+        updated.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_ShouldFail_WhenUsernameIsInvalid()
+    {
+        using var db = CreateDb();
+        var sut = CreateSut(db);
+        var (_, _, user) = await sut.RegisterAsync("adminUser", "pw", CancellationToken.None);
+
+        var (ok, error) = await sut.UpdateUserAsync(user!.Id, "example.com", null, false, CancellationToken.None);
+
+        ok.Should().BeFalse();
+        error.Should().Be(UsernameValidator.IpOrDomainMessage);
     }
 
     [Fact]

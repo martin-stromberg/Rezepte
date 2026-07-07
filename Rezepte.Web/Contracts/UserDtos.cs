@@ -9,7 +9,7 @@ public record UserProfileDto(
 );
 
 public record UpdateProfileRequest(
-    [param: Required, MinLength(3)] string Username,
+    [param: Required] string Username,
     [param: EmailAddress] string? Email
 );
 

@@ -4,7 +4,7 @@ namespace Rezepte.Web.Contracts;
 
 public record RegisterRequest(
     [param: EmailAddress] string? Email,
-    [param: Required, MinLength(3)] string Username,
+    [param: Required] string Username,
     [param: Required, MinLength(6)] string Password
 );
 

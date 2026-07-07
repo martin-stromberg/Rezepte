@@ -62,7 +62,7 @@ public class UserAdminViewModel
             var res = await _api.Http.PostAsJsonAsync("api/admin/users", payload, ct);
             if (!res.IsSuccessStatusCode)
             {
-                Fail("Anlegen fehlgeschlagen."); return;
+                Fail(await ReadErrorAsync(res) ?? "Anlegen fehlgeschlagen."); return;
             }
             var created = await res.Content.ReadFromJsonAsync<UserRow>(cancellationToken: ct);
             if (created is not null)
@@ -87,7 +87,7 @@ public class UserAdminViewModel
         try
         {
             var res = await _api.Http.PutAsJsonAsync($"api/admin/users/{user.Id}", user, ct);
-            if (!res.IsSuccessStatusCode) { Fail("Speichern fehlgeschlagen."); return; }
+            if (!res.IsSuccessStatusCode) { Fail(await ReadErrorAsync(res) ?? "Speichern fehlgeschlagen."); return; }
             Ok("Gespeichert.");
         }
         catch { Fail("Speichern fehlgeschlagen."); }
@@ -107,6 +107,19 @@ public class UserAdminViewModel
         finally { IsBusy = false; Notify(); }
     }
 
+    private static async Task<string?> ReadErrorAsync(HttpResponseMessage res)
+    {
+        try
+        {
+            var obj = await res.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+            if (obj is not null && obj.TryGetValue("message", out var value) && value is string message)
+                return message;
+        }
+        catch { }
+
+        return null;
+    }
+
     private void Ok(string? message = null) { IsError = false; Message = message; }
     private void Fail(string message) { IsError = true; Message = message; }
     private void Reset() { IsError = false; Message = null; }
@@ -115,14 +128,14 @@ public class UserAdminViewModel
     public class UserRow
     {
         public string Id { get; set; } = string.Empty;
-        [Required, MinLength(3)] public string Username { get; set; } = string.Empty;
+        [Required] public string Username { get; set; } = string.Empty;
         public string? Email { get; set; }
         public bool IsAdmin { get; set; }
     }
 
     public class NewUserModel
     {
-        [Required, MinLength(3)]
+        [Required]
         public string? Username { get; set; }
         [EmailAddress]
         public string? Email { get; set; }

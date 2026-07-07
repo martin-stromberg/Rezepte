@@ -157,7 +157,7 @@ public class UserProfileViewModel
     {
         public string Id { get; set; } = string.Empty;
 
-        [Required, MinLength(3)]
+        [Required]
         public string? Username { get; set; }
 
         [EmailAddress]

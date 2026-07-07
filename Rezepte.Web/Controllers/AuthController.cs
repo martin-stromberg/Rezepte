@@ -50,7 +50,7 @@ public class AuthController(IUserService userService) : ControllerBase
             {
                 return LocalRedirect("/register?error=1");
             }
-            return BadRequest(new { message = "Username and Password are required" });
+            return BadRequest(new { message = "Benutzername und Passwort sind erforderlich." });
         }
 
         var (ok, error, user) = await _userService.RegisterAsync(username, password, ct);
@@ -60,7 +60,7 @@ public class AuthController(IUserService userService) : ControllerBase
             {
                 return LocalRedirect("/register?error=1");
             }
-            return BadRequest(new { message = error ?? "Registration failed" });
+            return BadRequest(new { message = error ?? "Registrierung fehlgeschlagen." });
         }
 
         // When form post: redirect to login instead of returning JSON

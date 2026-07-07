@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Contracts;
 using Rezepte.Web.Data;
 using Rezepte.Web.Security;
+using Rezepte.Web.Services.Validation;
 
 namespace Rezepte.Web.Services;
 
@@ -111,22 +112,27 @@ public interface IUserService
     /// <returns>Tuple with success flag and optional error.</returns>
     Task<(bool ok, string? error)> DeleteAsync(string id, CancellationToken ct);
 }
-public class UserService(RezepteDbContext db) : BaseService, IUserService
+public class UserService(RezepteDbContext db, IUsernameValidator usernameValidator) : BaseService, IUserService
 {
     private readonly RezepteDbContext _db = db;
+    private readonly IUsernameValidator _usernameValidator = usernameValidator;
 
-    
 
     /// <inheritdoc />
     public async Task<(bool ok, string? error, User? user)> RegisterAsync(string username, string password, CancellationToken ct)
     {
-        if (await _db.Users.AnyAsync(u => u.Username == username, ct))
-            return (false, "Username already taken.", null);
+        var normalizedUsername = username?.Trim() ?? string.Empty;
+        var validation = _usernameValidator.Validate(normalizedUsername);
+        if (!validation.IsValid)
+            return (false, validation.ErrorMessage, null);
+
+        if (await _db.Users.AnyAsync(u => u.Username == normalizedUsername, ct))
+            return (false, "Benutzername ist bereits vergeben.", null);
 
         var isFirst = !await _db.Users.AnyAsync(ct);
         var entity = new Entities.User
         {
-            Username = username,
+            Username = normalizedUsername,
             PasswordHash = PasswordHasher.Hash(password),
             IsAdmin = isFirst
         };
@@ -174,8 +180,10 @@ public class UserService(RezepteDbContext db) : BaseService, IUserService
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
         if (entity is null) return (false, "User not found.", null);
 
-        if (string.IsNullOrWhiteSpace(username) || username.Length < 3)
-            return (false, "Der Benutzername muss mindestens 3 Zeichen haben.", null);
+        var normalizedUsername = username?.Trim() ?? string.Empty;
+        var validation = _usernameValidator.Validate(normalizedUsername);
+        if (!validation.IsValid)
+            return (false, validation.ErrorMessage, null);
 
         if (!string.IsNullOrWhiteSpace(email))
         {
@@ -183,14 +191,14 @@ public class UserService(RezepteDbContext db) : BaseService, IUserService
                 return (false, "Die E-Mail ist ungültig.", null);
         }
 
-        if (!string.Equals(entity.Username, username, StringComparison.Ordinal))
+        if (!string.Equals(entity.Username, normalizedUsername, StringComparison.Ordinal))
         {
-            var exists = await _db.Users.AnyAsync(u => u.Username == username, ct);
+            var exists = await _db.Users.AnyAsync(u => u.Username == normalizedUsername, ct);
             if (exists)
                 return (false, "Benutzername ist bereits vergeben.", null);
         }
 
-        entity.Username = username;
+        entity.Username = normalizedUsername;
         entity.Email = email ?? string.Empty;
 
         await _db.SaveChangesAsync(ct);
@@ -229,12 +237,14 @@ public class UserService(RezepteDbContext db) : BaseService, IUserService
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
         if (entity is null) return (false, "User not found.");
 
-        if (string.IsNullOrWhiteSpace(username) || username.Length < 3)
-            return (false, "Der Benutzername muss mindestens 3 Zeichen haben.");
+        var normalizedUsername = username?.Trim() ?? string.Empty;
+        var validation = _usernameValidator.Validate(normalizedUsername);
+        if (!validation.IsValid)
+            return (false, validation.ErrorMessage);
 
-        if (!string.Equals(entity.Username, username, StringComparison.Ordinal))
+        if (!string.Equals(entity.Username, normalizedUsername, StringComparison.Ordinal))
         {
-            var exists = await _db.Users.AnyAsync(u => u.Username == username && u.Id != id, ct);
+            var exists = await _db.Users.AnyAsync(u => u.Username == normalizedUsername && u.Id != id, ct);
             if (exists) return (false, "Benutzername ist bereits vergeben.");
         }
 
@@ -244,7 +254,7 @@ public class UserService(RezepteDbContext db) : BaseService, IUserService
                 return (false, "Die E-Mail ist ungültig.");
         }
 
-        entity.Username = username;
+        entity.Username = normalizedUsername;
         entity.Email = email ?? string.Empty;
         entity.IsAdmin = isAdmin;
         await _db.SaveChangesAsync(ct);

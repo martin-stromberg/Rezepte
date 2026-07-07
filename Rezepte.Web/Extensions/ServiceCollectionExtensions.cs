@@ -12,6 +12,7 @@ using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.BackgroundJobs.Handlers;
 using Rezepte.Web.Services.Import;
 using Rezepte.Web.Services.Import.Url;
+using Rezepte.Web.Services.Validation;
 using Rezepte.Web.ViewModels;
 using System.Net;
 using System.Security.Cryptography;
@@ -126,6 +127,7 @@ public static class ServiceCollectionExtensions
         });
         
         // Application services
+        services.AddSingleton<IUsernameValidator, UsernameValidator>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICookbookService, CookbookService>();
         services.AddScoped<IRecipeService, RecipeService>();

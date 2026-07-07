@@ -35,8 +35,6 @@ public class AdminUsersController(IUserService users) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserRequest dto, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(dto.Username) || dto.Username.Length < 3)
-            return BadRequest(new { message = "Der Benutzername muss mindestens 3 Zeichen haben." });
         if (!string.IsNullOrWhiteSpace(dto.Email))
         {
             if (!dto.Email.Contains('@') || dto.Email.Length > 256)
@@ -69,7 +67,7 @@ public class AdminUsersController(IUserService users) : ControllerBase
     public async Task<IActionResult> Update(string id, [FromBody] UpdateUserRequest dto, CancellationToken ct)
     {
         var (ok, error) = await _users.UpdateUserAsync(id, dto.Username, dto.Email, dto.IsAdmin, ct);
-        if (!ok) return BadRequest(new { message = error ?? "Update failed" });
+        if (!ok) return BadRequest(new { message = error ?? "Aktualisieren fehlgeschlagen." });
         return NoContent();
     }
 
