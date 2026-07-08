@@ -355,16 +355,19 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
     public async Task<IActionResult> SearchAsync(
         [FromQuery] string? q,
         [FromQuery] string? tags,
-        [FromQuery] int? cookbookId,
+        [FromQuery] string? cookbookId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string sort = "relevance",
         CancellationToken ct = default)
     {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
         if (page < 1) page = 1;
         pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
-        var recipes = await _recipes.SearchAsync(q, tags, cookbookId, page, pageSize, sort, ct);
+        var recipes = await _recipes.SearchAsync(userId, q, tags, cookbookId, page, pageSize, sort, ct);
 
         // map to DTOs and create safe snippets
         var items = recipes.Items.Select(i => new RecipeSearchItemDto

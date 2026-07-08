@@ -188,6 +188,60 @@ public class RecipeServiceTests
     }
 
     [Fact]
+    public async Task SearchAsync_ShouldFindHonigRecipe_ForOwningUser()
+    {
+        using var db = CreateDb();
+        var cookbook = new Rezepte.Web.Entities.Cookbook { Name = "Marinaden", UserId = UserA };
+        db.Cookbooks.Add(cookbook);
+        await db.SaveChangesAsync();
+
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        await sut.CreateAsync(UserA, cookbook.Id, "Honig - Senf - Sojamarinade", null, null, portions: null, steps: Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+
+        var result = await sut.SearchAsync(UserA, "Honig", tags: null, cookbookId: null, page: 1, pageSize: 10, sort: "relevance", ct: CancellationToken.None);
+
+        result.TotalCount.Should().BeGreaterThanOrEqualTo(1);
+        result.Items.Select(i => i.Title).Should().Contain("Honig - Senf - Sojamarinade");
+    }
+
+    [Fact]
+    public async Task SearchAsync_ShouldNotReturnForeignUserRecipes()
+    {
+        using var db = CreateDb();
+        var cookbook = new Rezepte.Web.Entities.Cookbook { Name = "Marinaden", UserId = UserA };
+        db.Cookbooks.Add(cookbook);
+        await db.SaveChangesAsync();
+
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        await sut.CreateAsync(UserA, cookbook.Id, "Honig - Senf - Sojamarinade", null, null, portions: null, steps: Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+
+        var result = await sut.SearchAsync(UserB, "Honig", tags: null, cookbookId: null, page: 1, pageSize: 10, sort: "relevance", ct: CancellationToken.None);
+
+        result.Items.Select(i => i.Title).Should().NotContain("Honig - Senf - Sojamarinade");
+        result.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SearchAsync_ShouldFilterByStringCookbookId()
+    {
+        using var db = CreateDb();
+        var matchingCookbook = new Rezepte.Web.Entities.Cookbook { Name = "Marinaden", UserId = UserA };
+        var otherCookbook = new Rezepte.Web.Entities.Cookbook { Name = "Desserts", UserId = UserA };
+        db.Cookbooks.AddRange(matchingCookbook, otherCookbook);
+        await db.SaveChangesAsync();
+
+        var sut = new RecipeService(db, CreateMockEnv(), CreateMockHttpContextAccessor());
+        await sut.CreateAsync(UserA, matchingCookbook.Id, "Honig - Senf - Sojamarinade", null, null, portions: null, steps: Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+        await sut.CreateAsync(UserA, otherCookbook.Id, "Honigkuchen", null, null, portions: null, steps: Array.Empty<RecipeCreateStep>(), CancellationToken.None);
+
+        var result = await sut.SearchAsync(UserA, "Honig", tags: null, cookbookId: matchingCookbook.Id, page: 1, pageSize: 10, sort: "relevance", ct: CancellationToken.None);
+
+        result.Items.Select(i => i.Title).Should().ContainSingle()
+            .Which.Should().Be("Honig - Senf - Sojamarinade");
+        result.TotalCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task AddExistingToCookbookAsync_ShouldCloneSelected_WithStepsAndIngredients()
     {
         using var db = CreateDb();
