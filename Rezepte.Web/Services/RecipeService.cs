@@ -32,7 +32,7 @@ public interface IRecipeService
     Task<(bool ok, string? error)> DeleteImageAsync(string userId, string recipeId, string imageId, CancellationToken ct);
     Task<List<Recipe>> GetLatestAsync(string userId, int count, CancellationToken ct);
     Task<Recipe> FindByUri(string userId, string v, CancellationToken ct);
-    Task<SearchResult> SearchAsync(string? q, string? tags, int? cookbookId, int page, int pageSize, string sort, CancellationToken ct);
+    Task<SearchResult> SearchAsync(string userId, string? q, string? tags, string? cookbookId, int page, int pageSize, string sort, CancellationToken ct);
 }
 
 public record RecipeCreateIngredient(decimal Amount, string? Unit, string Name);
@@ -425,11 +425,12 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             .FirstOrDefaultAsync(r => r.UserId == userId && r.Uri == uri, ct);
     }
 
-    public async Task<SearchResult> SearchAsync(string? q, string? tags, int? cookbookId, int page, int pageSize, string sort, CancellationToken ct)
+    public async Task<SearchResult> SearchAsync(string userId, string? q, string? tags, string? cookbookId, int page, int pageSize, string sort, CancellationToken ct)
     {
         // Base query: include steps + ingredients and images; RecipeCookbooks needed for cookbook filter
         IQueryable<Recipe> query = _db.Recipes
             .AsNoTracking()
+            .Where(r => r.UserId == userId)
             .Include(r => r.Images)
             .Include(r => r.Steps!)
                 .ThenInclude(s => s.Ingredients!)
@@ -448,11 +449,9 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             );
         }
 
-        // cookbookId comes as int? in the API contract, but Cookbooks/CookbookId are stored as string IDs.
-        if (cookbookId.HasValue)
+        if (!string.IsNullOrWhiteSpace(cookbookId))
         {
-            var cookbookIdStr = cookbookId.Value.ToString();
-            query = query.Where(r => r.RecipeCookbooks.Any(cb => cb.CookbookId == cookbookIdStr));
+            query = query.Where(r => r.RecipeCookbooks.Any(cb => cb.CookbookId == cookbookId));
         }
 
         // NOTE: Tags are not modelled on Recipe -> ignore tags filter for now.
