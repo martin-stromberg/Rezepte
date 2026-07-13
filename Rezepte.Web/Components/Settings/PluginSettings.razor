@@ -1,0 +1,152 @@
+@using Rezepte.Web.Services.Import.Plugins
+@inject IPluginSettingsService PluginSettingsService
+
+@if (isLoading)
+{
+    <div>Lade...</div>
+}
+else if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert alert-danger py-2">@message</div>
+}
+else if (plugins.Count == 0)
+{
+    <div class="text-muted">Keine Import-Plugins gefunden.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 72px;">Aktiv</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Assembly</th>
+                    <th class="text-end" style="width: 112px;">Reihenfolge</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < plugins.Count; i++)
+                {
+                    var plugin = plugins[i];
+                    <tr>
+                        <td>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       checked="@plugin.Enabled"
+                                       disabled="@isSaving"
+                                       aria-label="@($"Plugin {plugin.DisplayName} aktivieren")"
+                                       @onchange="args => SetEnabledAsync(plugin.PluginId, args)" />
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@plugin.DisplayName</div>
+                            <div class="small text-muted">@plugin.PluginId</div>
+                            @if (!string.IsNullOrWhiteSpace(plugin.Description))
+                            {
+                                <div class="small">@plugin.Description</div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(plugin.Error))
+                            {
+                                <div class="small text-danger">@plugin.Error</div>
+                            }
+                        </td>
+                        <td>
+                            <span class="@StatusClass(plugin.Status)">@plugin.Status</span>
+                        </td>
+                        <td>
+                            <div class="small">@plugin.AssemblyName</div>
+                            <div class="small text-muted">@plugin.TypeName</div>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Plugin-Reihenfolge">
+                                <button class="btn btn-outline-secondary" title="Nach oben" disabled="@(isSaving || i == 0)" @onclick="() => MoveAsync(plugin.PluginId, -1)">↑</button>
+                                <button class="btn btn-outline-secondary" title="Nach unten" disabled="@(isSaving || i == plugins.Count - 1)" @onclick="() => MoveAsync(plugin.PluginId, 1)">↓</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<PluginSettingsItem> plugins = [];
+    private bool isLoading = true;
+    private bool isSaving;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        message = null;
+        try
+        {
+            plugins = (await PluginSettingsService.GetPluginsAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            message = $"Plugins konnten nicht geladen werden: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SetEnabledAsync(string pluginId, ChangeEventArgs args)
+    {
+        var enabled = args.Value is bool value ? value : bool.TryParse(args.Value?.ToString(), out var parsed) && parsed;
+        isSaving = true;
+        message = null;
+        try
+        {
+            await PluginSettingsService.SetEnabledAsync(pluginId, enabled);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            message = $"Plugin konnte nicht gespeichert werden: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task MoveAsync(string pluginId, int direction)
+    {
+        isSaving = true;
+        message = null;
+        try
+        {
+            await PluginSettingsService.MoveAsync(pluginId, direction);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            message = $"Reihenfolge konnte nicht gespeichert werden: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private static string StatusClass(string status) => status switch
+    {
+        PluginStatus.Loaded => "badge text-bg-success",
+        PluginStatus.Missing => "badge text-bg-warning",
+        PluginStatus.Incompatible => "badge text-bg-danger",
+        PluginStatus.LoadFailed => "badge text-bg-danger",
+        _ => "badge text-bg-secondary"
+    };
+}

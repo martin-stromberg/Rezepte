@@ -22,6 +22,8 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
+    <ProjectReference Include="..\Rezepte.Tests.PluginFixture\Rezepte.Tests.PluginFixture.csproj" />
     <ProjectReference Include="..\Rezepte.Web\Rezepte.Web.csproj" />
   </ItemGroup>
 </Project>

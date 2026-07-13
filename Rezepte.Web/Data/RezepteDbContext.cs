@@ -19,6 +19,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
 
     public DbSet<UserSetting> UserSettings => Set<UserSetting>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    public DbSet<PluginSetting> PluginSettings => Set<PluginSetting>();
 
     // Calendar events
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
@@ -237,6 +238,23 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.HasKey(a => a.Key);
             b.Property(a => a.Key).IsRequired().HasMaxLength(128);
             b.Property(a => a.Value).IsRequired();
+        });
+
+        modelBuilder.Entity<PluginSetting>(b =>
+        {
+            b.HasKey(p => p.PluginId);
+            b.Property(p => p.PluginId).IsRequired().HasMaxLength(128);
+            b.Property(p => p.DisplayName).IsRequired().HasMaxLength(200);
+            b.Property(p => p.Description).HasMaxLength(1000);
+            b.Property(p => p.AssemblyName).IsRequired().HasMaxLength(256);
+            b.Property(p => p.TypeName).IsRequired().HasMaxLength(512);
+            b.Property(p => p.Enabled).IsRequired();
+            b.Property(p => p.OrderIndex).IsRequired();
+            b.Property(p => p.Status).IsRequired().HasMaxLength(32);
+            b.Property(p => p.Error).HasColumnType("TEXT");
+            b.Property(p => p.DiscoveredAt).IsRequired();
+            b.Property(p => p.LastSeenAt).IsRequired();
+            b.HasIndex(p => p.OrderIndex);
         });
     }
 }

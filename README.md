@@ -17,6 +17,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Suche nach Rezepten und Anzeige neuester bzw. zufaelliger Rezepte.
 - Kalenderansicht fuer geplante Rezepte mit optionaler Uebernahme hinterlegter Beilagen.
 - Import von Rezepten aus Backups, Dateien, URLs und unterstuetzten Webseiten.
+- Plugin-Framework fuer Rezeptimporte mit aktivierbarer Reihenfolge in den Admin-Einstellungen.
 - Optionale KI-Importe ueber Google Vision und Gemini.
 - Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
@@ -36,6 +37,8 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 ```text
 Rezepte.sln
 Rezepte.Web/        Webanwendung, API, Services, Datenmodell und Migrationen
+Rezepte.Import.Abstractions/
+                    Gemeinsame Vertrage und DTOs fuer Import-Plugins
 Rezepte.Tests/      Unit-Tests fuer zentrale Services
 Docs/               Anforderungskatalog und Installationshinweise
 ```
@@ -46,9 +49,17 @@ Wichtige Bereiche in `Rezepte.Web`:
 - `Components/Shared`: wiederverwendbare UI-Komponenten und Dialoge.
 - `Controllers`: API-Endpunkte fuer Auth, Benutzer, Kochbuecher, Rezepte, Kalender, Jobs, Einstellungen und Exporte.
 - `Services`: Fachlogik und Infrastruktur.
-- `Services/Import`: Import-Orchestrierung und Handler fuer Backup-, URL-, Webseiten- und KI-Importe.
+- `Services/Import`: Import-Orchestrierung, PluginManager und aktuell noch eingebaute Handler fuer Backup-, URL-, Webseiten- und KI-Importe.
 - `Data`, `Entities`, `Migrations`: EF-Core-Datenzugriff und Schemaentwicklung.
 - `wwwroot`: statische Assets, CSS, JavaScript, Icons und Manifest.
+
+## Import-Plugins
+
+Rezeptimporte laufen ueber einen `PluginManager`. Beim Programmstart erkennt die Anwendung Import-Plugin-DLLs im Ausgabeverzeichnis unter `plugins` sowie in direkten Unterordnern von `plugins`. Gefundene Plugins werden in der Datenbank mit Aktivierungsstatus, Reihenfolge und Ladezustand persistiert. Administratoren koennen diese Liste in den Einstellungen unter `Plugins` aktivieren, deaktivieren und sortieren.
+
+Beim Import werden nur aktivierte Plugins mit Status `Loaded` in gespeicherter Reihenfolge gefragt. Das erste passende Plugin verarbeitet die Datei oder URL; wenn kein Plugin passt, endet der Import mit einer fachlichen Fehlermeldung.
+
+Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, Host-seitige Pluginverwaltung, Admin-UI und die Plugin-basierte Importauswahl. Die bestehenden produktiven Importquellen sind noch nicht in separate Klassenbibliotheksprojekte ausgelagert; sie sind weiterhin als Built-in-Plugins im Webprojekt registriert. Details und aktuelle Einschraenkungen stehen in `Docs/help/import-plugins.md`.
 
 ## Voraussetzungen
 
@@ -133,6 +144,7 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 - `Docs/help/navigation.md`: Bedienhinweise zur Navigation, Einrichtung und zum Benutzermenue.
 - `Docs/help/user-accounts.md`: Bedienhinweise zu Registrierung, Profil und Admin-Benutzerverwaltung.
 - `Docs/help/exports.md`: Bedienhinweise zu Datenexporten, Sicherungen und Fortschrittsanzeige.
+- `Docs/help/import-plugins.md`: Bedienhinweise und aktueller Umsetzungsstand des Import-Pluginsystems.
 - `Docs/help/side-dishes.md`: Bedienhinweise zu Beilagen in Rezepten, Kalender und Einkaufsliste.
 - `Docs/help/recipe-search.md`: Bedienhinweise zur Rezeptsuche, Trefferlogik und Kochbuchfilterung.
 - `Docs/help/shopping-list.md`: Bedienhinweise zur Einkaufsliste und Rezeptuebernahme.

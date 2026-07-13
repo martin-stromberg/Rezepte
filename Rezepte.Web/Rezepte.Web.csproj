@@ -43,4 +43,34 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
+  </ItemGroup>
+
+  <Target Name="CopyImportPluginsToOutput" AfterTargets="Build">
+    <ItemGroup>
+      <ImportPluginProject Include="..\Rezepte.Import.Plugins.*\*.csproj" />
+      <ImportPluginOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*">
+        <PluginName>%(ImportPluginProject.Filename)</PluginName>
+      </ImportPluginOutput>
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(ImportPluginOutput)"
+      DestinationFiles="@(ImportPluginOutput->'$(OutputPath)plugins\%(PluginName)\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyImportPluginsToPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <ImportPluginProject Include="..\Rezepte.Import.Plugins.*\*.csproj" />
+      <ImportPluginPublishOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*">
+        <PluginName>%(ImportPluginProject.Filename)</PluginName>
+      </ImportPluginPublishOutput>
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(ImportPluginPublishOutput)"
+      DestinationFiles="@(ImportPluginPublishOutput->'$(PublishDir)plugins\%(PluginName)\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

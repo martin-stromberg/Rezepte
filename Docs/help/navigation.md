@@ -30,3 +30,5 @@ Hinweise zur Registrierung, Profilbearbeitung und Benutzerverwaltung stehen in `
 
 Die Einrichtung ist fuer angemeldete Benutzer ueber das Zahnradsymbol in der Menueleiste erreichbar. Der fruehere Text `Einrichtung` wird in der Menueleiste nicht mehr angezeigt; das Symbol oeffnet weiterhin die Einstellungsseite.
 
+Administratoren finden dort auch den Bereich `Plugins` zur Verwaltung der Import-Plugins. Details stehen in `Docs/help/import-plugins.md`.
+

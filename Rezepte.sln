@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Web", "Rezepte.Web\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Tests", "Rezepte.Tests\Rezepte.Tests.csproj", "{1D20AA83-7518-7848-FDC7-E5AC93A89B11}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.Abstractions", "Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj", "{1BC5A1D0-6A4D-4E0E-A340-EEBDCD1FC8C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Tests.PluginFixture", "Rezepte.Tests.PluginFixture\Rezepte.Tests.PluginFixture.csproj", "{F7447499-9A29-4B5D-9CB9-75E5A7F2D62B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{1D20AA83-7518-7848-FDC7-E5AC93A89B11}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1D20AA83-7518-7848-FDC7-E5AC93A89B11}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1D20AA83-7518-7848-FDC7-E5AC93A89B11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1BC5A1D0-6A4D-4E0E-A340-EEBDCD1FC8C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BC5A1D0-6A4D-4E0E-A340-EEBDCD1FC8C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1BC5A1D0-6A4D-4E0E-A340-EEBDCD1FC8C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1BC5A1D0-6A4D-4E0E-A340-EEBDCD1FC8C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7447499-9A29-4B5D-9CB9-75E5A7F2D62B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7447499-9A29-4B5D-9CB9-75E5A7F2D62B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7447499-9A29-4B5D-9CB9-75E5A7F2D62B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7447499-9A29-4B5D-9CB9-75E5A7F2D62B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
