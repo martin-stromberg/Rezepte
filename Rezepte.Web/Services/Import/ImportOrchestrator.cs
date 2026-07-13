@@ -97,6 +97,9 @@ public sealed class ImportOrchestrator
                         // note: pass fresh stream (seek to 0)
                         if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
                         var res = await interactive.HandleInteractiveAsync(workStream, fileName, uri, targetCookbookId, userId, interaction, ct).ConfigureAwait(false);
+                        res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
+                            .PersistAsync(res, targetCookbookId, userId, ct)
+                            .ConfigureAwait(false);
                         session.Result = res;
                         session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
                         break;
@@ -105,6 +108,9 @@ public sealed class ImportOrchestrator
                     {
                         if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
                         var res = await handler.HandleAsync(workStream, fileName, uri, targetCookbookId, userId, ct).ConfigureAwait(false);
+                        res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
+                            .PersistAsync(res, targetCookbookId, userId, ct)
+                            .ConfigureAwait(false);
                         session.Result = res;
                         session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
                         break;

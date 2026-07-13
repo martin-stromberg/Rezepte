@@ -64,7 +64,7 @@ public sealed class PluginManagerTests
     }
 
     [Fact]
-    public async Task InitializeAsync_ShouldMarkDllWithoutPluginAsIncompatible()
+    public async Task InitializeAsync_ShouldIgnoreAdjacentContractAssemblyWithoutPlugin()
     {
         using var workspace = PluginWorkspace.Create();
         workspace.CopyOutputAssembly("Rezepte.Import.Abstractions.dll", workspace.PluginRoot);
@@ -74,9 +74,7 @@ public sealed class PluginManagerTests
 
         var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
         var plugin = await db.PluginSettings.FindAsync("incompatible:Rezepte.Import.Abstractions");
-        plugin.Should().NotBeNull();
-        plugin!.Status.Should().Be(PluginStatus.Incompatible);
-        plugin.Enabled.Should().BeFalse();
+        plugin.Should().BeNull();
     }
 
     [Fact]

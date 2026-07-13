@@ -2,6 +2,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Rezepte.Import.Abstractions;
 
 namespace Rezepte.Web.Services.Import.Url;
 
@@ -468,108 +469,64 @@ public abstract class BaseUrlReceiptImportHandler(IRecipeService recipes, ILogge
             return false;
         }
     }
-    public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
+    public Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(fileName))
-            return new ImportResult(false, "filename is required", new List<string>());
+            return Task.FromResult(new ImportResult(false, "filename is required", new List<string>()));
 
         // Only accept if CanHandleAsync parsed this file earlier and cached result
         if (_lastRecipe.Key != fileName || _lastRecipe.Value == null || _lastRecipe.Value.Length == 0)
         {
             Logger.LogInformation("No cached parse result for {FileName}", fileName);
-            return new ImportResult(false, "No cached parse result for this filename. Call CanHandleAsync first.", new List<string>());
+            return Task.FromResult(new ImportResult(false, "No cached parse result for this filename. Call CanHandleAsync first.", new List<string>()));
         }
 
-        var created = new List<string>();
-
-        foreach (var imported in _lastRecipe.Value)
-        {
-            ct.ThrowIfCancellationRequested();
-            try
-            {
-                // Build one step containing the instructions and all ingredients
-                var stepIngredients = (imported.Ingredients?.Items ?? Array.Empty<RecipeIngredient>())
-                    .Where(i => i is not null)
-                    .Select(i =>
-                    {
-                        // Try to parse numeric amount from the quantity string; fallback to 0
-                        decimal amount = 0m;
-                        string? unit = null;
-                        var qty = i!.Quantity?.Trim() ?? string.Empty;
-
-                        // Simple heuristic: if starts with number, parse until non-number/decimal/comma
-                        var numStr = new string(qty.TakeWhile(c => char.IsDigit(c) || c == '.' || c == ',').ToArray());
-                        if (!string.IsNullOrWhiteSpace(numStr))
-                        {
-                            if (decimal.TryParse(numStr.Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out var val))
-                            {
-                                amount = val;
-                                // unit is the rest
-                                var rest = qty.Substring(numStr.Length).Trim();
-                                unit = string.IsNullOrWhiteSpace(rest) ? null : rest;
-                            }
-                        }
-
-                        // If no numeric amount parsed, put the whole quantity into the name prefix to preserve info
-                        var name = string.IsNullOrWhiteSpace(numStr) ? $"{qty} {i.Name}".Trim() : i.Name;
-
-                        return new RecipeCreateIngredient(amount, string.IsNullOrWhiteSpace(unit) ? null : unit, name);
-                    }).ToList();
-
-                var steps = imported.Instructions.Steps.Select((step, i) =>
-                {
-                    return new RecipeCreateStep(
-                        Title: null,
-                        Description: step.Text ?? string.Empty,
-                        DurationMinutes: 0,
-                        RequiresOvernightRest: false,
-                        Ingredients: i == 0 ? stepIngredients : new List<RecipeCreateIngredient>());
-                }).ToList();
-                var existingRecipe = await Recipes.FindByUri(userId, imported.Uri ?? string.Empty, ct).ConfigureAwait(false);
-                if (existingRecipe is not null)
-                {
-                    var (ok, error) = await Recipes.UpdateAsync(userId, existingRecipe.Id, imported.Title, imported.Description, imported.Uri, imported.Portions, steps, ct).ConfigureAwait(false);
-                    if (!ok)
-                    {
-                        Logger.LogWarning("Failed to create recipe from import: {Title} - {Error}", imported.Title, error);
-                        continue;
-                    }
-
-                    // Attach pictures (if any)
-                    if (imported.Pictures != null && imported.Pictures.Length > 0)
-                    {
-                        for (int i = 0; i < imported.Pictures.Length; i++)
-                        {
-                            ct.ThrowIfCancellationRequested();
-                            var imgBytes = imported.Pictures[i];
-                            if (imgBytes == null || imgBytes.Length == 0) continue;
-
-                            var ext = GetImageExtension(imgBytes);
-                            var imgFileName = SanitizeFileName($"{imported.Title ?? "image"}-{i + 1}{ext}");
-                            var contentType = GetContentTypeFromExtension(ext);
-                            await Recipes.AddImageAsync(userId, existingRecipe.Id, new MemoryStream(imgBytes), imgFileName, contentType, ct).ConfigureAwait(false);
-                        }
-                    }
-                    continue;
-                }
-
-                bool flowControl = await CreateNewRecipe(targetCookbookId, userId, created, imported, steps, ct).ConfigureAwait(false);
-                if (!flowControl)
-                {
-                    continue;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error while importing Chefkoch recipe {FileName}", fileName);
-            }
-        }
+        var importedRecipes = _lastRecipe.Value.Select(ToImportedRecipe).ToList();
 
         if (lastReader is not null)
         {
             lastReader.Dispose();
             lastReader = null;
         }
-        return new ImportResult(true, null, created);
+
+        return Task.FromResult(new ImportResult(true, null, new List<string>(), importedRecipes));
+    }
+
+    private static ImportedRecipe ToImportedRecipe(RecipeImport imported)
+    {
+        var ingredients = (imported.Ingredients?.Items ?? Array.Empty<RecipeIngredient>())
+            .Where(i => i is not null)
+            .Select(i => new ImportedIngredient { Quantity = i!.Quantity, Name = i.Name })
+            .ToList();
+
+        var steps = (imported.Instructions?.Steps ?? Array.Empty<RecipeInstruction>())
+            .Select(s => new ImportedRecipeStep { Text = s.Text })
+            .ToList();
+
+        var images = (imported.Pictures ?? Array.Empty<byte[]>())
+            .Where(p => p is { Length: > 0 })
+            .Select((p, index) =>
+            {
+                var extension = GetImageExtension(p);
+                return new ImportedImage
+                {
+                    Data = p,
+                    FileName = SanitizeFileName($"{imported.Title ?? "image"}-{index + 1}{extension}"),
+                    ContentType = GetContentTypeFromExtension(extension)
+                };
+            })
+            .ToList();
+
+        return new ImportedRecipe
+        {
+            Title = imported.Title,
+            Description = imported.Description,
+            SourceUri = imported.Uri,
+            Portions = imported.Portions,
+            WorkTimeMinutes = imported.WorkTime,
+            Ingredients = ingredients,
+            Steps = steps,
+            Images = images
+        };
     }
 }

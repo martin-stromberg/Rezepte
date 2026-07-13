@@ -3,7 +3,11 @@ using Rezepte.Web.Services.Import.Plugins;
 
 namespace Rezepte.Web.Services.Import;
 
-public class ImportService(IPluginManager pluginManager, IServiceProvider serviceProvider, ILogger<ImportService> logger) : IImportService
+public class ImportService(
+    IPluginManager pluginManager,
+    IServiceProvider serviceProvider,
+    IImportedRecipePersister recipePersister,
+    ILogger<ImportService> logger) : IImportService
 {
     private readonly IPluginManager _pluginManager = pluginManager;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
@@ -39,6 +43,7 @@ public class ImportService(IPluginManager pluginManager, IServiceProvider servic
             try
             {
                 var res = await handler.HandleAsync(stream, fileName, null, targetCookbookId, userId, ct).ConfigureAwait(false);
+                res = await recipePersister.PersistAsync(res, targetCookbookId, userId, ct).ConfigureAwait(false);
                 _logger.LogInformation("Import handled by plugin {PluginId} handler {Handler}, success={Success}", pluginHandler.Plugin.Id, handler.GetType().Name, res.Success);
                 return res;
             }

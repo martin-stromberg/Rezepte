@@ -42,7 +42,15 @@ public class ImportServicePluginTests
     {
         var services = new ServiceCollection().BuildServiceProvider();
         var manager = new FakePluginManager(handlers);
-        return new ImportService(manager, services, NullLogger<ImportService>.Instance);
+        return new ImportService(manager, services, new PassthroughPersister(), NullLogger<ImportService>.Instance);
+    }
+
+    private sealed class PassthroughPersister : IImportedRecipePersister
+    {
+        public Task<ImportResult> PersistAsync(ImportResult result, string targetCookbookId, string userId, CancellationToken ct = default)
+        {
+            return Task.FromResult(result);
+        }
     }
 
     private sealed class FakePluginManager(IReadOnlyList<RecordingHandler> handlers) : IPluginManager

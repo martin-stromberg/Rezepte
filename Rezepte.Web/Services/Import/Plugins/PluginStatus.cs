@@ -6,4 +6,5 @@ public static class PluginStatus
     public const string Missing = "Missing";
     public const string Incompatible = "Incompatible";
     public const string LoadFailed = "LoadFailed";
+    public const string RuntimeFailed = "RuntimeFailed";
 }

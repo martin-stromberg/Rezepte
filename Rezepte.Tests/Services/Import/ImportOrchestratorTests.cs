@@ -61,11 +61,21 @@ public sealed class ImportOrchestratorTests
 
     private static ImportOrchestrator CreateOrchestrator(params IImportHandler[] handlers)
     {
-        var services = new ServiceCollection().BuildServiceProvider();
+        var services = new ServiceCollection()
+            .AddSingleton<IImportedRecipePersister, PassthroughPersister>()
+            .BuildServiceProvider();
         return new ImportOrchestrator(
             services.GetRequiredService<IServiceScopeFactory>(),
             new FakePluginManager(handlers),
             NullLogger<ImportOrchestrator>.Instance);
+    }
+
+    private sealed class PassthroughPersister : IImportedRecipePersister
+    {
+        public Task<ImportResult> PersistAsync(ImportResult result, string targetCookbookId, string userId, CancellationToken ct = default)
+        {
+            return Task.FromResult(result);
+        }
     }
 
     private static async Task<ImportOrchestrator.ImportSession> WaitForResultAsync(ImportOrchestrator sut, string sessionId)

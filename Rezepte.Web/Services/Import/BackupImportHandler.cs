@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using Rezepte.Import.Abstractions;
 using Rezepte.Web.Entities;
-using Rezepte.Web.Services;
 using System;
 using System.IO.Compression;
 
@@ -10,11 +10,8 @@ namespace Rezepte.Web.Services.Import;
 /// Handler für Backup‑ZIPs (erwartet recipes.json im ZIP).
 /// Legt Rezepte im Zielkochbuch an (nutzt IRecipeService.CreateAsync).
 /// </summary>
-public class BackupImportHandler(IRecipeService recipes, ILogger<BackupImportHandler> logger) : BaseImportHandler, IImportHandler
+public class BackupImportHandler : BaseImportHandler, IImportHandler
 {
-    private readonly IRecipeService _recipes = recipes;
-    private readonly ILogger<BackupImportHandler> _logger = logger;
-
     public async Task<bool> CanHandleAsync(Stream stream, string fileName, CancellationToken ct = default)
     {
         // simple detection: .zip and contains recipes.json
@@ -33,10 +30,9 @@ public class BackupImportHandler(IRecipeService recipes, ILogger<BackupImportHan
 
     public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
     {
-        var created = new List<string>();
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
         var jsonEntry = archive.GetEntry("recipes.json");
-        if (jsonEntry == null) return new ImportResult(false, "recipes.json not found in archive.", created);
+        if (jsonEntry == null) return new ImportResult(false, "recipes.json not found in archive.", new List<string>());
 
         ExportRootDto? root;
         await using (var js = jsonEntry.Open())
@@ -48,58 +44,53 @@ public class BackupImportHandler(IRecipeService recipes, ILogger<BackupImportHan
         }
 
         if (root == null || root.Recipes == null || root.Recipes.Count == 0)
-            return new ImportResult(true, null, created); // nothing to do
+            return new ImportResult(true, null, new List<string>()); // nothing to do
 
+        var importedRecipes = new List<ImportedRecipe>();
         foreach (var r in root.Recipes)
         {
             ct.ThrowIfCancellationRequested();
-            try
-            {
-                var steps = r.Steps?.Select(s => new RecipeCreateStep(
-                    s.Title,
-                    s.Description,
-                    s.DurationMinutes,
-                    s.RequiresOvernightRest,
-                    (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
-                )).ToList() ?? new List<RecipeCreateStep>();
-
-                var (ok, error, recipe) = await _recipes.CreateAsync(userId, targetCookbookId, r.Title ?? string.Empty, r.Description, r.Uri ?? uri, r.Portions, steps, ct).ConfigureAwait(false);
-                if (!ok || recipe == null)
-                {
-                    _logger.LogWarning("Could not create recipe from import: {Title} -> {Error}", r.Title, error);
-                    continue;
-                }
-
-                created.Add(recipe.Id);
-
-                // Images: if present in archive, attach using AddImageAsync (optional)
-                if (r.ImagePaths != null && r.ImagePaths.Count > 0)
-                {
-                    foreach (var imgPath in r.ImagePaths)
-                    {
-                        var normalized = imgPath.Replace('\\', '/');
-                        var entry = archive.GetEntry(normalized);
-                        if (entry == null) continue;
-                        await using var entryStream = entry.Open();
-                        await using var msImg = new MemoryStream();
-                        await entryStream.CopyToAsync(msImg, ct).ConfigureAwait(false);
-                        var fileNameImg = Path.GetFileName(normalized);
-                        // AddImageAsync expects userId, recipeId, stream, fileName, contentType
-                        var (imgOk, imgErr, img) = await _recipes.AddImageAsync(userId, recipe.Id, new MemoryStream(msImg.ToArray()), fileNameImg, GetContentTypeFromExtension(Path.GetExtension(fileNameImg)), ct).ConfigureAwait(false);
-                        if (!imgOk)
-                        {
-                            _logger.LogWarning("Failed to import image {Image} for recipe {RecipeId}: {Error}", fileNameImg, recipe.Id, imgErr);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error importing recipe {RecipeTitle}", r.Title);
-            }
+            importedRecipes.Add(await ToImportedRecipeAsync(archive, r, uri, ct).ConfigureAwait(false));
         }
 
-        return new ImportResult(true, null, created);
+        return new ImportResult(true, null, new List<string>(), importedRecipes);
+    }
+
+    private static async Task<ImportedRecipe> ToImportedRecipeAsync(ZipArchive archive, ExportRecipeDto r, string? uri, CancellationToken ct)
+    {
+        var images = new List<ImportedImage>();
+        foreach (var imgPath in r.ImagePaths ?? [])
+        {
+            var normalized = imgPath.Replace('\\', '/');
+            var entry = archive.GetEntry(normalized);
+            if (entry == null) continue;
+
+            await using var entryStream = entry.Open();
+            await using var msImg = new MemoryStream();
+            await entryStream.CopyToAsync(msImg, ct).ConfigureAwait(false);
+            var fileNameImg = Path.GetFileName(normalized);
+            images.Add(new ImportedImage
+            {
+                Data = msImg.ToArray(),
+                FileName = fileNameImg,
+                ContentType = GetContentTypeFromExtension(Path.GetExtension(fileNameImg))
+            });
+        }
+
+        return new ImportedRecipe
+        {
+            Title = r.Title,
+            Description = r.Description,
+            SourceUri = r.Uri ?? uri,
+            Portions = r.Portions ?? 0,
+            Ingredients = (r.Steps ?? [])
+                .Take(1)
+                .SelectMany(s => s.Ingredients ?? [])
+                .Select(i => new ImportedIngredient { Quantity = $"{i.Amount} {i.Unit}".Trim(), Name = i.Name })
+                .ToList(),
+            Steps = (r.Steps ?? []).Select(s => new ImportedRecipeStep { Text = s.Description }).ToList(),
+            Images = images
+        };
     }
 
     private static string GetContentTypeFromExtension(string? ext)

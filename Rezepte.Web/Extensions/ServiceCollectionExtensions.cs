@@ -137,6 +137,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBackgroundJobHandler, ExportAllJobHandler>();
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<IImportService, ImportService>();
+        services.AddScoped<IImportedRecipePersister, ImportedRecipePersister>();
         services.AddSingleton<IPluginManager, PluginManager>();
         services.AddHostedService<PluginStartupService>();
         services.AddScoped<IPluginSettingsService, PluginSettingsService>();

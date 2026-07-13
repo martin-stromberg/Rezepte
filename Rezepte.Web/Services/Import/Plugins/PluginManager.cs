@@ -29,7 +29,7 @@ public sealed class PluginManager : IPluginManager
             _loadedPlugins = discovered
                 .Where(p => p.Status == PluginStatus.Loaded && p.HandlerType is not null)
                 .GroupBy(p => p.Id)
-                .ToDictionary(g => g.Key, g => g.First());
+                .ToDictionary(g => g.Key, SelectPreferredDescriptor);
         }
 
         using var scope = _scopeFactory.CreateScope();
@@ -70,6 +70,7 @@ public sealed class PluginManager : IPluginManager
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Could not create import handler for plugin {PluginId}", setting.PluginId);
+                await MarkRuntimeFailureAsync(serviceProvider, setting.PluginId, ex.Message, ct).ConfigureAwait(false);
             }
         }
 
@@ -128,6 +129,11 @@ public sealed class PluginManager : IPluginManager
 
             if (pluginTypes.Count == 0)
             {
+                if (IsKnownDependencyAssembly(path))
+                {
+                    return result;
+                }
+
                 result.Add(FailedDescriptor(path, PluginStatus.Incompatible, "Assembly contains no IImportPlugin implementation."));
                 return result;
             }
@@ -189,13 +195,19 @@ public sealed class PluginManager : IPluginManager
         return new ImportPluginDescriptor(id, Path.GetFileName(path), null, "unknown", Path.GetFileName(path), string.Empty, null, status, error);
     }
 
+    private static bool IsKnownDependencyAssembly(string path)
+    {
+        var fileName = Path.GetFileNameWithoutExtension(path);
+        return string.Equals(fileName, typeof(IImportPlugin).Assembly.GetName().Name, StringComparison.Ordinal);
+    }
+
     private static async Task SynchronizeSettingsAsync(RezepteDbContext db, IReadOnlyList<ImportPluginDescriptor> discovered, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var existing = await db.PluginSettings.ToDictionaryAsync(p => p.PluginId, ct).ConfigureAwait(false);
         var nextOrder = existing.Count == 0 ? 0 : existing.Values.Max(p => p.OrderIndex) + 1;
 
-        foreach (var plugin in discovered.GroupBy(p => p.Id).Select(g => g.First()))
+        foreach (var plugin in discovered.GroupBy(p => p.Id).Select(g => SelectPreferredDescriptor(g)))
         {
             if (existing.TryGetValue(plugin.Id, out var setting))
             {
@@ -233,6 +245,33 @@ public sealed class PluginManager : IPluginManager
             setting.Error = "Plugin was not found during startup discovery.";
         }
 
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    private static ImportPluginDescriptor SelectPreferredDescriptor(IEnumerable<ImportPluginDescriptor> descriptors)
+    {
+        return descriptors
+            .OrderByDescending(p => p.AssemblyName.StartsWith("Rezepte.Import.Plugins.", StringComparison.Ordinal) && !IsPlaceholder(p))
+            .ThenBy(p => p.AssemblyName == "Rezepte.Web")
+            .First();
+    }
+
+    private static bool IsPlaceholder(ImportPluginDescriptor descriptor)
+    {
+        return descriptor.Version.Contains("placeholder", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task MarkRuntimeFailureAsync(IServiceProvider serviceProvider, string pluginId, string error, CancellationToken ct)
+    {
+        var db = serviceProvider.GetRequiredService<RezepteDbContext>();
+        var setting = await db.PluginSettings.FirstOrDefaultAsync(p => p.PluginId == pluginId, ct).ConfigureAwait(false);
+        if (setting is null)
+        {
+            return;
+        }
+
+        setting.Status = PluginStatus.RuntimeFailed;
+        setting.Error = error;
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
