@@ -70,6 +70,157 @@ public class ProductiveImportPluginParserTests
     }
 
     [Fact]
+    public async Task ChefkochPlugin_ShouldReadCollectionPreviewWithoutImportingRecipes()
+    {
+        var html = """
+            <html>
+              <head><title>Erdbeerzeit</title></head>
+              <body>
+                <main>
+                  <h1>Erdbeerzeit</h1>
+                  <article>
+                    <a href="/rezepte/1234567890/Erdbeerkuchen.html">
+                      <img src="/img/erdbeerkuchen.jpg" />
+                      Erdbeerkuchen
+                    </a>
+                  </article>
+                  <article>
+                    <a href="https://www.chefkoch.de/rezepte/9876543210/Erdbeer-Dessert.html">Erdbeer Dessert</a>
+                  </article>
+                </main>
+              </body>
+            </html>
+            """;
+
+        var handler = new ChefkochImportHandler();
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html));
+
+        var preview = await handler.TryReadCollectionPreviewAsync(stream, "Erdbeerzeit.html", "https://www.chefkoch.de/rezeptsammlung/3212418/Erdbeerzeit.html");
+
+        preview.Should().NotBeNull();
+        preview!.Title.Should().Be("Erdbeerzeit");
+        preview.Items.Should().HaveCount(2);
+        preview.Items.Should().Contain(i => i.Id == "chefkoch-1234567890" && i.Title == "Erdbeerkuchen");
+        preview.Items.Should().Contain(i => i.Id == "chefkoch-9876543210" && i.Url == "https://www.chefkoch.de/rezepte/9876543210/Erdbeer-Dessert.html");
+    }
+
+    [Fact]
+    public async Task ChefkochPlugin_ShouldRemoveRatingTextFromCollectionPreviewTitles()
+    {
+        var html = """
+            <html>
+              <body>
+                <main>
+                  <h1>Erdbeerzeit</h1>
+                  <article>
+                    <a href="/rezepte/1234567890/Erdbeerkuchen.html">
+                      <span class="ds-heading recipe-title">Erdbeerkuchen</span>
+                      <span class="recipe-rating">4,8/5 (27 Bewertungen)</span>
+                    </a>
+                  </article>
+                  <article>
+                    <a href="/rezepte/9876543210/Erdbeer-Dessert.html">
+                      Erdbeer Dessert Bewertung 4,7 von 5 19 Bewertungen
+                    </a>
+                  </article>
+                </main>
+              </body>
+            </html>
+            """;
+
+        var handler = new ChefkochImportHandler();
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html));
+
+        var preview = await handler.TryReadCollectionPreviewAsync(stream, "Erdbeerzeit.html", "https://www.chefkoch.de/rezeptsammlung/3212418/Erdbeerzeit.html");
+
+        preview.Should().NotBeNull();
+        preview!.Items.Should().Contain(i => i.Id == "chefkoch-1234567890" && i.Title == "Erdbeerkuchen");
+        preview.Items.Should().Contain(i => i.Id == "chefkoch-9876543210" && i.Title == "Erdbeer Dessert");
+    }
+
+    [Fact]
+    public async Task ChefkochPlugin_ShouldKeepVisibleCollectionTitleBetweenImgAndSvg()
+    {
+        var html = """
+            <html>
+              <body>
+                <main>
+                  <h1>Erdbeerzeit</h1>
+                  <article>
+                    <a href="/rezepte/1234567890/Erdbeerkuchen.html">
+                      <img src="/img/erdbeerkuchen.jpg" alt="">
+                      <span>Erdbeerkuchen</span>
+                      <svg aria-hidden="true"><path d="M0 0h10v10z"></path></svg>
+                      <span>4,8/5 (27 Bewertungen)</span>
+                    </a>
+                  </article>
+                </main>
+              </body>
+            </html>
+            """;
+
+        var handler = new ChefkochImportHandler();
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html));
+
+        var preview = await handler.TryReadCollectionPreviewAsync(stream, "Erdbeerzeit.html", "https://www.chefkoch.de/rezeptsammlung/3212418/Erdbeerzeit.html");
+
+        preview.Should().NotBeNull();
+        preview!.Items.Should().ContainSingle(i => i.Id == "chefkoch-1234567890" && i.Title == "Erdbeerkuchen");
+    }
+
+    [Fact]
+    public async Task ChefkochPlugin_ShouldDeduplicateCollectionPreviewUrlVariantsByRecipeId()
+    {
+        var html = """
+            <html>
+              <body>
+                <main>
+                  <h1>Erdbeerzeit</h1>
+                  <a href="/rezepte/1234567890/Erdbeerkuchen.html?utm_source=list">Erdbeerkuchen</a>
+                  <a href="https://www.chefkoch.de/rezepte/1234567890/Erdbeerkuchen.html">Erdbeerkuchen nochmal</a>
+                  <a href="/rezepte/9876543210/Erdbeer-Dessert.html?portionen=4">Erdbeer Dessert</a>
+                </main>
+              </body>
+            </html>
+            """;
+
+        var handler = new ChefkochImportHandler();
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html));
+
+        var preview = await handler.TryReadCollectionPreviewAsync(stream, "Erdbeerzeit.html", "https://www.chefkoch.de/rezeptsammlung/3212418/Erdbeerzeit.html");
+
+        preview.Should().NotBeNull();
+        preview!.Items.Should().HaveCount(2);
+        preview.Items.Select(i => i.Id).Should().OnlyHaveUniqueItems();
+        preview.Items.Should().ContainSingle(i => i.Id == "chefkoch-1234567890");
+        preview.Items.Should().ContainSingle(i => i.Id == "chefkoch-9876543210");
+        preview.Items.Should().Contain(i => i.Url == "https://www.chefkoch.de/rezepte/1234567890/Erdbeerkuchen.html");
+        preview.Items.Should().Contain(i => i.Url == "https://www.chefkoch.de/rezepte/9876543210/Erdbeer-Dessert.html");
+    }
+
+    [Fact]
+    public async Task ChefkochPlugin_ShouldNotTreatSingleRecipeAsCollection()
+    {
+        var html = """
+            <html>
+              <body>
+                <main>
+                  <h1>Chefkoch-Rezept</h1>
+                  <a href="/rezepte/1234567890/Erdbeerkuchen.html">Erdbeerkuchen</a>
+                </main>
+              </body>
+            </html>
+            """;
+
+        var handler = new ChefkochImportHandler();
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html));
+
+        var preview = await handler.TryReadCollectionPreviewAsync(stream, "recipe.html", "https://www.chefkoch.de/rezepte/1234567890/Erdbeerkuchen.html");
+
+        preview.Should().BeNull();
+    }
+
+    [Fact]
     public async Task SecondSourcePlugin_ShouldParseJsonLdRecipe()
     {
         var html = Script(new

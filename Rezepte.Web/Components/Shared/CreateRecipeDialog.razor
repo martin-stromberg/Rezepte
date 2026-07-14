@@ -49,7 +49,7 @@
                         </button>
                     }
 
-                    <button class="btn btn-link text-muted" @onclick="CloseClicked" disabled="@isBusy">Abbrechen</button>
+                    <button class="btn btn-link text-muted" @onclick="CloseClicked">Abbrechen</button>
                 </div>
 
                 <InputFile id="fileInput" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; opacity:0;" OnChange="OnFileChange" />
@@ -78,6 +78,86 @@
                 @if (!string.IsNullOrEmpty(message))
                 {
                     <div class="mt-2 text-muted small">@message</div>
+                }
+
+                @if (collectionPreview is not null)
+                {
+                    <div class="collection-import mt-3">
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                            <h6 class="mb-0">@(!string.IsNullOrWhiteSpace(collectionPreview.Title) ? collectionPreview.Title : "Rezeptsammlung")</h6>
+                            <span class="badge text-bg-secondary">@collectionPreview.Items.Count Rezept(e)</span>
+                        </div>
+                        <div class="collection-toolbar mb-2">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Rezeptauswahl">
+                                <button class="btn btn-outline-secondary" @onclick="SelectAllCollectionItems" disabled="@collectionReadOnly">Alle auswählen</button>
+                                <button class="btn btn-outline-secondary" @onclick="ClearCollectionSelection" disabled="@collectionReadOnly">Alle abwählen</button>
+                            </div>
+                            <div class="collection-bulk-target">
+                                <select class="form-select form-select-sm"
+                                        value="@collectionSelection.BulkTargetCookbookId"
+                                        disabled="@collectionReadOnly"
+                                        @onchange="SetBulkTargetCookbook">
+                                    <option value="">Zielkochbuch wählen</option>
+                                    @foreach (var cookbook in availableCookbooks)
+                                    {
+                                        <option value="@cookbook.Id">@cookbook.Name</option>
+                                    }
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        @onclick="ApplyBulkTargetCookbook"
+                                        disabled="@(collectionReadOnly || collectionSelection.SelectedItemIds.Count == 0 || string.IsNullOrWhiteSpace(collectionSelection.BulkTargetCookbookId))">
+                                    Für Auswahl übernehmen
+                                </button>
+                            </div>
+                        </div>
+                        <div class="collection-list">
+                            @foreach (var item in collectionPreview.Items)
+                            {
+                                var status = GetCollectionItemStatus(item.Id);
+                                var isSelected = collectionSelection.SelectedItemIds.Contains(item.Id);
+                                var disabled = IsCollectionItemDisabled(item.Id);
+                                <div class="collection-item">
+                                    <div class="form-check collection-check">
+                                        <input class="form-check-input" type="checkbox" checked="@isSelected" disabled="@disabled" @onchange="e => ToggleCollectionItem(item.Id, e)" />
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(item.ThumbnailUrl))
+                                    {
+                                        <img class="collection-thumb" src="@item.ThumbnailUrl" alt="" />
+                                    }
+                                    <div class="collection-main">
+                                        <div class="collection-title">@item.Title</div>
+                                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                                        {
+                                            <div class="collection-description">@item.Description</div>
+                                        }
+                                        <select class="form-select form-select-sm mt-2"
+                                                value="@GetTargetCookbook(item.Id)"
+                                                disabled="@(!isSelected || collectionReadOnly)"
+                                                @onchange="e => SetTargetCookbook(item.Id, e)">
+                                            <option value="">Kochbuch auswählen</option>
+                                            @foreach (var cookbook in availableCookbooks)
+                                            {
+                                                <option value="@cookbook.Id">@cookbook.Name</option>
+                                            }
+                                        </select>
+                                        @if (!string.IsNullOrWhiteSpace(status?.Error))
+                                        {
+                                            <div class="text-danger small mt-1">@status.Error</div>
+                                        }
+                                    </div>
+                                    <div class="collection-state" title="@status?.Error">
+                                        @CollectionStateSymbol(status?.State)
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button class="btn btn-outline-secondary" @onclick="CloseClicked">Schließen</button>
+                            <button class="btn btn-primary" @onclick="SubmitCollectionSelectionAsync" disabled="@(!CanSubmitCollectionSelection)">
+                                Auswahl importieren
+                            </button>
+                        </div>
+                    </div>
                 }
             </div>
         </div>
@@ -123,6 +203,14 @@
 
     // optional cookbok id to associate created/imported recipes with a cookbook
     private string? _cookbookId;
+    private string? activeSessionId;
+    private CollectionPreviewDto? collectionPreview;
+    private List<CollectionItemStatusDto> collectionItems = [];
+    private List<CookbookDto> availableCookbooks = [];
+    private readonly CollectionImportSelectionState collectionSelection = new();
+    private bool collectionReadOnly;
+    private bool collectionSelectionRequired;
+    private string? initializedCollectionSelectionId;
 
     // Neue Felder für Testlauf
     private bool testRunAvailable;
@@ -137,8 +225,16 @@
         message = null;
         importUrl = string.Empty;
         showUrl = false;
+        activeSessionId = null;
+        collectionPreview = null;
+        collectionItems = [];
+        collectionSelection.Reset(_cookbookId);
+        collectionReadOnly = false;
+        collectionSelectionRequired = false;
+        initializedCollectionSelectionId = null;
         // prüfe asynchron ob Test-URLs vorhanden sind
         _ = LoadTestUrlsFlagAsync();
+        _ = LoadCookbooksAsync();
         StateHasChanged();
     }
     public void Hide()
@@ -147,10 +243,10 @@
         StateHasChanged();
     }
 
-    private void OnBackdropClick()
+    private async Task OnBackdropClick()
     {
         // close and report cancelled
-        Close(new DialogResult(false, null, null));
+        await CloseAsync(new DialogResult(false, null, null));
     }
 
     private async Task CreateEmptyAsync()
@@ -228,11 +324,13 @@
                 message = "Fehler: Keine Import-Session vom Server erhalten.";
                 return;
             }
+            activeSessionId = sessionId;
 
             // Poll loop (gleiches Verhalten wie bei URL-Import)
             while (true)
             {
                 await Task.Delay(800);
+                if (!isOpen) return;
                 var statusEndpoint = string.IsNullOrWhiteSpace(_cookbookId)
                     ? $"api/cookbooks/import-session/{sessionId}/status"
                     : $"api/cookbooks/{_cookbookId}/import-session/{sessionId}/status";
@@ -247,6 +345,7 @@
                 var waiting = statusJson.GetProperty("waitingForConfirmation").GetBoolean();
                 var statusText = statusJson.GetProperty("status").GetString();
                 message = statusText;
+                UpdateCollectionStatus(statusJson);
                 StateHasChanged();
 
                 if (waiting)
@@ -354,11 +453,13 @@
                 StateHasChanged();
                 return;
             }
+            activeSessionId = sessionId;
 
             // Poll loop
             while (true)
             {
                 await Task.Delay(800);
+                if (!isOpen) return;
                 var statusEndpoint = string.IsNullOrWhiteSpace(_cookbookId)
                     ? $"api/cookbooks/import-session/{sessionId}/status"
                     : $"api/cookbooks/{_cookbookId}/import-session/{sessionId}/status";
@@ -374,6 +475,7 @@
                 var waiting = statusJson.GetProperty("waitingForConfirmation").GetBoolean();
                 var statusText = statusJson.GetProperty("status").GetString();
                 message = statusText;
+                UpdateCollectionStatus(statusJson);
                 StateHasChanged();
 
                 if (waiting)
@@ -484,9 +586,9 @@
         });
     }
 
-    private void CloseClicked()
+    private async Task CloseClicked()
     {
-        Close(new DialogResult(false, null, null));
+        await CloseAsync(new DialogResult(false, null, null));
     }
 
     private async Task CloseAsync(DialogResult result)
@@ -494,11 +596,6 @@
         isOpen = false;
         await OnClosed.InvokeAsync(result);
         StateHasChanged();
-    }
-
-    private void Close(DialogResult result)
-    {
-        _ = CloseAsync(result);
     }
 
     private async Task LoadTestUrlsFlagAsync()
@@ -519,6 +616,151 @@
         {
             testRunAvailable = false;
         }
+    }
+
+    private async Task LoadCookbooksAsync()
+    {
+        try
+        {
+            availableCookbooks = await Api.Http.GetFromJsonAsync<List<CookbookDto>>("api/cookbooks") ?? [];
+            if (!string.IsNullOrWhiteSpace(_cookbookId))
+            {
+                collectionSelection.EnsureDefaultTargets((collectionPreview?.Items ?? []).Select(i => i.Id));
+            }
+            StateHasChanged();
+        }
+        catch
+        {
+            availableCookbooks = [];
+        }
+    }
+
+    private void UpdateCollectionStatus(JsonElement statusJson)
+    {
+        collectionReadOnly = statusJson.TryGetProperty("readOnly", out var readOnlyEl) && readOnlyEl.GetBoolean();
+        collectionSelectionRequired = statusJson.TryGetProperty("state", out var stateEl)
+            && string.Equals(stateEl.GetString(), "SelectionRequired", StringComparison.Ordinal);
+
+        if (statusJson.TryGetProperty("collection", out var collectionEl) && collectionEl.ValueKind != JsonValueKind.Null)
+        {
+            collectionPreview = collectionEl.Deserialize<CollectionPreviewDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (collectionPreview is not null && initializedCollectionSelectionId != collectionPreview.Id)
+            {
+                initializedCollectionSelectionId = collectionPreview.Id;
+                collectionSelection.InitializeItems(collectionPreview.Items.Select(i => i.Id), collectionReadOnly);
+            }
+        }
+
+        if (statusJson.TryGetProperty("items", out var itemsEl) && itemsEl.ValueKind == JsonValueKind.Array)
+        {
+            collectionItems = itemsEl.Deserialize<List<CollectionItemStatusDto>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+            collectionSelection.ReplaceItemStates(collectionItems.Select(i => (i.ItemId, (string?)i.State)));
+        }
+    }
+
+    private CollectionItemStatusDto? GetCollectionItemStatus(string itemId)
+    {
+        return collectionItems.FirstOrDefault(i => i.ItemId == itemId);
+    }
+
+    private bool IsCollectionItemDisabled(string itemId)
+    {
+        return collectionSelection.IsItemDisabled(itemId, collectionReadOnly);
+    }
+
+    private string GetTargetCookbook(string itemId)
+    {
+        return collectionSelection.GetTargetCookbook(itemId);
+    }
+
+    private void ToggleCollectionItem(string itemId, ChangeEventArgs e)
+    {
+        if (e.Value is bool selected && selected)
+        {
+            collectionSelection.ToggleItem(itemId, selected: true);
+        }
+        else
+        {
+            collectionSelection.ToggleItem(itemId, selected: false);
+        }
+    }
+
+    private void SetTargetCookbook(string itemId, ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            collectionSelection.SetTargetCookbook(itemId, null);
+        }
+        else
+        {
+            collectionSelection.SetTargetCookbook(itemId, value);
+        }
+    }
+
+    private void SetBulkTargetCookbook(ChangeEventArgs e)
+    {
+        collectionSelection.SetBulkTargetCookbook(e.Value?.ToString());
+    }
+
+    private void ApplyBulkTargetCookbook()
+    {
+        collectionSelection.ApplyBulkTargetCookbook(collectionReadOnly);
+    }
+
+    private void SelectAllCollectionItems()
+    {
+        collectionSelection.SelectAll(collectionReadOnly);
+    }
+
+    private void ClearCollectionSelection()
+    {
+        collectionSelection.ClearSelection(collectionReadOnly);
+    }
+
+    private bool CanSubmitCollectionSelection =>
+        collectionSelection.CanSubmit(activeSessionId, collectionReadOnly);
+
+    private async Task SubmitCollectionSelectionAsync()
+    {
+        if (activeSessionId is null || collectionPreview is null)
+        {
+            return;
+        }
+
+        var selected = collectionPreview.Items
+            .Where(i => collectionSelection.SelectedItemIds.Contains(i.Id))
+            .Select(i => new CollectionSelectionItemDto(i.Id, i.Url, GetTargetCookbook(i.Id)))
+            .ToList();
+
+        var endpoint = string.IsNullOrWhiteSpace(_cookbookId)
+            ? $"api/cookbooks/import-session/{activeSessionId}/selection"
+            : $"api/cookbooks/{_cookbookId}/import-session/{activeSessionId}/selection";
+
+        var res = await Api.Http.PostAsJsonAsync(endpoint, new CollectionSelectionDto(selected));
+        if (!res.IsSuccessStatusCode)
+        {
+            var body = await res.Content.ReadAsStringAsync();
+            message = $"Fehler beim Absenden der Auswahl: {res.StatusCode} - {body}";
+            StateHasChanged();
+            return;
+        }
+
+        collectionReadOnly = true;
+        collectionSelectionRequired = false;
+        message = "Importiere ausgewählte Rezepte...";
+        StateHasChanged();
+    }
+
+    private static string CollectionStateSymbol(string? state)
+    {
+        return state switch
+        {
+            "Importing" => "...",
+            "Succeeded" => "OK",
+            "Failed" => "!",
+            _ => ""
+        };
     }
 
     private async Task RunTestlaufAsync()
@@ -672,5 +914,12 @@
         if (totalSuccess)
             await CloseAsync(new DialogResult(true, null, null));
     }
+
+    private record CookbookDto(string Id, string Name);
+    private record CollectionPreviewDto(string Id, string? Title, string? SourceUri, List<CollectionItemDto> Items);
+    private record CollectionItemDto(string Id, string Title, string Url, string? ThumbnailUrl, string? Description);
+    private record CollectionItemStatusDto(string ItemId, string Title, string Url, string TargetCookbookId, string State, string? Error, string? RecipeId);
+    private record CollectionSelectionDto(List<CollectionSelectionItemDto> Items);
+    private record CollectionSelectionItemDto(string ItemId, string Url, string TargetCookbookId);
 }
 

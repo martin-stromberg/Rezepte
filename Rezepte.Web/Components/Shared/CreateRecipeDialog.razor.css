@@ -54,7 +54,7 @@
     align-items: center;
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.45);
-    z-index: 12000; /* deutlich über normalen Dialogen */
+    z-index: 12000; /* ueber normalen Dialogen */
     pointer-events: auto;
 }
 
@@ -64,4 +64,98 @@
     width: min(95%, 560px);
     margin: 0 1rem;
     box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+.collection-import {
+    border-top: 1px solid var(--bs-border-color, #dee2e6);
+    padding-top: 0.75rem;
+}
+
+.collection-list {
+    display: grid;
+    gap: 0.5rem;
+    max-height: 45vh;
+    overflow: auto;
+}
+
+.collection-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.collection-bulk-target {
+    display: flex;
+    flex: 1 1 320px;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.collection-bulk-target .form-select {
+    max-width: 220px;
+}
+
+.collection-item {
+    display: grid;
+    grid-template-columns: auto 56px minmax(0, 1fr) 40px;
+    align-items: start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 8px;
+}
+
+.collection-check {
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+}
+
+.collection-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    background: var(--bs-secondary-bg, #e9ecef);
+}
+
+.collection-main {
+    min-width: 0;
+}
+
+.collection-title {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.collection-description {
+    color: var(--bs-secondary-color, #6c757d);
+    font-size: 0.875rem;
+}
+
+.collection-state {
+    min-width: 36px;
+    text-align: center;
+    font-weight: 700;
+}
+
+@media (max-width: 576px) {
+    .collection-toolbar,
+    .collection-bulk-target {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .collection-bulk-target .form-select {
+        max-width: none;
+    }
+
+    .collection-item {
+        grid-template-columns: auto minmax(0, 1fr) 32px;
+    }
+
+    .collection-thumb {
+        display: none;
+    }
 }

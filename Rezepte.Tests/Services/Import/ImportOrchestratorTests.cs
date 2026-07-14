@@ -59,10 +59,108 @@ public sealed class ImportOrchestratorTests
         later.CanHandleCalls.Should().Be(0);
     }
 
+    [Fact]
+    public async Task StartImportAsync_ShouldWaitForCollectionSelectionAndImportSelectedItems()
+    {
+        var collection = new CollectionRecordingHandler();
+        var persister = new PassthroughPersister();
+        var sut = CreateOrchestrator(persister, collection);
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", "user-1");
+        var waitingSession = await WaitUntilAsync(sut, sessionId, s => s.State == "SelectionRequired");
+
+        waitingSession.CollectionPreview.Should().NotBeNull();
+        waitingSession.CollectionPreview!.Items.Should().HaveCount(2);
+
+        var selection = new ImportCollectionSelection([
+            new ImportCollectionSelectionItem("item-2", "https://example.test/2", "cookbook-2")
+        ]);
+
+        sut.SubmitSelection(sessionId, selection).Success.Should().BeTrue();
+
+        var completedSession = await WaitForResultAsync(sut, sessionId);
+        completedSession.Result!.Success.Should().BeTrue();
+        collection.ImportedItemIds.Should().Equal("item-2");
+        persister.TargetCookbookIds.Should().Equal("cookbook-2");
+        completedSession.CollectionItems.Should().ContainSingle(i => i.ItemId == "item-2" && i.State == ImportCollectionItemState.Succeeded);
+    }
+
+    [Fact]
+    public async Task SubmitSelection_ShouldStillWorkAfterSelectionWasLeftOpen()
+    {
+        var collection = new CollectionRecordingHandler();
+        var persister = new PassthroughPersister();
+        var sut = CreateOrchestrator(persister, collection);
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", "user-1");
+        await WaitUntilAsync(sut, sessionId, s => s.State == "SelectionRequired");
+
+        await Task.Delay(75);
+
+        var selection = new ImportCollectionSelection([
+            new ImportCollectionSelectionItem("item-1", "https://example.test/1", "cookbook-1")
+        ]);
+
+        sut.SubmitSelection(sessionId, selection).Success.Should().BeTrue();
+
+        var completedSession = await WaitForResultAsync(sut, sessionId);
+        completedSession.Result!.Success.Should().BeTrue();
+        completedSession.State.Should().Be("Completed");
+        collection.ImportedItemIds.Should().Equal("item-1");
+        persister.TargetCookbookIds.Should().Equal("cookbook-1");
+    }
+
+    [Fact]
+    public async Task StartImportAsync_ShouldFailCollectionPreviewWithDuplicateItemIds()
+    {
+        var collection = new CollectionRecordingHandler(duplicateIds: true);
+        var sut = CreateOrchestrator(collection);
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", "user-1");
+
+        var failedSession = await WaitForResultAsync(sut, sessionId);
+        failedSession.State.Should().Be("Failed");
+        failedSession.Result!.Success.Should().BeFalse();
+        failedSession.Result.Error.Should().Contain("doppelte Rezept-IDs");
+        collection.ImportedItemIds.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task SubmitSelection_ShouldAcceptOnlyOneConcurrentSelection()
+    {
+        var collection = new CollectionRecordingHandler();
+        var sut = CreateOrchestrator(collection);
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", "user-1");
+        await WaitUntilAsync(sut, sessionId, s => s.State == "SelectionRequired");
+
+        var selection = new ImportCollectionSelection([
+            new ImportCollectionSelectionItem("item-1", "https://example.test/1", "cookbook-1")
+        ]);
+
+        var submitTasks = Enumerable.Range(0, 20)
+            .Select(_ => Task.Run(() => sut.SubmitSelection(sessionId, selection)))
+            .ToArray();
+
+        var results = await Task.WhenAll(submitTasks);
+
+        results.Count(r => r.Success).Should().Be(1);
+        results.Count(r => !r.Success).Should().Be(19);
+
+        var completedSession = await WaitForResultAsync(sut, sessionId);
+        completedSession.Result!.Success.Should().BeTrue();
+        collection.ImportedItemIds.Should().Equal("item-1");
+    }
+
     private static ImportOrchestrator CreateOrchestrator(params IImportHandler[] handlers)
     {
+        return CreateOrchestrator(new PassthroughPersister(), handlers);
+    }
+
+    private static ImportOrchestrator CreateOrchestrator(IImportedRecipePersister persister, params IImportHandler[] handlers)
+    {
         var services = new ServiceCollection()
-            .AddSingleton<IImportedRecipePersister, PassthroughPersister>()
+            .AddSingleton(persister)
             .BuildServiceProvider();
         return new ImportOrchestrator(
             services.GetRequiredService<IServiceScopeFactory>(),
@@ -72,9 +170,17 @@ public sealed class ImportOrchestratorTests
 
     private sealed class PassthroughPersister : IImportedRecipePersister
     {
+        public List<string> TargetCookbookIds { get; } = [];
+
         public Task<ImportResult> PersistAsync(ImportResult result, string targetCookbookId, string userId, CancellationToken ct = default)
         {
             return Task.FromResult(result);
+        }
+
+        public Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string targetCookbookId, string userId, CancellationToken ct = default)
+        {
+            TargetCookbookIds.Add(targetCookbookId);
+            return Task.FromResult<(bool Success, string? Error, string? RecipeId)>((true, null, $"{targetCookbookId}-recipe"));
         }
     }
 
@@ -159,6 +265,41 @@ public sealed class ImportOrchestratorTests
         public override Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
         {
             throw new InvalidOperationException("handler failed");
+        }
+    }
+
+    private sealed class CollectionRecordingHandler : RecordingHandler, ICollectionImportHandler
+    {
+        private readonly bool _duplicateIds;
+
+        public List<string> ImportedItemIds { get; } = [];
+
+        public CollectionRecordingHandler(bool duplicateIds = false) : base("collection", canHandle: false)
+        {
+            _duplicateIds = duplicateIds;
+        }
+
+        public Task<ImportCollectionPreview?> TryReadCollectionPreviewAsync(Stream stream, string fileName, string? uri, CancellationToken ct = default)
+        {
+            ImportCollectionPreview? preview = new(
+                "collection-1",
+                "Collection",
+                uri,
+                [
+                    new ImportCollectionItem("item-1", "One", "https://example.test/1"),
+                    new ImportCollectionItem(_duplicateIds ? "item-1" : "item-2", "Two", "https://example.test/2")
+                ]);
+            return Task.FromResult<ImportCollectionPreview?>(preview);
+        }
+
+        public Task<ImportResult> ImportCollectionItemAsync(ImportCollectionItem item, string userId, CancellationToken ct = default)
+        {
+            ImportedItemIds.Add(item.Id);
+            return Task.FromResult(new ImportResult(
+                true,
+                null,
+                [],
+                [new ImportedRecipe { Title = item.Title, SourceUri = item.Url }]));
         }
     }
 }

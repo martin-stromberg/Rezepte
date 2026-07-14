@@ -16,58 +16,71 @@ public sealed class ImportedRecipePersister(IRecipeService recipes, ILogger<Impo
         foreach (var imported in result.ImportedRecipes)
         {
             ct.ThrowIfCancellationRequested();
-
-            var steps = ToSteps(imported);
-            var title = string.IsNullOrWhiteSpace(imported.Title) ? "Importiertes Rezept" : imported.Title;
-            var existing = string.IsNullOrWhiteSpace(imported.SourceUri)
-                ? null
-                : await recipes.FindByUri(userId, imported.SourceUri, ct).ConfigureAwait(false);
-
-            string recipeId;
-            if (existing is not null)
+            var persisted = await PersistRecipeAsync(imported, targetCookbookId, userId, ct).ConfigureAwait(false);
+            if (!persisted.Success)
             {
-                var (ok, error) = await recipes.UpdateAsync(
-                    userId,
-                    existing.Id,
-                    title,
-                    imported.Description,
-                    imported.SourceUri,
-                    imported.Portions,
-                    steps,
-                    ct).ConfigureAwait(false);
-
-                if (!ok)
-                {
-                    return result with { Success = false, Error = error ?? "Failed to update imported recipe.", CreatedRecipeIds = created };
-                }
-
-                recipeId = existing.Id;
-            }
-            else
-            {
-                var (ok, error, recipe) = await recipes.CreateAsync(
-                    userId,
-                    targetCookbookId,
-                    title,
-                    imported.Description,
-                    imported.SourceUri,
-                    imported.Portions,
-                    steps,
-                    ct).ConfigureAwait(false);
-
-                if (!ok || recipe is null)
-                {
-                    return result with { Success = false, Error = error ?? "Failed to create imported recipe.", CreatedRecipeIds = created };
-                }
-
-                recipeId = recipe.Id;
-                created.Add(recipe.Id);
+                return result with { Success = false, Error = persisted.Error ?? "Failed to persist imported recipe.", CreatedRecipeIds = created };
             }
 
-            await AddImagesAsync(userId, recipeId, title, imported.Images, ct).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(persisted.RecipeId))
+            {
+                created.Add(persisted.RecipeId);
+            }
         }
 
         return result with { CreatedRecipeIds = created, ImportedRecipes = [] };
+    }
+
+    public async Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string targetCookbookId, string userId, CancellationToken ct = default)
+    {
+        var steps = ToSteps(imported);
+        var title = string.IsNullOrWhiteSpace(imported.Title) ? "Importiertes Rezept" : imported.Title;
+        var existing = string.IsNullOrWhiteSpace(imported.SourceUri)
+            ? null
+            : await recipes.FindByUri(userId, imported.SourceUri, ct).ConfigureAwait(false);
+
+        string recipeId;
+        if (existing is not null)
+        {
+            var (ok, error) = await recipes.UpdateAsync(
+                userId,
+                existing.Id,
+                title,
+                imported.Description,
+                imported.SourceUri,
+                imported.Portions,
+                steps,
+                ct).ConfigureAwait(false);
+
+            if (!ok)
+            {
+                return (false, error ?? "Failed to update imported recipe.", null);
+            }
+
+            recipeId = existing.Id;
+        }
+        else
+        {
+            var (ok, error, recipe) = await recipes.CreateAsync(
+                userId,
+                targetCookbookId,
+                title,
+                imported.Description,
+                imported.SourceUri,
+                imported.Portions,
+                steps,
+                ct).ConfigureAwait(false);
+
+            if (!ok || recipe is null)
+            {
+                return (false, error ?? "Failed to create imported recipe.", null);
+            }
+
+            recipeId = recipe.Id;
+        }
+
+        await AddImagesAsync(userId, recipeId, title, imported.Images, ct).ConfigureAwait(false);
+        return (true, null, recipeId);
     }
 
     private static List<RecipeCreateStep> ToSteps(ImportedRecipe imported)

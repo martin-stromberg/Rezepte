@@ -51,6 +51,11 @@ public class ImportServicePluginTests
         {
             return Task.FromResult(result);
         }
+
+        public Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string targetCookbookId, string userId, CancellationToken ct = default)
+        {
+            return Task.FromResult<(bool Success, string? Error, string? RecipeId)>((true, null, "created-recipe"));
+        }
     }
 
     private sealed class FakePluginManager(IReadOnlyList<RecordingHandler> handlers) : IPluginManager

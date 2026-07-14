@@ -341,7 +341,7 @@ public abstract class UrlRecipeImportHandlerBase : ImportParserBase, IImportHand
         return Task.FromResult(new ImportResult(true, null, [], lastRecipe.Value.Select(ToImportedRecipe).ToList()));
     }
 
-    private static ImportedRecipe ToImportedRecipe(RecipeImport imported)
+    protected static ImportedRecipe ToImportedRecipe(RecipeImport imported)
     {
         return new ImportedRecipe
         {
