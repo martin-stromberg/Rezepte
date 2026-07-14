@@ -35,7 +35,7 @@ Interaktive Importpfade, zum Beispiel KI-Importe mit Bestaetigungsdialog, laufen
 
 Das Chefkoch-Plugin kann neben einzelnen Rezeptseiten auch Chefkoch-Rezeptsammlungen importieren. Eine Sammlungs-URL fuehrt nicht sofort zum Import aller enthaltenen Rezepte. Stattdessen liest die Anwendung zuerst nur die Informationen aus der Sammlungsseite und zeigt eine Zwischenauswahl im Importdialog.
 
-In dieser Zwischenauswahl sehen Sie die gefundenen Rezepte der Sammlung. Waehlen Sie die Rezepte aus, die importiert werden sollen, und legen Sie fuer jedes ausgewaehlte Rezept das Zielkochbuch fest. Nicht ausgewaehlte Rezepte werden nicht abgerufen und nicht importiert.
+In dieser Zwischenauswahl sehen Sie die gefundenen Rezepte der Sammlung mit bereinigten Rezeptnamen ohne Bewertungsreste. Waehlen Sie die Rezepte aus, die importiert werden sollen, und legen Sie fuer jedes ausgewaehlte Rezept das Zielkochbuch fest. Fuer groessere Sammlungen koennen alle gefundenen Rezepte gesammelt aus- oder abgewaehlt werden. Ein Zielkochbuch kann ausserdem fuer alle aktuell ausgewaehlten Rezepte uebernommen werden. Nicht ausgewaehlte Rezepte werden nicht abgerufen und nicht importiert.
 
 Erst nach dem Absenden der Auswahl ruft die Anwendung die ausgewaehlten Rezeptseiten ab. Die Auswahl und die Zielkochbuecher sind danach gesperrt. Waehrend des Imports zeigt der Dialog den Fortschritt pro Rezept an. Erfolgreiche Rezepte werden mit einem Erfolgssymbol markiert. Falls ein Rezept nicht importiert werden kann, wird es mit einem Warnsymbol angezeigt; die konkrete Fehlermeldung ist dort einsehbar.
 

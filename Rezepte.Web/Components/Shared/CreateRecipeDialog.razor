@@ -87,12 +87,35 @@
                             <h6 class="mb-0">@(!string.IsNullOrWhiteSpace(collectionPreview.Title) ? collectionPreview.Title : "Rezeptsammlung")</h6>
                             <span class="badge text-bg-secondary">@collectionPreview.Items.Count Rezept(e)</span>
                         </div>
+                        <div class="collection-toolbar mb-2">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Rezeptauswahl">
+                                <button class="btn btn-outline-secondary" @onclick="SelectAllCollectionItems" disabled="@collectionReadOnly">Alle auswählen</button>
+                                <button class="btn btn-outline-secondary" @onclick="ClearCollectionSelection" disabled="@collectionReadOnly">Alle abwählen</button>
+                            </div>
+                            <div class="collection-bulk-target">
+                                <select class="form-select form-select-sm"
+                                        value="@collectionSelection.BulkTargetCookbookId"
+                                        disabled="@collectionReadOnly"
+                                        @onchange="SetBulkTargetCookbook">
+                                    <option value="">Zielkochbuch wählen</option>
+                                    @foreach (var cookbook in availableCookbooks)
+                                    {
+                                        <option value="@cookbook.Id">@cookbook.Name</option>
+                                    }
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        @onclick="ApplyBulkTargetCookbook"
+                                        disabled="@(collectionReadOnly || collectionSelection.SelectedItemIds.Count == 0 || string.IsNullOrWhiteSpace(collectionSelection.BulkTargetCookbookId))">
+                                    Für Auswahl übernehmen
+                                </button>
+                            </div>
+                        </div>
                         <div class="collection-list">
                             @foreach (var item in collectionPreview.Items)
                             {
                                 var status = GetCollectionItemStatus(item.Id);
-                                var isSelected = selectedCollectionItems.Contains(item.Id);
-                                var disabled = collectionReadOnly || status?.State is "Importing" or "Succeeded" or "Failed";
+                                var isSelected = collectionSelection.SelectedItemIds.Contains(item.Id);
+                                var disabled = IsCollectionItemDisabled(item.Id);
                                 <div class="collection-item">
                                     <div class="form-check collection-check">
                                         <input class="form-check-input" type="checkbox" checked="@isSelected" disabled="@disabled" @onchange="e => ToggleCollectionItem(item.Id, e)" />
@@ -184,8 +207,7 @@
     private CollectionPreviewDto? collectionPreview;
     private List<CollectionItemStatusDto> collectionItems = [];
     private List<CookbookDto> availableCookbooks = [];
-    private readonly HashSet<string> selectedCollectionItems = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> targetCookbooksByItem = new(StringComparer.Ordinal);
+    private readonly CollectionImportSelectionState collectionSelection = new();
     private bool collectionReadOnly;
     private bool collectionSelectionRequired;
     private string? initializedCollectionSelectionId;
@@ -206,8 +228,7 @@
         activeSessionId = null;
         collectionPreview = null;
         collectionItems = [];
-        selectedCollectionItems.Clear();
-        targetCookbooksByItem.Clear();
+        collectionSelection.Reset(_cookbookId);
         collectionReadOnly = false;
         collectionSelectionRequired = false;
         initializedCollectionSelectionId = null;
@@ -604,10 +625,7 @@
             availableCookbooks = await Api.Http.GetFromJsonAsync<List<CookbookDto>>("api/cookbooks") ?? [];
             if (!string.IsNullOrWhiteSpace(_cookbookId))
             {
-                foreach (var item in collectionPreview?.Items ?? [])
-                {
-                    targetCookbooksByItem[item.Id] = _cookbookId;
-                }
+                collectionSelection.EnsureDefaultTargets((collectionPreview?.Items ?? []).Select(i => i.Id));
             }
             StateHasChanged();
         }
@@ -629,24 +647,14 @@
             if (collectionPreview is not null && initializedCollectionSelectionId != collectionPreview.Id)
             {
                 initializedCollectionSelectionId = collectionPreview.Id;
-                foreach (var item in collectionPreview.Items)
-                {
-                    if (!collectionReadOnly)
-                    {
-                        selectedCollectionItems.Add(item.Id);
-                    }
-
-                    if (!targetCookbooksByItem.ContainsKey(item.Id) && !string.IsNullOrWhiteSpace(_cookbookId))
-                    {
-                        targetCookbooksByItem[item.Id] = _cookbookId;
-                    }
-                }
+                collectionSelection.InitializeItems(collectionPreview.Items.Select(i => i.Id), collectionReadOnly);
             }
         }
 
         if (statusJson.TryGetProperty("items", out var itemsEl) && itemsEl.ValueKind == JsonValueKind.Array)
         {
             collectionItems = itemsEl.Deserialize<List<CollectionItemStatusDto>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+            collectionSelection.ReplaceItemStates(collectionItems.Select(i => (i.ItemId, (string?)i.State)));
         }
     }
 
@@ -655,24 +663,25 @@
         return collectionItems.FirstOrDefault(i => i.ItemId == itemId);
     }
 
+    private bool IsCollectionItemDisabled(string itemId)
+    {
+        return collectionSelection.IsItemDisabled(itemId, collectionReadOnly);
+    }
+
     private string GetTargetCookbook(string itemId)
     {
-        return targetCookbooksByItem.TryGetValue(itemId, out var cookbookId) ? cookbookId : string.Empty;
+        return collectionSelection.GetTargetCookbook(itemId);
     }
 
     private void ToggleCollectionItem(string itemId, ChangeEventArgs e)
     {
         if (e.Value is bool selected && selected)
         {
-            selectedCollectionItems.Add(itemId);
-            if (!targetCookbooksByItem.ContainsKey(itemId) && !string.IsNullOrWhiteSpace(_cookbookId))
-            {
-                targetCookbooksByItem[itemId] = _cookbookId;
-            }
+            collectionSelection.ToggleItem(itemId, selected: true);
         }
         else
         {
-            selectedCollectionItems.Remove(itemId);
+            collectionSelection.ToggleItem(itemId, selected: false);
         }
     }
 
@@ -681,19 +690,36 @@
         var value = e.Value?.ToString() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(value))
         {
-            targetCookbooksByItem.Remove(itemId);
+            collectionSelection.SetTargetCookbook(itemId, null);
         }
         else
         {
-            targetCookbooksByItem[itemId] = value;
+            collectionSelection.SetTargetCookbook(itemId, value);
         }
     }
 
+    private void SetBulkTargetCookbook(ChangeEventArgs e)
+    {
+        collectionSelection.SetBulkTargetCookbook(e.Value?.ToString());
+    }
+
+    private void ApplyBulkTargetCookbook()
+    {
+        collectionSelection.ApplyBulkTargetCookbook(collectionReadOnly);
+    }
+
+    private void SelectAllCollectionItems()
+    {
+        collectionSelection.SelectAll(collectionReadOnly);
+    }
+
+    private void ClearCollectionSelection()
+    {
+        collectionSelection.ClearSelection(collectionReadOnly);
+    }
+
     private bool CanSubmitCollectionSelection =>
-        activeSessionId is not null
-        && !collectionReadOnly
-        && selectedCollectionItems.Count > 0
-        && selectedCollectionItems.All(id => !string.IsNullOrWhiteSpace(GetTargetCookbook(id)));
+        collectionSelection.CanSubmit(activeSessionId, collectionReadOnly);
 
     private async Task SubmitCollectionSelectionAsync()
     {
@@ -703,7 +729,7 @@
         }
 
         var selected = collectionPreview.Items
-            .Where(i => selectedCollectionItems.Contains(i.Id))
+            .Where(i => collectionSelection.SelectedItemIds.Contains(i.Id))
             .Select(i => new CollectionSelectionItemDto(i.Id, i.Url, GetTargetCookbook(i.Id)))
             .ToList();
 

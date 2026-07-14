@@ -225,7 +225,7 @@ public sealed class ChefkochImportHandler : UrlRecipeImportHandlerBase, ICollect
                 continue;
             }
 
-            var title = CleanText(match.Groups["text"].Value);
+            var title = CleanCollectionItemTitle(match.Groups["text"].Value, match.Groups["attrs"].Value);
             if (string.IsNullOrWhiteSpace(title))
             {
                 title = "Chefkoch-Rezept";
@@ -266,6 +266,61 @@ public sealed class ChefkochImportHandler : UrlRecipeImportHandlerBase, ICollect
         var text = Regex.Replace(html, "<.*?>", " ");
         text = WebUtility.HtmlDecode(text);
         return Regex.Replace(text, @"\s+", " ").Trim();
+    }
+
+    private static string CleanCollectionItemTitle(string linkHtml, string linkAttributes)
+    {
+        foreach (var candidate in FindTitleCandidates(linkHtml, linkAttributes))
+        {
+            var title = RemoveRatingText(CleanText(candidate));
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                return title;
+            }
+        }
+
+        var textOnly = Regex.Replace(linkHtml, @"<(?:img|source)\b[^>]*>", " ", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        textOnly = Regex.Replace(textOnly, @"<(?<tag>svg|picture)\b[^>]*>.*?</\k<tag>>", " ", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        return RemoveRatingText(CleanText(textOnly));
+    }
+
+    private static IEnumerable<string> FindTitleCandidates(string linkHtml, string linkAttributes)
+    {
+        foreach (var attributeName in new[] { "aria-label", "title" })
+        {
+            var attribute = Regex.Match(linkAttributes, $@"\b{attributeName}\s*=\s*[""'](?<value>[^""']+)[""']", RegexOptions.IgnoreCase);
+            if (attribute.Success)
+            {
+                yield return attribute.Groups["value"].Value;
+            }
+        }
+
+        foreach (Match heading in Regex.Matches(
+            linkHtml,
+            @"<(?<tag>h[1-6]|span|div)\b(?<attrs>[^>]*)>(?<text>.*?)</\k<tag>>",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline))
+        {
+            var attrs = heading.Groups["attrs"].Value;
+            if (Regex.IsMatch(attrs, @"\bclass\s*=\s*[""'][^""']*(?:title|headline|heading|recipe-name|recipe-title)[^""']*[""']", RegexOptions.IgnoreCase))
+            {
+                yield return heading.Groups["text"].Value;
+            }
+        }
+    }
+
+    private static string RemoveRatingText(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var title = Regex.Replace(value, @"(?:^|\s+)Bewertung(?:en)?\b.*$", "", RegexOptions.IgnoreCase);
+        title = Regex.Replace(title, @"(?:^|\s+)\d+(?:[,.]\d+)?\s*/\s*5\b.*$", "", RegexOptions.IgnoreCase);
+        title = Regex.Replace(title, @"(?:^|\s+)\d+(?:[,.]\d+)?\s+von\s+5\b.*$", "", RegexOptions.IgnoreCase);
+        title = Regex.Replace(title, @"(?:^|\s+)\d+(?:[,.]\d+)?\s*(?:Sterne?|Bewertungen?)\b.*$", "", RegexOptions.IgnoreCase);
+        title = Regex.Replace(title, @"(?:^|\s+)\(\d+\s*Bewertungen?\)\s*$", "", RegexOptions.IgnoreCase);
+        return Regex.Replace(title, @"\s+", " ").Trim();
     }
 
     private static string? NormalizeUrl(string? value, string? baseUri)
