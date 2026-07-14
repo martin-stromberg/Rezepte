@@ -14,6 +14,8 @@ Beim Import werden nur aktivierte Plugins mit Status `Loaded` beruecksichtigt. D
 
 Beim Programmstart sucht die Anwendung im Programmverzeichnis unter `plugins` nach Plugin-DLLs. Unterstuetzt werden DLLs direkt im Ordner `plugins` sowie DLLs in direkten Unterordnern von `plugins`.
 
+Beim Build und Publish der Web-Anwendung werden die produktiven externen Pluginprojekte automatisch gebaut und nach `plugins/<Projektname>/` in das Ausgabe- bzw. Publish-Verzeichnis kopiert. Dadurch stehen Backup und die klassischen Webseitenquellen nach dem Start in der Pluginverwaltung zur Verfuegung.
+
 Neu erkannte Plugins werden automatisch in der Datenbank gespeichert und hinten an die bestehende Reihenfolge angehaengt. Bereits konfigurierte Plugins behalten ihre Reihenfolge. Wenn ein zuvor bekanntes Plugin beim Start nicht mehr gefunden wird, bleibt es in der Verwaltung sichtbar und erhaelt den Status `Missing`.
 
 Fehlerhafte oder inkompatible Plugin-DLLs werden nicht fuer Imports genutzt. Sie werden mit Fehlerstatus und Fehlermeldung in der Pluginliste angezeigt.

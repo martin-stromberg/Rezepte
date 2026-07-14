@@ -63,6 +63,8 @@ Beim Import werden nur aktivierte Plugins mit Status `Loaded` in gespeicherter R
 
 Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, Host-seitige Pluginverwaltung, Admin-UI, Plugin-basierte Importauswahl und produktive Pluginprojekte fuer Backup sowie die klassischen Webseitenquellen. KI-Foto und KI-URL laufen bewusst als Hostadapter, liefern ihre Ergebnisse aber ebenfalls ueber neutrale Import-DTOs an den zentralen Persistenzpfad. Details stehen in `Docs/help/import-plugins.md`.
 
+Build und Publish der Web-Anwendung bauen die produktiven externen Pluginprojekte mit und kopieren sie in das jeweilige `plugins`-Verzeichnis.
+
 ## Voraussetzungen
 
 - .NET SDK 10 oder neuer

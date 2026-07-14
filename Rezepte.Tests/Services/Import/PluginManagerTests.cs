@@ -78,6 +78,36 @@ public sealed class PluginManagerTests
     }
 
     [Fact]
+    public async Task InitializeAsync_ShouldDiscoverProductiveExternalImportPlugins()
+    {
+        using var workspace = PluginWorkspace.Create();
+        workspace.CopyProductivePlugins();
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+
+        await sut.InitializeAsync();
+
+        var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+        var pluginIds = await db.PluginSettings
+            .AsNoTracking()
+            .Where(p => p.Status == PluginStatus.Loaded)
+            .OrderBy(p => p.PluginId)
+            .Select(p => p.PluginId)
+            .ToListAsync();
+
+        pluginIds.Should().Contain([
+            "ai-foto",
+            "ai-url",
+            "backup",
+            "chefkoch",
+            "fifth-source",
+            "fourth-source",
+            "second-source",
+            "sixth-source",
+            "third-source"
+        ]);
+    }
+
+    [Fact]
     public async Task InitializeAsync_ShouldMarkPluginWithInvalidHandlerTypeAsIncompatible()
     {
         using var workspace = PluginWorkspace.Create();
@@ -248,6 +278,25 @@ public sealed class PluginManagerTests
             var source = Path.Combine(AppContext.BaseDirectory, fileName);
             File.Exists(source).Should().BeTrue($"test fixture assembly {fileName} should be copied to the test output");
             File.Copy(source, Path.Combine(targetDirectory, fileName), overwrite: true);
+        }
+
+        public void CopyProductivePlugins()
+        {
+            foreach (var pluginName in new[]
+            {
+                "Rezepte.Import.Plugins.Backup",
+                "Rezepte.Import.Plugins.Chefkoch",
+                "Rezepte.Import.Plugins.FifthSource",
+                "Rezepte.Import.Plugins.FourthSource",
+                "Rezepte.Import.Plugins.SecondSource",
+                "Rezepte.Import.Plugins.SixthSource",
+                "Rezepte.Import.Plugins.ThirdSource"
+            })
+            {
+                var targetDirectory = Directory.CreateDirectory(Path.Combine(PluginRoot, pluginName)).FullName;
+                CopyOutputAssembly($"{pluginName}.dll", targetDirectory);
+                CopyOutputAssembly("Rezepte.Import.Abstractions.dll", targetDirectory);
+            }
         }
     }
 }
