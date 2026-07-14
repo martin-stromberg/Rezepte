@@ -109,58 +109,19 @@ public abstract class BaseAIImportHandler(
         if (_lastRecipes.Key != fileName)
             throw new InvalidOperationException("No receipe information was extracted.");
         var importedRecipes = _lastRecipes.Value;
-        var created = new List<string>();
         try
         {
-            foreach (var importedRecipe in importedRecipes)
-            {
-                if (string.IsNullOrWhiteSpace(importedRecipe.Title) && (importedRecipe.Ingredients == null || importedRecipe.Ingredients.Count == 0) && string.IsNullOrWhiteSpace(importedRecipe.Instructions))
-                    continue;
-                ct.ThrowIfCancellationRequested();
+            var neutralRecipes = importedRecipes
+                .Where(importedRecipe => !string.IsNullOrWhiteSpace(importedRecipe.Title)
+                    || importedRecipe.Ingredients is { Count: > 0 }
+                    || !string.IsNullOrWhiteSpace(importedRecipe.Instructions))
+                .Select(importedRecipe => ToImportedRecipe(importedRecipe, uri, fileName))
+                .ToList();
 
-                // Build ingredient list from parsed text (supports mixed numbers, fractions like "1/2" and unicode fractions like "½")
-                var stepIngredients = (importedRecipe.Ingredients ?? new List<string>())
-                    .Select(line => ParseIngredientLine(line))
-                    .ToList();
-
-                var steps = new List<RecipeCreateStep>
-                {
-                    new RecipeCreateStep(
-                        Title: null,
-                        Description: importedRecipe.Instructions ?? string.Empty,
-                        DurationMinutes: importedRecipe.PreparationTimeInMinutes,
-                        RequiresOvernightRest: false,
-                        Ingredients: stepIngredients)
-                };
-
-                var (ok, error, recipe) = await recipeService.CreateAsync(userId, targetCookbookId, importedRecipe.Title ?? "Importiertes Fotorezept", null, uri, importedRecipe.Portions, steps, ct).ConfigureAwait(false);
-                if (!ok || recipe == null)
-                {
-                    logger.LogWarning("Failed to create recipe from AI import: {Title} - {Error}", importedRecipe.Title, error);
-                    return new ImportResult(false, error ?? "Failed to create recipe", created);
-                }
-
-                created.Add(recipe.Id);
-
-                // Attach scanned photo as first image if present
-                if (importedRecipe.ImageData != null && importedRecipe.ImageData.Length > 0)
-                {
-                    try
-                    {
-                        var safeFileName = SanitizeFileName(Path.GetFileName(fileName) ?? "image");
-                        var ext = Path.GetExtension(safeFileName);
-                        var contentType = GetContentTypeFromExtension(ext);
-                        await recipeService.AddImageAsync(userId, recipe.Id, new MemoryStream(importedRecipe.ImageData), safeFileName, contentType, ct).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, "Failed to attach image for imported recipe {RecipeId}", recipe.Id);
-                    }
-                }
-            }
-            if (!created.Any())
+            if (!neutralRecipes.Any())
                 throw new ApplicationException("No recipe data extracted.");
-            return new ImportResult(true, null, created);
+
+            return new ImportResult(true, null, new List<string>(), neutralRecipes);
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
@@ -169,9 +130,52 @@ public abstract class BaseAIImportHandler(
 
             // create a user-friendly, localized short message while the full exception remains in the logs
             var friendly = ImportExceptionHelper.BeautifyExceptionMessage(ex);
-            return new ImportResult(false, friendly, created);
+            return new ImportResult(false, friendly, new List<string>());
         }
 
+    }
+    private ImportedRecipe ToImportedRecipe(AIRecipe importedRecipe, string? uri, string fileName)
+    {
+        var ingredients = (importedRecipe.Ingredients ?? new List<string>())
+            .Select(line =>
+            {
+                var ingredient = ParseIngredientLine(line);
+                return new ImportedIngredient
+                {
+                    Quantity = $"{ingredient.Amount} {ingredient.Unit}".Trim(),
+                    Name = ingredient.Name
+                };
+            })
+            .ToList();
+
+        var images = new List<ImportedImage>();
+        if (importedRecipe.ImageData is { Length: > 0 })
+        {
+            var safeFileName = SanitizeFileName(Path.GetFileName(fileName) ?? "image");
+            images.Add(new ImportedImage
+            {
+                Data = importedRecipe.ImageData,
+                FileName = safeFileName,
+                ContentType = GetContentTypeFromExtension(Path.GetExtension(safeFileName))
+            });
+        }
+
+        return new ImportedRecipe
+        {
+            Title = importedRecipe.Title ?? "Importiertes Fotorezept",
+            SourceUri = uri,
+            Portions = importedRecipe.Portions,
+            WorkTimeMinutes = importedRecipe.PreparationTimeInMinutes,
+            Ingredients = ingredients,
+            Steps =
+            [
+                new ImportedRecipeStep
+                {
+                    Text = importedRecipe.Instructions ?? string.Empty
+                }
+            ],
+            Images = images
+        };
     }
     private static string SanitizeFileName(string input)
     {

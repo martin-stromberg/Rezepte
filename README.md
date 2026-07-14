@@ -39,6 +39,8 @@ Rezepte.sln
 Rezepte.Web/        Webanwendung, API, Services, Datenmodell und Migrationen
 Rezepte.Import.Abstractions/
                     Gemeinsame Vertrage und DTOs fuer Import-Plugins
+Rezepte.Import.Plugins.*/
+                    Import-Pluginprojekte fuer Backup- und Webseitenquellen
 Rezepte.Tests/      Unit-Tests fuer zentrale Services
 Docs/               Anforderungskatalog und Installationshinweise
 ```
@@ -49,7 +51,7 @@ Wichtige Bereiche in `Rezepte.Web`:
 - `Components/Shared`: wiederverwendbare UI-Komponenten und Dialoge.
 - `Controllers`: API-Endpunkte fuer Auth, Benutzer, Kochbuecher, Rezepte, Kalender, Jobs, Einstellungen und Exporte.
 - `Services`: Fachlogik und Infrastruktur.
-- `Services/Import`: Import-Orchestrierung, PluginManager und aktuell noch eingebaute Handler fuer Backup-, URL-, Webseiten- und KI-Importe.
+- `Services/Import`: Import-Orchestrierung, PluginManager, hostseitige Persistenz neutraler Importdaten und KI-Hostadapter.
 - `Data`, `Entities`, `Migrations`: EF-Core-Datenzugriff und Schemaentwicklung.
 - `wwwroot`: statische Assets, CSS, JavaScript, Icons und Manifest.
 
@@ -59,7 +61,7 @@ Rezeptimporte laufen ueber einen `PluginManager`. Beim Programmstart erkennt die
 
 Beim Import werden nur aktivierte Plugins mit Status `Loaded` in gespeicherter Reihenfolge gefragt. Das erste passende Plugin verarbeitet die Datei oder URL; wenn kein Plugin passt, endet der Import mit einer fachlichen Fehlermeldung.
 
-Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, Host-seitige Pluginverwaltung, Admin-UI und die Plugin-basierte Importauswahl. Die bestehenden produktiven Importquellen sind noch nicht in separate Klassenbibliotheksprojekte ausgelagert; sie sind weiterhin als Built-in-Plugins im Webprojekt registriert. Details und aktuelle Einschraenkungen stehen in `Docs/help/import-plugins.md`.
+Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, Host-seitige Pluginverwaltung, Admin-UI, Plugin-basierte Importauswahl und produktive Pluginprojekte fuer Backup sowie die klassischen Webseitenquellen. KI-Foto und KI-URL laufen weiterhin als Hostadapter, liefern ihre Ergebnisse aber ebenfalls ueber neutrale Import-DTOs an den zentralen Persistenzpfad. Details und aktuelle Einschraenkungen stehen in `Docs/help/import-plugins.md`.
 
 ## Voraussetzungen
 

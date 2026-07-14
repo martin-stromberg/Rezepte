@@ -33,12 +33,22 @@ Interaktive Importpfade, zum Beispiel KI-Importe mit Bestaetigungsdialog, laufen
 
 Der erreichte Stand ist ein Plugin-Framework mit gemeinsamer Vertragsschicht `Rezepte.Import.Abstractions`, persistierter Plugin-Konfiguration, Start-Erkennung externer Plugin-DLLs, Admin-UI sowie Plugin-basierter Auswahl im Datei- und URL-Import.
 
-Die bestehenden Importquellen sind derzeit weiterhin als Built-in-Plugins im Webprojekt registriert. Es gibt noch keine produktiven separaten Pluginprojekte pro Importquelle, und die vorhandenen Handler speichern weiterhin ueber die bestehenden Host-Services. Die vorbereiteten neutralen Import-DTOs sind noch nicht der produktive Rueckgabeweg fuer die bestehenden Quellen.
+Backup und die klassischen Webseitenquellen laufen als separate produktive Pluginprojekte:
+
+- `Rezepte.Import.Plugins.Backup`
+- `Rezepte.Import.Plugins.Chefkoch`
+- `Rezepte.Import.Plugins.SecondSource`
+- `Rezepte.Import.Plugins.ThirdSource`
+- `Rezepte.Import.Plugins.FourthSource`
+- `Rezepte.Import.Plugins.FifthSource`
+- `Rezepte.Import.Plugins.SixthSource`
+
+Diese Plugins referenzieren die gemeinsame Vertragsschicht und liefern neutrale Rezeptdaten zurueck. Der Host persistiert daraus Rezepte, Zutaten, Schritte, Bilder und Kochbuchzuordnungen.
+
+KI-Foto und KI-URL sind weiterhin Hostadapter im Webprojekt, weil sie Hostservices fuer AI-Konfiguration, Usage-Limits, Google Vision, Gemini und interaktive Bestaetigung benoetigen. Auch diese Handler liefern ihre Ergebnisse inzwischen als neutrale Import-DTOs an den zentralen Persistenzpfad.
 
 ## Einschraenkungen
 
-- Produktive Importquellen sind noch nicht aus `Rezepte.Web` in eigene Klassenbibliotheksprojekte ausgelagert.
-- Built-in-Plugins haben aktuell Vorrang, wenn ein externes Plugin dieselbe Plugin-ID verwendet.
-- Direkte DLLs im Root von `plugins` koennen bei nebenliegenden Abhaengigkeiten noch zu unklaren Fehler- oder Inkompatibilitaetseintraegen fuehren.
-- Instanziierungsfehler eines geladenen Handlers werden beim Import protokolliert, aber noch nicht als eigener persistierter Pluginstatus dargestellt.
-- Die neutralen Rezept-DTOs und das hostseitige Mapping sind vorbereitet, aber noch nicht vollstaendig in den Importfluss integriert.
+- `Rezepte.Import.Plugins.AIFoto` und `Rezepte.Import.Plugins.AIUrl` sind noch keine produktiven externen Plugins; die produktive AI-Logik liegt weiterhin in Hostadaptern.
+- Fuer eine vollstaendige AI-Auslagerung wird ein neutraler Contract fuer hostbereitgestellte AI-/Vision-/Settings-/Usage-Services benoetigt oder ein bewusster Architekturentscheid, AI-Imports als Hostadapter zu belassen.
+- Dedizierte Parser-Fixture-Tests fuer die produktiven externen Pluginparser stehen noch aus.

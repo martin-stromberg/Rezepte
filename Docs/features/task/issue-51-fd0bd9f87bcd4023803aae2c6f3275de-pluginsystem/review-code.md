@@ -4,39 +4,33 @@ Status: Befunde vorhanden
 
 ## Behobene Befunde
 
-- Root-Pluginlayout mit nebenliegenden Contract-Abhaengigkeiten erzeugt keinen falschen Admin-Eintrag fuer `Rezepte.Import.Abstractions.dll` mehr.
-- Runtime-Fehler bei Handler-Erzeugung werden jetzt als `RuntimeFailed` in `PluginSetting` gespeichert.
-- Duplicate-ID-Verhalten ist festgelegt: echte externe Plugins koennen Built-ins ersetzen; Placeholder-Pluginprojekte werden nicht gegen Built-ins priorisiert.
-- Die hostneutrale Rezeptuebergabe ist im Contract und Host-Persistenzpfad vorhanden; Backup und URL-Basishandler nutzen den neuen Rueckgabeweg.
+- Produktive Backup- und URL-Pluginprojekte enthalten keine Placeholder-Handler mehr und melden Version `1.0.0`.
+- Die portierten Pluginhandler referenzieren weder `Rezepte.Web` noch `IRecipeService`.
+- Allgemeine Zutaten-/Zeitparser und URL-Parserhilfen wurden in `Rezepte.Import.Abstractions` verschoben.
+- Der Web-Built-in-Katalog registriert keine Backup-/URL-Handler mehr direkt.
+- Die alten Web-internen Backup-/URL-Handlerdateien wurden geloescht.
+- AI-Handler erzeugen nun neutrale `ImportedRecipe`-DTOs; Persistenz erfolgt zentral ueber `ImportedRecipePersister`.
+- `dotnet build Rezepte.sln --no-restore` ist erfolgreich und validiert, dass die echten Pluginprojekte gebaut und in den Web-Output kopiert werden.
 
 ## Befunde
 
-### 1. Produktive Pluginprojekte enthalten noch Placeholder-Handler
-
-Schweregrad: Hoch
-
-Die neun neuen `Rezepte.Import.Plugins.*`-Projekte bauen und referenzieren nur `Rezepte.Import.Abstractions`, enthalten aber noch keine produktiven Parser. Ihre Handler melden `CanHandleAsync = false` und sind per `0.0.0-placeholder` markiert, damit der Host weiterhin die Built-ins verwendet.
-
-Auswirkung: Die Projektstruktur ist vorhanden, aber die fachliche Auslagerung der Importlogik ist noch nicht abgeschlossen.
-
-### 2. AI-Handler sind noch nicht hostneutral ausgelagert
+### 1. AI-Pluginprojekte enthalten weiterhin Placeholder-Handler
 
 Schweregrad: Mittel
 
-`BaseAIImportHandler` persistiert weiterhin direkt ueber `IRecipeService`. Damit sind AI-Foto und AI-URL noch Web-interne Built-ins und nicht produktive externe Plugins.
+`Rezepte.Import.Plugins.AIFoto` und `Rezepte.Import.Plugins.AIUrl` sind weiterhin mit `0.0.0-placeholder` markiert und liefern `CanHandleAsync = false`. Die produktiven AI-Handler liegen weiter in `Rezepte.Web` als Built-ins, auch wenn ihr Rueckgabepfad jetzt hostneutral ist.
 
-### 3. Gemeinsame Parserhilfen liegen weiterhin im Webprojekt
+Auswirkung: Zwei der neun Importquellen sind noch nicht als produktive externe Pluginprojekte ausgelagert. Die Runtime-Funktion bleibt ueber Hostadapter erhalten.
 
-Schweregrad: Mittel
+### 2. Dedizierte produktive Pluginparser-Tests fehlen
 
-`BaseImportHandler` und URL-Basishilfen wurden nicht in `Rezepte.Import.Abstractions` oder ein neutrales Shared-Paket verschoben. Produktive Pluginparser koennen diese Logik daher noch nicht ohne Web-Abhaengigkeit wiederverwenden.
+Schweregrad: Niedrig
 
-## Fehlende Tests
+Die bestehende Testsuite prueft PluginManager, Auswahl, Persistenz und Orchestrierung, aber nicht die neu portierten produktiven Parser je Quelle mit repräsentativen HTML-/ZIP-Fixtures.
 
-- Tests fuer produktive externe Pluginparser pro Quelle fehlen, weil die Pluginprojekte noch Placeholder-Handler enthalten.
-- Tests fuer AI-Imports ueber neutrale DTOs fehlen.
+Auswirkung: Regressionen in einzelnen externen Parsern wuerden aktuell vor allem durch Build und manuelle/Integrationspruefung auffallen.
 
 ## Ausgefuehrte Pruefungen
 
-- `dotnet build Rezepte.sln --no-restore`: erfolgreich.
-- `dotnet test Rezepte.sln --no-restore --logger "console;verbosity=minimal"`: erfolgreich. 137 Tests bestanden, 0 fehlgeschlagen, 0 uebersprungen.
+- `dotnet build Rezepte.sln --no-restore`: erfolgreich, 38 Warnungen; darunter NU1903 zu `SQLitePCLRaw.lib.e_sqlite3` und bestehende Nullable-/Obsolete-Warnungen.
+- `dotnet test Rezepte.sln --no-restore --logger "console;verbosity=minimal"`: erfolgreich, 137 Tests bestanden, 0 fehlgeschlagen, 0 uebersprungen.

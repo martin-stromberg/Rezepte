@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Text.Json;
 using Rezepte.Import.Abstractions;
 
 namespace Rezepte.Import.Plugins.Backup;
@@ -7,13 +9,135 @@ public sealed class BackupImportPlugin : IImportPlugin
     public string Id => "backup";
     public string DisplayName => "Backup";
     public string? Description => "Importiert Backup-ZIP-Dateien.";
-    public string Version => "0.0.0-placeholder";
+    public string Version => "1.0.0";
     public Type HandlerType => typeof(BackupImportHandler);
 }
 
 public sealed class BackupImportHandler : IImportHandler
 {
     public string UserId { private get; set; } = string.Empty;
-    public Task<bool> CanHandleAsync(Stream stream, string fileName, CancellationToken ct = default) => Task.FromResult(false);
-    public Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default) => Task.FromResult(new ImportResult(false, "Backup plugin parser is not bundled in this project yet.", []));
+
+    public Task<bool> CanHandleAsync(Stream stream, string fileName, CancellationToken ct = default)
+    {
+        if (!fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult(false);
+
+        try
+        {
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+            return Task.FromResult(archive.GetEntry("recipes.json") is not null);
+        }
+        catch
+        {
+            return Task.FromResult(false);
+        }
+    }
+
+    public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
+    {
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+        var jsonEntry = archive.GetEntry("recipes.json");
+        if (jsonEntry is null)
+            return new ImportResult(false, "recipes.json not found in archive.", []);
+
+        ExportRootDto? root;
+        await using (var jsonStream = jsonEntry.Open())
+        {
+            root = await JsonSerializer.DeserializeAsync<ExportRootDto>(jsonStream, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }, ct).ConfigureAwait(false);
+        }
+
+        if (root?.Recipes is null || root.Recipes.Count == 0)
+            return new ImportResult(true, null, []);
+
+        var importedRecipes = new List<ImportedRecipe>();
+        foreach (var recipe in root.Recipes)
+        {
+            ct.ThrowIfCancellationRequested();
+            importedRecipes.Add(await ToImportedRecipeAsync(archive, recipe, uri, ct).ConfigureAwait(false));
+        }
+
+        return new ImportResult(true, null, [], importedRecipes);
+    }
+
+    private static async Task<ImportedRecipe> ToImportedRecipeAsync(ZipArchive archive, ExportRecipeDto recipe, string? uri, CancellationToken ct)
+    {
+        var images = new List<ImportedImage>();
+        foreach (var imagePath in recipe.ImagePaths ?? [])
+        {
+            var normalized = imagePath.Replace('\\', '/');
+            var entry = archive.GetEntry(normalized);
+            if (entry is null)
+                continue;
+
+            await using var entryStream = entry.Open();
+            await using var imageStream = new MemoryStream();
+            await entryStream.CopyToAsync(imageStream, ct).ConfigureAwait(false);
+            var imageFileName = Path.GetFileName(normalized);
+            images.Add(new ImportedImage
+            {
+                Data = imageStream.ToArray(),
+                FileName = imageFileName,
+                ContentType = GetContentTypeFromExtension(Path.GetExtension(imageFileName))
+            });
+        }
+
+        return new ImportedRecipe
+        {
+            Title = recipe.Title,
+            Description = recipe.Description,
+            SourceUri = recipe.Uri ?? uri,
+            Portions = recipe.Portions ?? 0,
+            Ingredients = (recipe.Steps ?? [])
+                .Take(1)
+                .SelectMany(s => s.Ingredients ?? [])
+                .Select(i => new ImportedIngredient { Quantity = $"{i.Amount} {i.Unit}".Trim(), Name = i.Name })
+                .ToList(),
+            Steps = (recipe.Steps ?? []).Select(s => new ImportedRecipeStep { Text = s.Description }).ToList(),
+            Images = images
+        };
+    }
+
+    private static string GetContentTypeFromExtension(string? extension)
+    {
+        return (extension ?? string.Empty).ToLowerInvariant() switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".gif" => "image/gif",
+            ".bmp" => "image/bmp",
+            ".webp" => "image/webp",
+            _ => "application/octet-stream"
+        };
+    }
+
+    private sealed record ExportRootDto
+    {
+        public List<ExportRecipeDto>? Recipes { get; init; }
+    }
+
+    private sealed record ExportRecipeDto
+    {
+        public string? Title { get; init; }
+        public string? Description { get; init; }
+        public string? Uri { get; init; }
+        public int? Portions { get; init; }
+        public List<ExportStepDto>? Steps { get; init; }
+        public List<string>? ImagePaths { get; init; }
+    }
+
+    private sealed record ExportStepDto
+    {
+        public string? Description { get; init; }
+        public List<ExportIngredientDto>? Ingredients { get; init; }
+    }
+
+    private sealed record ExportIngredientDto
+    {
+        public decimal Amount { get; init; }
+        public string? Unit { get; init; }
+        public string Name { get; init; } = string.Empty;
+    }
 }
