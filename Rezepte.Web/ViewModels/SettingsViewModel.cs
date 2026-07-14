@@ -29,6 +29,7 @@ public class SettingsViewModel
             new Item("Profil", "👤", true, typeof(UserProfile)),
             new Item("Einstellungen", "⚙️", true, typeof(AiSettings)), // Neu: Einstellungen-Bereich (userbezogene Optionen)
             new Item("Benutzer", "👥", isAdmin, typeof(UserAdmin)),
+            new Item("Plugins", "🔌", isAdmin, typeof(PluginSettings)),
             new Item("Datenexport", "📤", true, typeof(Rezepte.Web.Components.Settings.ExportData)),
             new Item("Sicherung", "💾", isAdmin, typeof(Rezepte.Web.Components.Settings.BackupRestore)),
             new Item("Nutzungsstatistiken", "📊", true, typeof(Rezepte.Web.Components.Settings.UsageStats))

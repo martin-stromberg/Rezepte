@@ -1,53 +1,53 @@
-﻿
-
-using Rezepte.Web.Extensions;
 using System.Text.Json;
+using Rezepte.Import.Abstractions;
 
-namespace Rezepte.Web.Services.Import.Url;
+namespace Rezepte.Import.Plugins.FifthSource;
 
-/// <summary>
-/// Unterstützung für
-/// - k o c h k a r u s s e l l.com
-/// </summary>
-public class FifthSourceUrlRecipeImportHandler : BaseUrlReceiptImportHandler, IImportHandler
+public sealed class FifthSourceImportPlugin : IImportPlugin
 {
-    public FifthSourceUrlRecipeImportHandler(IRecipeService recipes, ILogger<FifthSourceUrlRecipeImportHandler> logger) : base(recipes, logger)
-    {
-    }
+    public string Id => "fifth-source";
+    public string DisplayName => "FifthSource";
+    public string? Description => "Importiert Rezepte der fuenften URL-Quelle.";
+    public string Version => "1.0.0";
+    public Type HandlerType => typeof(FifthSourceImportHandler);
+}
 
+public sealed class FifthSourceImportHandler : UrlRecipeImportHandlerBase
+{
     protected override Task<KeyValuePair<string, RecipeImport[]>> ReadSingleRecipe(string fileName, string responseContent)
     {
         try
         {
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-            List<RecipeImport> recipes = new List<RecipeImport>();
+            var recipes = new List<RecipeImport>();
             foreach (var scriptContent in CollectScriptContents(responseContent))
+            {
                 try
                 {
-                    using var jsonDoc = JsonDocument.Parse(scriptContent, new JsonDocumentOptions()
+                    using var jsonDoc = JsonDocument.Parse(scriptContent, new JsonDocumentOptions
                     {
                         AllowTrailingCommas = true,
                         CommentHandling = JsonCommentHandling.Skip,
                         MaxDepth = 20
                     });
-                    var root = jsonDoc.RootElement;
-                    var recipe = ParseRecipeImportFromGraph(root);
+                    var recipe = ParseRecipeImportFromGraph(jsonDoc.RootElement);
                     if (recipe is not null)
                         recipes.Add(recipe);
                 }
-                catch { }
-            if (!recipes.Any())
-                throw new ApplicationException("no recipes");
-            return Task.FromResult(new KeyValuePair<string, RecipeImport[]>(fileName, recipes.ToArray()));
+                catch
+                {
+                }
+            }
+
+            return Task.FromResult(recipes.Count == 0
+                ? new KeyValuePair<string, RecipeImport[]>()
+                : new KeyValuePair<string, RecipeImport[]>(fileName, recipes.ToArray()));
         }
         catch
         {
             return Task.FromResult(new KeyValuePair<string, RecipeImport[]>());
         }
     }
+
     private RecipeImport ParseRecipeImportFromGraph(JsonElement graphRoot)
     {
         var recipeNode = graphRoot.GetProperty("@graph").EnumerateArray()
@@ -58,24 +58,27 @@ public class FifthSourceUrlRecipeImportHandler : BaseUrlReceiptImportHandler, II
         if (recipeNode.ValueKind != JsonValueKind.Object)
             throw new InvalidOperationException("Kein Recipe-Knoten im Graph gefunden.");
 
-        var import = new RecipeImport
+        return new RecipeImport
         {
             Title = recipeNode.GetProperty("name").GetString(),
             Description = recipeNode.GetProperty("description").GetString(),
             Uri = recipeNode.GetProperty("mainEntityOfPage").GetString(),
             Portions = recipeNode.TryGetProperty("recipeYield", out var yield) && yield.ValueKind == JsonValueKind.Array
-                ? yield[0].GetString().ToInt32(0)
-                : yield.GetString().ToInt32(0),
-            WorkTime = ParseIsoDurationToMinutes(recipeNode.GetProperty("prepTime").GetString()) +
-                       ParseIsoDurationToMinutes(recipeNode.GetProperty("cookTime").GetString()),
+                ? yield[0].GetString().ToInt32Invariant(0)
+                : yield.GetString().ToInt32Invariant(0),
+            WorkTime = ParseIsoDurationToMinutes(recipeNode.GetProperty("prepTime").GetString()) + ParseIsoDurationToMinutes(recipeNode.GetProperty("cookTime").GetString()),
             Pictures = recipeNode.TryGetProperty("image", out var images) && images.ValueKind == JsonValueKind.Array
-                ? images.EnumerateArray().Select(url => DownloadImageAsync(url.GetString()).Result).ToArray()
-                : Array.Empty<byte[]>(),
+                ? images.EnumerateArray()
+                    .Select(url => DownloadImageAsync(url.GetString()).Result)
+                    .Where(i => i is not null)
+                    .Cast<byte[]>()
+                    .ToArray()
+                : [],
             Ingredients = new RecipeIngredients
             {
                 Items = recipeNode.GetProperty("recipeIngredient").EnumerateArray()
                     .Select(ParseIngredient)
-                    .Where(i => i != null)
+                    .Where(i => i is not null)
                     .ToArray(),
                 Quantity = 1
             },
@@ -86,26 +89,15 @@ public class FifthSourceUrlRecipeImportHandler : BaseUrlReceiptImportHandler, II
                     .ToArray()
             }
         };
-
-        return import;
     }
+
     private RecipeIngredient? ParseIngredient(JsonElement element)
     {
         var raw = element.GetString();
-        if (string.IsNullOrWhiteSpace(raw)) return null;
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
 
-        var ingr = base.ParseIngredientLine(raw);
-        if (ingr is not null)
-            return new RecipeIngredient()
-            {
-                Quantity = $"{ingr.Amount} {ingr.Unit}".Trim(),
-                Name = ingr.Name
-            };
-
-        var parts = raw.Split(' ', 2);
-        return parts.Length == 2
-            ? new RecipeIngredient { Quantity = parts[0], Name = parts[1] }
-            : new RecipeIngredient { Quantity = "", Name = raw };
+        var ingredient = ParseIngredientLine(raw);
+        return new RecipeIngredient { Quantity = $"{ingredient.Amount} {ingredient.Unit}".Trim(), Name = ingredient.Name };
     }
-
 }

@@ -1,20 +1,22 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rezepte.Web.Services.Import.Plugins;
 using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
 
 namespace Rezepte.Web.Services.Import;
 
 public sealed class ImportOrchestrator
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IPluginManager _pluginManager;
     private readonly ILogger<ImportOrchestrator> _logger;
 
     // Simple in-memory sessions (replaceable with distributed store)
     private readonly ConcurrentDictionary<string, ImportSession> _sessions = new();
 
-    public ImportOrchestrator(IServiceScopeFactory scopeFactory, ILogger<ImportOrchestrator> logger)
+    public ImportOrchestrator(IServiceScopeFactory scopeFactory, IPluginManager pluginManager, ILogger<ImportOrchestrator> logger)
     {
         _scopeFactory = scopeFactory;
+        _pluginManager = pluginManager;
         _logger = logger;
     }
 
@@ -58,15 +60,16 @@ public sealed class ImportOrchestrator
             {
                 // create a scope so handlers (which are scoped) can be resolved safely from this singleton orchestrator
                 using var scope = _scopeFactory.CreateScope();
-                var handlers = scope.ServiceProvider.GetServices<IImportHandler>().ToList();
+                var handlers = await _pluginManager.GetActiveHandlersAsync(scope.ServiceProvider, ct).ConfigureAwait(false);
                 List<Exception> errors = new List<Exception>();
 
                 session.Status = "Starting";
-                foreach (var handler in handlers)
+                foreach (var pluginHandler in handlers)
                 {
+                    var handler = pluginHandler.Handler;
                     ct.ThrowIfCancellationRequested();
                     handler.UserId = userId;
-                    session.Status = $"Checking handler {handler.GetType().Name}";
+                    session.Status = $"Checking plugin {pluginHandler.Plugin.DisplayName}";
 
                     // reset stream position for each handler
                     if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
@@ -78,13 +81,13 @@ public sealed class ImportOrchestrator
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Handler {Handler} CanHandleAsync failed", handler.GetType().Name);
+                        _logger.LogWarning(ex, "Plugin {PluginId} handler {Handler} CanHandleAsync failed", pluginHandler.Plugin.Id, handler.GetType().Name);
                         continue;
                     }
 
                     if (!can) continue;
 
-                    session.Status = $"Handling with {handler.GetType().Name}";
+                    session.Status = $"Handling with {pluginHandler.Plugin.DisplayName}";
                     try { 
                     // If handler supports interactive API, call it with interaction implementation
                     if (handler is IInteractiveImportHandler interactive)
@@ -94,8 +97,9 @@ public sealed class ImportOrchestrator
                         // note: pass fresh stream (seek to 0)
                         if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
                         var res = await interactive.HandleInteractiveAsync(workStream, fileName, uri, targetCookbookId, userId, interaction, ct).ConfigureAwait(false);
-                        if (!res.Success)
-                            continue;
+                        res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
+                            .PersistAsync(res, targetCookbookId, userId, ct)
+                            .ConfigureAwait(false);
                         session.Result = res;
                         session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
                         break;
@@ -104,6 +108,9 @@ public sealed class ImportOrchestrator
                     {
                         if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
                         var res = await handler.HandleAsync(workStream, fileName, uri, targetCookbookId, userId, ct).ConfigureAwait(false);
+                        res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
+                            .PersistAsync(res, targetCookbookId, userId, ct)
+                            .ConfigureAwait(false);
                         session.Result = res;
                         session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
                         break;
@@ -112,20 +119,22 @@ public sealed class ImportOrchestrator
                     catch (Exception ex)
                     {
                         errors.Add(ex);
-                        _logger.LogWarning(ex, "Handler {Handler} CanHandleAsync failed", handler.GetType().Name);
-                        continue;
+                        _logger.LogWarning(ex, "Plugin {PluginId} handler {Handler} failed during import", pluginHandler.Plugin.Id, handler.GetType().Name);
+                        session.Result = new ImportResult(false, ImportExceptionHelper.BeautifyExceptionMessage(ex), new List<string>());
+                        session.Status = "Failed: " + session.Result.Error;
+                        break;
                     }
                 }
                 if (session.Result == null)
                     if (errors.Any())
                     {
                         session.Result = new ImportResult(false, $"Handlers accepting the file were found, but ended in exception. {string.Join("\r\n", errors.Select(e => ImportExceptionHelper.BeautifyExceptionMessage(e)))}", new List<string>());
-                        session.Status = "No suitable handler found";
+                        session.Status = "No suitable plugin found";
                     }
                     else
                     {
-                        session.Result = new ImportResult(false, "No handler accepted the file.", new List<string>());
-                        session.Status = "No suitable handler found";
+                        session.Result = new ImportResult(false, "No suitable import plugin found for this file or URL.", new List<string>());
+                        session.Status = "No suitable plugin found";
                     }
             }
             catch (OperationCanceledException)

@@ -22,6 +22,15 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
+    <ProjectReference Include="..\Rezepte.Import.Plugins.Backup\Rezepte.Import.Plugins.Backup.csproj" />
+    <ProjectReference Include="..\Rezepte.Import.Plugins.Chefkoch\Rezepte.Import.Plugins.Chefkoch.csproj" />
+    <ProjectReference Include="..\Rezepte.Import.Plugins.FifthSource\Rezepte.Import.Plugins.FifthSource.csproj" />
+    <ProjectReference Include="..\Rezepte.Import.Plugins.FourthSource\Rezepte.Import.Plugins.FourthSource.csproj" />
+    <ProjectReference Include="..\Rezepte.Import.Plugins.SecondSource\Rezepte.Import.Plugins.SecondSource.csproj" />
+    <ProjectReference Include="..\Rezepte.Import.Plugins.SixthSource\Rezepte.Import.Plugins.SixthSource.csproj" />
+    <ProjectReference Include="..\Rezepte.Import.Plugins.ThirdSource\Rezepte.Import.Plugins.ThirdSource.csproj" />
+    <ProjectReference Include="..\Rezepte.Tests.PluginFixture\Rezepte.Tests.PluginFixture.csproj" />
     <ProjectReference Include="..\Rezepte.Web\Rezepte.Web.csproj" />
   </ItemGroup>
 </Project>

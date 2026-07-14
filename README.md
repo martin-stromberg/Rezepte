@@ -17,6 +17,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Suche nach Rezepten und Anzeige neuester bzw. zufaelliger Rezepte.
 - Kalenderansicht fuer geplante Rezepte mit optionaler Uebernahme hinterlegter Beilagen.
 - Import von Rezepten aus Backups, Dateien, URLs und unterstuetzten Webseiten.
+- Plugin-Framework fuer Rezeptimporte mit aktivierbarer Reihenfolge in den Admin-Einstellungen.
 - Optionale KI-Importe ueber Google Vision und Gemini.
 - Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
@@ -36,6 +37,10 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 ```text
 Rezepte.sln
 Rezepte.Web/        Webanwendung, API, Services, Datenmodell und Migrationen
+Rezepte.Import.Abstractions/
+                    Gemeinsame Vertrage und DTOs fuer Import-Plugins
+Rezepte.Import.Plugins.*/
+                    Import-Pluginprojekte fuer Backup- und Webseitenquellen
 Rezepte.Tests/      Unit-Tests fuer zentrale Services
 Docs/               Anforderungskatalog und Installationshinweise
 ```
@@ -46,9 +51,19 @@ Wichtige Bereiche in `Rezepte.Web`:
 - `Components/Shared`: wiederverwendbare UI-Komponenten und Dialoge.
 - `Controllers`: API-Endpunkte fuer Auth, Benutzer, Kochbuecher, Rezepte, Kalender, Jobs, Einstellungen und Exporte.
 - `Services`: Fachlogik und Infrastruktur.
-- `Services/Import`: Import-Orchestrierung und Handler fuer Backup-, URL-, Webseiten- und KI-Importe.
+- `Services/Import`: Import-Orchestrierung, PluginManager, hostseitige Persistenz neutraler Importdaten und KI-Hostadapter.
 - `Data`, `Entities`, `Migrations`: EF-Core-Datenzugriff und Schemaentwicklung.
 - `wwwroot`: statische Assets, CSS, JavaScript, Icons und Manifest.
+
+## Import-Plugins
+
+Rezeptimporte laufen ueber einen `PluginManager`. Beim Programmstart erkennt die Anwendung Import-Plugin-DLLs im Ausgabeverzeichnis unter `plugins` sowie in direkten Unterordnern von `plugins`. Gefundene Plugins werden in der Datenbank mit Aktivierungsstatus, Reihenfolge und Ladezustand persistiert. Die initiale Reihenfolge beruecksichtigt die Standard-Prioritaet der Plugins, sodass KI-Plugins hinter Plugins mit fester Quellenstruktur starten. Administratoren koennen diese Liste in den Einstellungen unter `Plugins` aktivieren, deaktivieren und sortieren.
+
+Beim Import werden nur aktivierte Plugins mit Status `Loaded` in gespeicherter Reihenfolge gefragt. Das erste passende Plugin verarbeitet die Datei oder URL; wenn kein Plugin passt, endet der Import mit einer fachlichen Fehlermeldung.
+
+Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, Host-seitige Pluginverwaltung, Admin-UI, Plugin-basierte Importauswahl und produktive Pluginprojekte fuer Backup sowie die klassischen Webseitenquellen. KI-Foto und KI-URL laufen bewusst als Hostadapter, liefern ihre Ergebnisse aber ebenfalls ueber neutrale Import-DTOs an den zentralen Persistenzpfad. Details stehen in `Docs/help/import-plugins.md`.
+
+Build und Publish der Web-Anwendung bauen die produktiven externen Pluginprojekte mit und kopieren sie in das jeweilige `plugins`-Verzeichnis.
 
 ## Voraussetzungen
 
@@ -133,6 +148,7 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 - `Docs/help/navigation.md`: Bedienhinweise zur Navigation, Einrichtung und zum Benutzermenue.
 - `Docs/help/user-accounts.md`: Bedienhinweise zu Registrierung, Profil und Admin-Benutzerverwaltung.
 - `Docs/help/exports.md`: Bedienhinweise zu Datenexporten, Sicherungen und Fortschrittsanzeige.
+- `Docs/help/import-plugins.md`: Bedienhinweise und aktueller Umsetzungsstand des Import-Pluginsystems.
 - `Docs/help/side-dishes.md`: Bedienhinweise zu Beilagen in Rezepten, Kalender und Einkaufsliste.
 - `Docs/help/recipe-search.md`: Bedienhinweise zur Rezeptsuche, Trefferlogik und Kochbuchfilterung.
 - `Docs/help/shopping-list.md`: Bedienhinweise zur Einkaufsliste und Rezeptuebernahme.
