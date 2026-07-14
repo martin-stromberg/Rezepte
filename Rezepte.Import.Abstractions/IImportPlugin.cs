@@ -7,4 +7,5 @@ public interface IImportPlugin
     string? Description { get; }
     string Version { get; }
     Type HandlerType { get; }
+    int DefaultPriority => 0;
 }

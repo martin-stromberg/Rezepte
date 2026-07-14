@@ -8,5 +8,6 @@ public sealed record ImportPluginDescriptor(
     string AssemblyName,
     string TypeName,
     Type? HandlerType,
+    int DefaultPriority,
     string Status,
     string? Error);

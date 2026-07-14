@@ -169,6 +169,7 @@ public sealed class PluginManager : IPluginManager
                             assembly.GetName().Name ?? Path.GetFileNameWithoutExtension(path),
                             plugin.HandlerType.FullName ?? string.Empty,
                             null,
+                            plugin.DefaultPriority,
                             PluginStatus.Incompatible,
                             "Configured handler type does not implement IImportHandler."));
                         continue;
@@ -182,6 +183,7 @@ public sealed class PluginManager : IPluginManager
                         assembly.GetName().Name ?? Path.GetFileNameWithoutExtension(path),
                         plugin.HandlerType.FullName ?? plugin.HandlerType.Name,
                         plugin.HandlerType,
+                        plugin.DefaultPriority,
                         PluginStatus.Loaded,
                         null));
                 }
@@ -202,7 +204,7 @@ public sealed class PluginManager : IPluginManager
     private static ImportPluginDescriptor FailedDescriptor(string path, string status, string error)
     {
         var id = $"{status.ToLowerInvariant()}:{Path.GetFileNameWithoutExtension(path)}";
-        return new ImportPluginDescriptor(id, Path.GetFileName(path), null, "unknown", Path.GetFileName(path), string.Empty, null, status, error);
+        return new ImportPluginDescriptor(id, Path.GetFileName(path), null, "unknown", Path.GetFileName(path), string.Empty, null, 0, status, error);
     }
 
     private static bool IsKnownDependencyAssembly(string path)
@@ -217,7 +219,16 @@ public sealed class PluginManager : IPluginManager
         var existing = await db.PluginSettings.ToDictionaryAsync(p => p.PluginId, ct).ConfigureAwait(false);
         var nextOrder = existing.Count == 0 ? 0 : existing.Values.Max(p => p.OrderIndex) + 1;
 
-        foreach (var plugin in discovered.GroupBy(p => p.Id).Select(g => SelectPreferredDescriptor(g)))
+        var plugins = discovered.GroupBy(p => p.Id).Select(g => SelectPreferredDescriptor(g));
+        if (existing.Count == 0)
+        {
+            plugins = plugins
+                .OrderBy(p => p.DefaultPriority)
+                .ThenBy(p => p.DisplayName, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(p => p.Id, StringComparer.Ordinal);
+        }
+
+        foreach (var plugin in plugins)
         {
             if (existing.TryGetValue(plugin.Id, out var setting))
             {

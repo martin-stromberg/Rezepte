@@ -148,6 +148,27 @@ public sealed class PluginManagerTests
     }
 
     [Fact]
+    public async Task InitializeAsync_ShouldUseDefaultPriorityForInitialOrder()
+    {
+        using var workspace = PluginWorkspace.Create();
+        workspace.CopyProductivePlugins();
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+
+        await sut.InitializeAsync();
+
+        var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+        var pluginIds = await db.PluginSettings
+            .AsNoTracking()
+            .Where(p => p.Status == PluginStatus.Loaded)
+            .OrderBy(p => p.OrderIndex)
+            .Select(p => p.PluginId)
+            .ToListAsync();
+
+        pluginIds.Should().EndWith(["ai-foto", "ai-url"]);
+        pluginIds.Where(id => id.StartsWith("ai-", StringComparison.Ordinal)).Should().HaveCount(2);
+    }
+
+    [Fact]
     public async Task InitializeAsync_ShouldMarkPluginWithInvalidHandlerTypeAsIncompatible()
     {
         using var workspace = PluginWorkspace.Create();
@@ -184,8 +205,12 @@ public sealed class PluginManagerTests
         var verifyDb = verifyScope.ServiceProvider.GetRequiredService<RezepteDbContext>();
         var existing = await verifyDb.PluginSettings.FindAsync("existing-plugin");
         var added = await verifyDb.PluginSettings.FindAsync("external-test-plugin");
+        var aiFoto = await verifyDb.PluginSettings.FindAsync("ai-foto");
+        var aiUrl = await verifyDb.PluginSettings.FindAsync("ai-url");
         existing!.OrderIndex.Should().Be(10);
         added!.OrderIndex.Should().BeGreaterThan(existing.OrderIndex);
+        aiFoto!.OrderIndex.Should().BeGreaterThan(existing.OrderIndex);
+        aiUrl!.OrderIndex.Should().BeGreaterThan(existing.OrderIndex);
     }
 
     [Fact]
