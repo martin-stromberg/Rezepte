@@ -1,5 +1,7 @@
 using Rezepte.Import.Abstractions;
 using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace Rezepte.Import.Plugins.Chefkoch;
@@ -13,8 +15,66 @@ public sealed class ChefkochImportPlugin : IImportPlugin
     public Type HandlerType => typeof(ChefkochImportHandler);
 }
 
-public sealed class ChefkochImportHandler : UrlRecipeImportHandlerBase
+public sealed class ChefkochImportHandler : UrlRecipeImportHandlerBase, ICollectionImportHandler
 {
+    private static readonly Regex RecipeLinkRegex = new(
+        @"<a\b(?<attrs>[^>]*\bhref\s*=\s*[""'](?<href>[^""']*?/rezepte/(?<id>\d+)[^""']*?\.html(?:\?[^""']*)?)[""'][^>]*)>(?<text>.*?)</a>",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static readonly Regex ImageRegex = new(
+        @"<img\b[^>]*\bsrc\s*=\s*[""'](?<src>[^""']+)[""'][^>]*>",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+    public async Task<ImportCollectionPreview?> TryReadCollectionPreviewAsync(Stream stream, string fileName, string? uri, CancellationToken ct = default)
+    {
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+        var html = await reader.ReadToEndAsync(ct).ConfigureAwait(false);
+        if (!LooksLikeCollection(uri, html))
+        {
+            return null;
+        }
+
+        var items = ExtractCollectionItems(html, uri).ToArray();
+        if (items.Length == 0)
+        {
+            return null;
+        }
+
+        var sourceUri = NormalizeUrl(uri, uri);
+        return new ImportCollectionPreview(
+            Id: CreateCollectionId(sourceUri ?? fileName),
+            Title: FindCollectionTitle(html),
+            SourceUri: sourceUri,
+            Items: items);
+    }
+
+    public async Task<ImportResult> ImportCollectionItemAsync(ImportCollectionItem item, string userId, CancellationToken ct = default)
+    {
+        try
+        {
+            var tempFilePath = await DownloadFileAsync(item.Url).ConfigureAwait(false);
+            try
+            {
+                var html = await File.ReadAllTextAsync(tempFilePath, ct).ConfigureAwait(false);
+                var singleRecipe = await ReadSingleRecipe(item.Url, html).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(singleRecipe.Key) || singleRecipe.Value.Length == 0)
+                {
+                    return new ImportResult(false, "Das Rezept konnte nicht gelesen werden.", []);
+                }
+
+                return new ImportResult(true, null, [], singleRecipe.Value.Select(ToImportedRecipe).ToList());
+            }
+            finally
+            {
+                File.Delete(tempFilePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            return new ImportResult(false, ex.Message, []);
+        }
+    }
+
     protected override string FindTitle(string html)
     {
         html = FindTagValue(html, "body", "main");
@@ -139,5 +199,122 @@ public sealed class ChefkochImportHandler : UrlRecipeImportHandlerBase
                 return value;
         }
         return string.Empty;
+    }
+
+    private static bool LooksLikeCollection(string? uri, string html)
+    {
+        if (!string.IsNullOrWhiteSpace(uri)
+            && uri.Contains("/rezeptsammlung/", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return html.Contains("/rezeptsammlung/", StringComparison.OrdinalIgnoreCase)
+            || html.Contains("Rezeptsammlung", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<ImportCollectionItem> ExtractCollectionItems(string html, string? baseUri)
+    {
+        var byUrl = new Dictionary<string, ImportCollectionItem>(StringComparer.OrdinalIgnoreCase);
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match match in RecipeLinkRegex.Matches(html))
+        {
+            var url = NormalizeUrl(match.Groups["href"].Value, baseUri);
+            if (string.IsNullOrWhiteSpace(url) || byUrl.ContainsKey(url))
+            {
+                continue;
+            }
+
+            var title = CleanText(match.Groups["text"].Value);
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                title = "Chefkoch-Rezept";
+            }
+
+            var surrounding = html.Substring(Math.Max(0, match.Index - 600), Math.Min(html.Length - Math.Max(0, match.Index - 600), match.Length + 1200));
+            var thumbnail = NormalizeUrl(ImageRegex.Match(surrounding).Groups["src"].Value, baseUri);
+            var id = match.Groups["id"].Success ? $"chefkoch-{match.Groups["id"].Value}" : CreateCollectionId(url);
+            if (!seenIds.Add(id))
+            {
+                continue;
+            }
+
+            byUrl[url] = new ImportCollectionItem(id, title, url, thumbnail);
+        }
+
+        return byUrl.Values;
+    }
+
+    private static string? FindCollectionTitle(string html)
+    {
+        var h1 = Regex.Match(html, @"<h1\b[^>]*>(?<text>.*?)</h1>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        if (h1.Success)
+        {
+            var title = CleanText(h1.Groups["text"].Value);
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                return title;
+            }
+        }
+
+        var titleMatch = Regex.Match(html, @"<title\b[^>]*>(?<text>.*?)</title>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        return titleMatch.Success ? CleanText(titleMatch.Groups["text"].Value) : null;
+    }
+
+    private static string CleanText(string html)
+    {
+        var text = Regex.Replace(html, "<.*?>", " ");
+        text = WebUtility.HtmlDecode(text);
+        return Regex.Replace(text, @"\s+", " ").Trim();
+    }
+
+    private static string? NormalizeUrl(string? value, string? baseUri)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        value = WebUtility.HtmlDecode(value.Trim());
+        if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
+        {
+            return RemoveQueryAndFragment(absolute).ToString();
+        }
+
+        if (!string.IsNullOrWhiteSpace(baseUri)
+            && Uri.TryCreate(baseUri, UriKind.Absolute, out var baseAbsolute)
+            && Uri.TryCreate(baseAbsolute, value, out var combined))
+        {
+            return RemoveQueryAndFragment(combined).ToString();
+        }
+
+        if (value.StartsWith('/'))
+        {
+            return Uri.TryCreate($"https://www.chefkoch.de{value}", UriKind.Absolute, out var chefkochUri)
+                ? RemoveQueryAndFragment(chefkochUri).ToString()
+                : null;
+        }
+
+        return null;
+    }
+
+    private static Uri RemoveQueryAndFragment(Uri uri)
+    {
+        if (string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment))
+        {
+            return uri;
+        }
+
+        var builder = new UriBuilder(uri)
+        {
+            Query = string.Empty,
+            Fragment = string.Empty
+        };
+        return builder.Uri;
+    }
+
+    private static string CreateCollectionId(string value)
+    {
+        return "chefkoch-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)))[..16].ToLowerInvariant();
     }
 }

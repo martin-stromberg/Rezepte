@@ -31,9 +31,21 @@ Fuer jeden Import werden frische Handlerinstanzen aus den aktivierten Plugins er
 
 Interaktive Importpfade, zum Beispiel KI-Importe mit Bestaetigungsdialog, laufen weiterhin ueber den bestehenden Importdialog.
 
+## Chefkoch-Rezeptsammlungen
+
+Das Chefkoch-Plugin kann neben einzelnen Rezeptseiten auch Chefkoch-Rezeptsammlungen importieren. Eine Sammlungs-URL fuehrt nicht sofort zum Import aller enthaltenen Rezepte. Stattdessen liest die Anwendung zuerst nur die Informationen aus der Sammlungsseite und zeigt eine Zwischenauswahl im Importdialog.
+
+In dieser Zwischenauswahl sehen Sie die gefundenen Rezepte der Sammlung. Waehlen Sie die Rezepte aus, die importiert werden sollen, und legen Sie fuer jedes ausgewaehlte Rezept das Zielkochbuch fest. Nicht ausgewaehlte Rezepte werden nicht abgerufen und nicht importiert.
+
+Erst nach dem Absenden der Auswahl ruft die Anwendung die ausgewaehlten Rezeptseiten ab. Die Auswahl und die Zielkochbuecher sind danach gesperrt. Waehrend des Imports zeigt der Dialog den Fortschritt pro Rezept an. Erfolgreiche Rezepte werden mit einem Erfolgssymbol markiert. Falls ein Rezept nicht importiert werden kann, wird es mit einem Warnsymbol angezeigt; die konkrete Fehlermeldung ist dort einsehbar.
+
+Der Dialog kann waehrend des laufenden Imports geschlossen werden. Das Schliessen blendet nur die Fortschrittsanzeige aus und bricht den Import nicht ab.
+
+Diese Sammlungsfunktion gilt derzeit fuer Chefkoch. Andere Import-Plugins verarbeiten weiterhin einzelne Rezeptquellen.
+
 ## Aktueller Umsetzungsstand
 
-Der erreichte Stand ist ein Plugin-Framework mit gemeinsamer Vertragsschicht `Rezepte.Import.Abstractions`, persistierter Plugin-Konfiguration, Start-Erkennung externer Plugin-DLLs, Admin-UI sowie Plugin-basierter Auswahl im Datei- und URL-Import.
+Der erreichte Stand ist ein Plugin-Framework mit gemeinsamer Vertragsschicht `Rezepte.Import.Abstractions`, persistierter Plugin-Konfiguration, Start-Erkennung externer Plugin-DLLs, Admin-UI, Plugin-basierter Auswahl im Datei- und URL-Import sowie Chefkoch-Unterstuetzung fuer Rezeptsammlungen mit Zwischenauswahl.
 
 Backup und die klassischen Webseitenquellen laufen als separate produktive Pluginprojekte:
 

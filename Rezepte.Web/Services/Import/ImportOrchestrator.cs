@@ -22,10 +22,16 @@ public sealed class ImportOrchestrator
 
     public record ImportSession(string Id)
     {
+        internal object SyncRoot { get; } = new();
         public string Status { get; set; } = "Queued";
+        public string State { get; set; } = "Queued";
+        public bool ReadOnly { get; set; }
         public bool WaitingForConfirmation { get; set; } = false;
         public string? ConfirmationPrompt { get; set; }
         public TaskCompletionSource<bool>? ConfirmationTcs { get; set; }
+        public TaskCompletionSource<ImportCollectionSelection>? SelectionTcs { get; set; }
+        public ImportCollectionPreview? CollectionPreview { get; set; }
+        public List<ImportCollectionItemStatus> CollectionItems { get; set; } = [];
         public ImportResult? Result { get; set; }
     }
 
@@ -64,12 +70,35 @@ public sealed class ImportOrchestrator
                 List<Exception> errors = new List<Exception>();
 
                 session.Status = "Starting";
+                session.State = "Checking";
                 foreach (var pluginHandler in handlers)
                 {
                     var handler = pluginHandler.Handler;
                     ct.ThrowIfCancellationRequested();
                     handler.UserId = userId;
                     session.Status = $"Checking plugin {pluginHandler.Plugin.DisplayName}";
+                    session.State = "Checking";
+
+                    if (handler is ICollectionImportHandler collectionHandler)
+                    {
+                        if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
+                        ImportCollectionPreview? preview = null;
+                        try
+                        {
+                            preview = await collectionHandler.TryReadCollectionPreviewAsync(workStream, fileName, uri, ct).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Plugin {PluginId} handler {Handler} collection preview failed", pluginHandler.Plugin.Id, handler.GetType().Name);
+                        }
+
+                        if (preview is not null)
+                        {
+                            var persister = scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>();
+                            await HandleCollectionImportAsync(session, collectionHandler, preview, persister, userId, ct).ConfigureAwait(false);
+                            break;
+                        }
+                    }
 
                     // reset stream position for each handler
                     if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
@@ -88,6 +117,7 @@ public sealed class ImportOrchestrator
                     if (!can) continue;
 
                     session.Status = $"Handling with {pluginHandler.Plugin.DisplayName}";
+                    session.State = "Importing";
                     try { 
                     // If handler supports interactive API, call it with interaction implementation
                     if (handler is IInteractiveImportHandler interactive)
@@ -102,6 +132,7 @@ public sealed class ImportOrchestrator
                             .ConfigureAwait(false);
                         session.Result = res;
                         session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
+                        session.State = res.Success ? "Completed" : "Failed";
                         break;
                     }
                     else
@@ -113,6 +144,7 @@ public sealed class ImportOrchestrator
                             .ConfigureAwait(false);
                         session.Result = res;
                         session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
+                        session.State = res.Success ? "Completed" : "Failed";
                         break;
                     }
                     }
@@ -122,6 +154,7 @@ public sealed class ImportOrchestrator
                         _logger.LogWarning(ex, "Plugin {PluginId} handler {Handler} failed during import", pluginHandler.Plugin.Id, handler.GetType().Name);
                         session.Result = new ImportResult(false, ImportExceptionHelper.BeautifyExceptionMessage(ex), new List<string>());
                         session.Status = "Failed: " + session.Result.Error;
+                        session.State = "Failed";
                         break;
                     }
                 }
@@ -130,22 +163,26 @@ public sealed class ImportOrchestrator
                     {
                         session.Result = new ImportResult(false, $"Handlers accepting the file were found, but ended in exception. {string.Join("\r\n", errors.Select(e => ImportExceptionHelper.BeautifyExceptionMessage(e)))}", new List<string>());
                         session.Status = "No suitable plugin found";
+                        session.State = "Failed";
                     }
                     else
                     {
                         session.Result = new ImportResult(false, "No suitable import plugin found for this file or URL.", new List<string>());
                         session.Status = "No suitable plugin found";
+                        session.State = "Failed";
                     }
             }
             catch (OperationCanceledException)
             {
                 session.Status = "Cancelled";
+                session.State = "Failed";
                 session.Result = new ImportResult(false, "Cancelled", new List<string>());
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Import session {Session} failed", sessionId);
                 session.Status = "Error: " + ex.Message;
+                session.State = "Failed";
                 session.Result = new ImportResult(false, ex.Message, new List<string>());
             }
             finally
@@ -166,6 +203,241 @@ public sealed class ImportOrchestrator
         session.WaitingForConfirmation = false;
         session.ConfirmationTcs.TrySetResult(accepted);
         return true;
+    }
+
+    public SelectionSubmitResult SubmitSelection(string sessionId, ImportCollectionSelection selection)
+    {
+        if (!_sessions.TryGetValue(sessionId, out var session))
+        {
+            return SelectionSubmitResult.NotFound("Import-Session wurde nicht gefunden.");
+        }
+
+        lock (session.SyncRoot)
+        {
+            if (session.State != "SelectionRequired" || session.SelectionTcs is null || session.CollectionPreview is null)
+            {
+                return SelectionSubmitResult.Invalid("Die Import-Session erwartet keine Auswahl.");
+            }
+
+            if (selection.Items.Count == 0)
+            {
+                return SelectionSubmitResult.Invalid("Es muss mindestens ein Rezept ausgewaehlt werden.");
+            }
+
+            if (!TryCreatePreviewLookup(session.CollectionPreview, out var previewItems))
+            {
+                return SelectionSubmitResult.Invalid("Die Sammlung enthaelt doppelte Rezept-IDs und kann nicht importiert werden.");
+            }
+
+            foreach (var item in selection.Items)
+            {
+                if (string.IsNullOrWhiteSpace(item.TargetCookbookId))
+                {
+                    return SelectionSubmitResult.Invalid("Fuer jedes ausgewaehlte Rezept muss ein Zielkochbuch gesetzt sein.");
+                }
+
+                if (!previewItems.TryGetValue(item.ItemId, out var previewItem))
+                {
+                    return SelectionSubmitResult.Invalid($"Das Rezept {item.ItemId} ist nicht Teil der Sammlung.");
+                }
+
+                if (!string.Equals(previewItem.Url, item.Url, StringComparison.OrdinalIgnoreCase))
+                {
+                    return SelectionSubmitResult.Invalid($"Die URL fuer Rezept {item.ItemId} passt nicht zur Vorschau.");
+                }
+            }
+
+            if (!session.SelectionTcs.TrySetResult(selection))
+            {
+                return SelectionSubmitResult.Invalid("Die Auswahl wurde bereits verarbeitet.");
+            }
+
+            session.ReadOnly = true;
+            session.State = "Importing";
+            session.Status = "Importiere ausgewaehlte Rezepte";
+            return SelectionSubmitResult.Accepted();
+        }
+    }
+
+    public SelectionSubmitResult CancelSelection(string sessionId)
+    {
+        if (!_sessions.TryGetValue(sessionId, out var session))
+        {
+            return SelectionSubmitResult.NotFound("Import-Session wurde nicht gefunden.");
+        }
+
+        lock (session.SyncRoot)
+        {
+            if (session.State != "SelectionRequired" || session.SelectionTcs is null)
+            {
+                return SelectionSubmitResult.Invalid("Die Import-Session erwartet keine Auswahl.");
+            }
+
+            if (!session.SelectionTcs.TrySetCanceled())
+            {
+                return SelectionSubmitResult.Invalid("Die Auswahl wurde bereits verarbeitet.");
+            }
+
+            session.ReadOnly = true;
+            session.Status = "Cancelled";
+            session.State = "Failed";
+            session.Result = new ImportResult(false, "Import cancelled.", []);
+            return SelectionSubmitResult.Accepted();
+        }
+    }
+
+    private async Task HandleCollectionImportAsync(
+        ImportSession session,
+        ICollectionImportHandler handler,
+        ImportCollectionPreview preview,
+        IImportedRecipePersister persister,
+        string userId,
+        CancellationToken ct)
+    {
+        if (!TryCreatePreviewLookup(preview, out var initialPreviewById))
+        {
+            session.ReadOnly = true;
+            session.Status = "Failed: Die Sammlung enthaelt doppelte Rezept-IDs.";
+            session.State = "Failed";
+            session.Result = new ImportResult(false, "Die Sammlung enthaelt doppelte Rezept-IDs.", []);
+            return;
+        }
+
+        session.CollectionPreview = preview;
+        session.CollectionItems = preview.Items
+            .Select(item => new ImportCollectionItemStatus(item.Id, item.Title, item.Url, string.Empty, ImportCollectionItemState.Pending))
+            .ToList();
+        session.SelectionTcs = new TaskCompletionSource<ImportCollectionSelection>(TaskCreationOptions.RunContinuationsAsynchronously);
+        session.Status = "Auswahl erforderlich";
+        session.State = "SelectionRequired";
+
+        if (ct.CanBeCanceled)
+        {
+            ct.Register(() => session.SelectionTcs.TrySetCanceled(ct));
+        }
+
+        var selection = await session.SelectionTcs.Task.ConfigureAwait(false);
+        session.ReadOnly = true;
+        session.State = "Importing";
+        session.Status = "Importiere ausgewaehlte Rezepte";
+
+        session.CollectionItems = selection.Items
+            .Select(selected =>
+            {
+                var previewItem = initialPreviewById[selected.ItemId];
+                return new ImportCollectionItemStatus(
+                    selected.ItemId,
+                    previewItem.Title,
+                    previewItem.Url,
+                    selected.TargetCookbookId,
+                    ImportCollectionItemState.Pending);
+            })
+            .ToList();
+
+        var createdIds = new List<string>();
+        foreach (var selected in selection.Items)
+        {
+            ct.ThrowIfCancellationRequested();
+            var previewItem = initialPreviewById[selected.ItemId];
+            SetCollectionItemStatus(session, selected.ItemId, ImportCollectionItemState.Importing, selected.TargetCookbookId);
+            session.Status = $"Importiere {previewItem.Title}";
+
+            try
+            {
+                var importResult = await handler.ImportCollectionItemAsync(previewItem, userId, ct).ConfigureAwait(false);
+                if (!importResult.Success || importResult.ImportedRecipes is null || importResult.ImportedRecipes.Count == 0)
+                {
+                    SetCollectionItemStatus(session, selected.ItemId, ImportCollectionItemState.Failed, selected.TargetCookbookId, importResult.Error ?? "Das Rezept konnte nicht importiert werden.");
+                    continue;
+                }
+
+                string? recipeId = null;
+                foreach (var imported in importResult.ImportedRecipes)
+                {
+                    var persisted = await persister
+                        .PersistRecipeAsync(imported, selected.TargetCookbookId, userId, ct)
+                        .ConfigureAwait(false);
+                    if (!persisted.Success)
+                    {
+                        SetCollectionItemStatus(session, selected.ItemId, ImportCollectionItemState.Failed, selected.TargetCookbookId, persisted.Error ?? "Das Rezept konnte nicht gespeichert werden.");
+                        recipeId = null;
+                        break;
+                    }
+
+                    recipeId ??= persisted.RecipeId;
+                    if (!string.IsNullOrWhiteSpace(persisted.RecipeId))
+                    {
+                        createdIds.Add(persisted.RecipeId);
+                    }
+                }
+
+                if (recipeId is not null)
+                {
+                    SetCollectionItemStatus(session, selected.ItemId, ImportCollectionItemState.Succeeded, selected.TargetCookbookId, recipeId: recipeId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Collection item {ItemId} failed", selected.ItemId);
+                SetCollectionItemStatus(session, selected.ItemId, ImportCollectionItemState.Failed, selected.TargetCookbookId, ImportExceptionHelper.BeautifyExceptionMessage(ex));
+            }
+        }
+
+        var failed = session.CollectionItems.Count(i => i.State == ImportCollectionItemState.Failed);
+        var succeeded = session.CollectionItems.Count(i => i.State == ImportCollectionItemState.Succeeded);
+        session.Result = succeeded > 0
+            ? new ImportResult(true, failed > 0 ? $"{failed} Rezept(e) konnten nicht importiert werden." : null, createdIds)
+            : new ImportResult(false, "Keines der ausgewaehlten Rezepte konnte importiert werden.", createdIds);
+        session.Status = succeeded > 0 ? "Completed" : "Failed: Keines der ausgewaehlten Rezepte konnte importiert werden.";
+        session.State = succeeded > 0 ? "Completed" : "Failed";
+    }
+
+    private static bool TryCreatePreviewLookup(
+        ImportCollectionPreview preview,
+        out Dictionary<string, ImportCollectionItem> previewById)
+    {
+        previewById = new Dictionary<string, ImportCollectionItem>(StringComparer.Ordinal);
+        foreach (var item in preview.Items)
+        {
+            if (!previewById.TryAdd(item.Id, item))
+            {
+                previewById.Clear();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void SetCollectionItemStatus(
+        ImportSession session,
+        string itemId,
+        ImportCollectionItemState state,
+        string targetCookbookId,
+        string? error = null,
+        string? recipeId = null)
+    {
+        var index = session.CollectionItems.FindIndex(i => i.ItemId == itemId);
+        if (index < 0)
+        {
+            return;
+        }
+
+        var current = session.CollectionItems[index];
+        session.CollectionItems[index] = current with
+        {
+            State = state,
+            TargetCookbookId = targetCookbookId,
+            Error = error,
+            RecipeId = recipeId
+        };
+    }
+
+    public sealed record SelectionSubmitResult(bool Success, bool IsNotFound, string? Error)
+    {
+        public static SelectionSubmitResult Accepted() => new(true, false, null);
+        public static SelectionSubmitResult Invalid(string error) => new(false, false, error);
+        public static SelectionSubmitResult NotFound(string error) => new(false, true, error);
     }
 
     private class SessionInteraction : IImportInteraction

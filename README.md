@@ -16,7 +16,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Bild-Upload mit Validierung, zugeschnittenen Thumbnails und Grossbildansicht.
 - Suche nach Rezepten und Anzeige neuester bzw. zufaelliger Rezepte.
 - Kalenderansicht fuer geplante Rezepte mit optionaler Uebernahme hinterlegter Beilagen.
-- Import von Rezepten aus Backups, Dateien, URLs und unterstuetzten Webseiten.
+- Import von Rezepten aus Backups, Dateien, URLs und unterstuetzten Webseiten, inklusive Chefkoch-Rezeptsammlungen mit Zwischenauswahl.
 - Plugin-Framework fuer Rezeptimporte mit aktivierbarer Reihenfolge in den Admin-Einstellungen.
 - Optionale KI-Importe ueber Google Vision und Gemini.
 - Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
@@ -60,6 +60,8 @@ Wichtige Bereiche in `Rezepte.Web`:
 Rezeptimporte laufen ueber einen `PluginManager`. Beim Programmstart erkennt die Anwendung Import-Plugin-DLLs im Ausgabeverzeichnis unter `plugins` sowie in direkten Unterordnern von `plugins`. Gefundene Plugins werden in der Datenbank mit Aktivierungsstatus, Reihenfolge und Ladezustand persistiert. Die initiale Reihenfolge beruecksichtigt die Standard-Prioritaet der Plugins, sodass KI-Plugins hinter Plugins mit fester Quellenstruktur starten. Administratoren koennen diese Liste in den Einstellungen unter `Plugins` aktivieren, deaktivieren und sortieren.
 
 Beim Import werden nur aktivierte Plugins mit Status `Loaded` in gespeicherter Reihenfolge gefragt. Das erste passende Plugin verarbeitet die Datei oder URL; wenn kein Plugin passt, endet der Import mit einer fachlichen Fehlermeldung.
+
+Das Chefkoch-Plugin unterstuetzt neben einzelnen Rezeptseiten auch Rezeptsammlungen. Bei einer Sammlungs-URL zeigt der Importdialog zuerst die gefundenen Rezepte an; ausgewaehlte Rezepte erhalten jeweils ein Zielkochbuch und werden erst nach dem Absenden abgerufen. Der Fortschritt wird pro Rezept angezeigt, Teilfehler stoppen die uebrigen ausgewaehlten Importe nicht.
 
 Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, Host-seitige Pluginverwaltung, Admin-UI, Plugin-basierte Importauswahl und produktive Pluginprojekte fuer Backup sowie die klassischen Webseitenquellen. KI-Foto und KI-URL laufen bewusst als Hostadapter, liefern ihre Ergebnisse aber ebenfalls ueber neutrale Import-DTOs an den zentralen Persistenzpfad. Details stehen in `Docs/help/import-plugins.md`.
 

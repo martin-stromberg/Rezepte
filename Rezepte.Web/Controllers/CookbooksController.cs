@@ -342,12 +342,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     {
         var session = orchestrator.GetSession(sessionId);
         if (session == null) return NotFound();
-        return Ok(new {
-            status = session.Status,
-            waitingForConfirmation = session.WaitingForConfirmation,
-            confirmationPrompt = session.ConfirmationPrompt,
-            result = session.Result != null ? new { success = session.Result.Success, error = session.Result.Error, created = session.Result.CreatedRecipeIds } : null
-        });
+        return Ok(ToSessionStatus(session));
     }
 
     // POST api/cookbooks/{cookbookId}/import-session/{sessionId}/confirm
@@ -356,6 +351,31 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     {
         var ok = orchestrator.Confirm(sessionId, req.Accepted);
         if (!ok) return NotFound();
+        return NoContent();
+    }
+
+    // POST api/cookbooks/{cookbookId}/import-session/{sessionId}/selection
+    [HttpPost("{cookbookId}/import-session/{sessionId}/selection")]
+    public async Task<IActionResult> SubmitImportSessionSelection(string cookbookId, string sessionId, [FromBody] ImportCollectionSelectionRequest req, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        var validation = await ValidateSelectionCookbooksAsync(userId, req, ct);
+        if (validation is not null) return validation;
+
+        var result = orchestrator.SubmitSelection(sessionId, ToSelection(req));
+        if (result.IsNotFound) return NotFound(new { message = result.Error });
+        if (!result.Success) return BadRequest(new { message = result.Error });
+        return NoContent();
+    }
+
+    // POST api/cookbooks/{cookbookId}/import-session/{sessionId}/selection/cancel
+    [HttpPost("{cookbookId}/import-session/{sessionId}/selection/cancel")]
+    public IActionResult CancelImportSessionSelection(string cookbookId, string sessionId, [FromServices] ImportOrchestrator orchestrator)
+    {
+        var result = orchestrator.CancelSelection(sessionId);
+        if (result.IsNotFound) return NotFound(new { message = result.Error });
+        if (!result.Success) return BadRequest(new { message = result.Error });
         return NoContent();
     }
 
@@ -438,12 +458,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     {
         var session = orchestrator.GetSession(sessionId);
         if (session == null) return NotFound();
-        return Ok(new {
-            status = session.Status,
-            waitingForConfirmation = session.WaitingForConfirmation,
-            confirmationPrompt = session.ConfirmationPrompt,
-            result = session.Result != null ? new { success = session.Result.Success, error = session.Result.Error, created = session.Result.CreatedRecipeIds } : null
-        });
+        return Ok(ToSessionStatus(session));
     }
 
     // POST api/cookbooks/import-session/{sessionId}/confirm
@@ -452,6 +467,31 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     {
         var ok = orchestrator.Confirm(sessionId, req.Accepted);
         if (!ok) return NotFound();
+        return NoContent();
+    }
+
+    // POST api/cookbooks/import-session/{sessionId}/selection
+    [HttpPost("import-session/{sessionId}/selection")]
+    public async Task<IActionResult> SubmitImportSessionSelectionNoCookbook(string sessionId, [FromBody] ImportCollectionSelectionRequest req, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        var validation = await ValidateSelectionCookbooksAsync(userId, req, ct);
+        if (validation is not null) return validation;
+
+        var result = orchestrator.SubmitSelection(sessionId, ToSelection(req));
+        if (result.IsNotFound) return NotFound(new { message = result.Error });
+        if (!result.Success) return BadRequest(new { message = result.Error });
+        return NoContent();
+    }
+
+    // POST api/cookbooks/import-session/{sessionId}/selection/cancel
+    [HttpPost("import-session/{sessionId}/selection/cancel")]
+    public IActionResult CancelImportSessionSelectionNoCookbook(string sessionId, [FromServices] ImportOrchestrator orchestrator)
+    {
+        var result = orchestrator.CancelSelection(sessionId);
+        if (result.IsNotFound) return NotFound(new { message = result.Error });
+        if (!result.Success) return BadRequest(new { message = result.Error });
         return NoContent();
     }
 
@@ -540,8 +580,79 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         }
     }
 
+    private object ToSessionStatus(ImportOrchestrator.ImportSession session)
+    {
+        return new
+        {
+            status = session.Status,
+            waitingForConfirmation = session.WaitingForConfirmation,
+            confirmationPrompt = session.ConfirmationPrompt,
+            result = session.Result != null ? new { success = session.Result.Success, error = session.Result.Error, created = session.Result.CreatedRecipeIds } : null,
+            state = session.State,
+            readOnly = session.ReadOnly,
+            collection = session.CollectionPreview is null
+                ? null
+                : new
+                {
+                    id = session.CollectionPreview.Id,
+                    title = session.CollectionPreview.Title,
+                    sourceUri = session.CollectionPreview.SourceUri,
+                    items = session.CollectionPreview.Items.Select(i => new
+                    {
+                        id = i.Id,
+                        title = i.Title,
+                        url = i.Url,
+                        thumbnailUrl = i.ThumbnailUrl,
+                        description = i.Description
+                    })
+                },
+            items = session.CollectionItems.Select(i => new
+            {
+                itemId = i.ItemId,
+                title = i.Title,
+                url = i.Url,
+                targetCookbookId = i.TargetCookbookId,
+                state = i.State.ToString(),
+                error = i.Error,
+                recipeId = i.RecipeId
+            })
+        };
+    }
+
+    private async Task<IActionResult?> ValidateSelectionCookbooksAsync(string userId, ImportCollectionSelectionRequest req, CancellationToken ct)
+    {
+        if (req.Items.Count == 0)
+        {
+            return BadRequest(new { message = "Es muss mindestens ein Rezept ausgewaehlt werden." });
+        }
+
+        foreach (var item in req.Items)
+        {
+            if (string.IsNullOrWhiteSpace(item.TargetCookbookId))
+            {
+                return BadRequest(new { message = "Fuer jedes ausgewaehlte Rezept muss ein Zielkochbuch gesetzt sein." });
+            }
+
+            if (await _cookbooks.GetByIdAsync(userId, item.TargetCookbookId, ct) is null)
+            {
+                return BadRequest(new { message = $"Kochbuch {item.TargetCookbookId} wurde nicht gefunden." });
+            }
+        }
+
+        return null;
+    }
+
+    private static ImportCollectionSelection ToSelection(ImportCollectionSelectionRequest req)
+    {
+        return new ImportCollectionSelection(req.Items
+            .Select(i => new ImportCollectionSelectionItem(i.ItemId, i.Url, i.TargetCookbookId))
+            .ToList());
+    }
+
     public record CreateCookbookRequest(string Name, string? Description);
     public record UpdateCookbookRequest(string Name, string? Description);
     public record ImportUrlRequest(string Url);
     public record ConfirmRequest(bool Accepted);
+    public record ImportCollectionSelectionRequest(List<ImportCollectionSelectionItemRequest> Items);
+    public record ImportCollectionSelectionItemRequest(string ItemId, string Url, string TargetCookbookId);
 }
