@@ -45,10 +45,8 @@ Backup und die klassischen Webseitenquellen laufen als separate produktive Plugi
 
 Diese Plugins referenzieren die gemeinsame Vertragsschicht und liefern neutrale Rezeptdaten zurueck. Der Host persistiert daraus Rezepte, Zutaten, Schritte, Bilder und Kochbuchzuordnungen.
 
-KI-Foto und KI-URL sind weiterhin Hostadapter im Webprojekt, weil sie Hostservices fuer AI-Konfiguration, Usage-Limits, Google Vision, Gemini und interaktive Bestaetigung benoetigen. Auch diese Handler liefern ihre Ergebnisse inzwischen als neutrale Import-DTOs an den zentralen Persistenzpfad.
+KI-Foto und KI-URL sind bewusst Hostadapter im Webprojekt. Diese Entscheidung vermeidet einen kuenstlich aufgeweiteten Pluginvertrag fuer hostinterne Services wie AI-Konfiguration, Usage-Limits, Google Vision, Gemini, Cache und interaktive Bestaetigung. Die AI-Handler nehmen trotzdem am Plugin-Auswahlmodell teil, liefern ihre Ergebnisse als neutrale Import-DTOs und nutzen denselben zentralen Persistenzpfad wie externe Plugins.
 
-## Einschraenkungen
+## Qualitaetssicherung
 
-- `Rezepte.Import.Plugins.AIFoto` und `Rezepte.Import.Plugins.AIUrl` sind noch keine produktiven externen Plugins; die produktive AI-Logik liegt weiterhin in Hostadaptern.
-- Fuer eine vollstaendige AI-Auslagerung wird ein neutraler Contract fuer hostbereitgestellte AI-/Vision-/Settings-/Usage-Services benoetigt oder ein bewusster Architekturentscheid, AI-Imports als Hostadapter zu belassen.
-- Dedizierte Parser-Fixture-Tests fuer die produktiven externen Pluginparser stehen noch aus.
+Die produktiven externen Pluginparser sind mit dedizierten Fixture-Tests abgedeckt. Die Tests pruefen Backup-ZIP-Dateien sowie repraesentative HTML-/JSON-Strukturen fuer Chefkoch, SecondSource, ThirdSource, FourthSource, FifthSource und SixthSource ueber den oeffentlichen Importvertrag.
