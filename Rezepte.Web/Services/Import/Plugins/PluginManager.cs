@@ -87,14 +87,10 @@ public sealed class PluginManager : IPluginManager
 
     private IEnumerable<ImportPluginDescriptor> DiscoverExternalPlugins()
     {
-        var pluginRoot = Path.Combine(_environment.ContentRootPath, "plugins");
-        if (!Directory.Exists(pluginRoot))
-        {
-            return [];
-        }
-
-        var dlls = Directory.EnumerateFiles(pluginRoot, "*.dll", SearchOption.TopDirectoryOnly)
-            .Concat(Directory.EnumerateDirectories(pluginRoot).SelectMany(GetPluginAssemblyCandidates));
+        var dlls = GetPluginRoots()
+            .SelectMany(pluginRoot => Directory.EnumerateFiles(pluginRoot, "*.dll", SearchOption.TopDirectoryOnly)
+                .Concat(Directory.EnumerateDirectories(pluginRoot).SelectMany(GetPluginAssemblyCandidates)))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
         var discovered = new List<ImportPluginDescriptor>();
         foreach (var dll in dlls)
@@ -103,6 +99,20 @@ public sealed class PluginManager : IPluginManager
         }
 
         return discovered;
+    }
+
+    private IEnumerable<string> GetPluginRoots()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(_environment.ContentRootPath, "plugins"),
+            Path.Combine(AppContext.BaseDirectory, "plugins")
+        };
+
+        return candidates
+            .Where(Directory.Exists)
+            .Select(Path.GetFullPath)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
     private static IEnumerable<string> GetPluginAssemblyCandidates(string directory)

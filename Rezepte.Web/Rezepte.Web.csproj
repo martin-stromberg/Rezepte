@@ -47,10 +47,31 @@
     <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ImportPluginProject Include="..\Rezepte.Import.Plugins.Backup\Rezepte.Import.Plugins.Backup.csproj">
+      <PluginName>Rezepte.Import.Plugins.Backup</PluginName>
+    </ImportPluginProject>
+    <ImportPluginProject Include="..\Rezepte.Import.Plugins.Chefkoch\Rezepte.Import.Plugins.Chefkoch.csproj">
+      <PluginName>Rezepte.Import.Plugins.Chefkoch</PluginName>
+    </ImportPluginProject>
+    <ImportPluginProject Include="..\Rezepte.Import.Plugins.SecondSource\Rezepte.Import.Plugins.SecondSource.csproj">
+      <PluginName>Rezepte.Import.Plugins.SecondSource</PluginName>
+    </ImportPluginProject>
+    <ImportPluginProject Include="..\Rezepte.Import.Plugins.ThirdSource\Rezepte.Import.Plugins.ThirdSource.csproj">
+      <PluginName>Rezepte.Import.Plugins.ThirdSource</PluginName>
+    </ImportPluginProject>
+    <ImportPluginProject Include="..\Rezepte.Import.Plugins.FourthSource\Rezepte.Import.Plugins.FourthSource.csproj">
+      <PluginName>Rezepte.Import.Plugins.FourthSource</PluginName>
+    </ImportPluginProject>
+    <ImportPluginProject Include="..\Rezepte.Import.Plugins.FifthSource\Rezepte.Import.Plugins.FifthSource.csproj">
+      <PluginName>Rezepte.Import.Plugins.FifthSource</PluginName>
+    </ImportPluginProject>
+    <ImportPluginProject Include="..\Rezepte.Import.Plugins.SixthSource\Rezepte.Import.Plugins.SixthSource.csproj">
+      <PluginName>Rezepte.Import.Plugins.SixthSource</PluginName>
+    </ImportPluginProject>
+  </ItemGroup>
+
   <Target Name="BuildImportPlugins" BeforeTargets="CopyImportPluginsToOutput;CopyImportPluginsToPublish">
-    <ItemGroup>
-      <ImportPluginProject Include="..\Rezepte.Import.Plugins.*\*.csproj" />
-    </ItemGroup>
     <MSBuild
       Projects="@(ImportPluginProject)"
       Targets="Build"
@@ -58,10 +79,11 @@
   </Target>
 
   <Target Name="CopyImportPluginsToOutput" AfterTargets="Build">
+    <RemoveDir Directories="$(OutputPath)plugins" />
     <ItemGroup>
-      <ImportPluginProject Include="..\Rezepte.Import.Plugins.*\*.csproj" />
-      <ImportPluginOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*">
-        <PluginName>%(ImportPluginProject.Filename)</PluginName>
+      <ImportPluginOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*"
+                          Exclude="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\plugins\**\*.*;%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\publish\**\*.*">
+        <PluginName>%(ImportPluginProject.PluginName)</PluginName>
       </ImportPluginOutput>
     </ItemGroup>
     <Copy
@@ -71,10 +93,11 @@
   </Target>
 
   <Target Name="CopyImportPluginsToPublish" AfterTargets="Publish">
+    <RemoveDir Directories="$(PublishDir)plugins" />
     <ItemGroup>
-      <ImportPluginProject Include="..\Rezepte.Import.Plugins.*\*.csproj" />
-      <ImportPluginPublishOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*">
-        <PluginName>%(ImportPluginProject.Filename)</PluginName>
+      <ImportPluginPublishOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*"
+                                 Exclude="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\plugins\**\*.*;%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\publish\**\*.*">
+        <PluginName>%(ImportPluginProject.PluginName)</PluginName>
       </ImportPluginPublishOutput>
     </ItemGroup>
     <Copy

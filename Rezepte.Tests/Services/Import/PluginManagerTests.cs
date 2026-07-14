@@ -47,6 +47,46 @@ public sealed class PluginManagerTests
     }
 
     [Fact]
+    public async Task InitializeAsync_ShouldDiscoverExternalPluginFromApplicationBaseDirectory()
+    {
+        using var workspace = PluginWorkspace.CreateWithoutPluginRoot();
+        var pluginFolder = Directory.CreateDirectory(Path.Combine(
+            AppContext.BaseDirectory,
+            "plugins",
+            $"Rezepte.Tests.PluginFixture.{Guid.NewGuid():N}")).FullName;
+
+        try
+        {
+            workspace.CopyFixturePlugin(pluginFolder);
+            await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+
+            await sut.InitializeAsync();
+
+            var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+            var plugin = await db.PluginSettings.FindAsync("external-test-plugin");
+            plugin.Should().NotBeNull();
+            plugin!.Status.Should().Be(PluginStatus.Loaded);
+            plugin.Error.Should().BeNull();
+        }
+        finally
+        {
+            if (Directory.Exists(pluginFolder))
+            {
+                try
+                {
+                    Directory.Delete(pluginFolder, recursive: true);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                }
+                catch (IOException)
+                {
+                }
+            }
+        }
+    }
+
+    [Fact]
     public async Task InitializeAsync_ShouldMarkBrokenDllAsLoadFailed()
     {
         using var workspace = PluginWorkspace.Create();
@@ -247,6 +287,13 @@ public sealed class PluginManagerTests
         public static PluginWorkspace Create()
         {
             return new PluginWorkspace(Path.Combine(Path.GetTempPath(), "rezepte-plugin-tests", Guid.NewGuid().ToString("N")));
+        }
+
+        public static PluginWorkspace CreateWithoutPluginRoot()
+        {
+            var workspace = new PluginWorkspace(Path.Combine(Path.GetTempPath(), "rezepte-plugin-tests", Guid.NewGuid().ToString("N")));
+            Directory.Delete(workspace.PluginRoot, recursive: true);
+            return workspace;
         }
 
         public void CopyFixturePlugin(string targetDirectory)
