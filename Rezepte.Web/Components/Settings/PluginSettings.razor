@@ -9,12 +9,116 @@ else if (!string.IsNullOrWhiteSpace(message))
 {
     <div class="alert alert-danger py-2">@message</div>
 }
-else if (plugins.Count == 0)
-{
-    <div class="text-muted">Keine Import-Plugins gefunden.</div>
-}
 else
 {
+    <section class="mb-4">
+        <h3 class="h6">GitHub-Pluginquellen</h3>
+        <EditForm Model="sourceForm" OnValidSubmit="SaveSourceAsync">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-lg-5">
+                    <label class="form-label small" for="plugin-source-url">Repository-URL</label>
+                    <InputText id="plugin-source-url" class="form-control form-control-sm" @bind-Value="sourceForm.RepositoryUrl" />
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="form-check">
+                        <InputCheckbox id="plugin-source-private" class="form-check-input" @bind-Value="sourceForm.IsPrivate" />
+                        <label class="form-check-label small" for="plugin-source-private">Privat</label>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <div class="form-check">
+                        <InputCheckbox id="plugin-source-enabled" class="form-check-input" @bind-Value="sourceForm.Enabled" />
+                        <label class="form-check-label small" for="plugin-source-enabled">Aktiv</label>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-3">
+                    <label class="form-label small" for="plugin-source-pat">PAT rotieren</label>
+                    <InputText id="plugin-source-pat" type="password" class="form-control form-control-sm" @bind-Value="sourceForm.PersonalAccessToken" autocomplete="off" />
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <InputCheckbox id="plugin-source-trust" class="form-check-input" @bind-Value="sourceForm.TrustConfirmed" disabled="@(!string.IsNullOrWhiteSpace(sourceForm.Id))" />
+                        <label class="form-check-label small" for="plugin-source-trust">Ich vertraue dieser Quelle.</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary btn-sm" type="submit" disabled="@isSaving">Speichern</button>
+                    @if (!string.IsNullOrWhiteSpace(sourceForm.Id))
+                    {
+                        <button class="btn btn-outline-secondary btn-sm ms-2" type="button" disabled="@isSaving" @onclick="ResetSourceForm">Abbrechen</button>
+                    }
+                </div>
+            </div>
+        </EditForm>
+
+        @if (sources.Count == 0)
+        {
+            <div class="text-muted small mt-3">Keine GitHub-Pluginquellen konfiguriert.</div>
+        }
+        else
+        {
+            <div class="table-responsive mt-3">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 72px;">Aktiv</th>
+                            <th>Quelle</th>
+                            <th>Status</th>
+                            <th class="text-end" style="width: 160px;">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var source in sources)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               checked="@source.Enabled"
+                                               disabled="@isSaving"
+                                               aria-label="@($"Quelle {source.RepositoryUrl} aktivieren")"
+                                               @onchange="args => SetSourceEnabledAsync(source.Id, args)" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">@source.Owner/@source.Repository</div>
+                                    <div class="small text-muted">@source.RepositoryUrl</div>
+                                    <div class="small">@(source.IsPrivate ? "Privat" : "Oeffentlich") · Secret: @(source.HasSecret ? "hinterlegt" : "nicht hinterlegt")</div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(source.LastSuccessfulReleaseTag))
+                                    {
+                                        <span class="badge text-bg-success">@source.LastSuccessfulReleaseTag</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(source.LastError))
+                                    {
+                                        <div class="small text-danger">@source.LastError</div>
+                                    }
+                                    @if (source.LastCheckedAt is not null)
+                                    {
+                                        <div class="small text-muted">Geprueft: @source.LastCheckedAt.Value.ToLocalTime().ToString("g")</div>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-secondary btn-sm" disabled="@isSaving" @onclick="() => EditSource(source)">Bearbeiten</button>
+                                    <button class="btn btn-outline-danger btn-sm ms-1" disabled="@isSaving" @onclick="() => DeleteSourceAsync(source.Id)">Loeschen</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    @if (plugins.Count == 0)
+    {
+        <div class="text-muted">Keine Import-Plugins gefunden.</div>
+    }
+    else
+    {
+    <h3 class="h6">Lokale Import-Plugins</h3>
     <div class="table-responsive">
         <table class="table table-sm align-middle">
             <thead>
@@ -71,10 +175,13 @@ else
             </tbody>
         </table>
     </div>
+    }
 }
 
 @code {
     private List<PluginSettingsItem> plugins = [];
+    private List<PluginSourceSettingsItem> sources = [];
+    private SourceForm sourceForm = new();
     private bool isLoading = true;
     private bool isSaving;
     private string? message;
@@ -91,6 +198,7 @@ else
         try
         {
             plugins = (await PluginSettingsService.GetPluginsAsync()).ToList();
+            sources = (await PluginSettingsService.GetSourcesAsync()).ToList();
         }
         catch (Exception ex)
         {
@@ -100,6 +208,90 @@ else
         {
             isLoading = false;
         }
+    }
+
+    private async Task SaveSourceAsync()
+    {
+        isSaving = true;
+        message = null;
+        try
+        {
+            await PluginSettingsService.SaveSourceAsync(new PluginSourceSaveRequest(
+                sourceForm.Id,
+                sourceForm.RepositoryUrl,
+                sourceForm.IsPrivate,
+                sourceForm.Enabled,
+                sourceForm.TrustConfirmed,
+                sourceForm.PersonalAccessToken));
+            ResetSourceForm();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            message = $"Quelle konnte nicht gespeichert werden: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task SetSourceEnabledAsync(string sourceId, ChangeEventArgs args)
+    {
+        var enabled = args.Value is bool value ? value : bool.TryParse(args.Value?.ToString(), out var parsed) && parsed;
+        isSaving = true;
+        message = null;
+        try
+        {
+            await PluginSettingsService.SetSourceEnabledAsync(sourceId, enabled);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            message = $"Quelle konnte nicht gespeichert werden: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteSourceAsync(string sourceId)
+    {
+        isSaving = true;
+        message = null;
+        try
+        {
+            await PluginSettingsService.DeleteSourceAsync(sourceId);
+            ResetSourceForm();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            message = $"Quelle konnte nicht geloescht werden: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void EditSource(PluginSourceSettingsItem source)
+    {
+        sourceForm = new SourceForm
+        {
+            Id = source.Id,
+            RepositoryUrl = source.RepositoryUrl,
+            IsPrivate = source.IsPrivate,
+            Enabled = source.Enabled,
+            TrustConfirmed = source.TrustConfirmed,
+            PersonalAccessToken = null
+        };
+    }
+
+    private void ResetSourceForm()
+    {
+        sourceForm = new SourceForm();
     }
 
     private async Task SetEnabledAsync(string pluginId, ChangeEventArgs args)
@@ -149,4 +341,14 @@ else
         PluginStatus.LoadFailed => "badge text-bg-danger",
         _ => "badge text-bg-secondary"
     };
+
+    private sealed class SourceForm
+    {
+        public string? Id { get; set; }
+        public string RepositoryUrl { get; set; } = string.Empty;
+        public bool IsPrivate { get; set; }
+        public bool Enabled { get; set; } = true;
+        public bool TrustConfirmed { get; set; }
+        public string? PersonalAccessToken { get; set; }
+    }
 }

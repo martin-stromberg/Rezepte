@@ -77,17 +77,28 @@ public sealed class PluginManager : IPluginManager
         return handlers;
     }
 
+    public IReadOnlyList<ImportPluginDescriptor> DiscoverFromDirectory(string pluginRoot, bool unloadAfterDiscovery = false)
+    {
+        var fullRoot = Path.GetFullPath(pluginRoot);
+        if (!Directory.Exists(fullRoot))
+        {
+            return [];
+        }
+
+        return DiscoverExternalPlugins([fullRoot], unloadAfterDiscovery).ToList();
+    }
+
     private IReadOnlyList<ImportPluginDescriptor> DiscoverPlugins()
     {
         var plugins = new List<ImportPluginDescriptor>();
         plugins.AddRange(BuiltInImportPluginCatalog.GetPlugins());
-        plugins.AddRange(DiscoverExternalPlugins());
+        plugins.AddRange(DiscoverExternalPlugins(GetPluginRoots(), useCollectibleLoadContext: false));
         return plugins;
     }
 
-    private IEnumerable<ImportPluginDescriptor> DiscoverExternalPlugins()
+    private IEnumerable<ImportPluginDescriptor> DiscoverExternalPlugins(IEnumerable<string> pluginRoots, bool useCollectibleLoadContext)
     {
-        var dlls = GetPluginRoots()
+        var dlls = pluginRoots
             .SelectMany(pluginRoot => Directory.EnumerateFiles(pluginRoot, "*.dll", SearchOption.TopDirectoryOnly)
                 .Concat(Directory.EnumerateDirectories(pluginRoot).SelectMany(GetPluginAssemblyCandidates)))
             .Distinct(StringComparer.OrdinalIgnoreCase);
@@ -95,7 +106,7 @@ public sealed class PluginManager : IPluginManager
         var discovered = new List<ImportPluginDescriptor>();
         foreach (var dll in dlls)
         {
-            discovered.AddRange(DiscoverFromAssembly(dll));
+            discovered.AddRange(DiscoverFromAssembly(dll, useCollectibleLoadContext));
         }
 
         return discovered;
@@ -126,12 +137,13 @@ public sealed class PluginManager : IPluginManager
         return Directory.EnumerateFiles(directory, "*.dll", SearchOption.TopDirectoryOnly);
     }
 
-    private IEnumerable<ImportPluginDescriptor> DiscoverFromAssembly(string path)
+    private IEnumerable<ImportPluginDescriptor> DiscoverFromAssembly(string path, bool useCollectibleLoadContext)
     {
         var result = new List<ImportPluginDescriptor>();
+        PluginLoadContext? loadContext = null;
         try
         {
-            var loadContext = new PluginLoadContext(path);
+            loadContext = new PluginLoadContext(path, useCollectibleLoadContext);
             var assembly = loadContext.LoadFromAssemblyPath(path);
             var pluginTypes = assembly.GetTypes()
                 .Where(t => !t.IsAbstract && typeof(IImportPlugin).IsAssignableFrom(t))
@@ -182,7 +194,7 @@ public sealed class PluginManager : IPluginManager
                         plugin.Version,
                         assembly.GetName().Name ?? Path.GetFileNameWithoutExtension(path),
                         plugin.HandlerType.FullName ?? plugin.HandlerType.Name,
-                        plugin.HandlerType,
+                        useCollectibleLoadContext ? null : plugin.HandlerType,
                         plugin.DefaultPriority,
                         PluginStatus.Loaded,
                         null));
@@ -196,6 +208,13 @@ public sealed class PluginManager : IPluginManager
         catch (Exception ex)
         {
             result.Add(FailedDescriptor(path, PluginStatus.LoadFailed, ex.Message));
+        }
+        finally
+        {
+            if (useCollectibleLoadContext)
+            {
+                loadContext?.Unload();
+            }
         }
 
         return result;
@@ -300,7 +319,7 @@ public sealed class PluginManager : IPluginManager
     {
         private readonly AssemblyDependencyResolver _resolver;
 
-        public PluginLoadContext(string pluginPath) : base(isCollectible: false)
+        public PluginLoadContext(string pluginPath, bool isCollectible) : base(isCollectible)
         {
             _resolver = new AssemblyDependencyResolver(pluginPath);
         }
