@@ -31,8 +31,8 @@ public sealed class GitHubReleaseClient(HttpClient httpClient, IOptions<PluginUp
         {
             var assetId = asset.GetProperty("id").GetInt64();
             var name = asset.GetProperty("name").GetString() ?? string.Empty;
-            var url = asset.TryGetProperty("browser_download_url", out var browserDownloadUrl)
-                ? browserDownloadUrl.GetString() ?? string.Empty
+            var url = asset.TryGetProperty("url", out var apiUrl)
+                ? apiUrl.GetString() ?? string.Empty
                 : string.Empty;
             if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(url))
             {
@@ -46,7 +46,7 @@ public sealed class GitHubReleaseClient(HttpClient httpClient, IOptions<PluginUp
     public async Task DownloadAssetAsync(GitHubReleaseAsset asset, string targetPath, string? personalAccessToken, CancellationToken ct = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, asset.DownloadUrl);
-        ApplyHeaders(request, personalAccessToken);
+        ApplyHeaders(request, personalAccessToken, acceptOctetStream: true);
         using var response = await SendWithRetryAsync(request, ct).ConfigureAwait(false);
         await EnsureSuccessAsync(response).ConfigureAwait(false);
         await using var input = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
@@ -60,10 +60,10 @@ public sealed class GitHubReleaseClient(HttpClient httpClient, IOptions<PluginUp
         return new Uri(baseUri, path.TrimStart('/'));
     }
 
-    private void ApplyHeaders(HttpRequestMessage request, string? personalAccessToken)
+    private void ApplyHeaders(HttpRequestMessage request, string? personalAccessToken, bool acceptOctetStream = false)
     {
         request.Headers.UserAgent.ParseAdd(string.IsNullOrWhiteSpace(_options.UserAgent) ? "Rezepte.PluginUpdater" : _options.UserAgent);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(acceptOctetStream ? "application/octet-stream" : "application/vnd.github+json"));
         request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
         if (!string.IsNullOrWhiteSpace(personalAccessToken))
         {

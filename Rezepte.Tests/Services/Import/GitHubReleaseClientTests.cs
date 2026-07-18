@@ -10,6 +10,60 @@ namespace Rezepte.Tests.Services.Import;
 public sealed class GitHubReleaseClientTests
 {
     [Fact]
+    public async Task GetLatestReleaseAsync_ShouldUseAssetApiUrlForDownload()
+    {
+        var handler = new QueueHandler(Json(HttpStatusCode.OK, """
+            {
+              "id": 1,
+              "tag_name": "v1",
+              "assets": [
+                {
+                  "id": 2,
+                  "name": "release.zip",
+                  "url": "https://api.github.test/repos/owner/repo/releases/assets/2",
+                  "browser_download_url": "https://github.com/owner/repo/releases/download/v1/release.zip"
+                }
+              ]
+            }
+            """));
+        var sut = CreateSut(handler);
+
+        var release = await sut.GetLatestReleaseAsync(new GitHubRepository("owner", "repo", "https://github.com/owner/repo"), "secret");
+
+        release.Should().NotBeNull();
+        release!.Assets.Should().ContainSingle().Which.DownloadUrl.Should().Be("https://api.github.test/repos/owner/repo/releases/assets/2");
+    }
+
+    [Fact]
+    public async Task DownloadAssetAsync_ShouldRequestAssetApiUrlAsOctetStream()
+    {
+        var handler = new QueueHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent([1, 2, 3])
+        });
+        var sut = CreateSut(handler);
+        var targetPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".zip");
+
+        try
+        {
+            await sut.DownloadAssetAsync(new GitHubReleaseAsset(2, "release.zip", "https://api.github.test/repos/owner/repo/releases/assets/2"), targetPath, "secret");
+
+            File.ReadAllBytes(targetPath).Should().Equal([1, 2, 3]);
+            var request = handler.Requests.Should().ContainSingle().Subject;
+            request.RequestUri!.ToString().Should().Be("https://api.github.test/repos/owner/repo/releases/assets/2");
+            request.Headers.Accept.Select(a => a.MediaType).Should().Contain("application/octet-stream");
+            request.Headers.Authorization!.Parameter.Should().Be("secret");
+        }
+        finally
+        {
+            if (File.Exists(targetPath))
+            {
+                File.Delete(targetPath);
+            }
+        }
+    }
+
+    [Fact]
     public async Task GetLatestReleaseAsync_ShouldRetryRetryAfterRateLimitAndThenSucceed()
     {
         var handler = new QueueHandler(
