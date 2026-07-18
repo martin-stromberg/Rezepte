@@ -5,8 +5,9 @@ Die Einkaufsliste ist ueber den Hauptmenuepunkt `Einkaufsliste` erreichbar.
 ## Gruppen und Zutaten
 
 - Beim ersten Aufruf wird automatisch eine Standardgruppe angezeigt.
-- In jeder Gruppe stehen Eingabefelder fuer Menge, Einheit und Zutat direkt bereit.
-- Zutaten koennen abgehakt, bearbeitet oder geloescht werden.
+- In jeder Gruppe stehen Eingabefelder fuer Menge, Einheit und Zutat direkt bereit, um neue Zutaten hinzuzufuegen.
+- Bestehende Zutaten koennen abgehakt, bearbeitet oder geloescht werden. Beim Bearbeiten werden Menge und Einheit gemeinsam in einem Feld gepflegt, zum Beispiel `2 kg`.
+- Auf mobilen Bildschirmen stehen beim Bearbeiten Menge/Einheit, Zutat und Loeschen-Button pro Eintrag in einer kompakten Zeile; die Abhaken-Checkbox wird dort nur im Ansichtsmodus angezeigt.
 - Gruppen koennen direkt umbenannt, hinzugefuegt oder geloescht werden.
 
 ## Zutaten aus Rezepten uebernehmen

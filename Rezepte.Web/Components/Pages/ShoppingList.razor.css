@@ -32,17 +32,26 @@
     margin-top: 0.75rem;
 }
 
+.shopping-add-row .form-control,
+.shopping-item .form-control {
+    min-width: 0;
+}
+
 .shopping-items {
     display: grid;
     gap: 0.5rem;
 }
 
-.shopping-item {
-    grid-template-columns: auto minmax(4.5rem, 0.4fr) minmax(4.5rem, 0.5fr) minmax(8rem, 1fr) auto;
+.shopping-item-edit {
+    grid-template-columns: minmax(5.5rem, 0.45fr) minmax(8rem, 1fr) auto;
 }
 
-.shopping-item:has(.shopping-item-text) {
+.shopping-item-view {
     grid-template-columns: auto minmax(0, 1fr);
+}
+
+.shopping-item .btn {
+    min-width: 2rem;
 }
 
 .shopping-item.is-checked .shopping-item-name,
@@ -52,14 +61,20 @@
 }
 
 @media (max-width: 575.98px) {
-    .shopping-add-row,
-    .shopping-item {
+    .shopping-add-row {
         grid-template-columns: auto minmax(0, 1fr) auto;
     }
 
-    .shopping-add-row .form-control,
-    .shopping-item .form-control {
+    .shopping-add-row .form-control {
         grid-column: 1 / -1;
+    }
+
+    .shopping-item-edit {
+        grid-template-columns: minmax(4.5rem, 0.45fr) minmax(0, 1fr) auto;
+    }
+
+    .shopping-item-view {
+        grid-template-columns: auto minmax(0, 1fr);
     }
 
     .shopping-item .form-check-input {
