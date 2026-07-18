@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

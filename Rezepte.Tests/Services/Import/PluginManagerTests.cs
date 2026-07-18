@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
 using Rezepte.Web.Services.Import.Plugins;
+using System.Diagnostics;
+using System.Text;
 using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
@@ -137,7 +139,68 @@ public sealed class PluginManagerTests
         pluginIds.Should().Contain([
             "ai-foto",
             "ai-url",
-            "backup",
+            "backup"
+        ]);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ShouldLoadPublishedExternalChefkochPluginWithoutAdjacentContractAssembly()
+    {
+        if (!PluginWorkspace.ExternalPluginRepositoryExists())
+        {
+            return;
+        }
+
+        using var workspace = PluginWorkspace.Create();
+        workspace.PublishExternalPlugin("Rezepte.Import.Plugins.Chefkoch");
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+
+        await sut.InitializeAsync();
+
+        var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+        var plugin = await db.PluginSettings.FindAsync("chefkoch");
+        plugin.Should().NotBeNull();
+        plugin!.Status.Should().Be(PluginStatus.Loaded);
+        plugin.Enabled.Should().BeTrue();
+
+        var handlers = await sut.GetActiveHandlersAsync(scope.ServiceProvider);
+        var chefkoch = handlers.Should().ContainSingle(h => h.Plugin.Id == "chefkoch").Subject;
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(PluginWorkspace.ReadChefkochFixture()));
+        (await chefkoch.Handler.CanHandleAsync(stream, "chefkoch-recipe.html")).Should().BeTrue();
+        stream.Position = 0;
+        var result = await chefkoch.Handler.HandleAsync(stream, "chefkoch-recipe.html", null, "cookbook-1", "user-1");
+        result.Success.Should().BeTrue();
+        result.ImportedRecipes.Should().NotBeNull();
+        result.ImportedRecipes!.Should().ContainSingle(r => r.Title == "Chefkoch-Demo-Rezept");
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ShouldLoadAllPublishedExternalOnlinePluginsWithoutAdjacentContractAssembly()
+    {
+        if (!PluginWorkspace.ExternalPluginRepositoryExists())
+        {
+            return;
+        }
+
+        using var workspace = PluginWorkspace.Create();
+        foreach (var pluginProject in PluginWorkspace.ExternalOnlinePluginProjects)
+        {
+            workspace.PublishExternalPlugin(pluginProject);
+        }
+
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+
+        await sut.InitializeAsync();
+
+        var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+        var pluginIds = await db.PluginSettings
+            .AsNoTracking()
+            .Where(p => p.Status == PluginStatus.Loaded)
+            .OrderBy(p => p.PluginId)
+            .Select(p => p.PluginId)
+            .ToListAsync();
+
+        pluginIds.Should().Contain([
             "chefkoch",
             "fifth-source",
             "fourth-source",
@@ -145,6 +208,21 @@ public sealed class PluginManagerTests
             "sixth-source",
             "third-source"
         ]);
+
+        var handlers = await sut.GetActiveHandlersAsync(scope.ServiceProvider);
+        handlers.Select(h => h.Plugin.Id).Should().Contain([
+            "chefkoch",
+            "fifth-source",
+            "fourth-source",
+            "second-source",
+            "sixth-source",
+            "third-source"
+        ]);
+
+        foreach (var pluginProject in PluginWorkspace.ExternalOnlinePluginProjects)
+        {
+            File.Exists(Path.Combine(workspace.PluginRoot, pluginProject, "Rezepte.Import.Abstractions.dll")).Should().BeFalse();
+        }
     }
 
     [Fact]
@@ -308,6 +386,15 @@ public sealed class PluginManagerTests
 
         public string ContentRoot { get; }
         public string PluginRoot { get; }
+        public static IReadOnlyList<string> ExternalOnlinePluginProjects { get; } =
+        [
+            "Rezepte.Import.Plugins.Chefkoch",
+            "Rezepte.Import.Plugins.SecondSource",
+            "Rezepte.Import.Plugins.ThirdSource",
+            "Rezepte.Import.Plugins.FourthSource",
+            "Rezepte.Import.Plugins.FifthSource",
+            "Rezepte.Import.Plugins.SixthSource"
+        ];
 
         public static PluginWorkspace Create()
         {
@@ -356,19 +443,91 @@ public sealed class PluginManagerTests
         {
             foreach (var pluginName in new[]
             {
-                "Rezepte.Import.Plugins.Backup",
-                "Rezepte.Import.Plugins.Chefkoch",
-                "Rezepte.Import.Plugins.FifthSource",
-                "Rezepte.Import.Plugins.FourthSource",
-                "Rezepte.Import.Plugins.SecondSource",
-                "Rezepte.Import.Plugins.SixthSource",
-                "Rezepte.Import.Plugins.ThirdSource"
+                "Rezepte.Import.Plugins.Backup"
             })
             {
                 var targetDirectory = Directory.CreateDirectory(Path.Combine(PluginRoot, pluginName)).FullName;
                 CopyOutputAssembly($"{pluginName}.dll", targetDirectory);
                 CopyOutputAssembly("Rezepte.Import.Abstractions.dll", targetDirectory);
             }
+        }
+
+        public void PublishExternalPlugin(string projectName)
+        {
+            var externalRoot = GetExternalPluginRepositoryRoot();
+            var projectPath = Path.Combine(
+                externalRoot,
+                projectName,
+                $"{projectName}.csproj");
+            File.Exists(projectPath).Should().BeTrue("the external plugin project should exist");
+
+            var targetDirectory = Directory.CreateDirectory(Path.Combine(PluginRoot, projectName)).FullName;
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                ArgumentList =
+                {
+                    "publish",
+                    projectPath,
+                    "-c",
+                    "Debug",
+                    "-o",
+                    targetDirectory,
+                    "--no-self-contained"
+                },
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            });
+            process.Should().NotBeNull();
+            process!.WaitForExit();
+            var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+            process.ExitCode.Should().Be(0, output);
+
+            var adjacentContract = Path.Combine(targetDirectory, "Rezepte.Import.Abstractions.dll");
+            if (File.Exists(adjacentContract))
+            {
+                File.Delete(adjacentContract);
+            }
+        }
+
+        public static string ReadChefkochFixture()
+        {
+            var fixturePath = Path.Combine(
+                GetExternalPluginRepositoryRoot(),
+                "tests",
+                "fixtures",
+                "chefkoch-recipe.html");
+            return File.ReadAllText(fixturePath);
+        }
+
+        public static bool ExternalPluginRepositoryExists()
+        {
+            return Directory.Exists(GetExternalPluginRepositoryRoot());
+        }
+
+        private static string GetExternalPluginRepositoryRoot()
+        {
+            var configured = Environment.GetEnvironmentVariable("REZEPTE_EXTERNAL_PLUGINS_PATH");
+            return string.IsNullOrWhiteSpace(configured)
+                ? Path.Combine(FindRepositoryRoot(), "external", "rezepte-import-plugins-private")
+                : configured;
+        }
+
+        private static string FindRepositoryRoot()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "Rezepte.sln")))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate repository root.");
         }
     }
 }
