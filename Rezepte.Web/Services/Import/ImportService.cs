@@ -21,8 +21,8 @@ public class ImportService(
         _logger.LogInformation("Import requested: {FileName} -> cookbook {CookbookId} by user {UserId}", fileName, targetCookbookId, userId);
 
         // Try each handler: reset stream position for each attempt
-        var handlers = await _pluginManager.GetActiveHandlersAsync(_serviceProvider, ct).ConfigureAwait(false);
-        foreach (var pluginHandler in handlers)
+        await using var lease = await _pluginManager.AcquireActiveHandlersAsync(_serviceProvider, ct).ConfigureAwait(false);
+        foreach (var pluginHandler in lease.Handlers)
         {
             var handler = pluginHandler.Handler;
             stream.Seek(0, SeekOrigin.Begin);

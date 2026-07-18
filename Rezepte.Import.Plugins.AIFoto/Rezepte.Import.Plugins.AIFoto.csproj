@@ -12,7 +12,13 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.9" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(RezepteWebReferencePath)' != ''">
+    <Reference Include="Rezepte.Web">
+      <HintPath>$(RezepteWebReferencePath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(RezepteWebReferencePath)' == ''">
     <Reference Include="Rezepte.Web">
       <HintPath>..\Rezepte.Web\bin\$(Configuration)\$(TargetFramework)\Rezepte.Web.dll</HintPath>
       <Private>false</Private>

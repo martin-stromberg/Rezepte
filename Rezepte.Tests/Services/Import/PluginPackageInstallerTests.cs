@@ -22,9 +22,27 @@ public sealed class PluginPackageInstallerTests
 
         var act = () => sut.InstallAsync([incomingPlugin]);
 
-        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("reload failed");
+        var error = await act.Should().ThrowAsync<PluginPackageInstallException>();
+        error.Which.Status.Should().Be(PluginSourceReleaseStatus.ReloadFailed);
+        error.Which.Message.Should().Be("reload failed");
         pluginManager.InitializeCalls.Should().Be(2);
         File.ReadAllText(Path.Combine(existingPlugin, "PluginA.dll")).Should().Be("original");
+    }
+
+    [Fact]
+    public async Task InstallAsync_ShouldRemovePartiallyCopiedNewTargetAfterCopyFailure()
+    {
+        using var workspace = new TempWorkspace();
+        var incomingPlugin = Directory.CreateDirectory(Path.Combine(workspace.Root, "incoming", "PluginB")).FullName;
+        var lockedFile = Path.Combine(incomingPlugin, "PluginB.dll");
+        await File.WriteAllTextAsync(lockedFile, "partial");
+        await using var lockedStream = new FileStream(lockedFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        var sut = new PluginPackageInstaller(new TestHostEnvironment(workspace.Root), new SuccessfulPluginManager(), NullLogger<PluginPackageInstaller>.Instance);
+
+        var act = () => sut.InstallAsync([incomingPlugin]);
+
+        await act.Should().ThrowAsync<PluginPackageInstallException>();
+        Directory.Exists(Path.Combine(workspace.PluginRoot, "PluginB")).Should().BeFalse();
     }
 
     private sealed class FailingPluginManager : IPluginManager
@@ -41,6 +59,14 @@ public sealed class PluginPackageInstallerTests
 
             return Task.CompletedTask;
         }
+
+        public Task<IReadOnlyList<PluginImportHandler>> GetActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<PluginImportHandler>>([]);
+    }
+
+    private sealed class SuccessfulPluginManager : IPluginManager
+    {
+        public Task InitializeAsync(CancellationToken ct = default) => Task.CompletedTask;
 
         public Task<IReadOnlyList<PluginImportHandler>> GetActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<PluginImportHandler>>([]);

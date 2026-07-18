@@ -310,6 +310,16 @@ namespace Rezepte.Web.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ReloadError")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ReloadedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReloadStatus")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)

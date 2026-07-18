@@ -66,12 +66,12 @@ public sealed class ImportOrchestrator
             {
                 // create a scope so handlers (which are scoped) can be resolved safely from this singleton orchestrator
                 using var scope = _scopeFactory.CreateScope();
-                var handlers = await _pluginManager.GetActiveHandlersAsync(scope.ServiceProvider, ct).ConfigureAwait(false);
+                await using var lease = await _pluginManager.AcquireActiveHandlersAsync(scope.ServiceProvider, ct).ConfigureAwait(false);
                 List<Exception> errors = new List<Exception>();
 
                 session.Status = "Starting";
                 session.State = "Checking";
-                foreach (var pluginHandler in handlers)
+                foreach (var pluginHandler in lease.Handlers)
                 {
                     var handler = pluginHandler.Handler;
                     ct.ThrowIfCancellationRequested();

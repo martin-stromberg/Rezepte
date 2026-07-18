@@ -65,6 +65,35 @@ public sealed class PluginUpdateServiceTests
         var record = await db.PluginSourceReleases.SingleAsync();
         record.Status.Should().Be(PluginSourceReleaseStatus.Installed);
         record.Error.Should().BeNull();
+        record.ReloadStatus.Should().Be(PluginSourceReleaseStatus.Installed);
+        record.ReloadedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task CheckForUpdatesAsync_ShouldPersistReloadFailureSeparately()
+    {
+        using var db = CreateDb();
+        var source = new PluginSource
+        {
+            Id = "source-1",
+            RepositoryUrl = "https://github.com/owner/repo",
+            Owner = "owner",
+            Repository = "repo",
+            Enabled = true,
+            TrustConfirmed = true
+        };
+        db.PluginSources.Add(source);
+        await db.SaveChangesAsync();
+        var github = new FakeGitHubReleaseClient(new GitHubReleaseInfo(1, "v1", [new GitHubReleaseAsset(2, "plugin.zip", "https://example.invalid/plugin.zip")]));
+        var sut = CreateSut(db, github, new FailingPackageInstaller(PluginSourceReleaseStatus.ReloadFailed));
+
+        await sut.CheckForUpdatesAsync();
+
+        var record = await db.PluginSourceReleases.SingleAsync();
+        record.Status.Should().Be(PluginSourceReleaseStatus.ReloadFailed);
+        record.ReloadStatus.Should().Be(PluginSourceReleaseStatus.ReloadFailed);
+        record.ReloadError.Should().Be("reload failed");
+        record.InstalledAt.Should().BeNull();
     }
 
     private static RezepteDbContext CreateDb()
@@ -75,14 +104,14 @@ public sealed class PluginUpdateServiceTests
         return new RezepteDbContext(options);
     }
 
-    private static PluginUpdateService CreateSut(RezepteDbContext db, FakeGitHubReleaseClient github)
+    private static PluginUpdateService CreateSut(RezepteDbContext db, FakeGitHubReleaseClient github, IPluginPackageInstaller? installer = null)
     {
         return new PluginUpdateService(
             db,
             github,
             new FakeSecretStore(),
             new FakePackageValidator(),
-            new FakePackageInstaller(),
+            installer ?? new FakePackageInstaller(),
             NullLogger<PluginUpdateService>.Instance);
     }
 
@@ -124,5 +153,11 @@ public sealed class PluginUpdateServiceTests
     private sealed class FakePackageInstaller : IPluginPackageInstaller
     {
         public Task InstallAsync(IReadOnlyList<string> pluginDirectories, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    private sealed class FailingPackageInstaller(string status) : IPluginPackageInstaller
+    {
+        public Task InstallAsync(IReadOnlyList<string> pluginDirectories, CancellationToken ct = default)
+            => throw new PluginPackageInstallException(status, "reload failed", new InvalidOperationException("reload failed"));
     }
 }

@@ -12,6 +12,7 @@ public sealed class PluginManager : IPluginManager
     private readonly IHostEnvironment _environment;
     private readonly ILogger<PluginManager> _logger;
     private readonly object _syncRoot = new();
+    private readonly SemaphoreSlim _lifecycleLock = new(1, 1);
     private IReadOnlyDictionary<string, ImportPluginDescriptor> _loadedPlugins = new Dictionary<string, ImportPluginDescriptor>();
 
     public PluginManager(IServiceScopeFactory scopeFactory, IHostEnvironment environment, ILogger<PluginManager> logger)
@@ -22,6 +23,48 @@ public sealed class PluginManager : IPluginManager
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)
+    {
+        await ReloadAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task ReloadAsync(CancellationToken ct = default)
+    {
+        await _lifecycleLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            lock (_syncRoot)
+            {
+                _loadedPlugins = new Dictionary<string, ImportPluginDescriptor>();
+            }
+
+            await InitializeCoreAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _lifecycleLock.Release();
+        }
+    }
+
+    public async Task CoordinateReloadAsync(Func<CancellationToken, Task> replacePlugins, CancellationToken ct = default)
+    {
+        await _lifecycleLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            lock (_syncRoot)
+            {
+                _loadedPlugins = new Dictionary<string, ImportPluginDescriptor>();
+            }
+
+            await replacePlugins(ct).ConfigureAwait(false);
+            await InitializeCoreAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _lifecycleLock.Release();
+        }
+    }
+
+    private async Task InitializeCoreAsync(CancellationToken ct)
     {
         var discovered = DiscoverPlugins();
         lock (_syncRoot)
@@ -38,6 +81,31 @@ public sealed class PluginManager : IPluginManager
     }
 
     public async Task<IReadOnlyList<PluginImportHandler>> GetActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        await using var lease = await AcquireActiveHandlersAsync(serviceProvider, ct).ConfigureAwait(false);
+        return lease.Handlers;
+    }
+
+    public async Task<PluginHandlerLease> AcquireActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        await _lifecycleLock.WaitAsync(ct).ConfigureAwait(false);
+        var release = true;
+        try
+        {
+            var handlers = await CreateActiveHandlersAsync(serviceProvider, ct).ConfigureAwait(false);
+            release = false;
+            return new PluginHandlerLease(handlers, new LifecycleLockReleaser(_lifecycleLock));
+        }
+        finally
+        {
+            if (release)
+            {
+                _lifecycleLock.Release();
+            }
+        }
+    }
+
+    private async Task<IReadOnlyList<PluginImportHandler>> CreateActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct)
     {
         IReadOnlyDictionary<string, ImportPluginDescriptor> loaded;
         lock (_syncRoot)
@@ -333,6 +401,15 @@ public sealed class PluginManager : IPluginManager
 
             var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
             return assemblyPath is null ? null : LoadFromAssemblyPath(assemblyPath);
+        }
+    }
+
+    private sealed class LifecycleLockReleaser(SemaphoreSlim lifecycleLock) : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync()
+        {
+            lifecycleLock.Release();
+            return ValueTask.CompletedTask;
         }
     }
 }

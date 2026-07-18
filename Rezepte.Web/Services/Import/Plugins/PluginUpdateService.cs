@@ -83,11 +83,13 @@ public sealed class PluginUpdateService(
             {
                 db.PluginSourceReleases.Add(record);
             }
-            else if (existing.Status is PluginSourceReleaseStatus.ValidationFailed or PluginSourceReleaseStatus.DownloadFailed or PluginSourceReleaseStatus.InstallFailed)
+            else if (existing.Status is PluginSourceReleaseStatus.ValidationFailed or PluginSourceReleaseStatus.DownloadFailed or PluginSourceReleaseStatus.InstallFailed or PluginSourceReleaseStatus.ReloadFailed or PluginSourceReleaseStatus.RateLimited)
             {
                 logger.LogInformation("Retrying previously failed plugin source {Owner}/{Repository} release {ReleaseTag} with status {Status}", source.Owner, source.Repository, release.TagName, existing.Status);
                 existing.Status = PluginSourceReleaseStatus.Pending;
                 existing.Error = null;
+                existing.ReloadStatus = null;
+                existing.ReloadError = null;
             }
 
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
@@ -131,11 +133,19 @@ public sealed class PluginUpdateService(
             record.ValidatedAt = DateTime.UtcNow;
             record.Status = PluginSourceReleaseStatus.Installing;
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
-            await packageInstaller.InstallAsync(validation.PluginDirectories, ct).ConfigureAwait(false);
+            await packageInstaller.InstallWithReloadTrackingAsync(validation.PluginDirectories, async token =>
+            {
+                record.Status = PluginSourceReleaseStatus.Reloading;
+                record.ReloadStatus = PluginSourceReleaseStatus.Reloading;
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+            }, ct).ConfigureAwait(false);
 
             record.Status = PluginSourceReleaseStatus.Installed;
             record.Error = null;
             record.InstalledAt = DateTime.UtcNow;
+            record.ReloadStatus = PluginSourceReleaseStatus.Installed;
+            record.ReloadedAt = DateTime.UtcNow;
+            record.ReloadError = null;
             source.LastSuccessfulReleaseTag = record.ReleaseTag;
             source.LastError = null;
             source.LastErrorAt = null;
@@ -147,12 +157,25 @@ public sealed class PluginUpdateService(
         }
         catch (Exception ex)
         {
-            record.Status = record.Status switch
+            record.Status = ex switch
             {
-                PluginSourceReleaseStatus.Downloading => PluginSourceReleaseStatus.DownloadFailed,
-                PluginSourceReleaseStatus.Validating => PluginSourceReleaseStatus.ValidationFailed,
-                _ => PluginSourceReleaseStatus.InstallFailed
+                GitHubRateLimitException => PluginSourceReleaseStatus.RateLimited,
+                PluginPackageInstallException installException => installException.Status,
+                _ => record.Status switch
+                {
+                    PluginSourceReleaseStatus.Downloading => PluginSourceReleaseStatus.DownloadFailed,
+                    PluginSourceReleaseStatus.Validating => PluginSourceReleaseStatus.ValidationFailed,
+                    PluginSourceReleaseStatus.Reloading => PluginSourceReleaseStatus.ReloadFailed,
+                    _ => PluginSourceReleaseStatus.InstallFailed
+                }
             };
+
+            if (record.Status == PluginSourceReleaseStatus.ReloadFailed)
+            {
+                record.ReloadStatus = PluginSourceReleaseStatus.ReloadFailed;
+                record.ReloadError = ex.Message;
+            }
+
             record.Error = ex.Message;
             await MarkSourceFailureAsync(source, ex.Message, CancellationToken.None).ConfigureAwait(false);
         }

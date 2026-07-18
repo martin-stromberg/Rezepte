@@ -5,6 +5,9 @@ public sealed class PluginPackageInstaller(IHostEnvironment environment, IPlugin
     private static readonly SemaphoreSlim InstallLock = new(1, 1);
 
     public async Task InstallAsync(IReadOnlyList<string> pluginDirectories, CancellationToken ct = default)
+        => await InstallWithReloadTrackingAsync(pluginDirectories, null, ct).ConfigureAwait(false);
+
+    public async Task InstallWithReloadTrackingAsync(IReadOnlyList<string> pluginDirectories, Func<CancellationToken, Task>? beforeReload, CancellationToken ct = default)
     {
         if (pluginDirectories.Count == 0)
         {
@@ -15,63 +18,44 @@ public sealed class PluginPackageInstaller(IHostEnvironment environment, IPlugin
         var pluginRoot = Path.Combine(environment.ContentRootPath, "plugins");
         var backupRoot = Path.Combine(Path.GetTempPath(), "rezepte-plugin-backup", Guid.NewGuid().ToString("N"));
         var installedTargets = new List<string>();
+        var replacementCompleted = false;
         try
         {
             Directory.CreateDirectory(pluginRoot);
             Directory.CreateDirectory(backupRoot);
 
-            foreach (var sourceDirectory in pluginDirectories)
+            await pluginManager.CoordinateReloadAsync(token =>
             {
-                ct.ThrowIfCancellationRequested();
-                var target = Path.Combine(pluginRoot, Path.GetFileName(sourceDirectory));
-                var backup = Path.Combine(backupRoot, Path.GetFileName(sourceDirectory));
-                if (Directory.Exists(target))
+                foreach (var sourceDirectory in pluginDirectories)
                 {
-                    CopyDirectory(target, backup);
-                    Directory.Delete(target, recursive: true);
+                    token.ThrowIfCancellationRequested();
+                    var target = Path.Combine(pluginRoot, Path.GetFileName(sourceDirectory));
+                    var backup = Path.Combine(backupRoot, Path.GetFileName(sourceDirectory));
+                    installedTargets.Add(target);
+                    if (Directory.Exists(target))
+                    {
+                        CopyDirectory(target, backup);
+                        Directory.Delete(target, recursive: true);
+                    }
+
+                    CopyDirectory(sourceDirectory, target);
                 }
 
-                CopyDirectory(sourceDirectory, target);
-                installedTargets.Add(target);
-            }
+                replacementCompleted = true;
+                if (beforeReload is not null)
+                {
+                    return beforeReload(token);
+                }
 
-            await pluginManager.InitializeAsync(ct).ConfigureAwait(false);
+                return Task.CompletedTask;
+            }, ct).ConfigureAwait(false);
             logger.LogInformation("Installed {PluginDirectoryCount} plugin directorie(s)", pluginDirectories.Count);
         }
-        catch
+        catch (Exception ex)
         {
-            foreach (var target in installedTargets)
-            {
-                TryDeleteDirectory(target, logger, "Could not remove partially installed plugin directory {PluginTarget}", target);
-            }
-
-            if (Directory.Exists(backupRoot))
-            {
-                foreach (var backup in Directory.EnumerateDirectories(backupRoot))
-                {
-                    var target = Path.Combine(pluginRoot, Path.GetFileName(backup));
-                    try
-                    {
-                        TryDeleteDirectory(target, logger, "Could not remove plugin directory {PluginTarget} before restoring backup", target);
-                        CopyDirectory(backup, target);
-                    }
-                    catch (Exception rollbackError)
-                    {
-                        logger.LogError(rollbackError, "Could not restore plugin backup {PluginBackup} to {PluginTarget}", backup, target);
-                    }
-                }
-            }
-
-            try
-            {
-                await pluginManager.InitializeAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception reloadError)
-            {
-                logger.LogError(reloadError, "Could not reinitialize plugin manager after failed plugin installation");
-            }
-
-            throw;
+            await RollBackAsync(pluginRoot, backupRoot, installedTargets).ConfigureAwait(false);
+            var status = replacementCompleted ? PluginSourceReleaseStatus.ReloadFailed : PluginSourceReleaseStatus.InstallFailed;
+            throw new PluginPackageInstallException(status, ex.Message, ex);
         }
         finally
         {
@@ -81,6 +65,43 @@ public sealed class PluginPackageInstaller(IHostEnvironment environment, IPlugin
             }
 
             InstallLock.Release();
+        }
+
+        async Task RollBackAsync(string root, string backups, IReadOnlyList<string> targets)
+        {
+            try
+            {
+                await pluginManager.CoordinateReloadAsync(_ =>
+                {
+                    foreach (var target in targets)
+                    {
+                        TryDeleteDirectory(target, logger, "Could not remove partially installed plugin directory {PluginTarget}", target);
+                    }
+
+                    if (Directory.Exists(backups))
+                    {
+                        foreach (var backup in Directory.EnumerateDirectories(backups))
+                        {
+                            var target = Path.Combine(root, Path.GetFileName(backup));
+                            try
+                            {
+                                TryDeleteDirectory(target, logger, "Could not remove plugin directory {PluginTarget} before restoring backup", target);
+                                CopyDirectory(backup, target);
+                            }
+                            catch (Exception rollbackError)
+                            {
+                                logger.LogError(rollbackError, "Could not restore plugin backup {PluginBackup} to {PluginTarget}", backup, target);
+                            }
+                        }
+                    }
+
+                    return Task.CompletedTask;
+                }, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception reloadError)
+            {
+                logger.LogError(reloadError, "Could not reinitialize plugin manager after failed plugin installation");
+            }
         }
     }
 

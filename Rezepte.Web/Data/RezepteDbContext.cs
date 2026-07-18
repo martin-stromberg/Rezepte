@@ -284,6 +284,8 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.Property(p => p.AssetName).IsRequired().HasMaxLength(256);
             b.Property(p => p.Status).IsRequired().HasMaxLength(32);
             b.Property(p => p.Error).HasColumnType("TEXT");
+            b.Property(p => p.ReloadStatus).HasMaxLength(32);
+            b.Property(p => p.ReloadError).HasColumnType("TEXT");
             b.Property(p => p.CreatedAt).IsRequired();
             b.HasIndex(p => new { p.PluginSourceId, p.ReleaseTag, p.AssetId }).IsUnique();
             b.HasIndex(p => new { p.PluginSourceId, p.Status });

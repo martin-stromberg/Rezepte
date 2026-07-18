@@ -17,4 +17,7 @@ public class PluginSourceRelease
     public DateTime? DownloadedAt { get; set; }
     public DateTime? ValidatedAt { get; set; }
     public DateTime? InstalledAt { get; set; }
+    public string? ReloadStatus { get; set; }
+    public DateTime? ReloadedAt { get; set; }
+    public string? ReloadError { get; set; }
 }
