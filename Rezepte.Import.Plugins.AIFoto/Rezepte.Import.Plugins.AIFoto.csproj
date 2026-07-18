@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="Microsoft.Extensions.Logging" />
+    <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
+    <PackageReference Include="Google.Cloud.Vision.V1" Version="3.8.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.9" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Rezepte.Web">
+      <HintPath>..\Rezepte.Web\bin\$(Configuration)\$(TargetFramework)\Rezepte.Web.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

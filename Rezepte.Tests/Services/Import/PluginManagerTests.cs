@@ -268,6 +268,7 @@ public sealed class PluginManagerTests
     {
         using var workspace = PluginWorkspace.Create();
         workspace.CopyFixturePlugin(workspace.PluginRoot);
+        workspace.CopyProductivePlugins();
         var provider = CreateServices(workspace.ContentRoot, out var sut);
 
         await using (var seedScope = provider.CreateAsyncScope())
@@ -443,7 +444,9 @@ public sealed class PluginManagerTests
         {
             foreach (var pluginName in new[]
             {
-                "Rezepte.Import.Plugins.Backup"
+                "Rezepte.Import.Plugins.Backup",
+                "Rezepte.Import.Plugins.AIFoto",
+                "Rezepte.Import.Plugins.AIUrl"
             })
             {
                 var targetDirectory = Directory.CreateDirectory(Path.Combine(PluginRoot, pluginName)).FullName;

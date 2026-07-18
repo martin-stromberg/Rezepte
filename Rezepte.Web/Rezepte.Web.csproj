@@ -52,6 +52,12 @@
     <ImportPluginProject Include="..\Rezepte.Import.Plugins.Backup\Rezepte.Import.Plugins.Backup.csproj">
       <PluginName>Rezepte.Import.Plugins.Backup</PluginName>
     </ImportPluginProject>
+    <ImportPluginProject Include="..\Rezepte.Import.Plugins.AIFoto\Rezepte.Import.Plugins.AIFoto.csproj">
+      <PluginName>Rezepte.Import.Plugins.AIFoto</PluginName>
+    </ImportPluginProject>
+    <ImportPluginProject Include="..\Rezepte.Import.Plugins.AIUrl\Rezepte.Import.Plugins.AIUrl.csproj">
+      <PluginName>Rezepte.Import.Plugins.AIUrl</PluginName>
+    </ImportPluginProject>
   </ItemGroup>
 
   <Target Name="BuildImportPlugins" BeforeTargets="CopyImportPluginsToOutput;CopyImportPluginsToPublish">
