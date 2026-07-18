@@ -27,8 +27,11 @@ jobs:
       - name: Restore
         run: dotnet restore Rezepte.sln
 
-      - name: Build
-        run: dotnet build Rezepte.sln --configuration Release --no-restore
+      - name: Build application and plugins
+        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
 
       - name: Test
         run: dotnet test Rezepte.sln --configuration Release --no-build

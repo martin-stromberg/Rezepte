@@ -1,5 +1,4 @@
 using Rezepte.Import.Abstractions;
-using Rezepte.Web.Services.Import;
 
 namespace Rezepte.Import.Plugins.AIFoto;
 
