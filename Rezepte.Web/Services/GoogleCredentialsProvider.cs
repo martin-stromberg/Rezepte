@@ -10,7 +10,7 @@ public sealed class GoogleCredentialsProvider : IGoogleCredentialsProvider
     private const string accountfile_type_service_account = "service_account";
     private const string apikeyfile_type_api_key = "api_key";
     private struct AccountFile
-    {        
+    {
         public string project_id { get; set; }
         public string private_key_id { get; set; }
         public string private_key { get; set; }

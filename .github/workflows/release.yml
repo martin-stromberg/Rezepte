@@ -1,0 +1,152 @@
+name: Release
+
+"on":
+  pull_request_target:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish release artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event.pull_request.merged == true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          last_tag="$(
+            git tag --list 'v*' |
+              grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
+              sort -V |
+              tail -n 1 || true
+          )"
+
+          if [[ -z "$last_tag" ]]; then
+            version="1.0.0"
+            create_tag="true"
+            range="HEAD"
+          else
+            base_version="${last_tag#v}"
+            range="${last_tag}..HEAD"
+            messages="$(git log --format=%B "$range")"
+
+            if [[ -z "$(git rev-list --max-count=1 "$range")" ]]; then
+              bump="none"
+            elif printf '%s\n' "$messages" | grep -Eq '(^[A-Za-z]+(\([^)]+\))?!:|^BREAKING CHANGE:)'; then
+              bump="major"
+            elif printf '%s\n' "$messages" | grep -Eq '^feat(\([^)]+\))?:'; then
+              bump="minor"
+            elif printf '%s\n' "$messages" | grep -Eq '^fix(\([^)]+\))?:'; then
+              bump="patch"
+            else
+              bump="none"
+            fi
+
+            IFS='.' read -r major minor patch <<< "$base_version"
+
+            case "$bump" in
+              major)
+                version="$((major + 1)).0.0"
+                create_tag="true"
+                ;;
+              minor)
+                version="${major}.$((minor + 1)).0"
+                create_tag="true"
+                ;;
+              patch)
+                version="${major}.${minor}.$((patch + 1))"
+                create_tag="true"
+                ;;
+              none)
+                version="$base_version"
+                create_tag="false"
+                ;;
+            esac
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "create_tag=$create_tag" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "range=$range" >> "$GITHUB_OUTPUT"
+
+      - name: Restore
+        run: dotnet restore Rezepte.sln
+
+      - name: Restore publish runtime
+        run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime linux-x64
+
+      - name: Test
+        run: dotnet test Rezepte.sln --configuration Release --no-restore
+
+      - name: Publish
+        run: >
+          dotnet publish Rezepte.Web/Rezepte.Web.csproj
+          --configuration Release
+          --framework net10.0
+          --runtime linux-x64
+          --self-contained false
+          --no-restore
+          --output artifacts/publish
+
+      - name: Write release metadata
+        shell: bash
+        run: |
+          cat > artifacts/publish/release-metadata.json <<EOF
+          {
+            "version": "${{ steps.version.outputs.version }}",
+            "commit": "${{ github.event.pull_request.merge_commit_sha }}",
+            "runId": "${{ github.run_id }}",
+            "createdAt": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          }
+          EOF
+
+      - name: Create release.zip
+        shell: bash
+        run: |
+          cd artifacts/publish
+          zip -r ../release.zip .
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ steps.version.outputs.version }}-${{ github.event.pull_request.merge_commit_sha }}
+          path: artifacts/release.zip
+          if-no-files-found: error
+
+      - name: Create Git tag and GitHub Release
+        if: steps.version.outputs.create_tag == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        shell: bash
+        run: |
+          gh release create "$TAG" artifacts/release.zip \
+            --title "$TAG" \
+            --target "$MERGE_SHA" \
+            --notes "Automated release for ${MERGE_SHA}"

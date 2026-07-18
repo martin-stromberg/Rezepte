@@ -136,7 +136,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             .HasForeignKey(i => i.RecipeId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<AiRequestLog>(b => 
+        modelBuilder.Entity<AiRequestLog>(b =>
         {
             b.HasKey(a => a.Id);
             b.Property(a => a.UserId).IsRequired().HasMaxLength(64);

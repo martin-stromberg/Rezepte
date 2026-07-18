@@ -21,6 +21,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Globale GitHub-Pluginquellen in den Admin-Einstellungen mit automatischer Pruefung beim Anwendungsstart.
 - Optionale KI-Importe ueber Google Vision und Gemini.
 - Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
+- GitHub Actions fuer Pull-Request-Pruefungen und automatisierte Release-Artefakte.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
 
 ## Tech-Stack
@@ -139,6 +140,8 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 
 `Docs/install.md` ist die verbindliche Schritt-fuer-Schritt-Anleitung fuer Publish, Runtime-Pruefung und systemd-Betrieb auf Linux, zum Beispiel aus `/var/www/rezepte`.
 
+GitHub Actions pruefen Pull Requests gegen `main` automatisch mit Restore, Build, Tests und Format-Check. Nach einem gemergten Pull Request erstellt der Release-Workflow ein `release.zip` als Actions-Artefakt und bei SemVer-relevanten Conventional Commits zusaetzlich einen GitHub Release. Details stehen in `Docs/help/github-actions.md`.
+
 Typischer framework-abhaengiger Publish-Befehl:
 
 ```powershell
@@ -164,6 +167,7 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 - `Docs/help/user-accounts.md`: Bedienhinweise zu Registrierung, Profil und Admin-Benutzerverwaltung.
 - `Docs/help/exports.md`: Bedienhinweise zu Datenexporten, Sicherungen und Fortschrittsanzeige.
 - `Docs/help/import-plugins.md`: Bedienhinweise und aktueller Umsetzungsstand des Import-Pluginsystems.
+- `Docs/help/github-actions.md`: Hinweise zu Pull-Request-Pruefungen, Release-Artefakten und SemVer-Versionierung.
 - `Docs/help/side-dishes.md`: Bedienhinweise zu Beilagen in Rezepten, Kalender und Einkaufsliste.
 - `Docs/help/recipe-search.md`: Bedienhinweise zur Rezeptsuche, Trefferlogik und Kochbuchfilterung.
 - `Docs/help/shopping-list.md`: Bedienhinweise zur Einkaufsliste und Rezeptuebernahme.

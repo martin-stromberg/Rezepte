@@ -1,0 +1,37 @@
+name: Pull Request
+
+"on":
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Restore, build, test, and format
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Rezepte.sln
+
+      - name: Build
+        run: dotnet build Rezepte.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test Rezepte.sln --configuration Release --no-build
+
+      - name: Check formatting
+        run: dotnet format Rezepte.sln --verify-no-changes --no-restore

@@ -50,7 +50,7 @@ public class UserStatsController : ControllerBase
     {
         if (ts.TotalDays < 1) return $"{(int)ts.TotalHours}h";
         if (ts.TotalDays < 30) return $"{(int)ts.TotalDays}d";
-        if (ts.TotalDays < 365) return $"{(int)(ts.TotalDays/30)}mo";
-        return $"{(int)(ts.TotalDays/365)}y";
+        if (ts.TotalDays < 365) return $"{(int)(ts.TotalDays / 30)}mo";
+        return $"{(int)(ts.TotalDays / 365)}y";
     }
 }

@@ -142,7 +142,7 @@ public class UserService(RezepteDbContext db, IUsernameValidator usernameValidat
         return (true, null, user);
     }
 
-    
+
 
     /// <inheritdoc />
     public async Task<User?> LoginAsync(string username, string password, CancellationToken ct)

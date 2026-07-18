@@ -163,10 +163,10 @@ public class ExportService : BaseService, IExportService
                     }).ToList(),
                 ImagePaths = new List<string>(),
                 Cookbooks = (r.RecipeCookbooks ?? Enumerable.Empty<RecipeCookbook>()).Select(rc => new ExportRecipeCookbookDto
-                    {
-                        RecipeId = r.Id,
-                        CookbookId = rc.CookbookId
-                    }).ToList()
+                {
+                    RecipeId = r.Id,
+                    CookbookId = rc.CookbookId
+                }).ToList()
             };
 
             // Images: map to relative paths that will be present in the archive
@@ -182,7 +182,7 @@ public class ExportService : BaseService, IExportService
                     var relativePath = Path.Combine("images", r.Id, imageFileName).Replace('\\', '/');
                     imagePaths.Add(relativePath);
                 }
-                dto.ImagePaths.AddRange(imagePaths);                
+                dto.ImagePaths.AddRange(imagePaths);
             }
             recipeDtos.Add(dto);
         }
@@ -330,7 +330,7 @@ public class ExportService : BaseService, IExportService
             await _db.RecipeSteps.ExecuteDeleteAsync(ct).ConfigureAwait(false);
             await _db.RecipeCookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);
             await _db.Recipes.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.Cookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);            
+            await _db.Cookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);
 
             // Benutzer: alle loeschen ausser adminUserId (das Konto bleibt erhalten)
             await _db.Users.Where(u => u.Id != adminUserId).ExecuteDeleteAsync(ct).ConfigureAwait(false);
