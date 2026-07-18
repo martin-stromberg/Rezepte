@@ -1,11 +1,16 @@
 using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Rezepte.Web.Data;
 
 #nullable disable
 
 namespace Rezepte.Web.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(RezepteDbContext))]
+    [Migration("20260718131500_AddPluginSourceReleaseReloadState")]
     public partial class AddPluginSourceReleaseReloadState : Migration
     {
         /// <inheritdoc />
