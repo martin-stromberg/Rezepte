@@ -1,11 +1,12 @@
 using Microsoft.Extensions.Options;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Entities;
+using Rezepte.Web.Services;
 using Rezepte.Web.Services.Import;
 using Rezepte.Import.Abstractions;
 using static Rezepte.Web.Services.Import.GeminiClient;
 
-namespace Rezepte.Web.Services.Import;
+namespace Rezepte.Import.Plugins.AIUrl;
 
 public class AIUrlImportHandler(
     IOptionsMonitor<AIOptions> options,

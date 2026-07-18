@@ -1,6 +1,7 @@
 using Rezepte.Web.Entities;
 
 namespace Rezepte.Web.Services;
+
 public interface IAiUsageService
 {
     /// <summary>

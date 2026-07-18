@@ -6,13 +6,14 @@ using static Rezepte.Web.Services.Import.GeminiClient;
 using System.Text.RegularExpressions;
 
 namespace Rezepte.Web.Services.Import;
+
 public abstract class BaseAIImportHandler(
-    IOptionsMonitor<AIOptions> aioptions, 
-    IAiUsageService aiUsage, 
-    IRecipeService recipeService, 
+    IOptionsMonitor<AIOptions> aioptions,
+    IAiUsageService aiUsage,
+    IRecipeService recipeService,
     IGeminiClient geminiClient,
     ISettingsService settingsService,
-    ILogger logger): BaseImportHandler, IInteractiveImportHandler
+    ILogger logger) : BaseImportHandler, IInteractiveImportHandler
 {
     private KeyValuePair<string, AIRecipe[]> _lastRecipes;
     private StreamReader lastReader = null;
@@ -85,7 +86,7 @@ public abstract class BaseAIImportHandler(
             }
         }
         else
-        {            
+        {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (string.IsNullOrEmpty(fileName)) return false;
 
@@ -103,7 +104,7 @@ public abstract class BaseAIImportHandler(
         {
             await Task.Delay(3000);
             _lastRecipes = new KeyValuePair<string, AIRecipe[]>(fileName, new AIRecipe[] { CreateSimulationReceipt(new byte[0]) });
-        } 
+        }
         else
             _lastRecipes = new KeyValuePair<string, AIRecipe[]>(fileName, await ReadRecipeCollection(fileName, stream, _responseContent, ct));
         if (_lastRecipes.Key != fileName)
@@ -199,7 +200,7 @@ public abstract class BaseAIImportHandler(
             _ => "application/octet-stream"
         };
     }
-    
+
 
     public async Task<ImportResult> HandleInteractiveAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, IImportInteraction interaction, CancellationToken ct = default)
     {

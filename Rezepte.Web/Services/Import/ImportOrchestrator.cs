@@ -118,35 +118,36 @@ public sealed class ImportOrchestrator
 
                     session.Status = $"Handling with {pluginHandler.Plugin.DisplayName}";
                     session.State = "Importing";
-                    try { 
-                    // If handler supports interactive API, call it with interaction implementation
-                    if (handler is IInteractiveImportHandler interactive)
+                    try
                     {
-                        // create interaction that ties into the session
-                        var interaction = new SessionInteraction(session, _logger);
-                        // note: pass fresh stream (seek to 0)
-                        if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
-                        var res = await interactive.HandleInteractiveAsync(workStream, fileName, uri, targetCookbookId, userId, interaction, ct).ConfigureAwait(false);
-                        res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
-                            .PersistAsync(res, targetCookbookId, userId, ct)
-                            .ConfigureAwait(false);
-                        session.Result = res;
-                        session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
-                        session.State = res.Success ? "Completed" : "Failed";
-                        break;
-                    }
-                    else
-                    {
-                        if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
-                        var res = await handler.HandleAsync(workStream, fileName, uri, targetCookbookId, userId, ct).ConfigureAwait(false);
-                        res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
-                            .PersistAsync(res, targetCookbookId, userId, ct)
-                            .ConfigureAwait(false);
-                        session.Result = res;
-                        session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
-                        session.State = res.Success ? "Completed" : "Failed";
-                        break;
-                    }
+                        // If handler supports interactive API, call it with interaction implementation
+                        if (handler is IInteractiveImportHandler interactive)
+                        {
+                            // create interaction that ties into the session
+                            var interaction = new SessionInteraction(session, _logger);
+                            // note: pass fresh stream (seek to 0)
+                            if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
+                            var res = await interactive.HandleInteractiveAsync(workStream, fileName, uri, targetCookbookId, userId, interaction, ct).ConfigureAwait(false);
+                            res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
+                                .PersistAsync(res, targetCookbookId, userId, ct)
+                                .ConfigureAwait(false);
+                            session.Result = res;
+                            session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
+                            session.State = res.Success ? "Completed" : "Failed";
+                            break;
+                        }
+                        else
+                        {
+                            if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
+                            var res = await handler.HandleAsync(workStream, fileName, uri, targetCookbookId, userId, ct).ConfigureAwait(false);
+                            res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
+                                .PersistAsync(res, targetCookbookId, userId, ct)
+                                .ConfigureAwait(false);
+                            session.Result = res;
+                            session.Status = res.Success ? "Completed" : "Failed: " + res.Error;
+                            session.State = res.Success ? "Completed" : "Failed";
+                            break;
+                        }
                     }
                     catch (Exception ex)
                     {

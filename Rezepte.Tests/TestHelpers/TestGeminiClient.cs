@@ -15,7 +15,7 @@ public class TestGeminiClient : IGeminiClient
         var r = new AIRecipe
         {
             Title = "Simuliertes Rezept",
-            Instructions = $"Simulierte Antwort für OCR: { (ocrText?.Substring(0, Math.Min(20, ocrText?.Length ?? 0)) ?? string.Empty) }",
+            Instructions = $"Simulierte Antwort für OCR: {(ocrText?.Substring(0, Math.Min(20, ocrText?.Length ?? 0)) ?? string.Empty)}",
             Ingredients = new System.Collections.Generic.List<string> { "1 Zutat" },
             Portions = 1,
             PreparationTimeInMinutes = 10

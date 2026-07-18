@@ -125,9 +125,10 @@ public static class ServiceCollectionExtensions
             {
                 UseCookies = true,
                 CookieContainer = new CookieContainer()
-            }) { BaseAddress = new Uri(nav.BaseUri) };
+            })
+            { BaseAddress = new Uri(nav.BaseUri) };
         });
-        
+
         // Application services
         services.AddSingleton<IUsernameValidator, UsernameValidator>();
         services.AddScoped<IUserService, UserService>();

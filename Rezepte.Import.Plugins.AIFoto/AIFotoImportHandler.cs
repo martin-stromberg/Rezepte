@@ -3,13 +3,14 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Entities;
+using Rezepte.Web.Services;
 using Rezepte.Web.Services.Import;
 using Rezepte.Import.Abstractions;
 using static Rezepte.Web.Services.Import.GeminiClient;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Rezepte.Web.Services.Import;
+namespace Rezepte.Import.Plugins.AIFoto;
 
 public class AIFotoImportHandler(
     IRecipeService recipes,

@@ -20,7 +20,8 @@ public class ApiClient
 
     // Optional: bequeme Wrapper
     public Task<HttpResponseMessage> GetAsync(string uri, CancellationToken ct = default) => Http.GetAsync(uri, ct);
-    public async Task<T> GetAsync<T>(string uri, CancellationToken ct = default) {
+    public async Task<T> GetAsync<T>(string uri, CancellationToken ct = default)
+    {
         var response = await Http.GetAsync(uri, ct);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<T>(ct);

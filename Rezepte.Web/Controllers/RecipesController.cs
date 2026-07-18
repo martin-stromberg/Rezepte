@@ -96,7 +96,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
                     s.DurationMinutes,
                     s.RequiresOvernightRest,
                     s.Ingredients.Select(i => new RecipeIngredientDto(i.Id, i.Amount, i.Unit, i.Name)).ToList()
-                )).ToList(),            
+                )).ToList(),
             ImageUrl: lastImage?.Url,
             sourceUri: r.Uri,
             ImageCount: imageCount,
@@ -210,7 +210,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
         // Größe prüfen
         if (file.Length > _imageOptions.MaxSizeBytes)
         {
-            return BadRequest(new { message = $"Datei zu groß. Maximal { _imageOptions.MaxSizeBytes } Bytes erlaubt." });
+            return BadRequest(new { message = $"Datei zu groß. Maximal {_imageOptions.MaxSizeBytes} Bytes erlaubt." });
         }
 
         // ContentType prüfen (einfache Whitelist)
@@ -279,8 +279,8 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
             })
             .ToList();
 
-           return Ok(images);
-       }
+        return Ok(images);
+    }
 
     [HttpDelete("{recipeId}/image/{imageId}")]
     public async Task<IActionResult> DeleteImage(string recipeId, string imageId, CancellationToken ct)
@@ -341,7 +341,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
     // DTO für die Startseite
     public record RecipeListItemDto(string Id, string Title, string? ImageUrl, string? Description);
     public record RecipeDto(string Id, string OwnerId, string Title, string? Description, int NumberOfPortions, List<RecipeStepDto> Steps, string? ImageUrl, string? sourceUri, int ImageCount, List<RecipeCookbookDtp> RecipeCookbooks, List<RecipeSideDishDto> SideDishes);
-    public record RecipeCookbookDtp (string Id, string RecipeId, string CookbookId);
+    public record RecipeCookbookDtp(string Id, string RecipeId, string CookbookId);
     public record RecipeSideDishDto(string Id, string Title, string? Description, string? ImageUrl, int Portions);
     public record RecipeStepDto(string Id, int StepIndex, string? Title, string Description, int DurationMinutes, bool RequiresOvernightRest, List<RecipeIngredientDto> Ingredients);
     public record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
