@@ -39,8 +39,14 @@ Rezepte.sln
 Rezepte.Web/        Webanwendung, API, Services, Datenmodell und Migrationen
 Rezepte.Import.Abstractions/
                     Gemeinsame Vertrage und DTOs fuer Import-Plugins
-Rezepte.Import.Plugins.*/
-                    Import-Pluginprojekte fuer Backup- und Webseitenquellen
+Rezepte.Import.Plugins.Backup/
+                    Backup-Import-Plugin im Hauptrepository
+Rezepte.Import.Plugins.AIFoto/
+                    KI-Foto-Import-Plugin im Hauptrepository
+Rezepte.Import.Plugins.AIUrl/
+                    KI-Webseiten-Import-Plugin im Hauptrepository
+external/rezepte-import-plugins-private/
+                    Lokale Struktur des privaten Repositories fuer Webseitenquellen
 Rezepte.Tests/      Unit-Tests fuer zentrale Services
 Docs/               Anforderungskatalog und Installationshinweise
 ```
@@ -63,9 +69,9 @@ Beim Import werden nur aktivierte Plugins mit Status `Loaded` in gespeicherter R
 
 Das Chefkoch-Plugin unterstuetzt neben einzelnen Rezeptseiten auch Rezeptsammlungen. Bei einer Sammlungs-URL zeigt der Importdialog zuerst die gefundenen Rezepte an; ausgewaehlte Rezepte erhalten jeweils ein Zielkochbuch und werden erst nach dem Absenden abgerufen. Fuer Massenimporte lassen sich alle gefundenen Rezepte gesammelt auswaehlen oder abwaehlen und ein Zielkochbuch fuer alle ausgewaehlten Rezepte uebernehmen. Der Fortschritt wird pro Rezept angezeigt, Teilfehler stoppen die uebrigen ausgewaehlten Importe nicht.
 
-Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, Host-seitige Pluginverwaltung, Admin-UI, Plugin-basierte Importauswahl und produktive Pluginprojekte fuer Backup sowie die klassischen Webseitenquellen. KI-Foto und KI-URL laufen bewusst als Hostadapter, liefern ihre Ergebnisse aber ebenfalls ueber neutrale Import-DTOs an den zentralen Persistenzpfad. Details stehen in `Docs/help/import-plugins.md`.
+Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, Host-seitige Pluginverwaltung, Admin-UI, Plugin-basierte Importauswahl sowie die Backup-, KI-Foto- und KI-URL-Plugins im Hauptrepository. Die klassischen Webseitenquellen liegen in der privaten Plugin-Repository-Struktur `external/rezepte-import-plugins-private` und werden als externe Artefakte an den Host uebergeben. Alle drei Hauptrepository-Plugins liefern neutrale Import-DTOs an den zentralen Persistenzpfad. Details stehen in `Docs/help/import-plugins.md`.
 
-Build und Publish der Web-Anwendung bauen die produktiven externen Pluginprojekte mit und kopieren sie in das jeweilige `plugins`-Verzeichnis.
+Build und Publish der Web-Anwendung bauen die drei Hauptrepository-Plugins mit. Vorhandene Artefakte aus `external/rezepte-import-plugins-private/artifacts/plugins` werden zusaetzlich in das jeweilige `plugins`-Verzeichnis uebernommen. Das private Plugin-Repository stellt dafuer `publish-plugins.ps1` bereit.
 
 ## Voraussetzungen
 

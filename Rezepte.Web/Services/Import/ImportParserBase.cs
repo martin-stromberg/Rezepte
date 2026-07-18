@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Rezepte.Import.Abstractions;
+namespace Rezepte.Web.Services.Import;
 
 public abstract class ImportParserBase
 {
