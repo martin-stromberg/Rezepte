@@ -12,7 +12,7 @@ Die Liste zeigt jedes bekannte Plugin mit Name, Plugin-ID, Status, Assembly und 
 
 Administratoren koennen unter `Plugins` globale GitHub-Repositorys als Pluginquellen verwalten. Beim Hinzufuegen werden die Repository-URL, die Sichtbarkeit (`Oeffentlich` oder `Privat`), die Aktivierung und eine ausdrueckliche Vertrauensbestaetigung erfasst. Die Vertrauensbestaetigung ist beim Hinzufuegen erforderlich. Bestehende Quellen koennen bearbeitet, aktiviert, deaktiviert oder geloescht werden.
 
-Fuer private Repositorys kann ein Personal Access Token (PAT) hinterlegt oder ueber das Feld `PAT rotieren` erneuert werden. Der Token wird serverseitig geschuetzt verwaltet und weder in der Pluginliste angezeigt noch an den Browser uebertragen. Bei oeffentlichen Quellen ist kein Token erforderlich.
+Fuer private Repositorys kann ein Personal Access Token (PAT) hinterlegt oder ueber das Feld `PAT aktualisieren` erneuert werden. Der Token wird serverseitig geschuetzt verwaltet und weder in der Pluginliste angezeigt noch an den Browser uebertragen. Bei oeffentlichen Quellen ist kein Token erforderlich.
 
 Aktivierte und bestaetigte Quellen werden einmalig beim Start der Anwendung geprueft. Es gibt derzeit keinen regelmaessigen Hintergrundlauf und keinen manuellen Update-Button; Aenderungen an Quellen oder Tokens werden beim naechsten Anwendungsstart wirksam. Aus dem neuesten veroeffentlichten GitHub-Release wird ein ZIP-Asset geladen. Der Assetname kann variieren, sofern es sich um ein geeignetes ZIP-Asset handelt. GitHub-Rate-Limits werden erkannt und als eigener Status gespeichert; ein `Retry-After`-Hinweis wird kontrolliert beruecksichtigt.
 

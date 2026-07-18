@@ -68,7 +68,7 @@ Rezeptimporte laufen ueber einen `PluginManager`. Beim Programmstart erkennt die
 
 Administratoren koennen unter `Plugins` ausserdem globale GitHub-Pluginquellen verwalten. Beim Hinzufuegen werden Repository-URL, Sichtbarkeit, Aktivierung und eine Vertrauensbestaetigung erfasst. Aktivierte Quellen werden einmalig beim Anwendungsstart auf das neueste veroeffentlichte Release geprueft. Ein geeignetes ZIP-Asset wird serverseitig heruntergeladen, in einem temporaeren Verzeichnis geprueft und bei erfolgreicher Plugin-Erkennung in die Plugin-Unterordner von `plugins` uebernommen. GitHub-Rate-Limits werden kontrolliert behandelt. Austausch, Rollback und Reload laufen koordiniert; der bestehende Pluginbestand bleibt bei einem Fehler aktiv und Reloadfehler werden separat historisiert.
 
-Fuer private GitHub-Repositories kann ein Personal Access Token (PAT) in den Plugin-Einstellungen hinterlegt oder rotiert werden. Der PAT wird ausschliesslich ueber den geschuetzten Secret-Speicher des Backends verwaltet und weder im Frontend angezeigt noch an den Browser uebertragen. Aenderungen an Quellen oder Tokens werden beim naechsten Anwendungsstart wirksam.
+Fuer private GitHub-Repositories kann ein Personal Access Token (PAT) in den Plugin-Einstellungen hinterlegt oder aktualisiert werden. Der PAT wird ausschliesslich ueber den geschuetzten Secret-Speicher des Backends verwaltet und weder im Frontend angezeigt noch an den Browser uebertragen. Aenderungen an Quellen oder Tokens werden beim naechsten Anwendungsstart wirksam.
 
 Beim Import werden nur aktivierte Plugins mit Status `Loaded` in gespeicherter Reihenfolge gefragt. Das erste passende Plugin verarbeitet die Datei oder URL; wenn kein Plugin passt, endet der Import mit einer fachlichen Fehlermeldung.
 
