@@ -18,6 +18,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Kalenderansicht fuer geplante Rezepte mit optionaler Uebernahme hinterlegter Beilagen.
 - Import von Rezepten aus Backups, Dateien, URLs und unterstuetzten Webseiten, inklusive Chefkoch-Rezeptsammlungen mit Zwischenauswahl.
 - Plugin-Framework fuer Rezeptimporte mit aktivierbarer Reihenfolge in den Admin-Einstellungen.
+- Globale GitHub-Pluginquellen in den Admin-Einstellungen mit automatischer Pruefung beim Anwendungsstart.
 - Optionale KI-Importe ueber Google Vision und Gemini.
 - Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
@@ -64,6 +65,10 @@ Wichtige Bereiche in `Rezepte.Web`:
 ## Import-Plugins
 
 Rezeptimporte laufen ueber einen `PluginManager`. Beim Programmstart erkennt die Anwendung Import-Plugin-DLLs im Ausgabeverzeichnis unter `plugins` sowie in direkten Unterordnern von `plugins`. Gefundene Plugins werden in der Datenbank mit Aktivierungsstatus, Reihenfolge und Ladezustand persistiert. Die initiale Reihenfolge beruecksichtigt die Standard-Prioritaet der Plugins, sodass KI-Plugins hinter Plugins mit fester Quellenstruktur starten. Administratoren koennen diese Liste in den Einstellungen unter `Plugins` aktivieren, deaktivieren und sortieren.
+
+Administratoren koennen unter `Plugins` ausserdem globale GitHub-Pluginquellen verwalten. Beim Hinzufuegen werden Repository-URL, Sichtbarkeit, Aktivierung und eine Vertrauensbestaetigung erfasst. Aktivierte Quellen werden einmalig beim Anwendungsstart auf das neueste veroeffentlichte Release geprueft. Ein geeignetes ZIP-Asset wird serverseitig heruntergeladen, in einem temporaeren Verzeichnis geprueft und bei erfolgreicher Plugin-Erkennung in die Plugin-Unterordner von `plugins` uebernommen. GitHub-Rate-Limits werden kontrolliert behandelt. Austausch, Rollback und Reload laufen koordiniert; der bestehende Pluginbestand bleibt bei einem Fehler aktiv und Reloadfehler werden separat historisiert.
+
+Fuer private GitHub-Repositories kann ein Personal Access Token (PAT) in den Plugin-Einstellungen hinterlegt oder aktualisiert werden. Der PAT wird ausschliesslich ueber den geschuetzten Secret-Speicher des Backends verwaltet und weder im Frontend angezeigt noch an den Browser uebertragen. Aenderungen an Quellen oder Tokens werden beim naechsten Anwendungsstart wirksam.
 
 Beim Import werden nur aktivierte Plugins mit Status `Loaded` in gespeicherter Reihenfolge gefragt. Das erste passende Plugin verarbeitet die Datei oder URL; wenn kein Plugin passt, endet der Import mit einer fachlichen Fehlermeldung.
 
@@ -118,6 +123,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 | `Images:MaxSizeBytes` | Maximale Upload-Groesse fuer Bilder. |
 | `Images:AllowedContentTypes` | Erlaubte Bildformate. |
 | `AI:Simulate`, `AI:EnableCache`, `AI:CacheDurationHours` | Optionale Einstellungen fuer KI-Importe und Caching. |
+| `PluginUpdates:GitHubApiBaseUrl`, `PluginUpdates:TimeoutSeconds`, `PluginUpdates:UserAgent` | Serverseitige GitHub-Kommunikation fuer die Startpruefung konfigurierter Pluginquellen. |
 
 ## Daten und Sicherheit
 
@@ -127,6 +133,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 - API-Controller sind ueber JWT abgesichert; Admin-Endpunkte verlangen die Rolle `Admin`.
 - Die Registrierung ist nur offen, solange noch kein Benutzer existiert.
 - Rezept-, Kochbuch-, Kalender- und Einstellungsdaten sind benutzerbezogen modelliert.
+- PATs fuer private GitHub-Pluginquellen verbleiben im geschuetzten Secret-Speicher des Backends und werden nicht an das Frontend ausgegeben oder protokolliert.
 
 ## Deployment
 

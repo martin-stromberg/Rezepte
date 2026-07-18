@@ -20,6 +20,8 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<UserSetting> UserSettings => Set<UserSetting>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<PluginSetting> PluginSettings => Set<PluginSetting>();
+    public DbSet<PluginSource> PluginSources => Set<PluginSource>();
+    public DbSet<PluginSourceRelease> PluginSourceReleases => Set<PluginSourceRelease>();
 
     // Calendar events
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
@@ -255,6 +257,42 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.Property(p => p.DiscoveredAt).IsRequired();
             b.Property(p => p.LastSeenAt).IsRequired();
             b.HasIndex(p => p.OrderIndex);
+        });
+
+        modelBuilder.Entity<PluginSource>(b =>
+        {
+            b.HasKey(p => p.Id);
+            b.Property(p => p.Id).IsRequired().HasMaxLength(64);
+            b.Property(p => p.RepositoryUrl).IsRequired().HasMaxLength(512);
+            b.Property(p => p.Owner).IsRequired().HasMaxLength(128);
+            b.Property(p => p.Repository).IsRequired().HasMaxLength(128);
+            b.Property(p => p.SecretName).HasMaxLength(256);
+            b.Property(p => p.LastSuccessfulReleaseTag).HasMaxLength(128);
+            b.Property(p => p.LastError).HasColumnType("TEXT");
+            b.Property(p => p.CreatedAt).IsRequired();
+            b.Property(p => p.UpdatedAt).IsRequired();
+            b.HasIndex(p => new { p.Owner, p.Repository }).IsUnique();
+            b.HasIndex(p => p.Enabled);
+        });
+
+        modelBuilder.Entity<PluginSourceRelease>(b =>
+        {
+            b.HasKey(p => p.Id);
+            b.Property(p => p.Id).IsRequired().HasMaxLength(64);
+            b.Property(p => p.PluginSourceId).IsRequired().HasMaxLength(64);
+            b.Property(p => p.ReleaseTag).IsRequired().HasMaxLength(128);
+            b.Property(p => p.AssetName).IsRequired().HasMaxLength(256);
+            b.Property(p => p.Status).IsRequired().HasMaxLength(32);
+            b.Property(p => p.Error).HasColumnType("TEXT");
+            b.Property(p => p.ReloadStatus).HasMaxLength(32);
+            b.Property(p => p.ReloadError).HasColumnType("TEXT");
+            b.Property(p => p.CreatedAt).IsRequired();
+            b.HasIndex(p => new { p.PluginSourceId, p.ReleaseTag, p.AssetId }).IsUnique();
+            b.HasIndex(p => new { p.PluginSourceId, p.Status });
+            b.HasOne(p => p.PluginSource)
+                .WithMany(p => p.Releases)
+                .HasForeignKey(p => p.PluginSourceId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

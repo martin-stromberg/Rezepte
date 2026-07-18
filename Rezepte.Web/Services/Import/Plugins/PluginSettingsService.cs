@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Data;
+using Rezepte.Web.Entities;
 
 namespace Rezepte.Web.Services.Import.Plugins;
 
-public sealed class PluginSettingsService(RezepteDbContext db) : IPluginSettingsService
+public sealed class PluginSettingsService(
+    RezepteDbContext db,
+    IHttpContextAccessor? httpContextAccessor = null,
+    ISystemSecretStore? secretStore = null) : IPluginSettingsService
 {
     public async Task<IReadOnlyList<PluginSettingsItem>> GetPluginsAsync(CancellationToken ct = default)
     {
@@ -25,6 +29,112 @@ public sealed class PluginSettingsService(RezepteDbContext db) : IPluginSettings
                 p.LastSeenAt))
             .ToListAsync(ct)
             .ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<PluginSourceSettingsItem>> GetSourcesAsync(CancellationToken ct = default)
+    {
+        EnsureAdmin();
+        return await db.PluginSources
+            .AsNoTracking()
+            .OrderBy(s => s.Owner)
+            .ThenBy(s => s.Repository)
+            .Select(s => new PluginSourceSettingsItem(
+                s.Id,
+                s.RepositoryUrl,
+                s.Owner,
+                s.Repository,
+                s.IsPrivate,
+                s.Enabled,
+                s.TrustConfirmed,
+                !string.IsNullOrWhiteSpace(s.SecretName),
+                s.LastSuccessfulReleaseTag,
+                s.LastError,
+                s.LastCheckedAt,
+                s.LastErrorAt))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+    }
+
+    public async Task SaveSourceAsync(PluginSourceSaveRequest request, CancellationToken ct = default)
+    {
+        EnsureAdmin();
+        var repository = GitHubRepository.Parse(request.RepositoryUrl);
+        var now = DateTime.UtcNow;
+        var isNew = string.IsNullOrWhiteSpace(request.Id);
+        if (isNew && !request.TrustConfirmed)
+        {
+            throw new InvalidOperationException("Neue Pluginquellen muessen als vertrauenswuerdig bestaetigt werden.");
+        }
+
+        var duplicate = await db.PluginSources
+            .FirstOrDefaultAsync(s => s.Owner == repository.Owner && s.Repository == repository.Repository && s.Id != request.Id, ct)
+            .ConfigureAwait(false);
+        if (duplicate is not null)
+        {
+            throw new InvalidOperationException("Diese GitHub-Quelle ist bereits konfiguriert.");
+        }
+
+        PluginSource source;
+        if (isNew)
+        {
+            source = new PluginSource { Id = Guid.NewGuid().ToString("N"), CreatedAt = now };
+            db.PluginSources.Add(source);
+        }
+        else
+        {
+            source = await db.PluginSources.FindAsync([request.Id], ct).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Pluginquelle wurde nicht gefunden.");
+        }
+
+        source.RepositoryUrl = repository.CanonicalUrl;
+        source.Owner = repository.Owner;
+        source.Repository = repository.Repository;
+        source.IsPrivate = request.IsPrivate;
+        source.Enabled = request.Enabled;
+        source.TrustConfirmed = request.TrustConfirmed || source.TrustConfirmed;
+        source.UpdatedAt = now;
+
+        if (!string.IsNullOrWhiteSpace(request.PersonalAccessToken))
+        {
+            if (secretStore is null)
+            {
+                throw new InvalidOperationException("Secret-Storage ist nicht verfuegbar.");
+            }
+
+            source.SecretName ??= $"plugin-source-{source.Id}-pat";
+            await secretStore.StoreAsync(source.SecretName, request.PersonalAccessToken, ct).ConfigureAwait(false);
+        }
+        else if (!source.IsPrivate && !string.IsNullOrWhiteSpace(source.SecretName) && secretStore is not null)
+        {
+            await secretStore.DeleteAsync(source.SecretName, ct).ConfigureAwait(false);
+            source.SecretName = null;
+        }
+
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task SetSourceEnabledAsync(string sourceId, bool enabled, CancellationToken ct = default)
+    {
+        EnsureAdmin();
+        var source = await db.PluginSources.FindAsync([sourceId], ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Pluginquelle wurde nicht gefunden.");
+        source.Enabled = enabled;
+        source.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task DeleteSourceAsync(string sourceId, CancellationToken ct = default)
+    {
+        EnsureAdmin();
+        var source = await db.PluginSources.FindAsync([sourceId], ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Pluginquelle wurde nicht gefunden.");
+        if (!string.IsNullOrWhiteSpace(source.SecretName) && secretStore is not null)
+        {
+            await secretStore.DeleteAsync(source.SecretName, ct).ConfigureAwait(false);
+        }
+
+        db.PluginSources.Remove(source);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task SetEnabledAsync(string pluginId, bool enabled, CancellationToken ct = default)
@@ -66,5 +176,19 @@ public sealed class PluginSettingsService(RezepteDbContext db) : IPluginSettings
 
         (plugins[index].OrderIndex, plugins[targetIndex].OrderIndex) = (plugins[targetIndex].OrderIndex, plugins[index].OrderIndex);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    private void EnsureAdmin()
+    {
+        var user = httpContextAccessor?.HttpContext?.User;
+        if (user?.Identity?.IsAuthenticated != true)
+        {
+            throw new UnauthorizedAccessException("Nur Administratoren duerfen Pluginquellen verwalten.");
+        }
+
+        if (!(user.IsInRole("Admin") || user.HasClaim("IsAdmin", "true")))
+        {
+            throw new UnauthorizedAccessException("Nur Administratoren duerfen Pluginquellen verwalten.");
+        }
     }
 }

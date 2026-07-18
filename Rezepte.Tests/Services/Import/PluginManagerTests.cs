@@ -315,6 +315,30 @@ public sealed class PluginManagerTests
     }
 
     [Fact]
+    public void DiscoverFromDirectory_ShouldNotKeepAssembliesLoadedFromTemporaryDirectory()
+    {
+        using var workspace = PluginWorkspace.Create();
+        var tempPluginFolder = Directory.CreateDirectory(Path.Combine(workspace.ContentRoot, "validation", "Rezepte.Tests.PluginFixture")).FullName;
+        workspace.CopyFixturePlugin(tempPluginFolder);
+        CreateServices(workspace.ContentRoot, out var sut).Dispose();
+
+        var descriptors = sut.DiscoverFromDirectory(Path.Combine(workspace.ContentRoot, "validation"), unloadAfterDiscovery: true);
+
+        descriptors.Should().Contain(p => p.Id == "external-test-plugin" && p.Status == PluginStatus.Loaded);
+        for (var i = 0; i < 5; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
+            .Select(a => a.Location)
+            .Should()
+            .NotContain(path => path.StartsWith(Path.Combine(workspace.ContentRoot, "validation"), StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task GetActiveHandlersAsync_ShouldNotInstantiateDisabledPlugins()
     {
         using var workspace = PluginWorkspace.Create();

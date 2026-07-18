@@ -11,7 +11,13 @@
     <Using Include="Microsoft.Extensions.Logging" />
     <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(RezepteWebReferencePath)' != ''">
+    <Reference Include="Rezepte.Web">
+      <HintPath>$(RezepteWebReferencePath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(RezepteWebReferencePath)' == ''">
     <Reference Include="Rezepte.Web">
       <HintPath>..\Rezepte.Web\bin\$(Configuration)\$(TargetFramework)\Rezepte.Web.dll</HintPath>
       <Private>false</Private>

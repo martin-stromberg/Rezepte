@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
         // Bind configuration sections used by the app
         services.Configure<ImageOptions>(configuration.GetSection("Images"));
         services.Configure<AIOptions>(configuration.GetSection("AI"));
+        services.Configure<PluginUpdateOptions>(configuration.GetSection("PluginUpdates"));
         // Razor Components
         services.AddRazorComponents()
             .AddInteractiveServerComponents(options =>
@@ -104,6 +105,7 @@ public static class ServiceCollectionExtensions
 
         // Infrastructure
         services.AddMemoryCache();
+        services.AddDataProtection();
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IGoogleCredentialsProvider, GoogleCredentialsProvider>();
         services.AddHttpContextAccessor();
@@ -140,6 +142,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportedRecipePersister, ImportedRecipePersister>();
         services.AddSingleton<IPluginManager, PluginManager>();
         services.AddHostedService<PluginStartupService>();
+        services.AddHostedService<PluginUpdateHostedService>();
+        services.AddHttpClient<IGitHubReleaseClient, GitHubReleaseClient>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PluginUpdateOptions>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+        });
+        services.AddScoped<ISystemSecretStore, DataProtectionSystemSecretStore>();
+        services.AddScoped<IPluginPackageValidator, PluginPackageValidator>();
+        services.AddScoped<IPluginPackageInstaller, PluginPackageInstaller>();
+        services.AddScoped<IPluginUpdateService, PluginUpdateService>();
         services.AddScoped<IPluginSettingsService, PluginSettingsService>();
         services.AddScoped<IAiUsageService, AiUsageService>();
         services.AddScoped<ISettingsService, SettingsService>();

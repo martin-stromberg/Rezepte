@@ -12,6 +12,7 @@ public sealed class PluginManager : IPluginManager
     private readonly IHostEnvironment _environment;
     private readonly ILogger<PluginManager> _logger;
     private readonly object _syncRoot = new();
+    private readonly SemaphoreSlim _lifecycleLock = new(1, 1);
     private IReadOnlyDictionary<string, ImportPluginDescriptor> _loadedPlugins = new Dictionary<string, ImportPluginDescriptor>();
 
     public PluginManager(IServiceScopeFactory scopeFactory, IHostEnvironment environment, ILogger<PluginManager> logger)
@@ -22,6 +23,48 @@ public sealed class PluginManager : IPluginManager
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)
+    {
+        await ReloadAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task ReloadAsync(CancellationToken ct = default)
+    {
+        await _lifecycleLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            lock (_syncRoot)
+            {
+                _loadedPlugins = new Dictionary<string, ImportPluginDescriptor>();
+            }
+
+            await InitializeCoreAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _lifecycleLock.Release();
+        }
+    }
+
+    public async Task CoordinateReloadAsync(Func<CancellationToken, Task> replacePlugins, CancellationToken ct = default)
+    {
+        await _lifecycleLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            lock (_syncRoot)
+            {
+                _loadedPlugins = new Dictionary<string, ImportPluginDescriptor>();
+            }
+
+            await replacePlugins(ct).ConfigureAwait(false);
+            await InitializeCoreAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _lifecycleLock.Release();
+        }
+    }
+
+    private async Task InitializeCoreAsync(CancellationToken ct)
     {
         var discovered = DiscoverPlugins();
         lock (_syncRoot)
@@ -38,6 +81,31 @@ public sealed class PluginManager : IPluginManager
     }
 
     public async Task<IReadOnlyList<PluginImportHandler>> GetActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        await using var lease = await AcquireActiveHandlersAsync(serviceProvider, ct).ConfigureAwait(false);
+        return lease.Handlers;
+    }
+
+    public async Task<PluginHandlerLease> AcquireActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        await _lifecycleLock.WaitAsync(ct).ConfigureAwait(false);
+        var release = true;
+        try
+        {
+            var handlers = await CreateActiveHandlersAsync(serviceProvider, ct).ConfigureAwait(false);
+            release = false;
+            return new PluginHandlerLease(handlers, new LifecycleLockReleaser(_lifecycleLock));
+        }
+        finally
+        {
+            if (release)
+            {
+                _lifecycleLock.Release();
+            }
+        }
+    }
+
+    private async Task<IReadOnlyList<PluginImportHandler>> CreateActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct)
     {
         IReadOnlyDictionary<string, ImportPluginDescriptor> loaded;
         lock (_syncRoot)
@@ -77,17 +145,28 @@ public sealed class PluginManager : IPluginManager
         return handlers;
     }
 
+    public IReadOnlyList<ImportPluginDescriptor> DiscoverFromDirectory(string pluginRoot, bool unloadAfterDiscovery = false)
+    {
+        var fullRoot = Path.GetFullPath(pluginRoot);
+        if (!Directory.Exists(fullRoot))
+        {
+            return [];
+        }
+
+        return DiscoverExternalPlugins([fullRoot], unloadAfterDiscovery).ToList();
+    }
+
     private IReadOnlyList<ImportPluginDescriptor> DiscoverPlugins()
     {
         var plugins = new List<ImportPluginDescriptor>();
         plugins.AddRange(BuiltInImportPluginCatalog.GetPlugins());
-        plugins.AddRange(DiscoverExternalPlugins());
+        plugins.AddRange(DiscoverExternalPlugins(GetPluginRoots(), useCollectibleLoadContext: false));
         return plugins;
     }
 
-    private IEnumerable<ImportPluginDescriptor> DiscoverExternalPlugins()
+    private IEnumerable<ImportPluginDescriptor> DiscoverExternalPlugins(IEnumerable<string> pluginRoots, bool useCollectibleLoadContext)
     {
-        var dlls = GetPluginRoots()
+        var dlls = pluginRoots
             .SelectMany(pluginRoot => Directory.EnumerateFiles(pluginRoot, "*.dll", SearchOption.TopDirectoryOnly)
                 .Concat(Directory.EnumerateDirectories(pluginRoot).SelectMany(GetPluginAssemblyCandidates)))
             .Distinct(StringComparer.OrdinalIgnoreCase);
@@ -95,7 +174,7 @@ public sealed class PluginManager : IPluginManager
         var discovered = new List<ImportPluginDescriptor>();
         foreach (var dll in dlls)
         {
-            discovered.AddRange(DiscoverFromAssembly(dll));
+            discovered.AddRange(DiscoverFromAssembly(dll, useCollectibleLoadContext));
         }
 
         return discovered;
@@ -126,12 +205,13 @@ public sealed class PluginManager : IPluginManager
         return Directory.EnumerateFiles(directory, "*.dll", SearchOption.TopDirectoryOnly);
     }
 
-    private IEnumerable<ImportPluginDescriptor> DiscoverFromAssembly(string path)
+    private IEnumerable<ImportPluginDescriptor> DiscoverFromAssembly(string path, bool useCollectibleLoadContext)
     {
         var result = new List<ImportPluginDescriptor>();
+        PluginLoadContext? loadContext = null;
         try
         {
-            var loadContext = new PluginLoadContext(path);
+            loadContext = new PluginLoadContext(path, useCollectibleLoadContext);
             var assembly = loadContext.LoadFromAssemblyPath(path);
             var pluginTypes = assembly.GetTypes()
                 .Where(t => !t.IsAbstract && typeof(IImportPlugin).IsAssignableFrom(t))
@@ -182,7 +262,7 @@ public sealed class PluginManager : IPluginManager
                         plugin.Version,
                         assembly.GetName().Name ?? Path.GetFileNameWithoutExtension(path),
                         plugin.HandlerType.FullName ?? plugin.HandlerType.Name,
-                        plugin.HandlerType,
+                        useCollectibleLoadContext ? null : plugin.HandlerType,
                         plugin.DefaultPriority,
                         PluginStatus.Loaded,
                         null));
@@ -196,6 +276,13 @@ public sealed class PluginManager : IPluginManager
         catch (Exception ex)
         {
             result.Add(FailedDescriptor(path, PluginStatus.LoadFailed, ex.Message));
+        }
+        finally
+        {
+            if (useCollectibleLoadContext)
+            {
+                loadContext?.Unload();
+            }
         }
 
         return result;
@@ -300,7 +387,7 @@ public sealed class PluginManager : IPluginManager
     {
         private readonly AssemblyDependencyResolver _resolver;
 
-        public PluginLoadContext(string pluginPath) : base(isCollectible: false)
+        public PluginLoadContext(string pluginPath, bool isCollectible) : base(isCollectible)
         {
             _resolver = new AssemblyDependencyResolver(pluginPath);
         }
@@ -314,6 +401,15 @@ public sealed class PluginManager : IPluginManager
 
             var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
             return assemblyPath is null ? null : LoadFromAssemblyPath(assemblyPath);
+        }
+    }
+
+    private sealed class LifecycleLockReleaser(SemaphoreSlim lifecycleLock) : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync()
+        {
+            lifecycleLock.Release();
+            return ValueTask.CompletedTask;
         }
     }
 }
