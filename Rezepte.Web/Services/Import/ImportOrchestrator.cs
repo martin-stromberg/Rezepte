@@ -20,7 +20,7 @@ public sealed class ImportOrchestrator
         _logger = logger;
     }
 
-    public record ImportSession(string Id)
+    public record ImportSession(string Id, string InitiatorUserId)
     {
         internal object SyncRoot { get; } = new();
         public string Status { get; set; } = "Queued";
@@ -35,7 +35,7 @@ public sealed class ImportOrchestrator
         public ImportResult? Result { get; set; }
     }
 
-    public ImportSession? GetSession(string id) => _sessions.TryGetValue(id, out var s) ? s : null;
+    public ImportSession? GetSessionForUser(string id, string userId) => TryGetSessionForUser(id, userId, out var session) ? session : null;
 
     public async Task<string> StartImportAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
     {
@@ -55,7 +55,7 @@ public sealed class ImportOrchestrator
         }
 
         var sessionId = Guid.NewGuid().ToString("n");
-        var session = new ImportSession(sessionId);
+        var session = new ImportSession(sessionId, userId);
         _sessions[sessionId] = session;
 
         // run background processing (fire-and-wait pattern but record session)
@@ -197,18 +197,18 @@ public sealed class ImportOrchestrator
     }
 
     // Called by UI to confirm a waiting session
-    public bool Confirm(string sessionId, bool accepted)
+    public bool Confirm(string sessionId, string userId, bool accepted)
     {
-        if (!_sessions.TryGetValue(sessionId, out var session) || session.ConfirmationTcs == null)
+        if (!TryGetSessionForUser(sessionId, userId, out var session) || session.ConfirmationTcs == null)
             return false;
         session.WaitingForConfirmation = false;
         session.ConfirmationTcs.TrySetResult(accepted);
         return true;
     }
 
-    public SelectionSubmitResult SubmitSelection(string sessionId, ImportCollectionSelection selection)
+    public SelectionSubmitResult SubmitSelection(string sessionId, string userId, ImportCollectionSelection selection)
     {
-        if (!_sessions.TryGetValue(sessionId, out var session))
+        if (!TryGetSessionForUser(sessionId, userId, out var session))
         {
             return SelectionSubmitResult.NotFound("Import-Session wurde nicht gefunden.");
         }
@@ -260,9 +260,9 @@ public sealed class ImportOrchestrator
         }
     }
 
-    public SelectionSubmitResult CancelSelection(string sessionId)
+    public SelectionSubmitResult CancelSelection(string sessionId, string userId)
     {
-        if (!_sessions.TryGetValue(sessionId, out var session))
+        if (!TryGetSessionForUser(sessionId, userId, out var session))
         {
             return SelectionSubmitResult.NotFound("Import-Session wurde nicht gefunden.");
         }
@@ -285,6 +285,19 @@ public sealed class ImportOrchestrator
             session.Result = new ImportResult(false, "Import cancelled.", []);
             return SelectionSubmitResult.Accepted();
         }
+    }
+
+    private bool TryGetSessionForUser(string sessionId, string userId, out ImportSession session)
+    {
+        if (_sessions.TryGetValue(sessionId, out var found)
+            && string.Equals(found.InitiatorUserId, userId, StringComparison.Ordinal))
+        {
+            session = found;
+            return true;
+        }
+
+        session = null!;
+        return false;
     }
 
     private async Task HandleCollectionImportAsync(

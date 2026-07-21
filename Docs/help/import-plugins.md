@@ -39,7 +39,7 @@ Fuer jeden Import werden frische Handlerinstanzen aus den aktivierten Plugins er
 3. Weitere Plugins werden danach nicht mehr probiert.
 4. Wenn kein aktiviertes Plugin passt, endet der Import mit der Meldung `No suitable import plugin found for this file or URL.`
 
-Interaktive Importpfade, zum Beispiel KI-Importe mit Bestaetigungsdialog, laufen weiterhin ueber den bestehenden Importdialog.
+Interaktive Importpfade, zum Beispiel KI-Importe mit Bestaetigungsdialog, laufen weiterhin ueber den bestehenden Importdialog. Session-basierte Importablaeufe sind an den authentifizierten Benutzer gebunden, der den Import gestartet hat. Status, Bestaetigung, Abbruch und Zwischenauswahl koennen nur fuer eigene Sessions abgerufen oder gesteuert werden; fremde oder ungueltige Session-IDs liefern keine Sessiondetails.
 
 ## Chefkoch-Rezeptsammlungen
 

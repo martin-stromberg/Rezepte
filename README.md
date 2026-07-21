@@ -134,6 +134,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 - API-Controller sind ueber JWT abgesichert; Admin-Endpunkte verlangen die Rolle `Admin`.
 - Die Registrierung ist nur offen, solange noch kein Benutzer existiert.
 - Rezept-, Kochbuch-, Kalender- und Einstellungsdaten sind benutzerbezogen modelliert.
+- Session-basierte Importablaeufe sind an den initiierenden authentifizierten Benutzer gebunden; fremde oder ungueltige Session-IDs legen keine Sessiondetails offen.
 - PATs fuer private GitHub-Pluginquellen verbleiben im geschuetzten Secret-Speicher des Backends und werden nicht an das Frontend ausgegeben oder protokolliert.
 
 ## Deployment

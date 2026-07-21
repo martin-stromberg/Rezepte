@@ -10,6 +10,9 @@ namespace Rezepte.Tests.Services.Import;
 
 public sealed class ImportOrchestratorTests
 {
+    private const string OwnerUserId = "user-1";
+    private const string OtherUserId = "user-2";
+
     [Fact]
     public async Task StartImportAsync_ShouldUseActivePluginsInConfiguredOrder()
     {
@@ -17,7 +20,7 @@ public sealed class ImportOrchestratorTests
         var second = new RecordingHandler("second", canHandle: true);
         var sut = CreateOrchestrator(first, second);
 
-        var sessionId = await sut.StartImportAsync(new MemoryStream([1, 2, 3]), "recipe.fixture", null, "cookbook-1", "user-1");
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1, 2, 3]), "recipe.fixture", null, "cookbook-1", OwnerUserId);
 
         var session = await WaitForResultAsync(sut, sessionId);
         session.Result!.Success.Should().BeTrue();
@@ -28,20 +31,60 @@ public sealed class ImportOrchestratorTests
     }
 
     [Fact]
+    public async Task StartImportAsync_ShouldStoreInitiatorUserId()
+    {
+        var sut = CreateOrchestrator(new RecordingHandler("handler", canHandle: true));
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", OwnerUserId);
+
+        var session = await WaitForResultAsync(sut, sessionId);
+        session.InitiatorUserId.Should().Be(OwnerUserId);
+        sut.GetSessionForUser(sessionId, OwnerUserId).Should().BeSameAs(session);
+    }
+
+    [Fact]
+    public async Task GetSessionForUser_ShouldHideSessionFromDifferentUser()
+    {
+        var sut = CreateOrchestrator(new RecordingHandler("handler", canHandle: true));
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", OwnerUserId);
+        await WaitForResultAsync(sut, sessionId);
+
+        sut.GetSessionForUser(sessionId, OtherUserId).Should().BeNull();
+    }
+
+    [Fact]
     public async Task StartImportAsync_ShouldSupportInteractivePluginConfirmation()
     {
         var interactive = new InteractiveRecordingHandler("interactive", canHandle: true);
         var sut = CreateOrchestrator(interactive);
 
-        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", "user-1");
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", OwnerUserId);
         var waitingSession = await WaitUntilAsync(sut, sessionId, s => s.WaitingForConfirmation);
 
         waitingSession.ConfirmationPrompt.Should().Be("Import recipe?");
-        sut.Confirm(sessionId, accepted: true).Should().BeTrue();
+        sut.Confirm(sessionId, OwnerUserId, accepted: true).Should().BeTrue();
 
         var completedSession = await WaitForResultAsync(sut, sessionId);
         completedSession.Result!.Success.Should().BeTrue();
         completedSession.Result.CreatedRecipeIds.Should().Equal("interactive-confirmed");
+    }
+
+    [Fact]
+    public async Task Confirm_ShouldHideWaitingSessionFromDifferentUser()
+    {
+        var interactive = new InteractiveRecordingHandler("interactive", canHandle: true);
+        var sut = CreateOrchestrator(interactive);
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", OwnerUserId);
+        var waitingSession = await WaitUntilAsync(sut, sessionId, s => s.WaitingForConfirmation);
+
+        sut.Confirm(sessionId, OtherUserId, accepted: true).Should().BeFalse();
+        waitingSession.WaitingForConfirmation.Should().BeTrue();
+        waitingSession.ConfirmationTcs!.Task.IsCompleted.Should().BeFalse();
+
+        sut.Confirm(sessionId, OwnerUserId, accepted: true).Should().BeTrue();
+        await WaitForResultAsync(sut, sessionId);
     }
 
     [Fact]
@@ -51,7 +94,7 @@ public sealed class ImportOrchestratorTests
         var later = new RecordingHandler("later", canHandle: true);
         var sut = CreateOrchestrator(failing, later);
 
-        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", "user-1");
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", OwnerUserId);
 
         var session = await WaitForResultAsync(sut, sessionId);
         session.Result!.Success.Should().BeFalse();
@@ -66,7 +109,7 @@ public sealed class ImportOrchestratorTests
         var persister = new PassthroughPersister();
         var sut = CreateOrchestrator(persister, collection);
 
-        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", "user-1");
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", OwnerUserId);
         var waitingSession = await WaitUntilAsync(sut, sessionId, s => s.State == "SelectionRequired");
 
         waitingSession.CollectionPreview.Should().NotBeNull();
@@ -76,7 +119,7 @@ public sealed class ImportOrchestratorTests
             new ImportCollectionSelectionItem("item-2", "https://example.test/2", "cookbook-2")
         ]);
 
-        sut.SubmitSelection(sessionId, selection).Success.Should().BeTrue();
+        sut.SubmitSelection(sessionId, OwnerUserId, selection).Success.Should().BeTrue();
 
         var completedSession = await WaitForResultAsync(sut, sessionId);
         completedSession.Result!.Success.Should().BeTrue();
@@ -86,13 +129,54 @@ public sealed class ImportOrchestratorTests
     }
 
     [Fact]
+    public async Task SubmitSelection_ShouldHideSelectionSessionFromDifferentUser()
+    {
+        var collection = new CollectionRecordingHandler();
+        var sut = CreateOrchestrator(collection);
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", OwnerUserId);
+        var waitingSession = await WaitUntilAsync(sut, sessionId, s => s.State == "SelectionRequired");
+
+        var selection = new ImportCollectionSelection([
+            new ImportCollectionSelectionItem("item-1", "https://example.test/1", "cookbook-1")
+        ]);
+
+        var result = sut.SubmitSelection(sessionId, OtherUserId, selection);
+
+        result.IsNotFound.Should().BeTrue();
+        waitingSession.State.Should().Be("SelectionRequired");
+        waitingSession.SelectionTcs!.Task.IsCompleted.Should().BeFalse();
+
+        sut.CancelSelection(sessionId, OwnerUserId).Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CancelSelection_ShouldHideSelectionSessionFromDifferentUser()
+    {
+        var collection = new CollectionRecordingHandler();
+        var sut = CreateOrchestrator(collection);
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", OwnerUserId);
+        var waitingSession = await WaitUntilAsync(sut, sessionId, s => s.State == "SelectionRequired");
+
+        var result = sut.CancelSelection(sessionId, OtherUserId);
+
+        result.IsNotFound.Should().BeTrue();
+        waitingSession.State.Should().Be("SelectionRequired");
+        waitingSession.SelectionTcs!.Task.IsCompleted.Should().BeFalse();
+        waitingSession.Result.Should().BeNull();
+
+        sut.CancelSelection(sessionId, OwnerUserId).Success.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task SubmitSelection_ShouldStillWorkAfterSelectionWasLeftOpen()
     {
         var collection = new CollectionRecordingHandler();
         var persister = new PassthroughPersister();
         var sut = CreateOrchestrator(persister, collection);
 
-        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", "user-1");
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", OwnerUserId);
         await WaitUntilAsync(sut, sessionId, s => s.State == "SelectionRequired");
 
         await Task.Delay(75);
@@ -101,7 +185,7 @@ public sealed class ImportOrchestratorTests
             new ImportCollectionSelectionItem("item-1", "https://example.test/1", "cookbook-1")
         ]);
 
-        sut.SubmitSelection(sessionId, selection).Success.Should().BeTrue();
+        sut.SubmitSelection(sessionId, OwnerUserId, selection).Success.Should().BeTrue();
 
         var completedSession = await WaitForResultAsync(sut, sessionId);
         completedSession.Result!.Success.Should().BeTrue();
@@ -116,7 +200,7 @@ public sealed class ImportOrchestratorTests
         var collection = new CollectionRecordingHandler(duplicateIds: true);
         var sut = CreateOrchestrator(collection);
 
-        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", "user-1");
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", OwnerUserId);
 
         var failedSession = await WaitForResultAsync(sut, sessionId);
         failedSession.State.Should().Be("Failed");
@@ -131,7 +215,7 @@ public sealed class ImportOrchestratorTests
         var collection = new CollectionRecordingHandler();
         var sut = CreateOrchestrator(collection);
 
-        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", "user-1");
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", OwnerUserId);
         await WaitUntilAsync(sut, sessionId, s => s.State == "SelectionRequired");
 
         var selection = new ImportCollectionSelection([
@@ -139,7 +223,7 @@ public sealed class ImportOrchestratorTests
         ]);
 
         var submitTasks = Enumerable.Range(0, 20)
-            .Select(_ => Task.Run(() => sut.SubmitSelection(sessionId, selection)))
+            .Select(_ => Task.Run(() => sut.SubmitSelection(sessionId, OwnerUserId, selection)))
             .ToArray();
 
         var results = await Task.WhenAll(submitTasks);
@@ -197,7 +281,7 @@ public sealed class ImportOrchestratorTests
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         while (!timeout.IsCancellationRequested)
         {
-            var session = sut.GetSession(sessionId);
+            var session = sut.GetSessionForUser(sessionId, OwnerUserId);
             if (session is not null && predicate(session))
             {
                 return session;
