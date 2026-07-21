@@ -21,15 +21,6 @@
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Update="google.application-credentials.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Update="google.gemini.api-key.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
   <!-- Verhindere, dass die JSON beim Publish mit kopiert wird (gilt für alle Konfigurationen) -->
   <ItemGroup>
     <Content Update="test.recipe-import.json">
