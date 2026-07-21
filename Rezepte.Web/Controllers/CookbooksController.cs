@@ -333,14 +333,17 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var fileName = Path.GetFileName(uri.LocalPath);
         if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-url";
 
-        return await StartImportSessionFromStreamAsync(ms, fileName, uri.ToString(), cookbookId, orchestrator, GetUserId()!, ct);
+        return await StartImportSessionFromStreamAsync(ms, fileName, uri.ToString(), cookbookId, orchestrator, userId, ct);
     }
 
     // GET api/cookbooks/{cookbookId}/import-session/{sessionId}/status
     [HttpGet("{cookbookId}/import-session/{sessionId}/status")]
     public IActionResult GetImportSessionStatus(string cookbookId, string sessionId, [FromServices] ImportOrchestrator orchestrator)
     {
-        var session = orchestrator.GetSession(sessionId);
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var session = orchestrator.GetSessionForUser(sessionId, userId);
         if (session == null) return NotFound();
         return Ok(ToSessionStatus(session));
     }
@@ -349,7 +352,10 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     [HttpPost("{cookbookId}/import-session/{sessionId}/confirm")]
     public IActionResult ConfirmImportSession(string cookbookId, string sessionId, [FromBody] ConfirmRequest req, [FromServices] ImportOrchestrator orchestrator)
     {
-        var ok = orchestrator.Confirm(sessionId, req.Accepted);
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var ok = orchestrator.Confirm(sessionId, userId, req.Accepted);
         if (!ok) return NotFound();
         return NoContent();
     }
@@ -363,8 +369,8 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var validation = await ValidateSelectionCookbooksAsync(userId, req, ct);
         if (validation is not null) return validation;
 
-        var result = orchestrator.SubmitSelection(sessionId, ToSelection(req));
-        if (result.IsNotFound) return NotFound(new { message = result.Error });
+        var result = orchestrator.SubmitSelection(sessionId, userId, ToSelection(req));
+        if (result.IsNotFound) return NotFound();
         if (!result.Success) return BadRequest(new { message = result.Error });
         return NoContent();
     }
@@ -373,8 +379,11 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     [HttpPost("{cookbookId}/import-session/{sessionId}/selection/cancel")]
     public IActionResult CancelImportSessionSelection(string cookbookId, string sessionId, [FromServices] ImportOrchestrator orchestrator)
     {
-        var result = orchestrator.CancelSelection(sessionId);
-        if (result.IsNotFound) return NotFound(new { message = result.Error });
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var result = orchestrator.CancelSelection(sessionId, userId);
+        if (result.IsNotFound) return NotFound();
         if (!result.Success) return BadRequest(new { message = result.Error });
         return NoContent();
     }
@@ -449,14 +458,17 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var fileName = Path.GetFileName(uri.LocalPath);
         if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-url";
 
-        return await StartImportSessionFromStreamAsync(ms, fileName, uri.ToString(), null, orchestrator, GetUserId()!, ct);
+        return await StartImportSessionFromStreamAsync(ms, fileName, uri.ToString(), null, orchestrator, userId, ct);
     }
 
     // GET api/cookbooks/import-session/{sessionId}/status
     [HttpGet("import-session/{sessionId}/status")]
     public IActionResult GetImportSessionStatusNoCookbook(string sessionId, [FromServices] ImportOrchestrator orchestrator)
     {
-        var session = orchestrator.GetSession(sessionId);
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var session = orchestrator.GetSessionForUser(sessionId, userId);
         if (session == null) return NotFound();
         return Ok(ToSessionStatus(session));
     }
@@ -465,7 +477,10 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     [HttpPost("import-session/{sessionId}/confirm")]
     public IActionResult ConfirmImportSessionNoCookbook(string sessionId, [FromBody] ConfirmRequest req, [FromServices] ImportOrchestrator orchestrator)
     {
-        var ok = orchestrator.Confirm(sessionId, req.Accepted);
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var ok = orchestrator.Confirm(sessionId, userId, req.Accepted);
         if (!ok) return NotFound();
         return NoContent();
     }
@@ -479,8 +494,8 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var validation = await ValidateSelectionCookbooksAsync(userId, req, ct);
         if (validation is not null) return validation;
 
-        var result = orchestrator.SubmitSelection(sessionId, ToSelection(req));
-        if (result.IsNotFound) return NotFound(new { message = result.Error });
+        var result = orchestrator.SubmitSelection(sessionId, userId, ToSelection(req));
+        if (result.IsNotFound) return NotFound();
         if (!result.Success) return BadRequest(new { message = result.Error });
         return NoContent();
     }
@@ -489,8 +504,11 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     [HttpPost("import-session/{sessionId}/selection/cancel")]
     public IActionResult CancelImportSessionSelectionNoCookbook(string sessionId, [FromServices] ImportOrchestrator orchestrator)
     {
-        var result = orchestrator.CancelSelection(sessionId);
-        if (result.IsNotFound) return NotFound(new { message = result.Error });
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var result = orchestrator.CancelSelection(sessionId, userId);
+        if (result.IsNotFound) return NotFound();
         if (!result.Success) return BadRequest(new { message = result.Error });
         return NoContent();
     }
