@@ -42,6 +42,10 @@ public sealed class GoogleCredentialsProvider : IGoogleCredentialsProvider
         if (!string.IsNullOrWhiteSpace(environmentKey))
             return environmentKey;
 
-        return _options.CurrentValue.GeminiApiKey ?? string.Empty;
+        var configuredKey = _options.CurrentValue.GeminiApiKey;
+        if (!string.IsNullOrWhiteSpace(configuredKey))
+            return configuredKey;
+
+        return string.Empty;
     }
 }

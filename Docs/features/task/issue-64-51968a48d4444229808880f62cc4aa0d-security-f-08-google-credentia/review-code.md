@@ -6,37 +6,28 @@
 
 ## Befunde
 
-### IGoogleCredentialsProvider.cs (IGoogleCredentialsProvider)
+### GoogleCredentialsProvider.cs (GoogleCredentialsProvider)
 
-- **Toter Code** — Die `using`-Direktiven `using System;` (Zeile 1) und `using System.IO;` (Zeile 2) werden in dieser Datei nicht verwendet. Die Interface-Signaturen nutzen ausschließlich `string` und `bool`; keine Typen aus `System` oder `System.IO` kommen vor.
+- **Doppelter Code / Fehlende Kapselung** — `GetServiceAccountFilePath()` (Zeilen 18–29) und `GetGeminiApiKey()` (Zeilen 39–50) haben eine strukturell identische Auflösungslogik: Umgebungsvariable lesen, bei `!IsNullOrWhiteSpace` zurückgeben, sonst Options-Wert prüfen, sonst `string.Empty`. Die beiden Methoden unterscheiden sich nur im Namen der Umgebungsvariablen und der herangezogenen Options-Property. Dieselbe Whitespace-Regel wird damit an zwei Stellen dupliziert, was künftige Änderungen (wie der gerade behobene Whitespace-Befund) erneut fehleranfällig für Inkonsistenzen macht.
 
-  Empfehlung: Beide ungenutzten `using`-Direktiven entfernen.
-
-- **Fehlerbehandlung / Dokumentation** — Der XML-Kommentar von `GetGeminiApiKey()` (Zeile 25–29) enthält ein leeres `<returns></returns>`-Element ohne Inhalt, während die übrigen Methoden vollständig dokumentiert sind. Das ist inkonsistent und liefert keinen aussagekräftigen Kontext.
-
-  Empfehlung: `<returns>` ausfüllen, z. B. „The resolved Gemini API key, or an empty string if none is configured." — analog zu den anderen Methodenkommentaren.
+  Empfehlung: Die gemeinsame Logik in eine private Hilfsmethode auslagern, z. B. `private static string ResolveValue(string environmentVariableName, string? configuredValue)`, die beide öffentlichen Methoden aufrufen. Dadurch existiert die Whitespace-/Fallback-Regel nur noch an einer Stelle.
 
 ### GoogleCredentialsProviderTests.cs (GoogleCredentialsProviderTests)
 
-- **Testqualität (Testabdeckung)** — Für die öffentliche Methode `ServiceAccountFileExists()` existiert nur der Negativfall `ServiceAccountFileExists_ReturnsFalse_WhenPathMissing` (Zeile 81–91). Der Positivfall (Pfad ist gesetzt und Datei existiert → `true`) wird nur indirekt über `SettingsCredentialAvailabilityTests` abgedeckt, nicht als direkter Unit-Test des Providers.
+- **Testqualität (unzureichende Testabdeckung / Asymmetrie)** — Für die Whitespace-Behandlung existiert nur der Regressionstest `GetGeminiApiKey_ReturnsEmpty_WhenOptionsValueIsWhitespace` (Zeilen 149–159). Ein analoger Test für `GetServiceAccountFilePath()` (z. B. `GetServiceAccountFilePath_ReturnsEmpty_WhenOptionsValueIsWhitespace`) fehlt. Da der behobene Befund gerade die Gleichbehandlung von Whitespace über beide Methoden hinweg betraf, ist das identische Verhalten von `GetServiceAccountFilePath()` bei reinem Whitespace-Options-Wert aktuell nicht durch einen Test abgesichert und könnte bei einer künftigen Änderung unbemerkt divergieren.
 
-  Empfehlung: Einen Testfall ergänzen, der über eine real existierende Datei (z. B. `Path.GetTempFileName()`) prüft, dass `ServiceAccountFileExists()` `true` zurückgibt, und die temporäre Datei danach wieder löscht.
-
-### EnvironmentVariableScope.cs (EnvironmentVariableScope)
-
-- **Doppelter Code (Hardcodierte Werte)** — Die Umgebungsvariablen-Namen `"GOOGLE_APPLICATION_CREDENTIALS"` und `"GOOGLE_GEMINI_API_KEY"` (Zeile 5–6) sind identisch zu den privaten Konstanten `ServiceAccountEnvironmentVariable` / `GeminiApiKeyEnvironmentVariable` in `GoogleCredentialsProvider.cs` (Zeile 8–9). Bei einer Umbenennung müssen die Literale an zwei Stellen konsistent gehalten werden, ohne dass ein Compiler-Fehler die Abweichung aufdeckt.
-
-  Empfehlung (niedrige Priorität): Bewusst entscheiden — entweder die Namen als `internal const` in der Produktionsklasse zentralisieren und im Test referenzieren, oder die Duplizierung als bewusste Test-Isolation dokumentieren. Aktuell besteht das Risiko einer stillen Divergenz.
+  Empfehlung: Einen spiegelbildlichen Regressionstest für `GetServiceAccountFilePath()` mit einem Whitespace-Options-Wert (`ServiceAccountFilePath = "   "`, Env nicht gesetzt) ergänzen, der `result.Should().BeEmpty()` prüft.
 
 ## Geprüfte Dateien
 
 - `Rezepte.Web/Services/GoogleCredentialsProvider.cs`
 - `Rezepte.Web/Services/IGoogleCredentialsProvider.cs`
+- `Rezepte.Web/Configuration/GoogleCredentialsOptions.cs`
 - `Rezepte.Web/Extensions/ServiceCollectionExtensions.cs`
-- `Rezepte.Web/appsettings.json`
 - `Rezepte.Web/Rezepte.Web.csproj`
+- `Rezepte.Web/appsettings.json`
 - `Rezepte.Tests/Services/GoogleCredentialsProviderTests.cs`
-- `Rezepte.Tests/Controllers/SettingsCredentialAvailabilityTests.cs`
-- `Rezepte.Tests/Deployment/CsprojCredentialCopyTests.cs`
 - `Rezepte.Tests/TestHelpers/EnvironmentVariableScope.cs`
 - `Rezepte.Tests/TestHelpers/GoogleCredentialsEnvironmentCollection.cs`
+- `Rezepte.Tests/Controllers/SettingsCredentialAvailabilityTests.cs`
+- `Rezepte.Tests/Deployment/CsprojCredentialCopyTests.cs`

@@ -91,6 +91,26 @@ public class GoogleCredentialsProviderTests
     }
 
     [Fact]
+    public void ServiceAccountFileExists_ReturnsTrue_WhenPathIsSetAndFileExists()
+    {
+        using var scope = new EnvironmentVariableScope();
+        var tempFilePath = Path.GetTempFileName();
+        try
+        {
+            scope.Set(ServiceAccountEnvironmentVariable, tempFilePath);
+            var provider = CreateProvider(new GoogleCredentialsOptions { ServiceAccountFilePath = "" });
+
+            var result = provider.ServiceAccountFileExists();
+
+            result.Should().BeTrue();
+        }
+        finally
+        {
+            File.Delete(tempFilePath);
+        }
+    }
+
+    [Fact]
     public void GetGeminiApiKey_ReturnsKey_FromEnvironmentVariable()
     {
         using var scope = new EnvironmentVariableScope();
@@ -120,6 +140,18 @@ public class GoogleCredentialsProviderTests
         using var scope = new EnvironmentVariableScope();
         scope.Set(GeminiApiKeyEnvironmentVariable, null);
         var provider = CreateProvider(new GoogleCredentialsOptions { GeminiApiKey = "" });
+
+        var result = provider.GetGeminiApiKey();
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetGeminiApiKey_ReturnsEmpty_WhenOptionsValueIsWhitespace()
+    {
+        using var scope = new EnvironmentVariableScope();
+        scope.Set(GeminiApiKeyEnvironmentVariable, null);
+        var provider = CreateProvider(new GoogleCredentialsOptions { GeminiApiKey = "   " });
 
         var result = provider.GetGeminiApiKey();
 

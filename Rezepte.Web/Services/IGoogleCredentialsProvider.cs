@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace Rezepte.Web.Services;
 
 /// <summary>
@@ -25,6 +22,6 @@ public interface IGoogleCredentialsProvider
     /// <summary>
     /// Returns the API key for Gemini.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The resolved Gemini API key, or an empty string if none is configured.</returns>
     string GetGeminiApiKey();
 }

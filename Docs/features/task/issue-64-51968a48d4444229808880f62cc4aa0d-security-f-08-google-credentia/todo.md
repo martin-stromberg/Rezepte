@@ -20,6 +20,7 @@ Branch: `task/issue-64-51968a48d4444229808880f62cc4aa0d-security-f-08-google-cre
 | [x] | 8a | Folgeaufgaben dokumentieren (bei Schleifenabbruch) | `continue.md` |
 | [x] | 9 | Dokumentation erstellen (Unteragent) | `docs/help/` |
 | [x] | 9b | README aktualisieren (Unteragent) | `README.md` |
-| [ ] | 10 | Nacharbeiten abschließen (offene Punkte aus `continue.md`) | `continue-done.md` |
+| [x] | 10 | Nacharbeiten abschließen (offene Punkte aus `continue.md`, Runde 1) | `continue-done.md` |
+| [ ] | 10b | Nacharbeiten abschließen (offene Punkte aus `continue.md`, Runde 2) | `continue-done.md` |
 | [ ] | – | Feature-Verzeichnis löschen | – |
 | [ ] | – | Commit durchführen | – |
