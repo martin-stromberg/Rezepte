@@ -32,14 +32,36 @@ public class GeminiClient : IGeminiClient
             return;
 
         var apiKey = _provider.GetGeminiApiKey();
+        var diagnostics = _provider.GetDiagnostics();
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
+            _logger.LogInformation(
+                "Initializing Gemini client with API key from {Source}; API key configured: {Configured}",
+                diagnostics.GeminiApiKeySource,
+                diagnostics.GeminiApiKeyConfigured);
             _apiClient.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
             return;
         }
 
-        var serviceAccountPath = _provider.GetServiceAccountFilePath();
-        if (!string.IsNullOrWhiteSpace(serviceAccountPath) && System.IO.File.Exists(serviceAccountPath))
+        _logger.LogInformation("Gemini API key is not configured.");
+
+        var serviceAccountPath = diagnostics.ServiceAccountFilePath;
+        if (string.IsNullOrWhiteSpace(serviceAccountPath))
+        {
+            _logger.LogWarning("Gemini service account path is not configured.");
+            throw new InvalidOperationException("No Gemini API key configured and no service account path configured.");
+        }
+
+        if (!diagnostics.ServiceAccountFileExists)
+        {
+            _logger.LogWarning(
+                "Gemini service account file was not found at {ServiceAccountFilePath}; source: {Source}",
+                serviceAccountPath,
+                diagnostics.ServiceAccountSource);
+            throw new InvalidOperationException($"No Gemini API key configured and service account file was not found at '{serviceAccountPath}'.");
+        }
+
+        try
         {
             lock (_initLock)
             {
@@ -57,8 +79,18 @@ public class GeminiClient : IGeminiClient
                 return;
             }
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to load Gemini service account file at {ServiceAccountFilePath}; exception type: {ExceptionType}; message: {Message}",
+                serviceAccountPath,
+                ex.GetType().Name,
+                ex.Message);
+            throw new InvalidOperationException($"Failed to load Gemini service account file at '{serviceAccountPath}'.", ex);
+        }
 
-        throw new InvalidOperationException("No valid Gemini authentication configured.");
+        throw new InvalidOperationException($"No Gemini API key configured and service account file at '{serviceAccountPath}' could not provide credentials.");
     }
 
     public async Task<AIRecipe[]> ExtractRecipeAsync(string ocrText, CancellationToken ct = default)
@@ -326,14 +358,10 @@ Html-Code:
 
     public bool HasServiceAccount()
     {
-        if (!_provider.ServiceAccountFileExists())
-            return false;
-        return true;
+        return _provider.GetDiagnostics().ServiceAccountFileExists;
     }
     public bool HasApiKey()
     {
-        if (string.IsNullOrWhiteSpace(_provider.GetGeminiApiKey()))
-            return false;
-        return true;
+        return _provider.GetDiagnostics().GeminiApiKeyConfigured;
     }
 }

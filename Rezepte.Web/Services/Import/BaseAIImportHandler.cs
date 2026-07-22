@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
-using Microsoft.VisualBasic;
 using Rezepte.Import.Abstractions;
 using Rezepte.Web.Configuration;
-using static Rezepte.Web.Services.Import.GeminiClient;
 using System.Text.RegularExpressions;
 
 namespace Rezepte.Web.Services.Import;
@@ -31,13 +29,35 @@ public abstract class BaseAIImportHandler(
 
     protected virtual async Task<bool> IsActiveAsync()
     {
-        if (!geminiClient.HasServiceAccount())
-            return false;
         if (!await SettingsService.GetGlobalAiEnabledAsync())
+        {
+            LogInactive("global AI is disabled");
             return false;
+        }
         if (!await SettingsService.GetUserAiEnabledAsync(UserId))
+        {
+            LogInactive("user AI is disabled");
             return false;
+        }
         return true;
+    }
+
+    protected bool HasGeminiAuthentication()
+    {
+        if (geminiClient.HasApiKey() || geminiClient.HasServiceAccount())
+            return true;
+
+        LogInactive("Gemini authentication is missing");
+        return false;
+    }
+
+    protected void LogInactive(string reason)
+    {
+        _logger.LogInformation(
+            "{HandlerName} inactive for user {UserId}: {Reason}",
+            GetType().Name,
+            UserId,
+            reason);
     }
     public static bool LooksLikeHtmlDocument(string input)
     {
@@ -78,22 +98,51 @@ public abstract class BaseAIImportHandler(
             try
             {
                 _responseContent = lastReader.ReadToEnd();
-                return LooksLikeHtmlDocument(_responseContent);
+                var looksLikeHtml = LooksLikeHtmlDocument(_responseContent);
+                if (!looksLikeHtml)
+                {
+                    _logger.LogDebug(
+                        "{HandlerName} cannot handle {FileName}: content does not look like HTML",
+                        GetType().Name,
+                        fileName);
+                }
+                return looksLikeHtml;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(
+                    ex,
+                    "{HandlerName} cannot inspect text content for {FileName}",
+                    GetType().Name,
+                    fileName);
                 return false;
             }
         }
         else
         {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (string.IsNullOrEmpty(fileName)) return false;
+            if (string.IsNullOrEmpty(fileName))
+            {
+                _logger.LogDebug("{HandlerName} cannot handle import: file name is missing", GetType().Name);
+                return false;
+            }
 
             var ext = Path.GetExtension(fileName);
-            if (string.IsNullOrEmpty(ext)) return false;
+            if (string.IsNullOrEmpty(ext))
+            {
+                _logger.LogDebug("{HandlerName} cannot handle {FileName}: file extension is missing", GetType().Name, fileName);
+                return false;
+            }
             ext = ext.ToLowerInvariant();
-            if (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" && ext != ".bmp") return false;
+            if (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" && ext != ".bmp")
+            {
+                _logger.LogDebug(
+                    "{HandlerName} cannot handle {FileName}: unsupported file extension {Extension}",
+                    GetType().Name,
+                    fileName,
+                    ext);
+                return false;
+            }
             return true;
         }
     }

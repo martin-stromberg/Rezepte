@@ -33,6 +33,32 @@ public sealed class GoogleCredentialsProvider : IGoogleCredentialsProvider
         return ResolveValue(GeminiApiKeyEnvironmentVariable, _options.CurrentValue.GeminiApiKey);
     }
 
+    public GoogleCredentialsDiagnostics GetDiagnostics()
+    {
+        var options = _options.CurrentValue;
+        var serviceAccountEnvironmentValue = Environment.GetEnvironmentVariable(ServiceAccountEnvironmentVariable);
+        var geminiApiKeyEnvironmentValue = Environment.GetEnvironmentVariable(GeminiApiKeyEnvironmentVariable);
+
+        var serviceAccountEnvironmentVariableSet = !string.IsNullOrWhiteSpace(serviceAccountEnvironmentValue);
+        var serviceAccountOptionsFallbackSet = !serviceAccountEnvironmentVariableSet && !string.IsNullOrWhiteSpace(options.ServiceAccountFilePath);
+        var serviceAccountFilePath = serviceAccountEnvironmentVariableSet
+            ? serviceAccountEnvironmentValue!
+            : serviceAccountOptionsFallbackSet
+                ? options.ServiceAccountFilePath!
+                : string.Empty;
+
+        var geminiApiKeyEnvironmentVariableSet = !string.IsNullOrWhiteSpace(geminiApiKeyEnvironmentValue);
+        var geminiApiKeyOptionsFallbackSet = !geminiApiKeyEnvironmentVariableSet && !string.IsNullOrWhiteSpace(options.GeminiApiKey);
+
+        return new GoogleCredentialsDiagnostics(
+            serviceAccountEnvironmentVariableSet,
+            serviceAccountOptionsFallbackSet,
+            serviceAccountFilePath,
+            !string.IsNullOrWhiteSpace(serviceAccountFilePath) && File.Exists(serviceAccountFilePath),
+            geminiApiKeyEnvironmentVariableSet,
+            geminiApiKeyOptionsFallbackSet);
+    }
+
     private static string ResolveValue(string environmentVariableName, string? configuredValue)
     {
         var environmentValue = Environment.GetEnvironmentVariable(environmentVariableName);

@@ -170,6 +170,66 @@ public class GoogleCredentialsProviderTests
         result.Should().BeEmpty();
     }
 
+    [Fact]
+    public void GetDiagnostics_ReportsEnvironmentSources_WithoutApiKeyValue()
+    {
+        using var scope = new EnvironmentVariableScope();
+        var tempFilePath = Path.GetTempFileName();
+        try
+        {
+            scope.Set(ServiceAccountEnvironmentVariable, tempFilePath);
+            scope.Set(GeminiApiKeyEnvironmentVariable, "env-api-key");
+            var provider = CreateProvider(new GoogleCredentialsOptions
+            {
+                ServiceAccountFilePath = "C:/options/service-account.json",
+                GeminiApiKey = "options-api-key"
+            });
+
+            var result = provider.GetDiagnostics();
+
+            result.ServiceAccountEnvironmentVariableSet.Should().BeTrue();
+            result.ServiceAccountOptionsFallbackSet.Should().BeFalse();
+            result.ServiceAccountFilePath.Should().Be(tempFilePath);
+            result.ServiceAccountFileExists.Should().BeTrue();
+            result.ServiceAccountSource.Should().Be("environment");
+            result.GeminiApiKeyEnvironmentVariableSet.Should().BeTrue();
+            result.GeminiApiKeyOptionsFallbackSet.Should().BeFalse();
+            result.GeminiApiKeyConfigured.Should().BeTrue();
+            result.GeminiApiKeySource.Should().Be("environment");
+            result.ToString().Should().NotContain("env-api-key");
+        }
+        finally
+        {
+            File.Delete(tempFilePath);
+        }
+    }
+
+    [Fact]
+    public void GetDiagnostics_ReportsOptionsFallback_WhenEnvironmentVariablesMissing()
+    {
+        using var scope = new EnvironmentVariableScope();
+        scope.Set(ServiceAccountEnvironmentVariable, null);
+        scope.Set(GeminiApiKeyEnvironmentVariable, null);
+        var provider = CreateProvider(new GoogleCredentialsOptions
+        {
+            ServiceAccountFilePath = "C:/options/service-account.json",
+            GeminiApiKey = "options-api-key"
+        });
+
+        var result = provider.GetDiagnostics();
+
+        result.ServiceAccountEnvironmentVariableSet.Should().BeFalse();
+        result.ServiceAccountOptionsFallbackSet.Should().BeTrue();
+        result.ServiceAccountFilePath.Should().Be("C:/options/service-account.json");
+        result.ServiceAccountFileExists.Should().BeFalse();
+        result.ServiceAccountSource.Should().Be("options");
+        result.GeminiApiKeyEnvironmentVariableSet.Should().BeFalse();
+        result.GeminiApiKeyOptionsFallbackSet.Should().BeTrue();
+        result.GeminiApiKeyConfigured.Should().BeTrue();
+        result.GeminiApiKeySource.Should().Be("options");
+        result.ToString().Should().NotContain("options-api-key");
+    }
+
     private static GoogleCredentialsProvider CreateProvider(GoogleCredentialsOptions options)
     {
         var monitor = new Mock<IOptionsMonitor<GoogleCredentialsOptions>>();
