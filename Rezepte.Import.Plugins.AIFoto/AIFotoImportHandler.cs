@@ -1,4 +1,5 @@
 using Google.Cloud.Vision.V1;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Rezepte.Web.Configuration;
@@ -6,7 +7,6 @@ using Rezepte.Web.Entities;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.Import;
 using Rezepte.Import.Abstractions;
-using static Rezepte.Web.Services.Import.GeminiClient;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -18,20 +18,60 @@ public class AIFotoImportHandler(
     IAiUsageService aiUsage,
     IMemoryCache cache,
     IGeminiClient geminiClient,
+    IGoogleCredentialsProvider credentialsProvider,
     ILogger<AIFotoImportHandler> logger,
     ISettingsService settings) : BaseAIImportHandler(aioptions, aiUsage, recipes, geminiClient, settings, logger), IImportHandler
 {
     private static readonly TimeSpan DefaultParsedImageCacheDuration = TimeSpan.FromDays(7);
     private readonly IOptionsMonitor<AIOptions> _aiOptions = aioptions;
     private readonly IMemoryCache _cache = cache;
+    private readonly IGoogleCredentialsProvider _credentialsProvider = credentialsProvider;
 
     protected override async Task<bool> IsActiveAsync()
     {
         if (!await base.IsActiveAsync()) return false;
-        if (!await SettingsService.GetGlobalGoogleVisionEnabledAsync()) return false;
-        if (!await SettingsService.GetUserGoogleVisionEnabledAsync(UserId)) return false;
-        if (!await SettingsService.GetGlobalGeminiEnabledAsync()) return false;
-        return await SettingsService.GetUserGeminiEnabledAsync(UserId);
+
+        var diagnostics = _credentialsProvider.GetDiagnostics();
+        if (!diagnostics.ServiceAccountFileExists)
+        {
+            if (string.IsNullOrWhiteSpace(diagnostics.ServiceAccountFilePath))
+            {
+                LogInactive("Google Vision service account path is not configured");
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "{HandlerName} inactive for user {UserId}: Google Vision service account file was not found at {ServiceAccountFilePath}; source: {Source}",
+                    GetType().Name,
+                    UserId,
+                    diagnostics.ServiceAccountFilePath,
+                    diagnostics.ServiceAccountSource);
+            }
+            return false;
+        }
+
+        if (!HasGeminiAuthentication()) return false;
+        if (!await SettingsService.GetGlobalGoogleVisionEnabledAsync())
+        {
+            LogInactive("global Google Vision is disabled");
+            return false;
+        }
+        if (!await SettingsService.GetUserGoogleVisionEnabledAsync(UserId))
+        {
+            LogInactive("user Google Vision is disabled");
+            return false;
+        }
+        if (!await SettingsService.GetGlobalGeminiEnabledAsync())
+        {
+            LogInactive("global Gemini is disabled");
+            return false;
+        }
+        if (!await SettingsService.GetUserGeminiEnabledAsync(UserId))
+        {
+            LogInactive("user Gemini is disabled");
+            return false;
+        }
+        return true;
     }
 
     protected override bool IsTextMode() => false;
@@ -48,7 +88,7 @@ public class AIFotoImportHandler(
         var image = await InitializeImage(stream, ct).ConfigureAwait(false);
         var allowedVision = await AiUsageService.TryRecordRequestAsync(UserId, "Vision.Image", ct);
         if (!allowedVision) return [];
-        var extractedText = ImageAnnotatorClient.Create().DetectDocumentText(image).Text;
+        var extractedText = CreateVisionClient().DetectDocumentText(image).Text;
         if (string.IsNullOrWhiteSpace(extractedText)) return [];
         await AiUsageService.RecordRequestAsync(UserId, "Vision.Image", AiRequestLogType.Success, ct);
         if (!await AiUsageService.TryRecordRequestAsync(UserId, "Gemini.Image", ct)) return [];
@@ -78,5 +118,22 @@ public class AIFotoImportHandler(
         if (stream.CanSeek) stream.Position = position;
         ms.Position = 0;
         return Image.FromStream(ms);
+    }
+
+    private ImageAnnotatorClient CreateVisionClient()
+    {
+        var diagnostics = _credentialsProvider.GetDiagnostics();
+        _logger.LogInformation(
+            "Initializing Google Vision client with service account file from {Source} at {ServiceAccountFilePath}",
+            diagnostics.ServiceAccountSource,
+            diagnostics.ServiceAccountFilePath);
+
+        var credential = GoogleCredential.FromFile(diagnostics.ServiceAccountFilePath)
+            .CreateScoped(ImageAnnotatorClient.DefaultScopes);
+
+        return new ImageAnnotatorClientBuilder
+        {
+            GoogleCredential = credential
+        }.Build();
     }
 }

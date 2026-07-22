@@ -4,7 +4,6 @@ using Rezepte.Web.Entities;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.Import;
 using Rezepte.Import.Abstractions;
-using static Rezepte.Web.Services.Import.GeminiClient;
 
 namespace Rezepte.Import.Plugins.AIUrl;
 
@@ -18,10 +17,19 @@ public class AIUrlImportHandler(
 {
     protected override async Task<bool> IsActiveAsync()
     {
-        if (!CreateGeminiClient().HasApiKey() && !await base.IsActiveAsync()) return false;
-        if (!await SettingsService.GetGlobalAiEnabledAsync() || !await SettingsService.GetUserAiEnabledAsync(UserId)) return false;
-        if (!await SettingsService.GetGlobalGeminiEnabledAsync()) return false;
-        return await SettingsService.GetUserGeminiEnabledAsync(UserId);
+        if (!await base.IsActiveAsync()) return false;
+        if (!HasGeminiAuthentication()) return false;
+        if (!await SettingsService.GetGlobalGeminiEnabledAsync())
+        {
+            LogInactive("global Gemini is disabled");
+            return false;
+        }
+        if (!await SettingsService.GetUserGeminiEnabledAsync(UserId))
+        {
+            LogInactive("user Gemini is disabled");
+            return false;
+        }
+        return true;
     }
 
     protected override bool IsTextMode() => true;

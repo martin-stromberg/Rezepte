@@ -24,4 +24,30 @@ public interface IGoogleCredentialsProvider
     /// </summary>
     /// <returns>The resolved Gemini API key, or an empty string if none is configured.</returns>
     string GetGeminiApiKey();
+
+    /// <summary>
+    /// Returns secret-free diagnostics for the currently resolved Google credentials.
+    /// </summary>
+    GoogleCredentialsDiagnostics GetDiagnostics();
+}
+
+public sealed record GoogleCredentialsDiagnostics(
+    bool ServiceAccountEnvironmentVariableSet,
+    bool ServiceAccountOptionsFallbackSet,
+    string ServiceAccountFilePath,
+    bool ServiceAccountFileExists,
+    bool GeminiApiKeyEnvironmentVariableSet,
+    bool GeminiApiKeyOptionsFallbackSet)
+{
+    public string ServiceAccountSource =>
+        ServiceAccountEnvironmentVariableSet ? "environment" :
+        ServiceAccountOptionsFallbackSet ? "options" :
+        "none";
+
+    public string GeminiApiKeySource =>
+        GeminiApiKeyEnvironmentVariableSet ? "environment" :
+        GeminiApiKeyOptionsFallbackSet ? "options" :
+        "none";
+
+    public bool GeminiApiKeyConfigured => GeminiApiKeyEnvironmentVariableSet || GeminiApiKeyOptionsFallbackSet;
 }

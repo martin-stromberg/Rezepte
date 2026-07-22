@@ -23,7 +23,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Import von Rezepten aus Backups, Dateien, URLs und unterstuetzten Webseiten, inklusive Chefkoch-Rezeptsammlungen mit Zwischenauswahl.
 - Plugin-Framework fuer Rezeptimporte mit aktivierbarer Reihenfolge in den Admin-Einstellungen.
 - Globale GitHub-Pluginquellen in den Admin-Einstellungen mit automatischer Pruefung beim Anwendungsstart.
-- Optionale KI-Importe ueber Google Vision und Gemini.
+- Optionale KI-Importe ueber Gemini fuer URL-Quellen sowie Google Vision und Gemini fuer Fotoimporte.
 - Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
 - GitHub Actions fuer Pull-Request-Pruefungen und automatisierte Release-Artefakte.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
@@ -87,9 +87,9 @@ Build und Publish der Web-Anwendung bauen die drei Hauptrepository-Plugins mit. 
 
 - .NET SDK 10 oder neuer
 - Fuer den Standardbetrieb keine externe Datenbank; SQLite wird lokal verwendet
-- Optional fuer KI-Funktionen: Google-Credentials (Gemini API-Key und/oder Service Account)
+- Optional fuer KI-Funktionen: Gemini API-Key und bei Fotoimporten zusaetzlich ein Google-Service-Account fuer Vision
 
-Die Google-Credentials werden nicht als Datei im Projekt abgelegt und nicht in Build-Ausgaben kopiert. Sie werden zur Laufzeit ueber die Umgebungsvariablen `GOOGLE_APPLICATION_CREDENTIALS` bzw. `GOOGLE_GEMINI_API_KEY` (oder alternativ ueber die Konfigurationssektion `GoogleCredentials`) bereitgestellt. Details zur lokalen Einrichtung stehen in `Docs/development-guide.md`, Details zum Produktionsbetrieb in `Docs/deployment-guide.md`.
+Die Google-Credentials werden nicht als Datei im Projekt abgelegt und nicht in Build-Ausgaben kopiert. Sie werden zur Laufzeit bevorzugt ueber die Umgebungsvariablen `GOOGLE_GEMINI_API_KEY` und `GOOGLE_APPLICATION_CREDENTIALS` oder alternativ ueber die Konfigurationssektion `GoogleCredentials` bereitgestellt. URL-basierte KI-Importe koennen allein mit Gemini-API-Key arbeiten; Fotoimporte benoetigen fuer Google Vision eine lesbare Service-Account-Datei und zusaetzlich Gemini-Authentifizierung. Details zur lokalen Einrichtung stehen in `Docs/development-guide.md`, Details zum Produktionsbetrieb in `Docs/deployment-guide.md`.
 
 ## Lokaler Start
 
@@ -126,6 +126,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 | `Images:MaxSizeBytes` | Maximale Upload-Groesse fuer Bilder. |
 | `Images:AllowedContentTypes` | Erlaubte Bildformate. |
 | `AI:Simulate`, `AI:EnableCache`, `AI:CacheDurationHours` | Optionale Einstellungen fuer KI-Importe und Caching. |
+| `GoogleCredentials:ServiceAccountFilePath`, `GoogleCredentials:GeminiApiKey` | Fallback fuer Google-Credentials, wenn die Umgebungsvariablen `GOOGLE_APPLICATION_CREDENTIALS` bzw. `GOOGLE_GEMINI_API_KEY` nicht gesetzt sind. |
 | `PluginUpdates:GitHubApiBaseUrl`, `PluginUpdates:TimeoutSeconds`, `PluginUpdates:UserAgent` | Serverseitige GitHub-Kommunikation fuer die Startpruefung konfigurierter Pluginquellen. |
 
 ## Daten und Sicherheit
@@ -159,7 +160,8 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 - passende .NET-10-Shared-Frameworks oder self-contained Publish
 - persistenter Speicherort fuer SQLite-Datenbank und Logs
 - HTTPS/TLS vor der Anwendung
-- Google-Credentials nur bei aktivierten KI-Funktionen
+- `GOOGLE_GEMINI_API_KEY` fuer Gemini-basierte KI-Importe
+- `GOOGLE_APPLICATION_CREDENTIALS` mit lesbarer Service-Account-Datei fuer Google-Vision-/Fotoimporte
 - Dateirechte fuer den systemd-Benutzer
 
 ## Changelog und Releases

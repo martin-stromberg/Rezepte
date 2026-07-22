@@ -78,6 +78,25 @@ Das private Plugin-Repository enthaelt ausserdem ein rudimentaeres Console-Testp
 
 KI-Foto und KI-URL werden als eigene Plugins im Hauptrepository ausgeliefert. Ihre Handler verwenden weiterhin die vom Host bereitgestellten Services fuer AI-Konfiguration, Usage-Limits, Google Vision, Gemini, Cache und interaktive Bestaetigung. Die Plugins liefern ihre Ergebnisse als neutrale Import-DTOs und nutzen denselben zentralen Persistenzpfad wie externe Plugins.
 
+## KI-Importe
+
+Die KI-Plugins sind nur aktiv, wenn das jeweilige Plugin geladen und aktiviert ist, die globalen KI-Schalter aktiv sind und der angemeldete Benutzer KI verwenden darf. Zusaetzlich gelten dienstspezifische Voraussetzungen:
+
+- `Rezepte.Import.Plugins.AIUrl` verarbeitet HTML-Quellen und benoetigt Gemini. Gemini kann entweder ueber `GOOGLE_GEMINI_API_KEY` oder ueber einen vorhandenen Google-Service-Account authentifiziert werden.
+- `Rezepte.Import.Plugins.AIFoto` verarbeitet Bilddateien und benoetigt Google Vision sowie Gemini. Dafuer muss eine lesbare Service-Account-Datei ueber `GOOGLE_APPLICATION_CREDENTIALS` oder den Konfigurationsfallback `GoogleCredentials:ServiceAccountFilePath` verfuegbar sein. Fuer Gemini reicht zusaetzlich ein API-Key oder derselbe Service Account.
+
+Wenn `GOOGLE_GEMINI_API_KEY` gesetzt ist, verwendet Gemini diesen API-Key bevorzugt. Der fruehere Konfigurationswert `GoogleCredentials:GeminiApiKey` bleibt als Fallback erhalten, ist aber nicht fuer produktive Secrets gedacht.
+
+Wenn ein KI-Plugin nicht angeboten wird oder eine Quelle nicht verarbeitet, pruefen Sie diese Punkte in der Reihenfolge:
+
+1. Das Plugin ist in der Pluginverwaltung aktiviert und hat den Status `Loaded`.
+2. Die globalen KI-, Gemini- und bei Fotoimporten Google-Vision-Schalter sind aktiv.
+3. Der angemeldete Benutzer darf KI, Gemini und bei Fotoimporten Google Vision verwenden.
+4. Fuer URL-Importe ist Gemini ueber API-Key oder Service Account authentifiziert.
+5. Fuer Fotoimporte existiert die Service-Account-Datei und ist fuer den Prozess lesbar.
+
+Die Anwendung loggt Konfigurations- und Aktivierungsgruende mit Handlername und Benutzer-ID. Fehlende Gemini-Authentifizierung, deaktivierte KI-/Gemini-/Vision-Schalter und fehlende Vision-Credentials fuehren zu nachvollziehbaren Logeintraegen. Secret-Werte werden dabei nicht ausgegeben; der Gemini-API-Key wird nur als vorhanden oder nicht vorhanden und mit seiner Quelle protokolliert.
+
 ## Qualitaetssicherung
 
 Die produktiven Pluginparser sind mit dedizierten Fixture-Tests abgedeckt. Im Hauptrepository werden Backup-, KI-Foto- und KI-URL-Plugins gebaut und entdeckt. Im privaten Plugin-Repository pruefen eigene Tests repraesentative HTML-/JSON-Strukturen fuer Chefkoch, SecondSource, ThirdSource, FourthSource, FifthSource und SixthSource ueber den oeffentlichen Importvertrag.
