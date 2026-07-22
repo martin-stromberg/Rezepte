@@ -17,15 +17,7 @@ public sealed class GoogleCredentialsProvider : IGoogleCredentialsProvider
 
     public string GetServiceAccountFilePath()
     {
-        var environmentPath = Environment.GetEnvironmentVariable(ServiceAccountEnvironmentVariable);
-        if (!string.IsNullOrWhiteSpace(environmentPath))
-            return environmentPath;
-
-        var configuredPath = _options.CurrentValue.ServiceAccountFilePath;
-        if (!string.IsNullOrWhiteSpace(configuredPath))
-            return configuredPath;
-
-        return string.Empty;
+        return ResolveValue(ServiceAccountEnvironmentVariable, _options.CurrentValue.ServiceAccountFilePath);
     }
 
     public bool ServiceAccountFileExists()
@@ -38,13 +30,17 @@ public sealed class GoogleCredentialsProvider : IGoogleCredentialsProvider
 
     public string GetGeminiApiKey()
     {
-        var environmentKey = Environment.GetEnvironmentVariable(GeminiApiKeyEnvironmentVariable);
-        if (!string.IsNullOrWhiteSpace(environmentKey))
-            return environmentKey;
+        return ResolveValue(GeminiApiKeyEnvironmentVariable, _options.CurrentValue.GeminiApiKey);
+    }
 
-        var configuredKey = _options.CurrentValue.GeminiApiKey;
-        if (!string.IsNullOrWhiteSpace(configuredKey))
-            return configuredKey;
+    private static string ResolveValue(string environmentVariableName, string? configuredValue)
+    {
+        var environmentValue = Environment.GetEnvironmentVariable(environmentVariableName);
+        if (!string.IsNullOrWhiteSpace(environmentValue))
+            return environmentValue;
+
+        if (!string.IsNullOrWhiteSpace(configuredValue))
+            return configuredValue;
 
         return string.Empty;
     }

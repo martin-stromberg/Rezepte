@@ -79,6 +79,18 @@ public class GoogleCredentialsProviderTests
     }
 
     [Fact]
+    public void GetServiceAccountFilePath_ReturnsEmpty_WhenOptionsValueIsWhitespace()
+    {
+        using var scope = new EnvironmentVariableScope();
+        scope.Set(ServiceAccountEnvironmentVariable, null);
+        var provider = CreateProvider(new GoogleCredentialsOptions { ServiceAccountFilePath = "   " });
+
+        var result = provider.GetServiceAccountFilePath();
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
     public void ServiceAccountFileExists_ReturnsFalse_WhenPathMissing()
     {
         using var scope = new EnvironmentVariableScope();
