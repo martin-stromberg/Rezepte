@@ -28,6 +28,7 @@ public static class ServiceCollectionExtensions
         services.Configure<ImageOptions>(configuration.GetSection("Images"));
         services.Configure<AIOptions>(configuration.GetSection("AI"));
         services.Configure<PluginUpdateOptions>(configuration.GetSection("PluginUpdates"));
+        services.Configure<GoogleCredentialsOptions>(configuration.GetSection("GoogleCredentials"));
         // Razor Components
         services.AddRazorComponents()
             .AddInteractiveServerComponents(options =>

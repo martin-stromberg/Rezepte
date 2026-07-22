@@ -1,5 +1,9 @@
 # Rezepte
 
+[![Pull Request](https://img.shields.io/github/actions/workflow/status/martin-stromberg/Rezepte/pr.yml?label=Pull%20Request)](https://github.com/martin-stromberg/Rezepte/actions)
+[![License](https://img.shields.io/github/license/martin-stromberg/Rezepte)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com)
+
 Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, Rezepten, Bildern und geplanten Mahlzeiten. Das Projekt kombiniert eine Blazor-Server-Oberflaeche mit JSON/API-Endpunkten, SQLite-Persistenz und optionalen KI-gestuetzten Importfunktionen.
 
 ## Funktionsumfang
@@ -83,11 +87,9 @@ Build und Publish der Web-Anwendung bauen die drei Hauptrepository-Plugins mit. 
 
 - .NET SDK 10 oder neuer
 - Fuer den Standardbetrieb keine externe Datenbank; SQLite wird lokal verwendet
-- Optional fuer KI-Funktionen:
-  - `google.application-credentials.json`
-  - `google.gemini.api-key.json`
+- Optional fuer KI-Funktionen: Google-Credentials (Gemini API-Key und/oder Service Account)
 
-Die Google-Dateien werden vom Webprojekt in das Build-Ausgabeverzeichnis kopiert, sollten aber als Secrets behandelt und nicht in das Repository eingecheckt werden.
+Die Google-Credentials werden nicht als Datei im Projekt abgelegt und nicht in Build-Ausgaben kopiert. Sie werden zur Laufzeit ueber die Umgebungsvariablen `GOOGLE_APPLICATION_CREDENTIALS` bzw. `GOOGLE_GEMINI_API_KEY` (oder alternativ ueber die Konfigurationssektion `GoogleCredentials`) bereitgestellt. Details zur lokalen Einrichtung stehen in `Docs/development-guide.md`, Details zum Produktionsbetrieb in `Docs/deployment-guide.md`.
 
 ## Lokaler Start
 
@@ -160,6 +162,10 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 - Google-Credentials nur bei aktivierten KI-Funktionen
 - Dateirechte fuer den systemd-Benutzer
 
+## Changelog und Releases
+
+Aenderungen sind in `changes.log` dokumentiert. Beim Merge zu `main` werden automatisch GitHub Releases erstellt (mit SemVer-Versionierung bei relevanten Conventional Commits). Details zum Release-Prozess stehen in `Docs/help/github-actions.md`.
+
 ## Weiterfuehrende Dokumentation
 
 - `Docs/Anforderungskatalog.md`: fachlicher Status und geplante Erweiterungen.
@@ -173,3 +179,5 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprueft werden:
 - `Docs/help/recipe-search.md`: Bedienhinweise zur Rezeptsuche, Trefferlogik und Kochbuchfilterung.
 - `Docs/help/shopping-list.md`: Bedienhinweise zur Einkaufsliste und Rezeptuebernahme.
 - `Docs/install.md`: manuelle Installationsnotizen fuer Linux/systemd.
+- `Docs/development-guide.md`: lokale Einrichtung von Google-Credentials ueber Umgebungsvariablen/User Secrets.
+- `Docs/deployment-guide.md`: Secret-Store- und Umgebungsvariablen-Setup fuer Google-Credentials in Production.
