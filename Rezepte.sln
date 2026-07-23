@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.Plugins.AIFo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.Plugins.AIUrl", "Rezepte.Import.Plugins.AIUrl\Rezepte.Import.Plugins.AIUrl.csproj", "{08A6DE10-910F-414C-8CE4-5F735215349A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.PluginSdk", "Rezepte.Import.PluginSdk\Rezepte.Import.PluginSdk.csproj", "{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,18 @@ Global
 		{08A6DE10-910F-414C-8CE4-5F735215349A}.Release|x64.Build.0 = Release|Any CPU
 		{08A6DE10-910F-414C-8CE4-5F735215349A}.Release|x86.ActiveCfg = Release|Any CPU
 		{08A6DE10-910F-414C-8CE4-5F735215349A}.Release|x86.Build.0 = Release|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Debug|x64.Build.0 = Debug|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Debug|x86.Build.0 = Debug|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Release|x64.ActiveCfg = Release|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Release|x64.Build.0 = Release|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Release|x86.ActiveCfg = Release|Any CPU
+		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
