@@ -39,10 +39,10 @@ jobs:
       - name: Export import plugin contract
         shell: pwsh
         run: |
-          $arguments = @(
-            "-OutputDirectory", "artifacts/contract-export",
-            "-SourceCommit", "${{ github.event.pull_request.head.sha }}"
-          )
+          $exportArgs = @{
+            OutputDirectory = "artifacts/contract-export"
+            SourceCommit = "${{ github.event.pull_request.head.sha }}"
+          }
 
           $baselineDirectory = "contract-baselines/import-contract"
           if (Test-Path -LiteralPath $baselineDirectory -PathType Container) {
@@ -52,16 +52,14 @@ jobs:
             }
 
             $apiCompatTool = if ($IsWindows) { ".\\.tools\\apicompat.exe" } else { "./.tools/apicompat" }
-            $arguments += @(
-              "-ApiCompatBaselineDirectory", $baselineDirectory,
-              "-ApiCompatToolPath", $apiCompatTool
-            )
+            $exportArgs["ApiCompatBaselineDirectory"] = $baselineDirectory
+            $exportArgs["ApiCompatToolPath"] = $apiCompatTool
           }
           else {
             Write-Host "No stored ApiCompat baselines found; contract export will skip historical API comparison."
           }
 
-          ./scripts/Export-ImportContract.ps1 @arguments
+          ./scripts/Export-ImportContract.ps1 @exportArgs
 
       - name: Check formatting
         run: dotnet format Rezepte.sln --verify-no-changes --no-restore
