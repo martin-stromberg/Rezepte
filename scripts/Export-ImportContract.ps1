@@ -524,6 +524,8 @@ function Invoke-ApiCompatValidation {
     }
 }
 
+try {
+
 $propsContractVersion = Read-ContractVersionFromProps
 if (-not $ContractVersion) {
     $ContractVersion = $propsContractVersion
@@ -636,3 +638,9 @@ $metadata = [ordered]@{
 
 $metadata | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $metadataPath -Encoding utf8NoBOM
 $metadata | ConvertTo-Json -Depth 6
+
+}
+catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}
