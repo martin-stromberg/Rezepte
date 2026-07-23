@@ -127,6 +127,33 @@ jobs:
           }
           EOF
 
+      - name: Export import plugin contract
+        shell: pwsh
+        run: |
+          $arguments = @(
+            "-OutputDirectory", "artifacts/contract-export",
+            "-SourceCommit", "${{ github.event.pull_request.merge_commit_sha }}"
+          )
+
+          $baselineDirectory = "contract-baselines/import-contract"
+          if (Test-Path -LiteralPath $baselineDirectory -PathType Container) {
+            dotnet tool install Microsoft.DotNet.ApiCompat.Tool --tool-path ./.tools
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to install Microsoft.DotNet.ApiCompat.Tool."
+            }
+
+            $apiCompatTool = if ($IsWindows) { ".\\.tools\\apicompat.exe" } else { "./.tools/apicompat" }
+            $arguments += @(
+              "-ApiCompatBaselineDirectory", $baselineDirectory,
+              "-ApiCompatToolPath", $apiCompatTool
+            )
+          }
+          else {
+            Write-Host "No stored ApiCompat baselines found; contract export will skip historical API comparison."
+          }
+
+          ./scripts/Export-ImportContract.ps1 @arguments
+
       - name: Create release.zip
         shell: bash
         run: |
@@ -140,6 +167,15 @@ jobs:
           path: artifacts/release.zip
           if-no-files-found: error
 
+      - name: Upload import contract artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: import-contract-${{ github.event.pull_request.merge_commit_sha }}
+          path: |
+            artifacts/contract-export/rezepte-import-contract-*.zip
+            artifacts/contract-export/contract-export.metadata.json
+          if-no-files-found: error
+
       - name: Create Git tag and GitHub Release
         if: steps.version.outputs.create_tag == 'true'
         env:
@@ -149,7 +185,24 @@ jobs:
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         shell: bash
         run: |
-          gh release create "$TAG" artifacts/release.zip \
+          contract_zip="$(find artifacts/contract-export -maxdepth 1 -name 'rezepte-import-contract-*.zip' | sort | head -n 1)"
+          contract_sha="$(jq -r '.artifactSha256' artifacts/contract-export/contract-export.metadata.json)"
+          contract_version="$(jq -r '.contractVersion' artifacts/contract-export/contract-export.metadata.json)"
+          contract_asset="$(basename "$contract_zip")"
+          contract_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${contract_asset}"
+          metadata_tmp="$(mktemp)"
+          jq --arg artifactUrl "$contract_asset_url" '. + { artifactUrl: $artifactUrl }' \
+            artifacts/contract-export/contract-export.metadata.json > "$metadata_tmp"
+          mv "$metadata_tmp" artifacts/contract-export/contract-export.metadata.json
+
+          gh release create "$TAG" artifacts/release.zip "$contract_zip" artifacts/contract-export/contract-export.metadata.json \
             --title "$TAG" \
             --target "$MERGE_SHA" \
-            --notes "Automated release for ${MERGE_SHA}"
+            --notes "Automated release for ${MERGE_SHA}
+
+Import contract:
+- contractVersion: ${contract_version}
+- sourceCommit: ${MERGE_SHA}
+- zipSha256: ${contract_sha}
+- asset: ${contract_asset}
+- assetUrl: ${contract_asset_url}"

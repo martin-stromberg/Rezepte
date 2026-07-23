@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Rezepte.Import.PluginSdk</AssemblyName>
+    <RootNamespace>Rezepte.Import.PluginSdk</RootNamespace>
     <Version>$(ImportContractVersion)</Version>
     <AssemblyVersion>$(ImportContractVersion)</AssemblyVersion>
     <FileVersion>$(ImportContractVersion)</FileVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
+  </ItemGroup>
 </Project>

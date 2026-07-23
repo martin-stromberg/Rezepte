@@ -55,7 +55,7 @@ Diese Sammlungsfunktion gilt derzeit fuer Chefkoch. Andere Import-Plugins verarb
 
 ## Aktueller Umsetzungsstand
 
-Der erreichte Stand ist ein Plugin-Framework mit gemeinsamer Vertragsschicht `Rezepte.Import.Abstractions`, persistierter Plugin-Konfiguration, Start-Erkennung externer Plugin-DLLs, Admin-UI, Plugin-basierter Auswahl im Datei- und URL-Import sowie Chefkoch-Unterstuetzung fuer Rezeptsammlungen mit Zwischenauswahl.
+Der erreichte Stand ist ein Plugin-Framework mit gemeinsamer Vertragsschicht `Rezepte.Import.Abstractions`, dem isoliert baubaren SDK-Projekt `Rezepte.Import.PluginSdk`, persistierter Plugin-Konfiguration, Start-Erkennung externer Plugin-DLLs, Admin-UI, Plugin-basierter Auswahl im Datei- und URL-Import sowie Chefkoch-Unterstuetzung fuer Rezeptsammlungen mit Zwischenauswahl.
 
 Backup bleibt als produktives Pluginprojekt im Hauptrepository:
 
@@ -72,7 +72,44 @@ Die klassischen Webseitenquellen liegen im separaten privaten Plugin-Repository 
 - `Rezepte.Import.Plugins.FifthSource`
 - `Rezepte.Import.Plugins.SixthSource`
 
-Diese Plugins referenzieren die gemeinsame Vertragsschicht und liefern neutrale Rezeptdaten zurueck. Gemeinsame Parser- und URL-Hilfen fuer die Webseitenquellen liegen im Plugin-Repository im SDK-Projekt `Rezepte.Import.PluginSdk`. Der Host persistiert aus den neutralen Importdaten Rezepte, Zutaten, Schritte, Bilder und Kochbuchzuordnungen.
+Diese Plugins referenzieren die gemeinsame Vertragsschicht und liefern neutrale Rezeptdaten zurueck. Gemeinsame Parser- und URL-Hilfen fuer die Webseitenquellen werden im Hauptrepository im SDK-Projekt `Rezepte.Import.PluginSdk` gefuehrt und als Teil des Contract-Exports bereitgestellt. Der Host persistiert aus den neutralen Importdaten Rezepte, Zutaten, Schritte, Bilder und Kochbuchzuordnungen.
+
+## Contract-Export fuer externe Plugin-Repositories
+
+Der Import-Plugin-Vertrag wird mit `scripts/Export-ImportContract.ps1` als reproduzierbares ZIP erzeugt. Der Export enthaelt ausschliesslich:
+
+- `contract-export.json`
+- `Directory.Build.props`
+- alle freigegebenen Quellen aus `Rezepte.Import.Abstractions/`
+- alle freigegebenen Quellen aus `Rezepte.Import.PluginSdk/`
+- ApiCompat-Baselines unter `baselines/<contractVersion>/`
+
+`bin/`, `obj/`, Host-Projektdateien, KI-/Backup-Pluginimplementierungen und Secret-Konfigurationen gehoeren nicht zum Export. Alle ZIP-Pfade sind repositoryrelativ, verwenden `/` als Trenner und duerfen keine absoluten Pfade oder `..`-Segmente enthalten.
+
+Das Manifest `contract-export.json` beschreibt den Export mit `exportFormat`, `contractVersion`, `sourceCommit`, Baseline-Zuordnung und einer vollstaendigen Liste aller exportierten Dateien ausser dem Manifest selbst. Jeder Dateieintrag enthaelt den repositoryrelativen Pfad und den SHA-256-Hash der Datei. Der SHA-256 des vollstaendigen ZIPs steht ausserhalb des ZIPs in `contract-export.metadata.json` und wird vom Skript ausgegeben. Die lokale Metadatei enthaelt keinen absoluten Runner- oder Checkout-Pfad; sie nennt den Artefaktnamen, den ZIP-SHA-256, `contractVersion`, `sourceCommit` und die Dateihashes.
+
+Lokaler Export:
+
+```powershell
+dotnet tool install Microsoft.DotNet.ApiCompat.Tool --tool-path ./.tools
+./scripts/Export-ImportContract.ps1 -OutputDirectory artifacts/contract-export
+```
+
+Sobald gespeicherte Referenzen unter `contract-baselines/import-contract/` vorhanden sind, fuehrt der lokale Export einen harten ApiCompat-Vergleich aus. Dafuer muss `apicompat` installiert sein oder mit `-ApiCompatToolPath <pfad-zum-tool>` explizit uebergeben werden. Die GitHub-Workflows installieren das Tool automatisch, wenn gespeicherte Baselines vorhanden sind.
+
+Fuer Release-Laeufe wird das Contract-ZIP als separates Artefakt neben dem Web-`release.zip` erzeugt. Wenn der Workflow einen GitHub Release erstellt, enthalten die Release-Notizen und die dort veroeffentlichte `contract-export.metadata.json` eine konkrete credential-frei abrufbare URL im Format `https://github.com/<owner>/<repo>/releases/download/<tag>/rezepte-import-contract-<contractVersion>.zip`. Der ZIP-SHA-256 identifiziert den konkreten Exportstand unveraenderlich; gleiche `contractVersion` mit anderem ZIP-SHA-256 ist ein anderer Exportstand und darf nicht stillschweigend ersetzt werden. Actions-Artefakte aus nicht taggenden CI-Laeufen sind davon getrennte CI-Artefakte und nicht der dokumentierte oeffentliche Plugin-Importpfad.
+
+Das externe Plugin-Repository aktualisiert den Vertrag manuell ueber eine konkrete Artefakt-URL und den erwarteten ZIP-SHA-256:
+
+```powershell
+./scripts/Update-ContractExport.ps1 `
+  -ArtifactUrl <oeffentliche-export-zip-url> `
+  -ArtifactSha256 <64-stelliger-zip-sha256>
+```
+
+Ein normaler Plugin-Build laedt keinen neuen Vertragsstand herunter. Nach einem manuellen Update prueft das Plugin-Repository ZIP-SHA-256, Manifestfelder, Dateiliste, Datei-SHA-256 und den isolierten Build des importierten Workspaces. Die Baseline-DLLs `Rezepte.Import.Abstractions.dll` und `Rezepte.Import.PluginSdk.dll` sind demselben `contractVersion`-/`sourceCommit`-Stand zugeordnet und dienen als Referenz fuer `Microsoft.DotNet.ApiCompat.Tool`.
+
+Historische ApiCompat-Vergleiche werden hart, sobald passende gespeicherte Referenzen im Hauptrepository abgelegt sind. Erwartet wird die Struktur `contract-baselines/import-contract/<semver>/Rezepte.Import.Abstractions.dll` und `contract-baselines/import-contract/<semver>/Rezepte.Import.PluginSdk.dll`. Das Exportskript kann mit `-ApiCompatBaselineVersion <semver>` auf eine konkrete gespeicherte Baseline festgelegt werden. Ohne diesen Parameter waehlt es automatisch die neueste gespeicherte SemVer-Baseline, deren Version nicht ueber der aktuellen Contract-Version liegt. Ohne passende gespeicherte Baseline wird der Vergleich im Skript sowie in den Workflows explizit als uebersprungen protokolliert.
 
 Das private Plugin-Repository enthaelt ausserdem ein rudimentaeres Console-Testprogramm `Rezepte.Import.PluginRunner`. Damit kann ein Plugin per ID oder Nummer ausgewaehlt und gegen eine Datei oder URL ausgefuehrt werden. Bei nicht passenden Eingaben meldet der Runner, dass das ausgewaehlte Plugin die Quelle nicht verarbeiten kann; bei Erfolg gibt er die gelesenen Rezeptdaten aus.
 

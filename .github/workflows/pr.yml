@@ -36,5 +36,32 @@ jobs:
       - name: Test
         run: dotnet test Rezepte.sln --configuration Release --no-build
 
+      - name: Export import plugin contract
+        shell: pwsh
+        run: |
+          $arguments = @(
+            "-OutputDirectory", "artifacts/contract-export",
+            "-SourceCommit", "${{ github.event.pull_request.head.sha }}"
+          )
+
+          $baselineDirectory = "contract-baselines/import-contract"
+          if (Test-Path -LiteralPath $baselineDirectory -PathType Container) {
+            dotnet tool install Microsoft.DotNet.ApiCompat.Tool --tool-path ./.tools
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to install Microsoft.DotNet.ApiCompat.Tool."
+            }
+
+            $apiCompatTool = if ($IsWindows) { ".\\.tools\\apicompat.exe" } else { "./.tools/apicompat" }
+            $arguments += @(
+              "-ApiCompatBaselineDirectory", $baselineDirectory,
+              "-ApiCompatToolPath", $apiCompatTool
+            )
+          }
+          else {
+            Write-Host "No stored ApiCompat baselines found; contract export will skip historical API comparison."
+          }
+
+          ./scripts/Export-ImportContract.ps1 @arguments
+
       - name: Check formatting
         run: dotnet format Rezepte.sln --verify-no-changes --no-restore

@@ -45,6 +45,8 @@ Rezepte.sln
 Rezepte.Web/        Webanwendung, API, Services, Datenmodell und Migrationen
 Rezepte.Import.Abstractions/
                     Gemeinsame Vertrage und DTOs fuer Import-Plugins
+Rezepte.Import.PluginSdk/
+                    Isoliert baubare Parser- und URL-Hilfen fuer externe Import-Plugins
 Rezepte.Import.Plugins.Backup/
                     Backup-Import-Plugin im Hauptrepository
 Rezepte.Import.Plugins.AIFoto/
@@ -79,7 +81,9 @@ Beim Import werden nur aktivierte Plugins mit Status `Loaded` in gespeicherter R
 
 Das Chefkoch-Plugin unterstuetzt neben einzelnen Rezeptseiten auch Rezeptsammlungen. Bei einer Sammlungs-URL zeigt der Importdialog zuerst die gefundenen Rezepte an; ausgewaehlte Rezepte erhalten jeweils ein Zielkochbuch und werden erst nach dem Absenden abgerufen. Fuer Massenimporte lassen sich alle gefundenen Rezepte gesammelt auswaehlen oder abwaehlen und ein Zielkochbuch fuer alle ausgewaehlten Rezepte uebernehmen. Der Fortschritt wird pro Rezept angezeigt, Teilfehler stoppen die uebrigen ausgewaehlten Importe nicht.
 
-Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, Host-seitige Pluginverwaltung, Admin-UI, Plugin-basierte Importauswahl sowie die Backup-, KI-Foto- und KI-URL-Plugins im Hauptrepository. Die klassischen Webseitenquellen liegen in der privaten Plugin-Repository-Struktur `external/rezepte-import-plugins-private` und werden als externe Artefakte an den Host uebergeben. Alle drei Hauptrepository-Plugins liefern neutrale Import-DTOs an den zentralen Persistenzpfad. Details stehen in `Docs/help/import-plugins.md`.
+Der aktuelle Stand enthaelt die gemeinsame Vertragsschicht `Rezepte.Import.Abstractions`, das SDK-Projekt `Rezepte.Import.PluginSdk`, Host-seitige Pluginverwaltung, Admin-UI, Plugin-basierte Importauswahl sowie die Backup-, KI-Foto- und KI-URL-Plugins im Hauptrepository. Die klassischen Webseitenquellen liegen in der privaten Plugin-Repository-Struktur `external/rezepte-import-plugins-private` und werden als externe Artefakte an den Host uebergeben. Alle drei Hauptrepository-Plugins liefern neutrale Import-DTOs an den zentralen Persistenzpfad. Details stehen in `Docs/help/import-plugins.md`.
+
+Das Hauptrepository kann den oeffentlichen Import-Plugin-Vertrag mit `scripts/Export-ImportContract.ps1` als separates Contract-ZIP exportieren. Das ZIP enthaelt Manifest, Dateihashes, ApiCompat-Baseline-DLLs und nur die freigegebenen Contract-Dateien. GitHub-Releases dokumentieren eine konkrete credential-frei abrufbare Contract-ZIP-URL; Actions-Artefakte bleiben CI-Artefakte. Normale Plugin-Builds laden keinen neuen Vertragsstand automatisch herunter; externe Plugin-Repositories importieren einen Exportstand manuell anhand Artefakt-URL und erwartetem ZIP-SHA-256.
 
 Build und Publish der Web-Anwendung bauen die drei Hauptrepository-Plugins mit. Vorhandene Artefakte aus `external/rezepte-import-plugins-private/artifacts/plugins` werden zusaetzlich in das jeweilige `plugins`-Verzeichnis uebernommen. Das private Plugin-Repository stellt dafuer `publish-plugins.ps1` bereit.
 
@@ -144,7 +148,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 
 `Docs/install.md` ist die verbindliche Schritt-fuer-Schritt-Anleitung fuer Publish, Runtime-Pruefung und systemd-Betrieb auf Linux, zum Beispiel aus `/var/www/rezepte`.
 
-GitHub Actions pruefen Pull Requests gegen `main` automatisch mit Restore, Build, Tests und Format-Check. Nach einem gemergten Pull Request erstellt der Release-Workflow ein `release.zip` als Actions-Artefakt und bei SemVer-relevanten Conventional Commits zusaetzlich einen GitHub Release. Details stehen in `Docs/help/github-actions.md`.
+GitHub Actions pruefen Pull Requests gegen `main` automatisch mit Restore, Build, Tests, Contract-Export, optionalem ApiCompat-Vergleich gegen die neueste passende gespeicherte Contract-Baseline und Format-Check. Nach einem gemergten Pull Request erstellt der Release-Workflow ein `release.zip` sowie ein separates Import-Contract-ZIP als Actions-Artefakte und bei SemVer-relevanten Conventional Commits zusaetzlich einen GitHub Release. Details stehen in `Docs/help/github-actions.md`.
 
 Typischer framework-abhaengiger Publish-Befehl:
 

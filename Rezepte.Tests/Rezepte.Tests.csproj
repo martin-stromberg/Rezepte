@@ -23,6 +23,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
+    <ProjectReference Include="..\Rezepte.Import.PluginSdk\Rezepte.Import.PluginSdk.csproj" />
     <ProjectReference Include="..\Rezepte.Import.Plugins.Backup\Rezepte.Import.Plugins.Backup.csproj" />
     <ProjectReference Include="..\Rezepte.Import.Plugins.AIFoto\Rezepte.Import.Plugins.AIFoto.csproj" />
     <ProjectReference Include="..\Rezepte.Import.Plugins.AIUrl\Rezepte.Import.Plugins.AIUrl.csproj" />
