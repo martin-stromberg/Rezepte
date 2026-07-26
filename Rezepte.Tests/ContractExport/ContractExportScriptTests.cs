@@ -10,7 +10,7 @@ namespace Rezepte.Tests.ContractExport;
 
 public sealed class ContractExportScriptTests
 {
-    private const string ContractVersion = "0.2.0";
+    private const string ContractVersion = "0.3.0";
     private const string SourceCommit = "0123456789abcdef0123456789abcdef01234567";
 
     [Fact]
@@ -33,8 +33,8 @@ public sealed class ContractExportScriptTests
         entries.Should().Contain("Directory.Build.props");
         entries.Should().Contain("Rezepte.Import.Abstractions/Rezepte.Import.Abstractions.csproj");
         entries.Should().Contain("Rezepte.Import.PluginSdk/Rezepte.Import.PluginSdk.csproj");
-        entries.Should().Contain("baselines/0.2.0/Rezepte.Import.Abstractions.dll");
-        entries.Should().Contain("baselines/0.2.0/Rezepte.Import.PluginSdk.dll");
+        entries.Should().Contain("baselines/0.3.0/Rezepte.Import.Abstractions.dll");
+        entries.Should().Contain("baselines/0.3.0/Rezepte.Import.PluginSdk.dll");
         entries.Should().NotContain(path => path.Contains("/bin/", StringComparison.OrdinalIgnoreCase) || path.Contains("/obj/", StringComparison.OrdinalIgnoreCase));
         entries.All(IsSafeRelativePath).Should().BeTrue();
 
@@ -74,8 +74,8 @@ public sealed class ContractExportScriptTests
         firstMetadata.RootElement.GetProperty("artifactSha256").GetString()
             .Should().Be(secondMetadata.RootElement.GetProperty("artifactSha256").GetString());
 
-        File.ReadAllBytes(first.OutputDirectory.File("rezepte-import-contract-0.2.0.zip"))
-            .Should().Equal(File.ReadAllBytes(second.OutputDirectory.File("rezepte-import-contract-0.2.0.zip")));
+        File.ReadAllBytes(first.OutputDirectory.File("rezepte-import-contract-0.3.0.zip"))
+            .Should().Equal(File.ReadAllBytes(second.OutputDirectory.File("rezepte-import-contract-0.3.0.zip")));
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class ContractExportScriptTests
         result.ExitCode.Should().Be(0, result.Error);
 
         var workspace = temp.CreateSubdirectory("workspace");
-        ZipFile.ExtractToDirectory(result.OutputDirectory.File("rezepte-import-contract-0.2.0.zip"), workspace);
+        ZipFile.ExtractToDirectory(result.OutputDirectory.File("rezepte-import-contract-0.3.0.zip"), workspace);
 
         foreach (var project in new[]
         {
@@ -107,11 +107,11 @@ public sealed class ContractExportScriptTests
         result.ExitCode.Should().Be(0, result.Error);
 
         var workspace = temp.CreateSubdirectory("workspace");
-        ZipFile.ExtractToDirectory(result.OutputDirectory.File("rezepte-import-contract-0.2.0.zip"), workspace);
+        ZipFile.ExtractToDirectory(result.OutputDirectory.File("rezepte-import-contract-0.3.0.zip"), workspace);
 
-        foreach (var assemblyPath in ContractAssemblies.Select(assembly => workspace.File($"baselines/0.2.0/{assembly}.dll")))
+        foreach (var assemblyPath in ContractAssemblies.Select(assembly => workspace.File($"baselines/0.3.0/{assembly}.dll")))
         {
-            AssemblyName.GetAssemblyName(assemblyPath).Version.Should().Be(new Version(0, 2, 0, 0));
+            AssemblyName.GetAssemblyName(assemblyPath).Version.Should().Be(new Version(0, 3, 0, 0));
             FileVersionInfo.GetVersionInfo(assemblyPath).FileVersion.Should().Be(ContractVersion);
         }
     }
@@ -242,7 +242,7 @@ public sealed class ContractExportScriptTests
 
         result.ExitCode.Should().Be(0, result.Error);
 
-        using var archive = ZipFile.OpenRead(result.OutputDirectory.File("rezepte-import-contract-0.2.0.zip"));
+        using var archive = ZipFile.OpenRead(result.OutputDirectory.File("rezepte-import-contract-0.3.0.zip"));
         archive.Entries.Select(entry => entry.FullName)
             .Should().NotContain(path => path.Contains("/bin/", StringComparison.OrdinalIgnoreCase) || path.Contains("/obj/", StringComparison.OrdinalIgnoreCase));
     }
@@ -254,7 +254,7 @@ public sealed class ContractExportScriptTests
         var result = RunExport(temp.CreateSubdirectory("out"), contractVersion: "9.9.9");
 
         result.ExitCode.Should().NotBe(0);
-        result.Error.Should().Contain("-ContractVersion must match Directory.Build.props ImportContractVersion (0.2.0): 9.9.9");
+        result.Error.Should().Contain("-ContractVersion must match Directory.Build.props ImportContractVersion (0.3.0): 9.9.9");
     }
 
     private static readonly string[] ContractAssemblies =
