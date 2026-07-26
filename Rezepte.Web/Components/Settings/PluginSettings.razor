@@ -159,6 +159,20 @@ else
                         </td>
                         <td>
                             <span class="@StatusClass(plugin.Status)">@plugin.Status</span>
+                            @if (plugin.Usability is { IsUsable: false } usability)
+                            {
+                                <span class="badge text-bg-warning ms-1">nicht nutzbar</span>
+                                <div class="mt-1">
+                                    @foreach (var issue in usability.Issues)
+                                    {
+                                        <div class="small text-danger">@issue.Message</div>
+                                        @if (!string.IsNullOrWhiteSpace(issue.Hint))
+                                        {
+                                            <div class="small text-muted">@issue.Hint</div>
+                                        }
+                                    }
+                                </div>
+                            }
                         </td>
                         <td>
                             <div class="small">@plugin.AssemblyName</div>

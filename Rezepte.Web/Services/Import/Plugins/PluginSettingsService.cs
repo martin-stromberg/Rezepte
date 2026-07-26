@@ -6,12 +6,14 @@ namespace Rezepte.Web.Services.Import.Plugins;
 
 public sealed class PluginSettingsService(
     RezepteDbContext db,
+    IPluginManager pluginManager,
+    IServiceProvider serviceProvider,
     IHttpContextAccessor? httpContextAccessor = null,
     ISystemSecretStore? secretStore = null) : IPluginSettingsService
 {
     public async Task<IReadOnlyList<PluginSettingsItem>> GetPluginsAsync(CancellationToken ct = default)
     {
-        return await db.PluginSettings
+        var items = await db.PluginSettings
             .AsNoTracking()
             .OrderBy(p => p.OrderIndex)
             .ThenBy(p => p.DisplayName)
@@ -29,6 +31,13 @@ public sealed class PluginSettingsService(
                 p.LastSeenAt))
             .ToListAsync(ct)
             .ConfigureAwait(false);
+
+        var usability = await pluginManager.GetPluginsUsabilityAsync(serviceProvider, ct).ConfigureAwait(false);
+        return items
+            .Select(item => usability.TryGetValue(item.PluginId, out var result)
+                ? item with { Usability = result }
+                : item)
+            .ToList();
     }
 
     public async Task<IReadOnlyList<PluginSourceSettingsItem>> GetSourcesAsync(CancellationToken ct = default)

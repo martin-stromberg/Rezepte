@@ -20,6 +20,18 @@ public sealed class InvalidHandlerPlugin : IImportPlugin
     public Type HandlerType => typeof(string);
 }
 
+public sealed class ThrowingUsabilityImportPlugin : IImportPlugin
+{
+    public string Id => "throwing-usability-plugin";
+    public string DisplayName => "Throwing Usability Plugin";
+    public string? Description => "Plugin fixture whose usability check always throws.";
+    public string Version => "1.0.0";
+    public Type HandlerType => typeof(TestImportHandler);
+
+    public Task<PluginUsabilityResult> CheckUsabilityAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+        => throw new InvalidOperationException("Simulated usability check failure.");
+}
+
 public sealed class TestImportHandler : IImportHandler
 {
     public string UserId { private get; set; } = string.Empty;

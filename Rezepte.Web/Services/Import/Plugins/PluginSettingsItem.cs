@@ -11,4 +11,5 @@ public sealed record PluginSettingsItem(
     string Status,
     string? Error,
     DateTime DiscoveredAt,
-    DateTime LastSeenAt);
+    DateTime LastSeenAt,
+    PluginUsabilityResult? Usability = null);

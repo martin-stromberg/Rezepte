@@ -66,7 +66,7 @@ public class ImportServicePluginTests
         {
             IReadOnlyList<PluginImportHandler> result = handlers
                 .Select(handler => new PluginImportHandler(
-                    new ImportPluginDescriptor(handler.Name, handler.Name, null, "1.0.0", "Tests", handler.GetType().FullName!, handler.GetType(), 0, PluginStatus.Loaded, null),
+                    new ImportPluginDescriptor(handler.Name, handler.Name, null, "1.0.0", "Tests", handler.GetType().FullName!, handler.GetType(), 0, PluginStatus.Loaded, null, null),
                     handler))
                 .ToList();
 

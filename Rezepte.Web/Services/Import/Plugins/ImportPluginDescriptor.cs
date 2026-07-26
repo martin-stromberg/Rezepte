@@ -10,4 +10,5 @@ public sealed record ImportPluginDescriptor(
     Type? HandlerType,
     int DefaultPriority,
     string Status,
-    string? Error);
+    string? Error,
+    Type? PluginType);

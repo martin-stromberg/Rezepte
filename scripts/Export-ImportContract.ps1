@@ -29,6 +29,8 @@ $allowedContractFiles = @(
     "Rezepte.Import.Abstractions/ImportedRecipe.cs",
     "Rezepte.Import.Abstractions/ImportedRecipeStep.cs",
     "Rezepte.Import.Abstractions/ImportResult.cs",
+    "Rezepte.Import.Abstractions/PluginUsabilityIssue.cs",
+    "Rezepte.Import.Abstractions/PluginUsabilityResult.cs",
     "Rezepte.Import.Abstractions/Rezepte.Import.Abstractions.csproj",
     "Rezepte.Import.PluginSdk/ImportParserBase.cs",
     "Rezepte.Import.PluginSdk/ParsedIngredient.cs",

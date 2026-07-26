@@ -301,7 +301,7 @@ public sealed class ImportOrchestratorTests
         {
             IReadOnlyList<PluginImportHandler> result = handlers
                 .Select(handler => new PluginImportHandler(
-                    new ImportPluginDescriptor(handler.GetType().Name, handler.GetType().Name, null, "1.0.0", "Tests", handler.GetType().FullName!, handler.GetType(), 0, PluginStatus.Loaded, null),
+                    new ImportPluginDescriptor(handler.GetType().Name, handler.GetType().Name, null, "1.0.0", "Tests", handler.GetType().FullName!, handler.GetType(), 0, PluginStatus.Loaded, null, null),
                     handler))
                 .ToList();
 
