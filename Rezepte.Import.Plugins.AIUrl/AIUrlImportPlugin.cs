@@ -20,6 +20,6 @@ public sealed class AIUrlImportPlugin : IImportPlugin
         var geminiClient = serviceProvider.GetRequiredService<IGeminiClient>();
         var issues = await GeminiUsabilityChecks.CollectAsync(settings, geminiClient, ct);
 
-        return issues.Count == 0 ? PluginUsabilityResult.Usable : new PluginUsabilityResult(false, issues);
+        return PluginUsabilityResult.FromIssues(issues);
     }
 }
