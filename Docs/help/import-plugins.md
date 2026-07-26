@@ -132,6 +132,45 @@ Ein normaler Plugin-Build laedt keinen neuen Vertragsstand herunter. Nach einem 
 
 Historische ApiCompat-Vergleiche werden hart, sobald passende gespeicherte Referenzen im Hauptrepository abgelegt sind. Erwartet wird die Struktur `contract-baselines/import-contract/<semver>/Rezepte.Import.Abstractions.dll` und `contract-baselines/import-contract/<semver>/Rezepte.Import.PluginSdk.dll`. Das Exportskript kann mit `-ApiCompatBaselineVersion <semver>` auf eine konkrete gespeicherte Baseline festgelegt werden. Ohne diesen Parameter waehlt es automatisch die neueste gespeicherte SemVer-Baseline, deren Version nicht ueber der aktuellen Contract-Version liegt. Ohne passende gespeicherte Baseline wird der Vergleich im Skript sowie in den Workflows explizit als uebersprungen protokolliert.
 
+### Oeffentliche API im Plugin-Vertrag aendern (Breaking-Change-Workflow)
+
+`Rezepte.Import.Abstractions` und `Rezepte.Import.PluginSdk` sind der eingefrorene Vertrag fuer externe Plugin-Repositories. Jede sichtbare Aenderung an diesen beiden Projekten — neuer Typ, neues Interface-Member, geaenderte Signatur, auch wenn sie binaerkompatibel ist (z. B. eine Default Interface Method) — aendert die oeffentliche API-Flaeche. Sobald unter `contract-baselines/import-contract/<semver>/` eine Baseline mit derselben `ImportContractVersion` liegt, vergleicht der PR-Workflow im `--strict-mode` die aktuelle Assembly gegen genau diese eingefrorene Baseline. `--strict-mode` meldet dabei nicht nur entfernte oder geaenderte, sondern auch rein additive Aenderungen (`CP0001`/`CP0002`) als Abweichung. Ohne Versions-Bump schlaegt der PR-Check deshalb bei jeder API-Erweiterung fehl — das ist beabsichtigt und kein CI-Fehler.
+
+Vorgehen bei einer beabsichtigten, additiven und binaerkompatiblen Aenderung (z. B. neue Default Interface Method, neuer Typ):
+
+1. **Version anheben:** `ImportContractVersion` in `Directory.Build.props` erhoehen (Minor-Bump fuer additive/binaerkompatible Aenderungen, Major-Bump fuer entfernte oder inkompatibel geaenderte Typen/Member). Diese Version ist unabhaengig von den Git-Tag-basierten Anwendungs-Releases (siehe Abschnitt „Versionierung" in [GitHub Actions](github-actions.md)).
+2. **Baseline lokal ohne historischen Vergleich erzeugen**, damit der Export nicht sofort gegen die alte Baseline scheitert:
+
+   ```powershell
+   ./scripts/Export-ImportContract.ps1 `
+     -OutputDirectory artifacts/contract-export `
+     -ApiCompatBaselineDirectory contract-baselines/does-not-exist
+   ```
+
+   Das Skript meldet „ApiCompat baseline directory not found; skipping historical API comparison" und baut die beiden Assemblies unter `artifacts/contract-export/_staging/export/baselines/<neue-version>/`.
+3. **Neue Baseline committen:** Die beiden gebauten DLLs aus Schritt 2 nach `contract-baselines/import-contract/<neue-version>/` kopieren und zusammen mit der `Directory.Build.props`-Aenderung committen. Die aeltere Baseline bleibt unveraendert erhalten; sie dokumentiert weiterhin den zuvor gueltigen Vertragsstand.
+4. **Lokal verifizieren, bevor der PR erstellt/aktualisiert wird:**
+
+   ```powershell
+   dotnet tool install Microsoft.DotNet.ApiCompat.Tool --tool-path ./.tools
+   ./scripts/Export-ImportContract.ps1 `
+     -OutputDirectory artifacts/contract-export `
+     -ApiCompatBaselineDirectory contract-baselines/import-contract `
+     -ApiCompatToolPath ./.tools/apicompat.exe
+   ```
+
+   Das Skript muss „APICompat wurde erfolgreich ausgefuehrt, ohne Breaking Changes zu finden." fuer beide Assemblies ausgeben. Wird stattdessen wieder die alte Baseline-Version verwendet, wurde `ImportContractVersion` nicht hoch genug angehoben oder die neue Baseline fehlt/liegt am falschen Pfad.
+5. **`Rezepte.Tests/ContractExport/ContractExportScriptTests.cs` nachziehen.** Diese Tests laufen direkt gegen die echte `Directory.Build.props` der Repository-Wurzel und halten die zuvor gueltige Vertragsversion an mehreren Stellen woertlich fest. Nach einem Versions-Bump muessen angepasst werden:
+   - die Konstante `ContractVersion` am Kopf der Klasse,
+   - alle `"baselines/<alte-version>/..."`-Pfade und `"rezepte-import-contract-<alte-version>.zip"`-Dateinamen,
+   - `new Version(<major>, <minor>, <patch>, 0)` in `ExportedBaselineAssembliesUseContractVersion`,
+   - die erwartete Fehlermeldung „...ImportContractVersion (<alte-version>): ..." in `ExportFailsFastWhenParameterVersionDiffersFromDirectoryBuildProps`.
+
+   Der Test `ExportUsesLatestStoredApiCompatBaselineBelowCurrentVersion` verwendet bewusst eigene, in sich geschlossene Baseline-Versionen (`0.1.0`, `0.2.0` als Beispiel fuer „aeltere, gespeicherte Baselines") in einem isolierten temporaeren Verzeichnis und ist von der echten `ImportContractVersion` unabhaengig — dieser Test muss bei einem Versions-Bump **nicht** angepasst werden.
+6. **`dotnet test Rezepte.sln`** vor dem Push einmal vollstaendig laufen lassen, nicht nur die ContractExport-Tests.
+
+Wenn eine automatisierte PR-Fehleranalyse bei diesem Fehlerbild einen `--generate-suppression-file`- oder `GenerateSuppressionFile`-Parameter fuer `scripts/Export-ImportContract.ps1` oder den Workflow vorschlaegt: Dieser Parameter existiert im Skript nicht und darf nicht ergaenzt werden. Es gibt keinen Suppression-Mechanismus fuer diesen Vertrag — jede akzeptierte API-Aenderung muss ueber einen Versions-Bump und eine neue, eingefrorene Baseline nachvollziehbar sein.
+
 KI-Foto und KI-URL werden als eigene Plugins im Hauptrepository ausgeliefert. Ihre Handler verwenden weiterhin die vom Host bereitgestellten Services fuer AI-Konfiguration, Usage-Limits, Google Vision, Gemini, Cache und interaktive Bestaetigung. Die Plugins liefern ihre Ergebnisse als neutrale Import-DTOs und nutzen denselben zentralen Persistenzpfad wie externe Plugins.
 
 ## KI-Importe
