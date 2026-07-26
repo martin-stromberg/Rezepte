@@ -35,6 +35,6 @@ public sealed class AIFotoImportPlugin : IImportPlugin
                 "Enable the global Google Vision switch in the AI settings."));
         }
 
-        return issues.Count == 0 ? PluginUsabilityResult.Usable : new PluginUsabilityResult(false, issues);
+        return PluginUsabilityResult.FromIssues(issues);
     }
 }

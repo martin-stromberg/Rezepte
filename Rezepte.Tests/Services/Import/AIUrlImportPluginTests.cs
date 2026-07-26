@@ -26,6 +26,38 @@ public sealed class AIUrlImportPluginTests
         result.Issues.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task CheckUsabilityAsync_ShouldReportDisabledGlobalGemini()
+    {
+        var serviceProvider = CreateServiceProvider(
+            globalAiEnabled: true,
+            hasApiKey: true,
+            hasServiceAccount: false,
+            globalGeminiEnabled: false);
+        var sut = new AIUrlImportPlugin();
+
+        var result = await sut.CheckUsabilityAsync(serviceProvider);
+
+        result.IsUsable.Should().BeFalse();
+        result.Issues.Should().ContainSingle(i => i.Message == "Global Gemini is disabled.");
+    }
+
+    [Fact]
+    public async Task CheckUsabilityAsync_ShouldReportMissingGeminiAuthentication()
+    {
+        var serviceProvider = CreateServiceProvider(
+            globalAiEnabled: true,
+            hasApiKey: false,
+            hasServiceAccount: false,
+            globalGeminiEnabled: true);
+        var sut = new AIUrlImportPlugin();
+
+        var result = await sut.CheckUsabilityAsync(serviceProvider);
+
+        result.IsUsable.Should().BeFalse();
+        result.Issues.Should().ContainSingle(i => i.Message == "Gemini authentication is missing." && i.Hint != null);
+    }
+
     private static IServiceProvider CreateServiceProvider(
         bool globalAiEnabled,
         bool hasApiKey,
