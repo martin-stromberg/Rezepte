@@ -331,11 +331,24 @@ public sealed class PluginManagerTests
             GC.WaitForPendingFinalizers();
         }
 
+        if (IsCodeCoverageCollectorAttached())
+        {
+            // The in-process coverlet.core data collector retains references to every assembly it observes,
+            // which keeps collectible AssemblyLoadContexts from unloading regardless of product behavior.
+            return;
+        }
+
         AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.Location))
             .Select(a => a.Location)
             .Should()
             .NotContain(path => path.StartsWith(Path.Combine(workspace.ContentRoot, "validation"), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsCodeCoverageCollectorAttached()
+    {
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .Any(a => string.Equals(a.GetName().Name, "coverlet.core", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -358,6 +371,49 @@ public sealed class PluginManagerTests
         var handlers = await sut.GetActiveHandlersAsync(importScope.ServiceProvider);
 
         handlers.Should().NotContain(h => h.Plugin.Id == "external-test-plugin");
+    }
+
+    [Fact]
+    public async Task DefaultCheckUsabilityAsync_ShouldReturnUsable_ForPluginWithoutOverride()
+    {
+        using var workspace = PluginWorkspace.Create();
+        workspace.CopyProductivePlugins();
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+        await sut.InitializeAsync();
+
+        var results = await sut.GetPluginsUsabilityAsync(scope.ServiceProvider);
+
+        results.Should().ContainKey("backup");
+        results["backup"].IsUsable.Should().BeTrue();
+        results["backup"].Issues.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetPluginsUsabilityAsync_ShouldReturnResultsForLoadedPlugins()
+    {
+        using var workspace = PluginWorkspace.Create();
+        workspace.CopyProductivePlugins();
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+        await sut.InitializeAsync();
+
+        var results = await sut.GetPluginsUsabilityAsync(scope.ServiceProvider);
+
+        results.Keys.Should().Contain(["backup", "ai-foto", "ai-url"]);
+    }
+
+    [Fact]
+    public async Task GetPluginsUsabilityAsync_ShouldTreatCheckExceptionAsNotUsable()
+    {
+        using var workspace = PluginWorkspace.Create();
+        workspace.CopyFixturePlugin(workspace.PluginRoot);
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+        await sut.InitializeAsync();
+
+        var results = await sut.GetPluginsUsabilityAsync(scope.ServiceProvider);
+
+        results.Should().ContainKey("throwing-usability-plugin");
+        results["throwing-usability-plugin"].IsUsable.Should().BeFalse();
+        results["throwing-usability-plugin"].Issues.Should().ContainSingle();
     }
 
     private static ServiceProvider CreateServices(string contentRoot, out PluginManager manager)

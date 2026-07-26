@@ -14,4 +14,7 @@ public interface IPluginManager
         await replacePlugins(ct).ConfigureAwait(false);
         await ReloadAsync(ct).ConfigureAwait(false);
     }
+
+    Task<IReadOnlyDictionary<string, PluginUsabilityResult>> GetPluginsUsabilityAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyDictionary<string, PluginUsabilityResult>>(new Dictionary<string, PluginUsabilityResult>());
 }

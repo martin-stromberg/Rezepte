@@ -39,8 +39,8 @@ public sealed class PluginPackageValidatorTests
 
         var descriptors = new[]
         {
-            new ImportPluginDescriptor("plugin-a", "Plugin A", null, "1.0.0", "PluginA", "PluginA.Handler", typeof(object), 0, PluginStatus.Loaded, null),
-            new ImportPluginDescriptor("plugin-b", "Plugin B", null, "1.0.0", "PluginB", "PluginB.Handler", typeof(object), 0, PluginStatus.Loaded, null)
+            new ImportPluginDescriptor("plugin-a", "Plugin A", null, "1.0.0", "PluginA", "PluginA.Handler", typeof(object), 0, PluginStatus.Loaded, null, null),
+            new ImportPluginDescriptor("plugin-b", "Plugin B", null, "1.0.0", "PluginB", "PluginB.Handler", typeof(object), 0, PluginStatus.Loaded, null, null)
         };
         var sut = new PluginPackageValidator(new FakePluginManager(descriptors), NullLogger<PluginPackageValidator>.Instance);
 

@@ -145,6 +145,37 @@ public sealed class PluginManager : IPluginManager
         return handlers;
     }
 
+    public async Task<IReadOnlyDictionary<string, PluginUsabilityResult>> GetPluginsUsabilityAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        IReadOnlyDictionary<string, ImportPluginDescriptor> loaded;
+        lock (_syncRoot)
+        {
+            loaded = _loadedPlugins;
+        }
+
+        var results = new Dictionary<string, PluginUsabilityResult>();
+        foreach (var descriptor in loaded.Values)
+        {
+            if (descriptor.PluginType is null)
+            {
+                continue;
+            }
+
+            try
+            {
+                var plugin = (IImportPlugin)Activator.CreateInstance(descriptor.PluginType)!;
+                results[descriptor.Id] = await plugin.CheckUsabilityAsync(serviceProvider, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Could not determine usability for plugin {PluginId}", descriptor.Id);
+                results[descriptor.Id] = new PluginUsabilityResult(false, [new PluginUsabilityIssue("Usability check failed unexpectedly.", null)]);
+            }
+        }
+
+        return results;
+    }
+
     public IReadOnlyList<ImportPluginDescriptor> DiscoverFromDirectory(string pluginRoot, bool unloadAfterDiscovery = false)
     {
         var fullRoot = Path.GetFullPath(pluginRoot);
@@ -242,30 +273,32 @@ public sealed class PluginManager : IPluginManager
                     if (!typeof(IImportHandler).IsAssignableFrom(plugin.HandlerType))
                     {
                         result.Add(new ImportPluginDescriptor(
-                            plugin.Id,
-                            plugin.DisplayName,
-                            plugin.Description,
-                            plugin.Version,
-                            assembly.GetName().Name ?? Path.GetFileNameWithoutExtension(path),
-                            plugin.HandlerType.FullName ?? string.Empty,
-                            null,
-                            plugin.DefaultPriority,
-                            PluginStatus.Incompatible,
-                            "Configured handler type does not implement IImportHandler."));
+                            Id: plugin.Id,
+                            DisplayName: plugin.DisplayName,
+                            Description: plugin.Description,
+                            Version: plugin.Version,
+                            AssemblyName: assembly.GetName().Name ?? Path.GetFileNameWithoutExtension(path),
+                            TypeName: plugin.HandlerType.FullName ?? string.Empty,
+                            HandlerType: null,
+                            DefaultPriority: plugin.DefaultPriority,
+                            Status: PluginStatus.Incompatible,
+                            Error: "Configured handler type does not implement IImportHandler.",
+                            PluginType: null));
                         continue;
                     }
 
                     result.Add(new ImportPluginDescriptor(
-                        plugin.Id,
-                        plugin.DisplayName,
-                        plugin.Description,
-                        plugin.Version,
-                        assembly.GetName().Name ?? Path.GetFileNameWithoutExtension(path),
-                        plugin.HandlerType.FullName ?? plugin.HandlerType.Name,
-                        useCollectibleLoadContext ? null : plugin.HandlerType,
-                        plugin.DefaultPriority,
-                        PluginStatus.Loaded,
-                        null));
+                        Id: plugin.Id,
+                        DisplayName: plugin.DisplayName,
+                        Description: plugin.Description,
+                        Version: plugin.Version,
+                        AssemblyName: assembly.GetName().Name ?? Path.GetFileNameWithoutExtension(path),
+                        TypeName: plugin.HandlerType.FullName ?? plugin.HandlerType.Name,
+                        HandlerType: useCollectibleLoadContext ? null : plugin.HandlerType,
+                        DefaultPriority: plugin.DefaultPriority,
+                        Status: PluginStatus.Loaded,
+                        Error: null,
+                        PluginType: useCollectibleLoadContext ? null : type));
                 }
                 catch (Exception ex)
                 {
@@ -291,7 +324,18 @@ public sealed class PluginManager : IPluginManager
     private static ImportPluginDescriptor FailedDescriptor(string path, string status, string error)
     {
         var id = $"{status.ToLowerInvariant()}:{Path.GetFileNameWithoutExtension(path)}";
-        return new ImportPluginDescriptor(id, Path.GetFileName(path), null, "unknown", Path.GetFileName(path), string.Empty, null, 0, status, error);
+        return new ImportPluginDescriptor(
+            Id: id,
+            DisplayName: Path.GetFileName(path),
+            Description: null,
+            Version: "unknown",
+            AssemblyName: Path.GetFileName(path),
+            TypeName: string.Empty,
+            HandlerType: null,
+            DefaultPriority: 0,
+            Status: status,
+            Error: error,
+            PluginType: null);
     }
 
     private static bool IsKnownDependencyAssembly(string path)

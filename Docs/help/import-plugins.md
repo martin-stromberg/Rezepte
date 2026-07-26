@@ -20,6 +20,48 @@ Das Paket wird vor der Installation in einem temporaeren Verzeichnis geprueft. N
 
 Beim Import werden nur aktivierte Plugins mit Status `Loaded` beruecksichtigt. Deaktivierte, fehlende oder fehlerhafte Plugins werden nicht angesprochen.
 
+## Nutzbarkeit und Konfigurationsvalidierung
+
+Die Verwaltungsoberflaeche prueft die Nutzbarkeit von Plugins zur Laufzeit, wenn die Pluginliste geladen wird. Dies ermoeglicht es Administratoren, sofort zu sehen, wenn ein Plugin nicht einsatzfaehig ist, und konkrete Fehlerursachen sowie Loesungsvorschlaege zu erhalten.
+
+Fuer jedes geladene Plugin wird eine Nutzbarkeitsprüfung durchgefuehrt. Plugins ohne Konfigurations-Voraussetzungen (wie das Backup-Plugin) gelten per Default als nutzbar. KI-Plugins (AIUrl und AIFoto) prüfen ihre globalen Voraussetzungen:
+
+### AIUrl-Prüfung
+
+Das Plugin `AIUrl` prueft folgende Bedingungen:
+
+- Globale KI ist aktiviert
+- Gemini-Authentifizierung ist vorhanden (API-Key oder Service Account)
+- Globales Gemini ist aktiviert
+
+Ist eine Bedingung nicht erfuellt, zeigt das Plugin eine Fehlermeldung mit einem Loesungshinweis an, zum Beispiel: `Enable the global Gemini switch in the AI settings.`
+
+### AIFoto-Prüfung
+
+Das Plugin `AIFoto` prueft zusaetzlich zu den AIUrl-Bedingungen noch folgende Punkte:
+
+- Vision-Service-Account-Datei existiert und ist lesbar
+- Globales Google Vision ist aktiviert
+
+### Fehleranzeige in der Admin-UI
+
+In der Pluginliste wird ein nicht nutzbares Plugin mit einem `nicht nutzbar`-Badge gekennzeichnet. Darunter werden die Fehlerursachen aufgelistet:
+
+```
+[Plugin-Name]
+[Status-Badge] [nicht nutzbar]
+Global AI is disabled.
+Enable the global AI switch in the AI settings.
+Gemini authentication is missing.
+Configure a Gemini API key or a Google service account.
+```
+
+Jede Fehlerursache besteht aus einer Meldung (in rot) und einem optionalen Loesungshinweis (in Grau). Der Administrator kann diese Hinweise nutzen, um die Konfiguration zu korrigieren.
+
+### Technische Details
+
+Die Nutzbarkeitsprüfung laeuft ohne Netzwerk-Zugriffe ab — sie validiert nur die lokale Konfiguration (Datenbank-Einstellungen, Credentials-Dateien, In-Memory-Schlüssel). Dies vermeidet Blockierungen der Admin-UI durch langsame externe Services. Jedes Mal, wenn die Pluginliste geladen wird, werden die Prüfungen neu durchgefuehrt, um stets aktuelle Ergebnisse zu liefern.
+
 ## Erkennung und Reihenfolge
 
 Beim Programmstart sucht die Anwendung im Programmverzeichnis unter `plugins` nach Plugin-DLLs. Unterstuetzt werden DLLs direkt im Ordner `plugins` sowie DLLs in direkten Unterordnern von `plugins`.

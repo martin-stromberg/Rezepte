@@ -8,4 +8,7 @@ public interface IImportPlugin
     string Version { get; }
     Type HandlerType { get; }
     int DefaultPriority => 0;
+
+    Task<PluginUsabilityResult> CheckUsabilityAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
+        => Task.FromResult(PluginUsabilityResult.Usable);
 }
