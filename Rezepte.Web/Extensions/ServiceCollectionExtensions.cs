@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.Configure<AIOptions>(configuration.GetSection("AI"));
         services.Configure<PluginUpdateOptions>(configuration.GetSection("PluginUpdates"));
         services.Configure<GoogleCredentialsOptions>(configuration.GetSection("GoogleCredentials"));
+        services.Configure<LoadingBarOptions>(configuration.GetSection("LoadingBar"));
         // Razor Components
         services.AddRazorComponents()
             .AddInteractiveServerComponents(options =>
@@ -132,6 +133,7 @@ public static class ServiceCollectionExtensions
 
         // Application services
         services.AddSingleton<IUsernameValidator, UsernameValidator>();
+        services.AddSingleton<ILoadingBarService, LoadingBarService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICookbookService, CookbookService>();
         services.AddScoped<IRecipeService, RecipeService>();
