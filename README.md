@@ -13,7 +13,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - JWT-Authentifizierung fuer API-Aufrufe.
 - Erster registrierter Benutzer wird automatisch Administrator.
 - Admin-Bereich fuer Benutzerverwaltung und globale Einstellungen.
-- Responsive Navigation mit kompaktem Benutzer- und Einstellungsbereich.
+- Responsive Navigation mit kompaktem Benutzer- und Einstellungsbereich sowie visuellem Ladebalken bei Navigation.
 - Kochbuecher mit Sortierung, Detailseiten und Zuordnung mehrerer Rezepte.
 - Rezeptverwaltung mit Zutaten, Zubereitungsschritten, Portionsangaben, Bildern und verlinkten Beilagen.
 - Einkaufsliste mit Gruppen, abhakbaren Zutaten und Uebernahme von Rezeptzutaten inklusive gruppierter Beilagenzutaten.
@@ -118,6 +118,19 @@ Das Testprojekt `Rezepte.Tests` deckt zentrale Services wie Benutzer, Kochbueche
 
 Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koennen wie ueblich per User Secrets, Umgebungsvariablen oder Deployment-Konfiguration ueberschrieben werden.
 
+### Ladebalken und visuelles Feedback
+
+Bei der Navigation (Klicks auf Navigationslinks oder Absenden von Formularen) wird ein schmaler, farbiger Ladebalken unterhalb der Navigationsleiste angezeigt. Der Balken:
+
+- Erscheint sofort beim Benutzerinterakt und bietet Feedback auf langsamen Servern
+- Nutzt eine zufaellig gewaehlte Farbe aus der konfigurierten Farbpalette
+- Animiert sich mit einer linearen Bewegung von rechts nach links (Sweep-Effekt)
+- Wird ausgeblendet, sobald die Navigation abgeschlossen ist oder ein Sicherheits-Timeout auslaueft
+
+Das Feature ist standarmaessig aktiviert (`LoadingBar:Enabled: true`), kann aber global deaktiviert werden. Bei aktiviertem `prefers-reduced-motion` (Systemeinstellung) wird die Bewegung durch einen statischen, farbigen Balken ersetzt.
+
+**Konfigurierbare Parameter:**
+
 | Einstellung | Bedeutung |
 |-------------|-----------|
 | `ConnectionStrings:Default` | SQLite-Connection-String. Fallback: `Data Source=rezepte.db`. |
@@ -128,6 +141,12 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 | `AI:Simulate`, `AI:EnableCache`, `AI:CacheDurationHours` | Optionale Einstellungen fuer KI-Importe und Caching. |
 | `GoogleCredentials:ServiceAccountFilePath`, `GoogleCredentials:GeminiApiKey` | Fallback fuer Google-Credentials, wenn die Umgebungsvariablen `GOOGLE_APPLICATION_CREDENTIALS` bzw. `GOOGLE_GEMINI_API_KEY` nicht gesetzt sind. |
 | `PluginUpdates:GitHubApiBaseUrl`, `PluginUpdates:TimeoutSeconds`, `PluginUpdates:UserAgent` | Serverseitige GitHub-Kommunikation fuer die Startpruefung konfigurierter Pluginquellen. |
+| `LoadingBar:Enabled` | Aktiviert oder deaktiviert den Ladebalken bei Navigation global (Standard: `true`). |
+| `LoadingBar:Height` | Hoehe des Ladebalkens als CSS-Laenge, z. B. `"3px"` oder `"0.25rem"` (Standard: `"3px"`). |
+| `LoadingBar:AnimationDuration` | Dauer eines vollstaendigen Sweeps von rechts nach links als CSS-Zeit, z. B. `"2s"` (Standard: `"2s"`). |
+| `LoadingBar:HideDelay` | Wartezeit nach Navigationabschluss bis zum Ausblenden des Balkens, z. B. `"300ms"` (Standard: `"300ms"`). |
+| `LoadingBar:MaxVisibleDuration` | Sicherheitsgrenze, nach der der Balken auch ohne Abschlusssignal ausgeblendet wird, z. B. `"15s"` (Standard: `"15s"`). |
+| `LoadingBar:Colors` | Liste von Hexfarben in der Form `["#RGB", "#RRGGBB", ...]`, aus denen pro Navigationsinteraktion eine zufaellige Farbe gewaehlt wird. |
 
 ## Daten und Sicherheit
 
