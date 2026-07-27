@@ -26,6 +26,21 @@ Im Benutzermenue befindet sich auch die Aktion `Abmelden`. Die Abmeldung funktio
 
 Hinweise zur Registrierung, Profilbearbeitung und Benutzerverwaltung stehen in `Docs/help/user-accounts.md`.
 
+## Ladeanimation
+
+Unter der Navigationsleiste wird waehrend der Navigation automatisch eine schmale, horizontale Ladeanimation angezeigt. Diese gibt dem Benutzer visuelles Feedback, dass seine Interaktion erkannt wurde — besonders wichtig auf langsamen Servern, wo Navigationen verzoegert sein koennen.
+
+Die Animation wird ausgeloest durch:
+- Klick auf einen Navigationslink
+- Absenden der Suchleiste
+- Absenden von Formulareneː Login, Registrierung, Abmeldung oder andere Formulare
+
+Die Ladebalke wird mit einer zufaellig gewaehlten Farbe aus einer vorkonfigurierten Palette angezeigt und bewegt sich von rechts nach links. Sie verschwindet nach Abschluss der Navigation. Bei wiederholten, schnellen Navigationen wird die Farbe bei jedem Klick neu gewaelt, damit der Farbwechsel dem Benutzer signalisiert, dass seine Interaktion registriert wurde.
+
+Konfiguration: Ein Administrator kann das Feature vollstaendig deaktivieren, die Hoehe, die Animationsdauer, die Verzögerung bis zum Ausblenden und die verfuegbare Farbliste in der `appsettings.json` unter dem Abschnitt `LoadingBar` anpassen.
+
+Barrierefreiheit: Die Ladebalke wird von Screenreadern ausgeblendet (`aria-hidden="true"`). Sie respektiert die Benutzereinstellung `prefers-reduced-motion: reduce` — statt einer kontinuierlichen Bewegung erscheint in diesem Fall ein statischer, farbiger Balken.
+
 ## Einrichtung
 
 Die Einrichtung ist fuer angemeldete Benutzer ueber das Zahnradsymbol in der Menueleiste erreichbar. Der fruehere Text `Einrichtung` wird in der Menueleiste nicht mehr angezeigt; das Symbol oeffnet weiterhin die Einstellungsseite.

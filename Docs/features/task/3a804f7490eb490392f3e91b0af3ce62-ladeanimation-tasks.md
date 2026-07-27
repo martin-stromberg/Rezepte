@@ -2,81 +2,82 @@
 
 | # | Bereich | Aufgabe | Status | Testnachweis |
 |---|---------|---------|--------|--------------|
-| 1 | Konfiguration | `LoadingBarOptions` in `Rezepte.Web/Configuration/` anlegen (Enabled, Height, AnimationDuration, HideDelay, MaxVisibleDuration, Colors mit Standardwerten) | Offen | — |
-| 2 | Konfiguration | Abschnitt `LoadingBar` in `Rezepte.Web/appsettings.json` ergänzen | Offen | — |
-| 3 | Konfiguration | `services.Configure<LoadingBarOptions>(configuration.GetSection("LoadingBar"))` in `ServiceCollectionExtensions.AddRezepteServices` ergänzen | Offen | — |
-| 4 | Datenmodell | `LoadingBarViewModel` als unveränderliches Record in `Rezepte.Web/ViewModels/` anlegen | Offen | — |
-| 5 | Logik | `ILoadingBarService` mit Methode `GetSettings()` in `Rezepte.Web/Services/` anlegen | Offen | — |
-| 6 | Logik | `LoadingBarService` implementieren (Abhängigkeiten `IOptions<LoadingBarOptions>`, `ILogger<LoadingBarService>`) | Offen | — |
-| 7 | Logik | Zwischenspeicherung des normalisierten `LoadingBarViewModel` in `LoadingBarService` implementieren | Offen | — |
-| 8 | Logik | `services.AddSingleton<ILoadingBarService, LoadingBarService>()` in `ServiceCollectionExtensions` registrieren | Offen | — |
-| 9 | Validierung | Prüfung und Rückfall für `Height` (CSS-Länge px/rem/em) in `LoadingBarService` implementieren | Offen | — |
-| 10 | Validierung | Prüfung und Rückfall für `AnimationDuration` (CSS-Zeit ms/s) implementieren | Offen | — |
-| 11 | Validierung | Prüfung, Rückfall und Millisekunden-Umrechnung für `HideDelay` implementieren | Offen | — |
-| 12 | Validierung | Prüfung, Rückfall und Millisekunden-Umrechnung für `MaxVisibleDuration` inklusive Mindestabstand zu `HideDelay` implementieren | Offen | — |
-| 13 | Validierung | Hex-Farbprüfung je Eintrag von `Colors` mit Entfernen ungültiger Einträge implementieren | Offen | — |
-| 14 | Validierung | Rückfall auf die Standardfarbliste bei leerer oder vollständig ungültiger `Colors`-Liste implementieren | Offen | — |
-| 15 | Validierung | Warn-Logging (englischsprachig) für alle verworfenen Konfigurationswerte ergänzen | Offen | — |
-| 16 | UI | `LoadingBar.razor` in `Rezepte.Web/Components/Layout/` anlegen (Host- und Indikator-Element) | Offen | — |
-| 17 | UI | Bedingtes Rendern in `LoadingBar.razor`: bei `Enabled == false` kein Markup ausgeben | Offen | — |
-| 18 | UI | `aria-hidden="true"` und `data-permanent` auf dem Host-Element in `LoadingBar.razor` setzen | Offen | — |
-| 19 | UI | CSS-Custom-Properties `--loading-bar-height` und `--loading-bar-duration` in `LoadingBar.razor` ausgeben | Offen | — |
-| 20 | UI | `data-*`-Attribute für Farbliste, `HideDelay` und `MaxVisibleDuration` in `LoadingBar.razor` ausgeben | Offen | — |
-| 21 | UI | `LoadingBar.razor.css` anlegen: Maße, Farbverlauf über `--loading-bar-color`, Opazitäts-Transition | Offen | — |
-| 22 | UI | Eindeutig benannte `@keyframes` für den Sweep von rechts nach links in `LoadingBar.razor.css` definieren | Offen | — |
-| 23 | UI | `prefers-reduced-motion: reduce`-Variante ohne Bewegung in `LoadingBar.razor.css` ergänzen | Offen | — |
-| 24 | UI | `<LoadingBar />` in `MainLayout.razor` direkt nach `</nav>` einbinden | Offen | — |
-| 25 | UI | `<script src="js/loadingBar.js"></script>` in `App.razor` nach `_framework/blazor.web.js` einbinden | Offen | — |
-| 26 | Client-Skript | `Rezepte.Web/wwwroot/js/loadingBar.js` anlegen mit Auflösung des Host-Elements und Auslesen der `data-*`-Konfiguration | Offen | — |
-| 27 | Client-Skript | Gemeinsamen Ablauf „Animation starten" (Timer-Abbruch, Farbwahl, Neustart, Sicherheits-Timer) als eine Funktion implementieren | Offen | — |
-| 28 | Client-Skript | Click-Listener in der Capture-Phase auf `document` mit Anker-Auflösung über `closest` implementieren | Offen | — |
-| 29 | Client-Skript | Klick-Filterung implementieren (`defaultPrevented`, Modifikatortasten, Nicht-Primärtaste, `target` ungleich `_self`, `download`, `mailto:`/`tel:`/`javascript:`, Fragment-Links, identische Adresse, fremder Origin) | Offen | — |
-| 30 | Client-Skript | Submit-Listener in der Capture-Phase auf `document` implementieren (Formular aus `event.target` auflösen) | Offen | — |
-| 31 | Client-Skript | Submit-Filterung implementieren (`defaultPrevented`, `target` ungleich `_self`, fremder Origin aus `action`/`formaction`) | Offen | — |
-| 32 | Client-Skript | Zufällige Farbwahl mit Ausschluss der zuletzt verwendeten Farbe implementieren und als `--loading-bar-color` setzen | Offen | — |
-| 33 | Client-Skript | Neustart der Animation über Entfernen/Reflow/Setzen der Aktiv-Klasse implementieren | Offen | — |
-| 34 | Client-Skript | Ausblenden nach `HideDelay` inklusive Abbruch laufender Timer implementieren | Offen | — |
-| 35 | Client-Skript | Sicherheits-Timeout über `MaxVisibleDuration` implementieren | Offen | — |
-| 36 | Client-Skript | `Blazor.addEventListener('enhancedload', …)` als Abschlusssignal registrieren (inkl. defensiver Neuauflösung des Host-Elements) | Offen | — |
-| 37 | Client-Skript | `pageshow`-Listener auf `window` als Rückfallebene registrieren (inkl. bfcache-Rücksprung) | Offen | — |
-| 38 | Tests | Hilfsmethode `CreateService(LoadingBarOptions)` in `LoadingBarServiceTests_Defaults` bereitstellen | Offen | — |
-| 39 | Tests | `GetSettings_WithDefaultOptions_ReturnsDocumentedDefaults` in `LoadingBarServiceTests_Defaults` schreiben | Offen | — |
-| 40 | Tests | `GetSettings_WithEnabledFalse_ReturnsDisabledSettings` in `LoadingBarServiceTests_Defaults` schreiben | Offen | — |
-| 41 | Tests | `GetSettings_CalledTwice_ReturnsSameInstance` in `LoadingBarServiceTests_Defaults` schreiben | Offen | — |
-| 42 | Tests | `GetSettings_WithValidCustomOptions_ReturnsConfiguredValues` in `LoadingBarServiceTests_Defaults` schreiben | Offen | — |
-| 43 | Tests | `GetSettings_WithInvalidHeight_FallsBackToDefaultHeight` in `LoadingBarServiceTests_Validation` schreiben | Offen | — |
-| 44 | Tests | `GetSettings_WithInvalidAnimationDuration_FallsBackToDefaultDuration` in `LoadingBarServiceTests_Validation` schreiben | Offen | — |
-| 45 | Tests | `GetSettings_WithInvalidHideDelay_FallsBackToDefaultHideDelay` in `LoadingBarServiceTests_Validation` schreiben | Offen | — |
-| 46 | Tests | `GetSettings_WithMaxVisibleDurationBelowHideDelay_FallsBackToDefault` in `LoadingBarServiceTests_Validation` schreiben | Offen | — |
-| 47 | Tests | `GetSettings_WithInvalidColorEntries_RemovesInvalidEntries` in `LoadingBarServiceTests_Validation` schreiben | Offen | — |
-| 48 | Tests | `GetSettings_WithOnlyInvalidColors_FallsBackToDefaultColors` in `LoadingBarServiceTests_Validation` schreiben | Offen | — |
-| 49 | Tests | `GetSettings_WithHideDelayInMilliseconds_ConvertsToMilliseconds` in `LoadingBarServiceTests_DurationParsing` schreiben | Offen | — |
-| 50 | Tests | `GetSettings_WithHideDelayInSeconds_ConvertsToMilliseconds` in `LoadingBarServiceTests_DurationParsing` schreiben | Offen | — |
-| 51 | Tests | `GetSettings_WithMaxVisibleDurationInSeconds_ConvertsToMilliseconds` in `LoadingBarServiceTests_DurationParsing` schreiben | Offen | — |
-| 52 | Tests | Kompatibilität von `bunit` mit `net10.0` per Testbuild und Render-Smoke-Test prüfen und das Ergebnis dokumentieren (Weiche für Aufgabe 53 oder 54) | Offen | — |
-| 53 | Tests | Zweig „bUnit funktioniert": `bunit`-`PackageReference` in `Rezepte.Tests.csproj` belassen und `LoadingBarComponentTests_Rendering` mit gemocktem `ILoadingBarService` und den fünf Rendering-Tests schreiben | Offen | — |
-| 54 | Tests | Zweig „bUnit funktioniert nicht": `bunit`-`PackageReference` wieder entfernen und `LoadingBarMarkupTests_Rendering` als markup-basierte Dateiprüfung mit denselben fünf Prüfpunkten schreiben | Offen | — |
-| 55 | Tests | `Layout_ShouldPlaceLoadingBarDirectlyBelowNavigation` in `LoadingBarWiringTests` schreiben | Offen | — |
-| 56 | Tests | `App_ShouldLoadLoadingBarScriptAfterBlazorScript` in `LoadingBarWiringTests` schreiben | Offen | — |
-| 57 | Tests | `Configuration_ShouldProvideLoadingBarSectionAndServiceRegistration` in `LoadingBarWiringTests` schreiben | Offen | — |
-| 58 | Tests | `Script_ShouldRegisterClickAndSubmitListenersInCapturePhase` in `LoadingBarWiringTests` schreiben | Offen | — |
-| 59 | E2E-Infrastruktur | Testprojekt `Rezepte.Tests.Browser` (net10.0, xunit, FluentAssertions, `Microsoft.Playwright`, `Xunit.SkippableFact`) anlegen | Offen | — |
-| 60 | E2E-Infrastruktur | `Rezepte.Tests.Browser` in `Rezepte.sln` inklusive aller Konfigurations-/Plattformzuordnungen eintragen | Offen | — |
-| 61 | E2E-Infrastruktur | `PlaywrightBrowserFixture` implementieren (Chromium headless, Erkennung fehlender Browser-Binaries für den Skip-Pfad) | Offen | — |
-| 62 | E2E-Infrastruktur | `RezepteAppFixture` implementieren: freien Port ermitteln, temporäres Verzeichnis mit eigener SQLite-Datei anlegen, Anwendung als Kindprozess starten, auf Erreichbarkeit pollen | Offen | — |
-| 63 | E2E-Infrastruktur | `RezepteAppFixture` um Überschreibung des `LoadingBar`-Abschnitts per Umgebungsvariablen (`LoadingBar__*`) erweitern | Offen | — |
-| 64 | E2E-Infrastruktur | Seeding eines Testbenutzers über `POST api/auth/register` in `RezepteAppFixture` implementieren | Offen | — |
-| 65 | E2E-Infrastruktur | Aufräumlogik in `RezepteAppFixture.DisposeAsync` implementieren (Kindprozess zuverlässig beenden, temporäres Verzeichnis löschen) | Offen | — |
-| 66 | E2E-Infrastruktur | `LoadingBarPageObject` implementieren (`LoginAsync`, `GotoAsync`, `IsLoadingBarActiveAsync`, `GetLoadingBarColorAsync`, `GetLoadingBarOpacityAsync`, `WaitUntilLoadingBarHiddenAsync`) | Offen | — |
-| 67 | E2E-Infrastruktur | `DelayNextNavigationAsync` per Playwright-Routen-Interception in `LoadingBarPageObject` implementieren | Offen | — |
-| 68 | E2E-Infrastruktur | `BrowserTestCollection` als xUnit-Collection-Definition für gemeinsame Anwendungs- und Browser-Fixture anlegen | Offen | — |
-| 69 | E2E-Tests | `LinkClick_WithDelayedResponse_ShowsAnimatedBarBelowNavigation` in `LoadingBarVisibilityBrowserTests` schreiben | Offen | — |
-| 70 | E2E-Tests | `AfterNavigationCompleted_HidesLoadingBar` in `LoadingBarVisibilityBrowserTests` schreiben | Offen | — |
-| 71 | E2E-Tests | `LinkClick_UsesColorFromConfiguredPalette` in `LoadingBarColorBrowserTests` schreiben | Offen | — |
-| 72 | E2E-Tests | `SecondClickDuringRunningAnimation_ChangesColor` in `LoadingBarColorBrowserTests` schreiben | Offen | — |
-| 73 | E2E-Tests | `SearchSubmit_ShowsLoadingBar` in `LoadingBarFormNavigationBrowserTests` schreiben | Offen | — |
-| 74 | E2E-Tests | `WhenNavigationNeverCompletes_HidesBarAfterMaxVisibleDuration` in `LoadingBarSafetyTimeoutBrowserTests` mit eigener Fixture-Instanz und kurzem `LoadingBar__MaxVisibleDuration` schreiben | Offen | — |
-| 75 | E2E-Tests | `WhenFeatureDisabled_PageContainsNoLoadingBarElement` in `LoadingBarDisabledBrowserTests` mit eigener Fixture-Instanz und `LoadingBar__Enabled=false` schreiben | Offen | — |
-| 76 | CI | Build-Schritt für `Rezepte.Tests.Browser` in `.github/workflows/pr.yml` ergänzen | Offen | — |
-| 77 | CI | Installationsschritt für Chromium über `playwright.ps1 install --with-deps chromium` in `.github/workflows/pr.yml` ergänzen | Offen | — |
-| 78 | CI | Zeitlimit des Jobs `verify` in `.github/workflows/pr.yml` prüfen und bei Bedarf anheben | Offen | — |
+| 1 | Konfiguration | `LoadingBarOptions` in `Rezepte.Web/Configuration/` anlegen (Enabled, Height, AnimationDuration, HideDelay, MaxVisibleDuration, Colors mit Standardwerten) | Erledigt | `LoadingBarServiceTests_Defaults.GetSettings_WithDefaultOptions_ReturnsDocumentedDefaults` |
+| 2 | Konfiguration | Abschnitt `LoadingBar` in `Rezepte.Web/appsettings.json` ergänzen | Erledigt | `LoadingBarWiringTests.Configuration_ShouldProvideLoadingBarSectionAndServiceRegistration` |
+| 3 | Konfiguration | `services.Configure<LoadingBarOptions>(configuration.GetSection("LoadingBar"))` in `ServiceCollectionExtensions.AddRezepteServices` ergänzen | Erledigt | `LoadingBarWiringTests.Configuration_ShouldProvideLoadingBarSectionAndServiceRegistration` |
+| 4 | Datenmodell | `LoadingBarViewModel` als unveränderliches Record in `Rezepte.Web/ViewModels/` anlegen | Erledigt | `LoadingBarServiceTests_Defaults.GetSettings_WithDefaultOptions_ReturnsDocumentedDefaults` |
+| 5 | Logik | `ILoadingBarService` mit Methode `GetSettings()` in `Rezepte.Web/Services/` anlegen | Erledigt | `LoadingBarServiceTests_Defaults.GetSettings_WithDefaultOptions_ReturnsDocumentedDefaults` |
+| 6 | Logik | `LoadingBarService` implementieren (Abhängigkeiten `IOptions<LoadingBarOptions>`, `ILogger<LoadingBarService>`) | Erledigt | `LoadingBarServiceTests_Defaults.GetSettings_WithValidCustomOptions_ReturnsConfiguredValues` |
+| 7 | Logik | Zwischenspeicherung des normalisierten `LoadingBarViewModel` in `LoadingBarService` implementieren | Erledigt | `LoadingBarServiceTests_Defaults.GetSettings_CalledTwice_ReturnsSameInstance` |
+| 8 | Logik | `services.AddSingleton<ILoadingBarService, LoadingBarService>()` in `ServiceCollectionExtensions` registrieren | Erledigt | `LoadingBarWiringTests.Configuration_ShouldProvideLoadingBarSectionAndServiceRegistration` |
+| 9 | Validierung | Prüfung und Rückfall für `Height` (CSS-Länge px/rem/em) in `LoadingBarService` implementieren | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithInvalidHeight_FallsBackToDefaultHeight` |
+| 10 | Validierung | Prüfung und Rückfall für `AnimationDuration` (CSS-Zeit ms/s) implementieren | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithInvalidAnimationDuration_FallsBackToDefaultDuration` |
+| 11 | Validierung | Prüfung, Rückfall und Millisekunden-Umrechnung für `HideDelay` implementieren | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithInvalidHideDelay_FallsBackToDefaultHideDelay`, `LoadingBarServiceTests_DurationParsing.GetSettings_WithHideDelayInSeconds_ConvertsToMilliseconds` |
+| 12 | Validierung | Prüfung, Rückfall und Millisekunden-Umrechnung für `MaxVisibleDuration` inklusive Mindestabstand zu `HideDelay` implementieren | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithMaxVisibleDurationBelowHideDelay_FallsBackToDefault`, `LoadingBarServiceTests_DurationParsing.GetSettings_WithMaxVisibleDurationInSeconds_ConvertsToMilliseconds` |
+| 13 | Validierung | Hex-Farbprüfung je Eintrag von `Colors` mit Entfernen ungültiger Einträge implementieren | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithInvalidColorEntries_RemovesInvalidEntries` |
+| 14 | Validierung | Rückfall auf die Standardfarbliste bei leerer oder vollständig ungültiger `Colors`-Liste implementieren | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithOnlyInvalidColors_FallsBackToDefaultColors` |
+| 15 | Validierung | Warn-Logging (englischsprachig) für alle verworfenen Konfigurationswerte ergänzen | Erledigt | Kein direkter Test (Tests verwenden `NullLogger`); indirekt über die Validierungstests in `LoadingBarServiceTests_Validation` |
+| 16 | UI | `LoadingBar.razor` in `Rezepte.Web/Components/Layout/` anlegen (Host- und Indikator-Element) | Erledigt | `LoadingBarMarkupTests_Rendering.Render_WhenEnabled_RendersHostElementWithConfiguredId` |
+| 17 | UI | Bedingtes Rendern in `LoadingBar.razor`: bei `Enabled == false` kein Markup ausgeben | Erledigt | `LoadingBarMarkupTests_Rendering.Render_WhenDisabled_RendersNoMarkup`, `LoadingBarDisabledBrowserTests.WhenFeatureDisabled_PageContainsNoLoadingBarElement` |
+| 18 | UI | `aria-hidden="true"` und `data-permanent` auf dem Host-Element in `LoadingBar.razor` setzen | Erledigt | `LoadingBarMarkupTests_Rendering.Render_WhenEnabled_MarksBarAsDecorativeAndPermanent` |
+| 19 | UI | CSS-Custom-Properties `--loading-bar-height` und `--loading-bar-duration` in `LoadingBar.razor` ausgeben | Erledigt | `LoadingBarMarkupTests_Rendering.Render_WhenEnabled_WritesHeightAndDurationAsCssCustomProperties` |
+| 20 | UI | `data-*`-Attribute für Farbliste, `HideDelay` und `MaxVisibleDuration` in `LoadingBar.razor` ausgeben | Erledigt | `LoadingBarMarkupTests_Rendering.Render_WhenEnabled_WritesColorsAndTimingsAsDataAttributes` |
+| 21 | UI | `LoadingBar.razor.css` anlegen: Maße, Farbverlauf über `--loading-bar-color`, Opazitäts-Transition | Erledigt | `LoadingBarVisibilityBrowserTests.LinkClick_WithDelayedResponse_ShowsAnimatedBarBelowNavigation` (prüft Opazität > 0 und gesetzte Farbe) |
+| 22 | UI | Eindeutig benannte `@keyframes` für den Sweep von rechts nach links in `LoadingBar.razor.css` definieren | Erledigt | Kein direkter Test (`@keyframes rezepte-loading-bar-sweep` in `LoadingBar.razor.css`) |
+| 23 | UI | `prefers-reduced-motion: reduce`-Variante ohne Bewegung in `LoadingBar.razor.css` ergänzen | Erledigt | Kein direkter Test (`@media (prefers-reduced-motion: reduce)` in `LoadingBar.razor.css`) |
+| 24 | UI | `<LoadingBar />` in `MainLayout.razor` direkt nach `</nav>` einbinden | Erledigt | `LoadingBarWiringTests.Layout_ShouldPlaceLoadingBarDirectlyBelowNavigation` |
+| 25 | UI | `<script src="js/loadingBar.js"></script>` in `App.razor` nach `_framework/blazor.web.js` einbinden | Erledigt | `LoadingBarWiringTests.App_ShouldLoadLoadingBarScriptAfterBlazorScript` |
+| 26 | Client-Skript | `Rezepte.Web/wwwroot/js/loadingBar.js` anlegen mit Auflösung des Host-Elements und Auslesen der `data-*`-Konfiguration | Erledigt | `LoadingBarWiringTests.Script_ShouldRegisterClickAndSubmitListenersInCapturePhase` |
+| 27 | Client-Skript | Gemeinsamen Ablauf „Animation starten" (Timer-Abbruch, Farbwahl, Neustart, Sicherheits-Timer) als eine Funktion implementieren | Erledigt | `LoadingBarVisibilityBrowserTests.LinkClick_WithDelayedResponse_ShowsAnimatedBarBelowNavigation` |
+| 28 | Client-Skript | Click-Listener in der Capture-Phase auf `document` mit Anker-Auflösung über `closest` implementieren | Erledigt | `LoadingBarWiringTests.Script_ShouldRegisterClickAndSubmitListenersInCapturePhase` |
+| 29 | Client-Skript | Klick-Filterung implementieren (`defaultPrevented`, Modifikatortasten, Nicht-Primärtaste, `target` ungleich `_self`, `download`, `mailto:`/`tel:`/`javascript:`, Fragment-Links, identische Adresse, fremder Origin) | Erledigt | Kein direkter Test der Einzelfilter; indirekt über `LoadingBarVisibilityBrowserTests.LinkClick_WithDelayedResponse_ShowsAnimatedBarBelowNavigation` |
+| 30 | Client-Skript | Submit-Listener in der Capture-Phase auf `document` implementieren (Formular aus `event.target` auflösen) | Erledigt | `LoadingBarWiringTests.Script_ShouldRegisterClickAndSubmitListenersInCapturePhase`, `LoadingBarFormNavigationBrowserTests.SearchSubmit_ShowsLoadingBar` |
+| 31 | Client-Skript | Submit-Filterung implementieren (`defaultPrevented`, `target` ungleich `_self`, fremder Origin aus `action`/`formaction`) | Erledigt | Kein direkter Test der Einzelfilter; indirekt über `LoadingBarFormNavigationBrowserTests.SearchSubmit_ShowsLoadingBar` |
+| 32 | Client-Skript | Zufällige Farbwahl mit Ausschluss der zuletzt verwendeten Farbe implementieren und als `--loading-bar-color` setzen | Erledigt | `LoadingBarColorBrowserTests.LinkClick_UsesColorFromConfiguredPalette`, `LoadingBarColorBrowserTests.SecondClickDuringRunningAnimation_ChangesColor` |
+| 33 | Client-Skript | Neustart der Animation über Entfernen/Reflow/Setzen der Aktiv-Klasse implementieren | Erledigt | `LoadingBarColorBrowserTests.SecondClickDuringRunningAnimation_ChangesColor` |
+| 34 | Client-Skript | Ausblenden nach `HideDelay` inklusive Abbruch laufender Timer implementieren | Erledigt | `LoadingBarVisibilityBrowserTests.AfterNavigationCompleted_HidesLoadingBar` |
+| 35 | Client-Skript | Sicherheits-Timeout über `MaxVisibleDuration` implementieren | Erledigt | `LoadingBarSafetyTimeoutBrowserTests.WhenNavigationNeverCompletes_HidesBarAfterMaxVisibleDuration` |
+| 36 | Client-Skript | `Blazor.addEventListener('enhancedload', …)` als Abschlusssignal registrieren (inkl. defensiver Neuauflösung des Host-Elements) | Erledigt | `LoadingBarVisibilityBrowserTests.AfterNavigationCompleted_HidesLoadingBar` |
+| 37 | Client-Skript | `pageshow`-Listener auf `window` als Rückfallebene registrieren (inkl. bfcache-Rücksprung) | Erledigt | Kein direkter Test (`window.addEventListener('pageshow', completeNavigation)` in `loadingBar.js`) |
+| 38 | Tests | Hilfsmethode `CreateService(LoadingBarOptions)` in `LoadingBarServiceTests_Defaults` bereitstellen | Erledigt | `LoadingBarServiceTests_Defaults` (alle Tests nutzen die Hilfsmethode) |
+| 39 | Tests | `GetSettings_WithDefaultOptions_ReturnsDocumentedDefaults` in `LoadingBarServiceTests_Defaults` schreiben | Erledigt | `LoadingBarServiceTests_Defaults.GetSettings_WithDefaultOptions_ReturnsDocumentedDefaults` |
+| 40 | Tests | `GetSettings_WithEnabledFalse_ReturnsDisabledSettings` in `LoadingBarServiceTests_Defaults` schreiben | Erledigt | `LoadingBarServiceTests_Defaults.GetSettings_WithEnabledFalse_ReturnsDisabledSettings` |
+| 41 | Tests | `GetSettings_CalledTwice_ReturnsSameInstance` in `LoadingBarServiceTests_Defaults` schreiben | Erledigt | `LoadingBarServiceTests_Defaults.GetSettings_CalledTwice_ReturnsSameInstance` |
+| 42 | Tests | `GetSettings_WithValidCustomOptions_ReturnsConfiguredValues` in `LoadingBarServiceTests_Defaults` schreiben | Erledigt | `LoadingBarServiceTests_Defaults.GetSettings_WithValidCustomOptions_ReturnsConfiguredValues` |
+| 43 | Tests | `GetSettings_WithInvalidHeight_FallsBackToDefaultHeight` in `LoadingBarServiceTests_Validation` schreiben | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithInvalidHeight_FallsBackToDefaultHeight` |
+| 44 | Tests | `GetSettings_WithInvalidAnimationDuration_FallsBackToDefaultDuration` in `LoadingBarServiceTests_Validation` schreiben | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithInvalidAnimationDuration_FallsBackToDefaultDuration` |
+| 45 | Tests | `GetSettings_WithInvalidHideDelay_FallsBackToDefaultHideDelay` in `LoadingBarServiceTests_Validation` schreiben | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithInvalidHideDelay_FallsBackToDefaultHideDelay` |
+| 46 | Tests | `GetSettings_WithMaxVisibleDurationBelowHideDelay_FallsBackToDefault` in `LoadingBarServiceTests_Validation` schreiben | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithMaxVisibleDurationBelowHideDelay_FallsBackToDefault` |
+| 47 | Tests | `GetSettings_WithInvalidColorEntries_RemovesInvalidEntries` in `LoadingBarServiceTests_Validation` schreiben | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithInvalidColorEntries_RemovesInvalidEntries` |
+| 48 | Tests | `GetSettings_WithOnlyInvalidColors_FallsBackToDefaultColors` in `LoadingBarServiceTests_Validation` schreiben | Erledigt | `LoadingBarServiceTests_Validation.GetSettings_WithOnlyInvalidColors_FallsBackToDefaultColors` |
+| 49 | Tests | `GetSettings_WithHideDelayInMilliseconds_ConvertsToMilliseconds` in `LoadingBarServiceTests_DurationParsing` schreiben | Erledigt | `LoadingBarServiceTests_DurationParsing.GetSettings_WithHideDelayInMilliseconds_ConvertsToMilliseconds` |
+| 50 | Tests | `GetSettings_WithHideDelayInSeconds_ConvertsToMilliseconds` in `LoadingBarServiceTests_DurationParsing` schreiben | Erledigt | `LoadingBarServiceTests_DurationParsing.GetSettings_WithHideDelayInSeconds_ConvertsToMilliseconds` |
+| 51 | Tests | `GetSettings_WithMaxVisibleDurationInSeconds_ConvertsToMilliseconds` in `LoadingBarServiceTests_DurationParsing` schreiben | Erledigt | `LoadingBarServiceTests_DurationParsing.GetSettings_WithMaxVisibleDurationInSeconds_ConvertsToMilliseconds` |
+| 52 | Tests | Kompatibilität von `bunit` mit `net10.0` per Testbuild und Render-Smoke-Test prüfen und das Ergebnis dokumentieren (Weiche für Aufgabe 53 oder 54) | Erledigt | Kein direkter Test; Ergebnis nur implizit durch die Wahl von Zweig 14b dokumentiert (kein `bunit`-`PackageReference` in `Rezepte.Tests.csproj`, `LoadingBarMarkupTests_Rendering` vorhanden) |
+| 53 | Tests | Zweig „bUnit funktioniert": `bunit`-`PackageReference` in `Rezepte.Tests.csproj` belassen und `LoadingBarComponentTests_Rendering` mit gemocktem `ILoadingBarService` und den fünf Rendering-Tests schreiben | Entfällt | Nicht gewählter Zweig (Plan: genau einer von 14a/14b wird ausgeführt) |
+| 54 | Tests | Zweig „bUnit funktioniert nicht": `bunit`-`PackageReference` wieder entfernen und `LoadingBarMarkupTests_Rendering` als markup-basierte Dateiprüfung mit denselben fünf Prüfpunkten schreiben | Erledigt | `LoadingBarMarkupTests_Rendering` (5 Tests: `Render_WhenEnabled_RendersHostElementWithConfiguredId`, `Render_WhenDisabled_RendersNoMarkup`, `Render_WhenEnabled_WritesHeightAndDurationAsCssCustomProperties`, `Render_WhenEnabled_WritesColorsAndTimingsAsDataAttributes`, `Render_WhenEnabled_MarksBarAsDecorativeAndPermanent`) |
+| 55 | Tests | `Layout_ShouldPlaceLoadingBarDirectlyBelowNavigation` in `LoadingBarWiringTests` schreiben | Erledigt | `LoadingBarWiringTests.Layout_ShouldPlaceLoadingBarDirectlyBelowNavigation` |
+| 56 | Tests | `App_ShouldLoadLoadingBarScriptAfterBlazorScript` in `LoadingBarWiringTests` schreiben | Erledigt | `LoadingBarWiringTests.App_ShouldLoadLoadingBarScriptAfterBlazorScript` |
+| 57 | Tests | `Configuration_ShouldProvideLoadingBarSectionAndServiceRegistration` in `LoadingBarWiringTests` schreiben | Erledigt | `LoadingBarWiringTests.Configuration_ShouldProvideLoadingBarSectionAndServiceRegistration` |
+| 58 | Tests | `Script_ShouldRegisterClickAndSubmitListenersInCapturePhase` in `LoadingBarWiringTests` schreiben | Erledigt | `LoadingBarWiringTests.Script_ShouldRegisterClickAndSubmitListenersInCapturePhase` |
+| 59 | E2E-Infrastruktur | Testprojekt `Rezepte.Tests.Browser` (net10.0, xunit, FluentAssertions, `Microsoft.Playwright`, `Xunit.SkippableFact`) anlegen | Erledigt | Alle Tests in `Rezepte.Tests.Browser` (z. B. `LoadingBarVisibilityBrowserTests.AfterNavigationCompleted_HidesLoadingBar`) |
+| 60 | E2E-Infrastruktur | `Rezepte.Tests.Browser` in `Rezepte.sln` inklusive aller Konfigurations-/Plattformzuordnungen eintragen | Erledigt | Kein direkter Test; ohne den Eintrag würden die Browsertests bei `dotnet test Rezepte.sln` nicht ausgeführt |
+| 61 | E2E-Infrastruktur | `PlaywrightBrowserFixture` implementieren (Chromium headless, Erkennung fehlender Browser-Binaries für den Skip-Pfad) | Erledigt | Alle `[SkippableFact]`-Tests in `Rezepte.Tests.Browser` |
+| 62 | E2E-Infrastruktur | `RezepteAppFixture` implementieren: freien Port ermitteln, temporäres Verzeichnis mit eigener SQLite-Datei anlegen, Anwendung als Kindprozess starten, auf Erreichbarkeit pollen | Erledigt | `LoadingBarVisibilityBrowserTests.AfterNavigationCompleted_HidesLoadingBar` |
+| 63 | E2E-Infrastruktur | `RezepteAppFixture` um Überschreibung des `LoadingBar`-Abschnitts per Umgebungsvariablen (`LoadingBar__*`) erweitern | Erledigt | `LoadingBarDisabledBrowserTests.WhenFeatureDisabled_PageContainsNoLoadingBarElement`, `LoadingBarSafetyTimeoutBrowserTests.WhenNavigationNeverCompletes_HidesBarAfterMaxVisibleDuration` |
+| 64 | E2E-Infrastruktur | Seeding eines Testbenutzers über `POST api/auth/register` in `RezepteAppFixture` implementieren | Erledigt | `LoadingBarVisibilityBrowserTests.LinkClick_WithDelayedResponse_ShowsAnimatedBarBelowNavigation` (Anmeldung schlägt ohne Seeding fehl) |
+| 65 | E2E-Infrastruktur | Aufräumlogik in `RezepteAppFixture.DisposeAsync` implementieren (Kindprozess zuverlässig beenden, temporäres Verzeichnis löschen) | Erledigt | Kein direkter Test (`DisposeAsync` mit `Kill(entireProcessTree: true)` und `Directory.Delete`) |
+| 66 | E2E-Infrastruktur | `LoadingBarPageObject` implementieren (`LoginAsync`, `GotoAsync`, `IsLoadingBarActiveAsync`, `GetLoadingBarColorAsync`, `GetLoadingBarOpacityAsync`, `WaitUntilLoadingBarHiddenAsync`) | Erledigt | `LoadingBarVisibilityBrowserTests.LinkClick_WithDelayedResponse_ShowsAnimatedBarBelowNavigation`, `LoadingBarVisibilityBrowserTests.AfterNavigationCompleted_HidesLoadingBar` |
+| 67 | E2E-Infrastruktur | `DelayNextNavigationAsync` per Playwright-Routen-Interception in `LoadingBarPageObject` implementieren | Erledigt | `LoadingBarVisibilityBrowserTests.LinkClick_WithDelayedResponse_ShowsAnimatedBarBelowNavigation` |
+| 68 | E2E-Infrastruktur | `BrowserTestCollection` als xUnit-Collection-Definition für gemeinsame Anwendungs- und Browser-Fixture anlegen | Erledigt | `LoadingBarVisibilityBrowserTests`, `LoadingBarColorBrowserTests`, `LoadingBarFormNavigationBrowserTests` (alle mit `[Collection(BrowserTestCollection.Name)]`) |
+| 69 | E2E-Tests | `LinkClick_WithDelayedResponse_ShowsAnimatedBarBelowNavigation` in `LoadingBarVisibilityBrowserTests` schreiben | Erledigt | `LoadingBarVisibilityBrowserTests.LinkClick_WithDelayedResponse_ShowsAnimatedBarBelowNavigation` |
+| 70 | E2E-Tests | `AfterNavigationCompleted_HidesLoadingBar` in `LoadingBarVisibilityBrowserTests` schreiben | Erledigt | `LoadingBarVisibilityBrowserTests.AfterNavigationCompleted_HidesLoadingBar` |
+| 71 | E2E-Tests | `LinkClick_UsesColorFromConfiguredPalette` in `LoadingBarColorBrowserTests` schreiben | Erledigt | `LoadingBarColorBrowserTests.LinkClick_UsesColorFromConfiguredPalette` |
+| 72 | E2E-Tests | `SecondClickDuringRunningAnimation_ChangesColor` in `LoadingBarColorBrowserTests` schreiben | Erledigt | `LoadingBarColorBrowserTests.SecondClickDuringRunningAnimation_ChangesColor` |
+| 73 | E2E-Tests | `SearchSubmit_ShowsLoadingBar` in `LoadingBarFormNavigationBrowserTests` schreiben | Erledigt | `LoadingBarFormNavigationBrowserTests.SearchSubmit_ShowsLoadingBar` |
+| 74 | E2E-Tests | `WhenNavigationNeverCompletes_HidesBarAfterMaxVisibleDuration` in `LoadingBarSafetyTimeoutBrowserTests` mit eigener Fixture-Instanz und kurzem `LoadingBar__MaxVisibleDuration` schreiben | Erledigt | `LoadingBarSafetyTimeoutBrowserTests.WhenNavigationNeverCompletes_HidesBarAfterMaxVisibleDuration` |
+| 75 | E2E-Tests | `WhenFeatureDisabled_PageContainsNoLoadingBarElement` in `LoadingBarDisabledBrowserTests` mit eigener Fixture-Instanz und `LoadingBar__Enabled=false` schreiben | Erledigt | `LoadingBarDisabledBrowserTests.WhenFeatureDisabled_PageContainsNoLoadingBarElement` |
+| 76 | CI | Build-Schritt für `Rezepte.Tests.Browser` in `.github/workflows/pr.yml` ergänzen | Erledigt | Kein direkter Test (Schritt „Build browser tests" in `.github/workflows/pr.yml`) |
+| 77 | CI | Installationsschritt für Chromium über `playwright.ps1 install --with-deps chromium` in `.github/workflows/pr.yml` ergänzen | Erledigt | Kein direkter Test (Schritt „Install Playwright browsers" in `.github/workflows/pr.yml`) |
+| 78 | CI | Zeitlimit des Jobs `verify` in `.github/workflows/pr.yml` prüfen und bei Bedarf anheben | Erledigt | Kein direkter Test (`timeout-minutes` von 20 auf 30 angehoben) |
+| 79 | CI | Publish-Schritt für `Rezepte.Web` in `.github/workflows/pr.yml` ergänzen (Plan-Abweichung: `RezepteAppFixture` startet die publizierte Anwendung statt `dotnet run`) | Erledigt | `RezepteAppFixture.FindApplicationDll` schlägt ohne Publish-Ausgabe fehl; abgesichert durch alle Browsertests |

@@ -1,0 +1,44 @@
+.loading-bar {
+    --loading-bar-indicator-width: 30%;
+    width: 100%;
+    height: var(--loading-bar-height, 3px);
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 200ms ease-out;
+    pointer-events: none;
+}
+
+.loading-bar.loading-bar-active {
+    opacity: 1;
+}
+
+.loading-bar-indicator {
+    position: relative;
+    top: 0;
+    left: calc(-1 * var(--loading-bar-indicator-width));
+    height: 100%;
+    width: var(--loading-bar-indicator-width);
+    background-color: var(--loading-bar-color, #9E9E9E);
+}
+
+.loading-bar.loading-bar-active .loading-bar-indicator {
+    animation: rezepte-loading-bar-sweep var(--loading-bar-duration, 2s) linear infinite;
+}
+
+@keyframes rezepte-loading-bar-sweep {
+    0% {
+        left: 100%;
+    }
+
+    100% {
+        left: calc(-1 * var(--loading-bar-indicator-width));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loading-bar.loading-bar-active .loading-bar-indicator {
+        animation: none;
+        left: 0;
+        width: 100%;
+    }
+}

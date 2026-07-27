@@ -1,0 +1,21 @@
+@using Rezepte.Web.Configuration
+@using Rezepte.Web.Services
+@inject ILoadingBarService LoadingBarService
+
+@if (Settings.Enabled)
+{
+    <div id="loading-bar"
+         class="loading-bar"
+         aria-hidden="true"
+         data-permanent
+         style="--loading-bar-height: @Settings.Height; --loading-bar-duration: @Settings.AnimationDuration;"
+         data-colors="@string.Join(",", Settings.Colors)"
+         data-hide-delay="@Settings.HideDelayMilliseconds"
+         data-max-visible-duration="@Settings.MaxVisibleDurationMilliseconds">
+        <div class="loading-bar-indicator"></div>
+    </div>
+}
+
+@code {
+    private LoadingBarSettings Settings => LoadingBarService.GetSettings();
+}

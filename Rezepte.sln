@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.Plugins.AIUr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.PluginSdk", "Rezepte.Import.PluginSdk\Rezepte.Import.PluginSdk.csproj", "{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Tests.Browser", "Rezepte.Tests.Browser\Rezepte.Tests.Browser.csproj", "{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -125,6 +127,18 @@ Global
 		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Release|x64.Build.0 = Release|Any CPU
 		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Release|x86.ActiveCfg = Release|Any CPU
 		{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}.Release|x86.Build.0 = Release|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Debug|x64.Build.0 = Debug|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Debug|x86.Build.0 = Debug|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Release|x64.ActiveCfg = Release|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Release|x64.Build.0 = Release|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Release|x86.ActiveCfg = Release|Any CPU
+		{079BBA5F-8E0D-46DC-A4EB-73745BA12AA2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
