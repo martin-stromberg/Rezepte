@@ -41,10 +41,6 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     {
         var context = await browser.NewContextAsync();
         var page = await context.NewPageAsync();
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        page.Console += (_, msg) => Console.WriteLine($"[{sw.ElapsedMilliseconds}ms DIAG console] {msg.Text}");
-        page.Request += (_, req) => Console.WriteLine($"[{sw.ElapsedMilliseconds}ms DIAG request] {req.Method} {req.ResourceType} {req.Url}");
-        page.RequestFailed += (_, req) => Console.WriteLine($"[{sw.ElapsedMilliseconds}ms DIAG requestfailed] {req.Url} {req.Failure}");
         return new LoadingBarPageObject(context, page, baseAddress);
     }
 

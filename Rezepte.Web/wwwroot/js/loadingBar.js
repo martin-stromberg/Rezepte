@@ -92,10 +92,9 @@
   // ambiguity: they fire exactly when Blazor itself starts and finishes a real enhanced
   // (fetch-based, no full page reload) navigation, which is precisely what this loading bar
   // announces for the common case of a same-app link click.
-  console.log('loadingBar: DIAG init Blazor=' + (typeof window.Blazor) + ' url=' + window.location.href);
   if (window.Blazor && typeof window.Blazor.addEventListener === 'function') {
-    window.Blazor.addEventListener('enhancednavigationstart', function () { console.log('loadingBar: DIAG enhancednavigationstart'); startAnimation(); });
-    window.Blazor.addEventListener('enhancedload', function () { console.log('loadingBar: DIAG enhancedload'); completeNavigation(); });
+    window.Blazor.addEventListener('enhancednavigationstart', startAnimation);
+    window.Blazor.addEventListener('enhancedload', completeNavigation);
   } else {
     console.warn('loadingBar: Blazor enhanced navigation events unavailable; enhanced-navigation feedback will not be shown.');
   }
@@ -109,10 +108,10 @@
   // itself (e.g. @onsubmit:preventDefault with no navigation), because none of those unload the
   // page. That makes it the correct, unambiguous complement to 'enhancednavigationstart' without
   // needing any of this script's own click/submit interception or origin/target checks.
-  window.addEventListener('beforeunload', function () { console.log('loadingBar: DIAG beforeunload'); startAnimation(); });
+  window.addEventListener('beforeunload', startAnimation);
 
   // Covers a full (non-enhanced) page load or a back/forward restore from the browser's
   // back-forward cache: in both cases 'enhancedload' does not fire for this page instance,
   // so the bar must be reset on its own to avoid staying stuck active.
-  window.addEventListener('pageshow', function () { console.log('loadingBar: DIAG pageshow'); completeNavigation(); });
+  window.addEventListener('pageshow', completeNavigation);
 })();

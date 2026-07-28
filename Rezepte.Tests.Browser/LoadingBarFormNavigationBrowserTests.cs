@@ -15,20 +15,19 @@ public class LoadingBarFormNavigationBrowserTests(PlaywrightBrowserFixture brows
         // Delay the search navigation so the old document stays alive long enough for the assertion
         // below to observe the loading bar while the request is still in flight.
         await pageObject.DelayRouteAsync(LoadingBarPageObject.SearchRouteGlob, 1500);
-        await pageObject.SubmitNavigationSearchAsync("Suppe");
 
-        // Unlike an enhanced-navigation link click, this search submit performs a genuine
-        // full-page navigation (NavigationManager.NavigateTo() from the server-side handler).
-        // Once such a navigation is in flight, Playwright's single-shot queries against the
-        // page (e.g. GetAttributeAsync) block until the navigation settles - they would only
-        // ever observe the *new* page's fresh (inactive) bar, never the old page's active one.
-        // WaitForFunctionAsync's polling does not have that limitation, so a successful wait
-        // here (it throws on timeout) is itself the proof that the bar became active in time.
-        // The default 1000ms timeout is too tight here: unlike a client-side link click, this
-        // submit first needs a full SignalR round trip to invoke OnSubmitSearch on the server
-        // before NavigateTo() (and therefore 'beforeunload') even happens, which is noticeably
-        // slower under load (e.g. on a shared CI runner) than the near-instant enhanced-nav path.
-        await pageObject.WaitUntilLoadingBarActiveAsync(timeoutMilliseconds: 5000);
+        // This search submit performs a genuine full-page navigation (NavigationManager.NavigateTo()
+        // from the server-side handler), unlike an enhanced-navigation link click. Starting the wait
+        // BEFORE triggering the submit (instead of after) is essential here, not just style: once the
+        // submit is in flight, Playwright's WaitForFunctionAsync call would bind to whatever document
+        // is current *at the moment it is issued*. Issued after the click, on a fast enough navigation
+        // it can lose the race and bind to the *new*, already-loaded (and therefore inactive) document,
+        // producing a timeout no matter how large - the assertion would then be observing the wrong
+        // page entirely. Starting the wait first guarantees it binds to the old document, where the
+        // 'beforeunload'-triggered activation actually happens.
+        var loadingBarActiveTask = pageObject.WaitUntilLoadingBarActiveAsync(timeoutMilliseconds: 5000);
+        await pageObject.SubmitNavigationSearchAsync("Suppe");
+        await loadingBarActiveTask;
     }
 
     [SkippableFact]

@@ -130,8 +130,8 @@ public class RezepteAppFixture : IAsyncLifetime
         // The redirected output/error pipes must be drained continuously; otherwise the OS pipe buffer
         // fills up once the application logs enough (e.g. one line per incoming request) and the child
         // process blocks on its next Console.Write call, hanging the whole application.
-        _process.OutputDataReceived += (_, e) => { if (e.Data is not null) Console.WriteLine("[app-stdout DIAG] " + e.Data); };
-        _process.ErrorDataReceived += (_, e) => { if (e.Data is not null) Console.WriteLine("[app-stderr DIAG] " + e.Data); };
+        _process.OutputDataReceived += (_, _) => { };
+        _process.ErrorDataReceived += (_, _) => { };
         _process.BeginOutputReadLine();
         _process.BeginErrorReadLine();
     }
