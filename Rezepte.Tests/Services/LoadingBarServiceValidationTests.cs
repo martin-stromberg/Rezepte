@@ -101,6 +101,38 @@ public class LoadingBarServiceValidationTests
     }
 
     [Fact]
+    public void GetSettings_WithHideDelayAboveDefaultMaxVisibleDuration_KeepsInvariant()
+    {
+        var sut = LoadingBarServiceTestFactory.CreateService(new LoadingBarOptions { HideDelay = "30s", MaxVisibleDuration = "20s" });
+
+        var result = sut.GetSettings();
+
+        result.MaxVisibleDurationMilliseconds.Should().BeGreaterThan(result.HideDelayMilliseconds);
+        result.HideDelayMilliseconds.Should().Be(300);
+        result.MaxVisibleDurationMilliseconds.Should().Be(15000);
+    }
+
+    [Fact]
+    public void GetSettings_WithZeroHeight_FallsBackToDefaultHeight()
+    {
+        var sut = LoadingBarServiceTestFactory.CreateService(new LoadingBarOptions { Height = "0px" });
+
+        var result = sut.GetSettings();
+
+        result.Height.Should().Be("3px");
+    }
+
+    [Fact]
+    public void GetSettings_WithZeroAnimationDuration_FallsBackToDefaultDuration()
+    {
+        var sut = LoadingBarServiceTestFactory.CreateService(new LoadingBarOptions { AnimationDuration = "0s" });
+
+        var result = sut.GetSettings();
+
+        result.AnimationDuration.Should().Be("2s");
+    }
+
+    [Fact]
     public void GetSettings_WithInvalidColorEntries_RemovesInvalidEntries()
     {
         var sut = LoadingBarServiceTestFactory.CreateService(new LoadingBarOptions { Colors = new[] { "#FF6B6B", "not-a-color", "#123" } });
