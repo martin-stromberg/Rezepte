@@ -19,7 +19,7 @@ public class LoadingBarServiceDefaultsTests
         result.AnimationDuration.Should().Be("2s");
         result.HideDelayMilliseconds.Should().Be(300);
         result.MaxVisibleDurationMilliseconds.Should().Be(15000);
-        result.Colors.Should().BeEquivalentTo(new LoadingBarOptions().Colors);
+        result.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
     [Fact]

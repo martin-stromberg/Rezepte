@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace Rezepte.Web.Configuration;
 
 /// <summary>
@@ -33,5 +35,18 @@ public sealed class LoadingBarOptions
     /// <summary>
     /// Colors from which one is chosen at random for each navigation interaction.
     /// </summary>
-    public string[] Colors { get; set; } = new[] { "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD" };
+    /// <remarks>
+    /// Defaults to an empty array rather than <see cref="DefaultColors"/> because the .NET configuration
+    /// binder appends configured entries to a pre-populated array instead of replacing them. Starting
+    /// from an empty array is what allows <c>LoadingBar:Colors</c> in appsettings.json to fully replace
+    /// the documented default palette. Use <see cref="DefaultColors"/> to obtain the documented defaults.
+    /// </remarks>
+    public string[] Colors { get; set; } = Array.Empty<string>();
+
+    private static readonly string[] DefaultColorsArray = { "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD" };
+
+    /// <summary>
+    /// The documented default color palette, used when <see cref="Colors"/> is empty or invalid.
+    /// </summary>
+    public static readonly IReadOnlyList<string> DefaultColors = new ReadOnlyCollection<string>(DefaultColorsArray);
 }

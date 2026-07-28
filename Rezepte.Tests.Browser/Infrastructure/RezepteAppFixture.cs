@@ -41,11 +41,19 @@ public class RezepteAppFixture : IAsyncLifetime
         }
 
         var databasePath = CreateTemporaryDatabase();
-        StartApplicationProcess(applicationDllPath, databasePath);
+        try
+        {
+            StartApplicationProcess(applicationDllPath, databasePath);
 
-        await WaitUntilReadyAsync();
-        await RegisterTestUserAsync();
-        ApplicationAvailable = true;
+            await WaitUntilReadyAsync();
+            await RegisterTestUserAsync();
+            ApplicationAvailable = true;
+        }
+        catch
+        {
+            await DisposeAsync();
+            throw;
+        }
     }
 
     public Task DisposeAsync()
@@ -187,7 +195,17 @@ public class RezepteAppFixture : IAsyncLifetime
         if (!string.IsNullOrWhiteSpace(overrideDirectory))
         {
             var overriddenDllPath = Path.Combine(overrideDirectory, "Rezepte.Web.dll");
-            return File.Exists(overriddenDllPath) ? overriddenDllPath : null;
+            if (!File.Exists(overriddenDllPath))
+            {
+                // The environment variable is a deliberate override, so a missing DLL here is a
+                // misconfiguration (typo, stale directory) rather than "not published". Reporting
+                // it as a skip would hide the real cause, so this fails loudly instead.
+                throw new InvalidOperationException(
+                    $"Environment variable '{PublishDirectoryEnvironmentVariable}' is set to '{overrideDirectory}', " +
+                    $"but the resolved path '{overriddenDllPath}' does not exist.");
+            }
+
+            return overriddenDllPath;
         }
 
         // A plain `dotnet build` output does not serve static assets correctly through

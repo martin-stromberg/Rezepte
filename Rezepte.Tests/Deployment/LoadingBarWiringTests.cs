@@ -1,4 +1,3 @@
-using System;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,24 +8,30 @@ using Rezepte.Tests.TestHelpers;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Extensions;
 using Rezepte.Web.Services;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Rezepte.Tests.Deployment;
 
 public class LoadingBarWiringTests
 {
+    private static readonly Regex LoadingBarElementPattern = new(@"<LoadingBar\s*/>", RegexOptions.Compiled);
+    private static readonly Regex MainElementPattern = new(@"<main[\s>]", RegexOptions.Compiled);
+
     [Fact]
-    public void Layout_ShouldPlaceLoadingBarDirectlyBelowNavigation()
+    public void Layout_ShouldPlaceLoadingBarBetweenNavigationAndMainContent()
     {
         var markup = RepositoryPaths.ReadRepositoryFile("Rezepte.Web", "Components", "Layout", "MainLayout.razor");
 
         var navCloseIndex = markup.IndexOf("</nav>", StringComparison.Ordinal);
-        var loadingBarIndex = markup.IndexOf("<LoadingBar />", StringComparison.Ordinal);
-        var mainIndex = markup.IndexOf("<main class=\"container py-4\">", StringComparison.Ordinal);
+        var loadingBarMatch = LoadingBarElementPattern.Match(markup);
+        var mainMatch = MainElementPattern.Match(markup);
 
         navCloseIndex.Should().BeGreaterThan(-1);
-        loadingBarIndex.Should().BeGreaterThan(navCloseIndex);
-        mainIndex.Should().BeGreaterThan(loadingBarIndex);
+        loadingBarMatch.Success.Should().BeTrue();
+        loadingBarMatch.Index.Should().BeGreaterThan(navCloseIndex);
+        mainMatch.Success.Should().BeTrue();
+        mainMatch.Index.Should().BeGreaterThan(loadingBarMatch.Index);
     }
 
     [Fact]
@@ -50,9 +55,7 @@ public class LoadingBarWiringTests
             .AddJsonFile("appsettings.json")
             .Build();
 
-        // Colors is a fixed-size array; binding into a pre-populated default array appends
-        // rather than overwrites, so it must start out empty for the comparison to be meaningful.
-        var options = new LoadingBarOptions { Colors = Array.Empty<string>() };
+        var options = new LoadingBarOptions();
         configuration.GetSection("LoadingBar").Bind(options);
 
         var defaults = new LoadingBarOptions();
@@ -61,18 +64,36 @@ public class LoadingBarWiringTests
         options.AnimationDuration.Should().Be(defaults.AnimationDuration);
         options.HideDelay.Should().Be(defaults.HideDelay);
         options.MaxVisibleDuration.Should().Be(defaults.MaxVisibleDuration);
-        options.Colors.Should().BeEquivalentTo(defaults.Colors);
+        options.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
     [Fact]
-    public void ServiceCollectionExtensions_ShouldRegisterLoadingBarOptionsAndService()
+    public void ServiceCollectionExtensions_ShouldBindLoadingBarOptionsSection()
+    {
+        using var provider = BuildServiceProvider(new Dictionary<string, string?>
+        {
+            ["LoadingBar:Height"] = "5px",
+            ["ConnectionStrings:Default"] = "Data Source=:memory:"
+        });
+
+        provider.GetRequiredService<IOptions<LoadingBarOptions>>().Value.Height.Should().Be("5px");
+    }
+
+    [Fact]
+    public void ServiceCollectionExtensions_ShouldRegisterLoadingBarService()
+    {
+        using var provider = BuildServiceProvider(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:Default"] = "Data Source=:memory:"
+        });
+
+        provider.GetRequiredService<ILoadingBarService>().Should().BeOfType<LoadingBarService>();
+    }
+
+    private static ServiceProvider BuildServiceProvider(IReadOnlyDictionary<string, string?> configurationOverrides)
     {
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["LoadingBar:Height"] = "5px",
-                ["ConnectionStrings:Default"] = "Data Source=:memory:"
-            })
+            .AddInMemoryCollection(configurationOverrides)
             .Build();
 
         var services = new ServiceCollection();
@@ -82,9 +103,6 @@ public class LoadingBarWiringTests
 
         services.AddRezepteServices(configuration, environmentMock.Object);
 
-        using var provider = services.BuildServiceProvider();
-
-        provider.GetRequiredService<IOptions<LoadingBarOptions>>().Value.Height.Should().Be("5px");
-        provider.GetRequiredService<ILoadingBarService>().Should().BeOfType<LoadingBarService>();
+        return services.BuildServiceProvider();
     }
 }

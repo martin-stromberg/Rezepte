@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using FluentAssertions;
+using Rezepte.Tests.TestHelpers;
 using Xunit;
 
 namespace Rezepte.Tests.Deployment;
@@ -13,7 +14,7 @@ public class DeploymentDocumentationTests
     [Fact]
     public void InstallDocumentation_ShouldDescribeRuntimeRequirementsAndCorrectEntrypoint()
     {
-        var install = ReadRepositoryFile("Docs", "install.md");
+        var install = RepositoryPaths.ReadRepositoryFile("Docs", "install.md");
 
         install.Should().NotContain("Rezepte.dll");
         install.Should().Contain("Rezepte.Web.dll");
@@ -30,7 +31,7 @@ public class DeploymentDocumentationTests
     [Fact]
     public void ReadmeDeploymentSection_ShouldPointToRuntimeCheckedDeploymentOptions()
     {
-        var readme = ReadRepositoryFile("README.md");
+        var readme = RepositoryPaths.ReadRepositoryFile("README.md");
 
         readme.Should().Contain("Docs/install.md");
         readme.Should().Contain(".NET-10-Shared-Frameworks");
@@ -42,7 +43,7 @@ public class DeploymentDocumentationTests
     [Fact]
     public void FrameworkDependentLinuxPublish_ShouldProduceDocumentedEntrypointAndRuntimeFrameworks()
     {
-        var repositoryRoot = FindRepositoryRoot();
+        var repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         var publishDirectory = Path.Combine(
             Path.GetTempPath(),
             "rezepte-publish-contract",
@@ -91,38 +92,6 @@ public class DeploymentDocumentationTests
                 Directory.Delete(publishDirectory, recursive: true);
             }
         }
-    }
-
-    private static string ReadRepositoryFile(params string[] relativePathParts)
-    {
-        var directory = FindRepositoryRoot();
-
-        var candidate = Path.Combine(directory.FullName, Path.Combine(relativePathParts));
-        if (File.Exists(candidate))
-        {
-            return File.ReadAllText(candidate);
-        }
-
-        throw new FileNotFoundException(
-            $"Could not locate repository file '{Path.Combine(relativePathParts)}' from '{directory.FullName}'.");
-    }
-
-    private static DirectoryInfo FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "Rezepte.sln")))
-            {
-                return directory;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new FileNotFoundException(
-            $"Could not locate repository root from '{AppContext.BaseDirectory}'.");
     }
 
     private static DotnetResult RunDotnet(string arguments, DirectoryInfo workingDirectory, string publishDirectory)

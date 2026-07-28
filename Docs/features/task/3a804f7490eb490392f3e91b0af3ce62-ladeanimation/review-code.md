@@ -6,87 +6,79 @@
 
 ## Befunde
 
-### loadingBar.js
+### LoadingBarService.cs (LoadingBarService)
 
-- **Fehlerbehandlung / falsche Vorbedingungsprüfung** — `handleLinkClick` (Z. 129) und `handleFormSubmit` (Z. 168) prüfen `event.defaultPrevented`, beide Listener sind aber in der **Capture**-Phase am `document` registriert (Z. 192-193, dritter Parameter `true`). In der Capture-Phase ist `defaultPrevented` grundsätzlich noch `false`, weil kein nachgelagerter Handler den Event bis dahin behandeln konnte. Die Prüfung ist damit wirkungslos.
+- **Fehlende Validierung von Vorbedingungen** — Die Invariante `MaxVisibleDuration > HideDelay` wird nach dem Fallback nicht erneut hergestellt. `BuildSettings` (Z. 49-58) ersetzt einen verletzenden Wert durch `DefaultMaxVisibleDurationMilliseconds` (15.000 ms), prueft danach aber nicht erneut gegen `hideDelayMilliseconds`. `HideDelay` darf laut `HideDelayMaxMilliseconds` (Z. 17) bis zu 60.000 ms betragen. Konkreter Fall: `HideDelay = "30s"` und `MaxVisibleDuration = "20s"` — beide Werte liegen einzeln im erlaubten Bereich, die Bedingung auf Z. 49 greift, und das Ergebnis ist `MaxVisibleDurationMilliseconds = 15000` bei `HideDelayMilliseconds = 30000`. Die zugesicherte und in `Docs/help/loading-bar-configuration.md` (Z. 15) dokumentierte Invariante ist damit weiterhin verletzt, ohne dass eine weitere Warnung erfolgt. Zur Laufzeit blendet der Safety-Timer nach 15 s aus, waehrend der Hide-Timer erst nach 30 s laeuft.
 
-  Konkrete Auswirkung bei interaktiven Blazor-Formularen, die bewusst nicht navigieren: `Rezepte.Web/Components/Pages/ShoppingList.razor` Z. 134 (`<form @onsubmit="…" @onsubmit:preventDefault="true">`, `@rendermode InteractiveServer`), `Rezepte.Web/Components/Settings/UserProfile.razor` Z. 27 und Z. 64 sowie `Rezepte.Web/Components/Settings/PluginSettings.razor` Z. 16 (`EditForm` mit `OnValidSubmit`, ohne `Method`/`Action` — Blazor ruft `preventDefault` in seinem delegierten Handler auf). Da `handleFormSubmit` gleichadressige Ziele bewusst **nicht** überspringt (Kommentar Z. 163-166) und `form.action` ohne `action`-Attribut auf die aktuelle Adresse zeigt, startet `startAnimation()` (Z. 189) bei jedem dieser Submits. Es folgt nie ein `enhancedload`- oder `pageshow`-Ereignis, also bleibt die Ladeleiste bis zum Ablauf von `MaxVisibleDuration` sichtbar — mit Standardkonfiguration 15 Sekunden Dauerlauf nach jedem „Artikel hinzufügen", „Profil speichern" und „Passwort ändern".
+  Empfehlung: Nach dem Fallback erneut pruefen und im Konfliktfall auch `hideDelayMilliseconds` auf `DefaultHideDelayMilliseconds` zuruecksetzen (mit eigener Warnung) — alternativ `HideDelayMaxMilliseconds` so waehlen, dass es kleiner als `DefaultMaxVisibleDurationMilliseconds` ist. Zusaetzlich einen Test `GetSettings_WithHideDelayAboveDefaultMaxVisibleDuration_KeepsInvariant` in `LoadingBarServiceValidationTests` ergaenzen, der `HideDelay = "30s"`, `MaxVisibleDuration = "20s"` setzt und `result.MaxVisibleDurationMilliseconds > result.HideDelayMilliseconds` assertiert.
 
-  Empfehlung: Die Entscheidung erst nach Abschluss der Event-Auslieferung treffen, z. B. in beiden Handlern statt des direkten `startAnimation()`-Aufrufs `setTimeout(function () { if (!event.defaultPrevented) { startAnimation(); } }, 0);` verwenden (das Event-Objekt bleibt gültig und `defaultPrevented` spiegelt dann alle Handler wider). Die Prüfung zu Beginn der Handler kann als schneller Vorab-Ausstieg bestehen bleiben. Zusätzlich einen Browser-Test ergänzen, der belegt, dass ein interaktiver Formular-Submit ohne Navigation (z. B. `/shopping-list`, Artikel hinzufügen) die Leiste **nicht** aktiviert — diese Fehlerklasse ist derzeit von keinem Test abgedeckt.
+- **Uneinheitliche Validierungstiefe / fehlende Plausibilitaetspruefung** — `HideDelay` und `MaxVisibleDuration` werden ueber `ValidateCssTimeAsMilliseconds` (Z. 82-104) zusaetzlich gegen Min-/Max-Grenzen geprueft. `Height` (Z. 42) und `AnimationDuration` (Z. 43) durchlaufen dagegen mit `ValidateAgainstPattern` (Z. 71-80) nur eine Formatpruefung. Dadurch sind `"Height": "0px"` und `"AnimationDuration": "0s"` gueltige Konfigurationen, die die Ladeanimation faktisch unsichtbar bzw. bewegungslos machen — ohne Warnung im Protokoll. Dasselbe fachliche Konzept („unbrauchbarer Wert wird auf den Standard zurueckgesetzt") wird fuer vier gleichartige Parameter unterschiedlich streng umgesetzt.
 
-### LoadingBarOptions.cs (LoadingBarOptions) / appsettings.json
-
-- **Fehlerhafte Konfigurationsbindung — Farbpalette ist nicht überschreibbar** — `Colors` (Z. 36) ist mit einem vorbelegten Array initialisiert. Der .NET-Konfigurationsbinder **hängt** Array-Einträge an ein vorbelegtes Array an, statt es zu ersetzen. `services.Configure<LoadingBarOptions>(configuration.GetSection("LoadingBar"))` (`ServiceCollectionExtensions.cs` Z. 32) bindet daher auf eine Instanz, die bereits 6 Standardfarben enthält.
-
-  Empirisch verifiziert (isoliertes Bindungs-Experiment mit identischer Klasse und identischem JSON): Mit dem ausgelieferten `appsettings.json` (Z. 35, dieselben 6 Farben) enthält `Colors` zur Laufzeit **12** Einträge — jede Farbe doppelt. Setzt ein Betreiber stattdessen zwei eigene Farben, erhält er **8** Einträge: die 6 Standardfarben bleiben erhalten und die eigenen werden nur angehängt. Die dokumentierte Konfigurationsmöglichkeit „Farben austauschen" funktioniert also nicht.
-
-  Bemerkenswert: `LoadingBarWiringTests.Configuration_LoadingBarSection_MatchesDocumentedDefaults` (Z. 53-56) kennt dieses Verhalten und umgeht es per `Colors = Array.Empty<string>()`, statt es zu beheben. Dadurch prüft der Test genau nicht das Verhalten der produktiven Registrierung und kann den Fehler nicht aufdecken.
-
-  Empfehlung: `Colors` in `LoadingBarOptions` auf `Array.Empty<string>()` initialisieren und die Standardpalette als eigenes `public static readonly string[] DefaultColors` in `LoadingBarOptions` bereitstellen. `LoadingBarService.DefaultColors` (Z. 17) auf dieses Feld umstellen; die vorhandene Leer-Fallback-Logik in `ValidateColors` (Z. 100-104) greift dann sowohl für „nicht konfiguriert" als auch für „nur ungültige Werte". Anschließend den Wiring-Test auf `new LoadingBarOptions()` ohne Vorbelegungs-Trick umstellen, damit er die produktive Bindung tatsächlich absichert.
+  Empfehlung: `ValidateAgainstPattern` um eine Untergrenze ergaenzen bzw. fuer `AnimationDuration` `ValidateCssTimeAsMilliseconds` mit `[1, 60_000]` verwenden und den validierten Wert wieder als CSS-Zeit ausgeben; fuer `Height` einen numerischen Mindestwert (> 0) pruefen. Die neuen Grenzen als benannte Konstanten analog zu `HideDelayMinMilliseconds` fuehren und in `Docs/help/loading-bar-configuration.md` dokumentieren (dort fehlen aktuell alle vier Bereichsgrenzen).
 
 ### RezepteAppFixture.cs (RezepteAppFixture)
 
-- **Fehlerbehandlung — Ressourcenleck bei fehlgeschlagenem Start** — `InitializeAsync` (Z. 34-49) startet in `StartApplicationProcess` (Z. 44) den Anwendungsprozess und legt in `CreateTemporaryDatabase` (Z. 43) ein Temp-Verzeichnis an. Wirft danach `WaitUntilReadyAsync` (Z. 46, `TimeoutException`/`InvalidOperationException`) oder `RegisterTestUserAsync` (Z. 47, `EnsureSuccessStatusCode`), ruft xUnit `DisposeAsync` für eine Fixture, deren `InitializeAsync` fehlgeschlagen ist, nicht auf. Der `dotnet Rezepte.Web.dll`-Kindprozess läuft dann für die restliche Testsitzung weiter, hält den Port und das Temp-Verzeichnis bleibt liegen — auf CI ein hängender Job statt eines sauberen Fehlers.
+- **Fehlerbehandlung: `DisposeAsync` ist nicht mehrfach aufrufbar** — `InitializeAsync` ruft im neuen `catch`-Block selbst `await DisposeAsync()` auf (Z. 52-56) und wirft anschliessend weiter. `DisposeAsync` (Z. 59-87) gibt `_process` per `_process?.Dispose()` (Z. 71) frei, setzt das Feld aber nicht auf `null`. Das Testframework ruft `DisposeAsync` fuer die bereits erzeugte Fixture ein zweites Mal auf; dann trifft `_process.HasExited` (Z. 63) auf ein bereits freigegebenes `Process`-Objekt und wirft `InvalidOperationException("No process is associated with this object.")`. Die urspruengliche Ursache (z. B. `TimeoutException` aus `WaitUntilReadyAsync` oder ein fehlgeschlagenes `RegisterTestUserAsync`) wird dadurch von einem irrefuehrenden Teardown-Fehler ueberlagert.
 
-  Empfehlung: Den Rumpf ab `CreateTemporaryDatabase` in `try { … } catch { await DisposeAsync(); throw; }` klammern, damit Prozess und Temp-Verzeichnis auch im Fehlerfall abgeräumt werden.
+  Empfehlung: `DisposeAsync` idempotent machen — im `finally`-Block nach `_process?.Dispose()` `_process = null;` und nach dem Loeschen des Verzeichnisses `_tempDirectory = null;` setzen. Alternativ den `HasExited`-Zugriff in `try/catch (InvalidOperationException)` kapseln; die Nullsetzung ist der klarere Weg.
 
-### RepositoryPaths.cs (RepositoryPaths)
+- **Fehlermeldung ohne aussagekraeftigen Kontext** — `ApplicationUnavailableSkipReason` (Z. 17-18) fordert fest `dotnet publish Rezepte.Web -c Release`. `ResolveApplicationDllPath` leitet Konfiguration und TFM aber bewusst aus dem Ausgabeverzeichnis der Testassembly ab (Z. 219-224, inkl. erklaerendem Kommentar). Bei einem Debug-Testlauf sucht die Fixture in `bin/Debug/net10.0/publish`, nennt dem Entwickler jedoch einen Release-Publish, der die Ursache nicht behebt — die Tests bleiben nach Befolgen der Anweisung weiterhin uebersprungen.
 
-- **Doppelter Code — bereits vorhandene Logik nicht abgelöst** — `FindRepositoryRoot` (Z. 5-20) wurde in diesem Branch als gemeinsamer Helfer neu angelegt, aber die bereits existierenden, zeichengleichen privaten Kopien wurden nicht entfernt: `Rezepte.Tests/Deployment/CsprojCredentialCopyTests.cs` Z. 33-49 und `Rezepte.Tests/Deployment/DeploymentDocumentationTests.cs` Z. 110-126 enthalten dieselbe Schleife samt identischer Fehlermeldung. Statt einer Vereinheitlichung liegt die Logik jetzt dreifach im selben Testprojekt.
+  Empfehlung: Die Skip-Meldung zur Laufzeit aus der ermittelten Konfiguration und dem erwarteten Pfad zusammensetzen (z. B. `$"Rezepte.Web is not published at '{dllPath}'. Run 'dotnet publish Rezepte.Web -c {configuration}' before running the browser tests."`). Dazu die Konstante durch eine Instanz-Property ersetzen und `LoadingBarBrowserSession` (Z. 16) darauf umstellen.
 
-  Empfehlung: Beide privaten `FindRepositoryRoot`-Methoden löschen und die Aufrufstellen in `CsprojCredentialCopyTests` und `DeploymentDocumentationTests` auf `RepositoryPaths.FindRepositoryRoot()` umstellen.
+### loadingBar.js
 
-### LoadingBarVisibilityBrowserTests.cs / LoadingBarColorBrowserTests.cs
+- **Doppelter Code** — Die Ermittlung des Navigationsziels steht nahezu identisch in beiden Handlern: die Target-Pruefung `if (X.target && X.target !== '_self') { return; }` in `handleLinkClick` (Z. 146-148) und `handleFormSubmit` (Z. 181-184) sowie der Block `const url = resolveUrl(...); if (!url || !isSameOriginNavigation(url)) { return; }` in `handleLinkClick` (Z. 159-162) und `handleFormSubmit` (Z. 188-191). Es handelt sich um dieselbe fachliche Regel („nur Same-Origin-Ziele im eigenen Frame loesen die Animation aus"), die an zwei Stellen gepflegt werden muss.
 
-- **Doppelter Code und fehlende Kapselung** — Der Dreisatz „Navigation verzögern, Cookbooks-Link mit `NoWaitAfter` klicken, auf aktive Leiste warten" steht fünfmal nahezu identisch im Branch: `LoadingBarVisibilityBrowserTests` Z. 16-19, Z. 29-32, Z. 42-45 sowie `LoadingBarColorBrowserTests` Z. 19-21, Z. 34-41. Der URL-Glob `"**/cookbooks"`, der Selektor `"a[href='/cookbooks']"`, die `PageClickOptions { NoWaitAfter = true }` und die Verzögerungswerte sind dabei jedes Mal als Literale wiederholt. Ändert sich die Route, sind fünf Stellen in zwei Dateien anzupassen.
+  Empfehlung: Eine Funktion `function resolveSameOriginTarget(element, rawUrl) { if (element.target && element.target !== '_self') { return null; } const url = resolveUrl(rawUrl); return url && isSameOriginNavigation(url) ? url : null; }` einfuehren und beide Handler auf `const url = resolveSameOriginTarget(anchor, anchor.href);` bzw. `const url = resolveSameOriginTarget(form, rawAction);` mit anschliessendem `if (!url) { return; }` reduzieren.
 
-  Empfehlung: In `LoadingBarPageObject` eine Methode wie `ClickNavigationLinkAsync(string href)` sowie `DelayRouteAsync(string urlGlobPattern, int delayMilliseconds)` ergänzen und die Cookbooks-Route als Konstante (z. B. `private const string CookbooksRoute = "/cookbooks";`) im Page Object führen. Die Tests reduzieren sich damit auf eine fachliche Zeile pro Navigation.
+### LoadingBarPageObject.cs (LoadingBarPageObject) / NetworkDelayHelper.cs (NetworkDelayHelper)
 
-### LoadingBarService.cs (LoadingBarService)
+- **Middle Man / Lazy Class** — `DelayRouteAsync` (Z. 61-64) delegiert ohne eigene Logik an die Extension-Methode `NetworkDelayHelper.DelayNavigationAsync`. Diese Extension-Klasse enthaelt genau eine Methode (Z. 11-18) und hat nach der Vereinheitlichung der Aufrufe nur noch diesen einen Aufrufer. Die direkt daneben stehende Schwestermethode `BlockRouteAsync` (Z. 66-69) implementiert ihr `Page.RouteAsync` dagegen inline im Page-Object. Fuer dieselbe Aufgabe (Route-Stubbing im Test) existieren damit zwei unterschiedliche Ablageorte, und die separate Klasse traegt keinen Nutzen mehr.
 
-- **Doppelter Code / überflüssige Objekterzeugung** — Z. 16 legt `Defaults = new()` an, Z. 17 erzeugt für `DefaultColors` eine **zweite** `LoadingBarOptions`-Instanz (`new LoadingBarOptions().Colors`), obwohl `Defaults.Colors` dieselbe Standardpalette liefert. Zusätzlich wird `ToDefaultMilliseconds(Defaults.HideDelay)` bzw. `…(Defaults.MaxVisibleDuration)` in Z. 38, Z. 39 und Z. 49 bei jedem Aufbau erneut per Regex geparst, obwohl es sich um Kompilierzeit-Konstanten handelt. Der `ArgumentException`-Pfad in `ToDefaultMilliseconds` (Z. 128) — ein reiner Programmierfehler-Schutz für einen fehlerhaften Standardwert — schlägt dadurch erst beim ersten `GetSettings()`-Aufruf zu, statt beim Typ-Laden.
+  Empfehlung: Den Rumpf von `DelayNavigationAsync` nach `LoadingBarPageObject.DelayRouteAsync` ziehen und `NetworkDelayHelper.cs` samt `using`-Eintraegen entfernen — damit liegen beide Route-Helfer an derselben Stelle. (Umgekehrt waere auch `BlockRouteAsync` in die Extension-Klasse zu verschieben; wichtig ist ein einheitlicher Ort.)
 
-  Empfehlung: `DefaultColors` aus `Defaults.Colors` ableiten und zwei zusätzliche statische Felder einführen: `private static readonly int DefaultHideDelayMilliseconds = ToDefaultMilliseconds(Defaults.HideDelay);` und `private static readonly int DefaultMaxVisibleDurationMilliseconds = ToDefaultMilliseconds(Defaults.MaxVisibleDuration);`, die in Z. 38, 39 und 49 verwendet werden.
+### LoadingBarFormNavigationBrowserTests.cs (LoadingBarFormNavigationBrowserTests)
 
-- **Fehlende Validierung — keine Obergrenze für Zeitwerte** — `ValidateCssTimeAsMilliseconds` (Z. 74-83) akzeptiert jeden regex-konformen Wert. `TryToMilliseconds` (Z. 120) rechnet über `(int)(value * 1000)`; die Konvertierung sättigt bei Überlauf auf `int.MaxValue`. `LoadingBar:HideDelay = "999999999s"` wird damit still als 2.147.483.647 ms übernommen und als `data-hide-delay` in die Seite geschrieben — die Leiste bliebe nach jeder Navigation faktisch dauerhaft sichtbar. Für `MaxVisibleDuration` existiert nur die relative Prüfung gegen `HideDelay` (Z. 41), keine absolute Plausibilitätsgrenze.
+- **Fehlende Kapselung / inkonsistente Nutzung des Page-Objects** — Saemtliche Selektoren der Anwendung sind sonst im Page-Object gebuendelt (`#username`, `#password`, `button.btn-accent[type=submit]` in `LoadingBarPageObject.LoginAsync`, `#loading-bar` als `HostSelector`, Navigationsziele als Konstanten Z. 12-16). Diese Testklasse umgeht das Page-Object und arbeitet direkt auf `pageObject.Page` mit anwendungsspezifischen Selektoren: `#nav-search` (Z. 19), `button[aria-label='Suche starten']` (Z. 20) sowie `button[aria-label='Bearbeiten']`, `button[title='Gruppe hinzufuegen']`, `form.shopping-add-row`, `input[aria-label='Zutat hinzufuegen']` (Z. 37-42). Aendert sich eine dieser UI-Beschriftungen, muss an zwei konzeptuell getrennten Orten nachgezogen werden, und der eigentliche Testablauf ist hinter Playwright-Details verborgen.
 
-  Empfehlung: In `ValidateCssTimeAsMilliseconds` einen Gültigkeitsbereich prüfen (z. B. `HideDelay` 0–60.000 ms, `MaxVisibleDuration` 100–300.000 ms) und bei Überschreitung — wie bei allen anderen ungültigen Werten — eine Warnung loggen und auf den Standardwert zurückfallen. Passende Testfälle in `LoadingBarServiceValidationTests` ergänzen.
+  Empfehlung: Die beiden Abläufe als Methoden am Page-Object kapseln, z. B. `SubmitNavigationSearchAsync(string term)` und `SubmitInteractiveShoppingListItemAsync(string itemName)`, und die Selektoren wie die uebrigen als `private const` am Page-Object fuehren. Die Testmethoden bestehen dann nur noch aus fachlichen Schritten und Assertion.
 
-- **Doppelter Code (geringfügig)** — `clearSafetyTimer` (loadingBar.js Z. 52-57) und `clearHideTimer` (Z. 59-64) sind bis auf die Variable identisch.
+### LoadingBarBrowserSession.cs (LoadingBarBrowserSession)
 
-  Empfehlung: Durch eine Funktion `function clearTimer(id) { if (id) { clearTimeout(id); } return null; }` ersetzen und an den Aufrufstellen `safetyTimer = clearTimer(safetyTimer);` bzw. `hideTimer = clearTimer(hideTimer);` verwenden.
+- **Ressourcenleck im Fehlerpfad** — `StartLoggedInSessionAsync` erzeugt das `LoadingBarPageObject` (Z. 18) und fuehrt danach `LoginAsync` (Z. 19) aus. Schlaegt die Anmeldung fehl (z. B. `WaitForURLAsync`-Timeout nach 10 s), wird das Page-Object nie zurueckgegeben; das `await using` der aufrufenden Testmethode kommt damit nie zustande und der erzeugte `IBrowserContext` wird nicht geschlossen. Bei acht Testmethoden bleiben im Fehlerfall acht Browser-Kontexte bis zum Ende des Testlaufs offen.
 
-### LoadingBarWiringTests.cs (LoadingBarWiringTests)
-
-- **Test prüft Implementierungsdetail und nicht das benannte Verhalten** — `Layout_ShouldPlaceLoadingBarDirectlyBelowNavigation` (Z. 19-30) liest den Razor-Quelltext als Zeichenkette und sucht das exakte Literal `"<LoadingBar />"` (Z. 24). Eine rein formale Änderung wie `<LoadingBar/>` oder ein Zeilenumbruch im Tag lässt den Test scheitern, obwohl sich das Verhalten nicht ändert. Zudem deckt sich der Testname nicht mit den Assertions: geprüft wird nur „irgendwo zwischen `</nav>` und `<main …>`" (Z. 27-29), nicht „direkt unterhalb". `App_ShouldLoadLoadingBarScriptAfterBlazorScript` (Z. 33-42) hat dieselbe Textabhängigkeit auf `"js/loadingBar.js"` und `"_framework/blazor.web.js"`.
-
-  Empfehlung: Das Literal durch einen toleranten Regex (`<LoadingBar\s*/>`) ersetzen und den Test in `Layout_ShouldPlaceLoadingBarBetweenNavigationAndMainContent` umbenennen, damit Name und Assertion übereinstimmen. Alternativ beide Tests entfernen, da die tatsächliche Wirkung bereits durch die Browser-Tests (`LoadingBarVisibilityBrowserTests`) abgedeckt ist.
-
-- **Toter Code** — `using System;` (Z. 1) ist überflüssig; `Rezepte.Tests.csproj` (Z. 6) aktiviert `ImplicitUsings`, und keine andere neue Datei im Branch führt dieses `using` auf.
-
-  Empfehlung: Zeile 1 entfernen.
+  Empfehlung: Den Aufruf absichern: `var pageObject = await LoadingBarPageObject.CreateAsync(...); try { await pageObject.LoginAsync(...); } catch { await pageObject.DisposeAsync(); throw; } return pageObject;`
 
 ## Geprüfte Dateien
 
-- `Rezepte.Web/Configuration/LoadingBarOptions.cs`
-- `Rezepte.Web/Configuration/LoadingBarSettings.cs`
-- `Rezepte.Web/Services/ILoadingBarService.cs`
-- `Rezepte.Web/Services/LoadingBarService.cs`
+- `.github/workflows/pr.yml`
+- `README.md`
+- `Docs/help/index.md`
+- `Docs/help/loading-bar-configuration.md`
+- `Docs/help/navigation.md`
+- `Rezepte.sln`
+- `Rezepte.Web/appsettings.json`
+- `Rezepte.Web/Components/App.razor`
 - `Rezepte.Web/Components/Layout/LoadingBar.razor`
 - `Rezepte.Web/Components/Layout/LoadingBar.razor.css`
 - `Rezepte.Web/Components/Layout/MainLayout.razor`
-- `Rezepte.Web/Components/App.razor`
+- `Rezepte.Web/Configuration/LoadingBarOptions.cs`
+- `Rezepte.Web/Configuration/LoadingBarSettings.cs`
 - `Rezepte.Web/Extensions/ServiceCollectionExtensions.cs`
+- `Rezepte.Web/Services/ILoadingBarService.cs`
+- `Rezepte.Web/Services/LoadingBarService.cs`
 - `Rezepte.Web/wwwroot/js/loadingBar.js`
-- `Rezepte.Web/appsettings.json`
+- `Rezepte.Tests/Rezepte.Tests.csproj`
 - `Rezepte.Tests/Components/LoadingBarRenderingTests.cs`
+- `Rezepte.Tests/Deployment/CsprojCredentialCopyTests.cs`
+- `Rezepte.Tests/Deployment/DeploymentDocumentationTests.cs`
 - `Rezepte.Tests/Deployment/LoadingBarWiringTests.cs`
 - `Rezepte.Tests/Services/LoadingBarServiceDefaultsTests.cs`
 - `Rezepte.Tests/Services/LoadingBarServiceDurationParsingTests.cs`
 - `Rezepte.Tests/Services/LoadingBarServiceValidationTests.cs`
 - `Rezepte.Tests/TestHelpers/LoadingBarServiceTestFactory.cs`
 - `Rezepte.Tests/TestHelpers/RepositoryPaths.cs`
-- `Rezepte.Tests/Rezepte.Tests.csproj`
 - `Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj`
 - `Rezepte.Tests.Browser/Infrastructure/BrowserTestCollection.cs`
 - `Rezepte.Tests.Browser/Infrastructure/ConfiguredRezepteAppFixture.cs`
@@ -100,5 +92,3 @@
 - `Rezepte.Tests.Browser/LoadingBarFormNavigationBrowserTests.cs`
 - `Rezepte.Tests.Browser/LoadingBarSafetyTimeoutBrowserTests.cs`
 - `Rezepte.Tests.Browser/LoadingBarVisibilityBrowserTests.cs`
-- `.github/workflows/pr.yml`
-- `Rezepte.sln`

@@ -11,8 +11,8 @@ Alle Einstellungen befinden sich unter dem Abschnitt `LoadingBar` in der Datei `
 | `LoadingBar:Enabled` | `bool` | `true` | Deaktiviert die Ladeanimation komplett, wenn auf `false` gesetzt. Bei Deaktivierung wird kein HTML-Markup fuer die Komponente gerendert. |
 | `LoadingBar:Height` | `string` | `"3px"` | Hoehe des Ladebalkens. Muss eine CSS-Laenge sein: `{Zahl}px`, `{Zahl}rem` oder `{Zahl}em` (z. B. `"4px"`, `"0.25rem"`). Ungueltige Werte fallen auf den Standardwert zurueck. |
 | `LoadingBar:AnimationDuration` | `string` | `"2s"` | Dauer eines kompletten Animationssweeps von rechts nach links. Muss eine CSS-Zeit sein: `{Zahl}ms` oder `{Zahl}s` (z. B. `"2s"`, `"1500ms"`). Ungueltige Werte fallen auf den Standardwert zurueck. |
-| `LoadingBar:HideDelay` | `string` | `"300ms"` | Verzoegerung nach dem Abschluss der Navigation, bis der Ladebalke ausgeblendet wird. Muss eine CSS-Zeit sein (z. B. `"300ms"`, `"0.5s"`). Ungueltige Werte fallen auf den Standardwert zurueck. |
-| `LoadingBar:MaxVisibleDuration` | `string` | `"15s"` | Maximale Sichtbarkeitsdauer — ein Sicherheits-Timeout. Falls die Navigation nicht abgeschlossen wird oder keinen Abschlusssignal sendet, wird der Balken nach dieser Zeit automatisch ausgeblendet. Muss groesser als `HideDelay` sein. Muss eine CSS-Zeit sein (z. B. `"15s"`). Ungueltige oder zu kleine Werte fallen auf den Standardwert zurueck. |
+| `LoadingBar:HideDelay` | `string` | `"300ms"` | Verzoegerung nach dem Abschluss der Navigation, bis der Ladebalken ausgeblendet wird. Muss eine CSS-Zeit sein (z. B. `"300ms"`, `"0.5s"`). Ungueltige Werte fallen auf den Standardwert zurueck. |
+| `LoadingBar:MaxVisibleDuration` | `string` | `"15s"` | Maximale Sichtbarkeitsdauer — ein Sicherheits-Timeout. Falls die Navigation nicht abgeschlossen wird oder kein Abschlusssignal sendet, wird der Balken nach dieser Zeit automatisch ausgeblendet. Muss groesser als `HideDelay` sein. Muss eine CSS-Zeit sein (z. B. `"15s"`). Ungueltige oder zu kleine Werte fallen auf den Standardwert zurueck. |
 | `LoadingBar:Colors` | `string[]` | `["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD"]` | Liste der Farben, aus denen bei jeder Navigation eine zufaellig gewaehlt wird. Alle Eintraege muessen gueltige Hex-Farbwerte sein (`#RGB` oder `#RRGGBB`). Ungueltige Eintraege werden entfernt; falls die Liste leer wird, wird die Standardfarbliste verwendet. |
 
 ## Beispiele
@@ -59,7 +59,7 @@ Alle Einstellungen befinden sich unter dem Abschnitt `LoadingBar` in der Datei `
 
 ## Validierung und Fehlerbehandlung
 
-Alle Konfigurationsparameter werden beim Start der Anwendung validiert. Bei ungueltigen Werten:
+Alle Konfigurationsparameter werden beim ersten Rendern der Ladeanimation (verzoegerte Auswertung) validiert. Bei ungueltigen Werten:
 
 1. Der ungueltige Wert wird **nicht** zur Anwendung gefuehrt
 2. Ein Standardwert wird verwendet
@@ -78,13 +78,13 @@ Ergebnis: Der Balken wird mit der Standardhoehe `3px` gerendert
 
 Eingabe: `"Colors": [ "#FF6B6B", "rot", "#4ECDC4" ]`  
 Protokoll: `Invalid LoadingBar:Colors entry 'rot'. Removing it from the color list.`  
-Ergebnis: Nur die beiden gueltig Farben werden verwendet; `"rot"` wird ignoriert
+Ergebnis: Nur die beiden gueltigen Farben werden verwendet; `"rot"` wird ignoriert
 
 ## Umgebungsvariablen
 
 Die `appsettings.json`-Werte koennen auch ueber Umgebungsvariablen ueberschrieben werden. Das ist besonders nuetzlich in Produktionsumgebungen oder in Containern.
 
-Umgebungsvariablenformat: `LoadingBar___{ParameterName}` mit doppeltem Unterstrich als Trennzeichen.
+Umgebungsvariablenformat: `LoadingBar__{ParameterName}` mit doppeltem Unterstrich als Trennzeichen.
 
 Beispiele:
 
