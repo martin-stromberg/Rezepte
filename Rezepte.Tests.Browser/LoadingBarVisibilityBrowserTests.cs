@@ -28,7 +28,7 @@ public class LoadingBarVisibilityBrowserTests(PlaywrightBrowserFixture browserFi
         await pageObject.DelayRouteAsync(LoadingBarPageObject.CookbooksRouteGlob, 1500);
         await pageObject.ClickNavigationLinkAsync(LoadingBarPageObject.CookbooksHref);
 
-        await pageObject.WaitUntilLoadingBarActiveAsync();
+        await pageObject.WaitUntilLoadingBarVisibleAsync();
 
         (await pageObject.GetLoadingBarOpacityAsync()).Should().BeGreaterThan(0);
     }

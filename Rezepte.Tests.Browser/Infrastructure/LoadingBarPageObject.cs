@@ -124,6 +124,14 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
             new PageWaitForFunctionOptions { Timeout = timeoutMilliseconds });
     }
 
+    public async Task WaitUntilLoadingBarVisibleAsync(int timeoutMilliseconds = 2000)
+    {
+        await Page.WaitForFunctionAsync(
+            $"() => {{ const el = document.querySelector('{HostSelector}'); return !!el && parseFloat(getComputedStyle(el).opacity) > 0; }}",
+            arg: null,
+            new PageWaitForFunctionOptions { Timeout = timeoutMilliseconds });
+    }
+
     public async Task WaitUntilLoadingBarColorChangedAsync(string previousColor, int timeoutMilliseconds = 2000)
     {
         await Page.WaitForFunctionAsync(
