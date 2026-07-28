@@ -17,6 +17,13 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
 
     private const string HostSelector = "#loading-bar";
     private const string ActiveClass = "loading-bar-active";
+    private const string SearchInputSelector = "#nav-search";
+    private const string SearchSubmitSelector = "button[aria-label='Suche starten']";
+    private const string ShoppingListEditSelector = "button[aria-label='Bearbeiten']";
+    private const string ShoppingListAddGroupSelector = "button[title='Gruppe hinzufuegen']";
+    private const string ShoppingListAddRowSelector = "form.shopping-add-row";
+    private const string ShoppingListAddRowInputSelector = "form.shopping-add-row input[aria-label='Zutat hinzufuegen']";
+    private const string ShoppingListAddRowSubmitSelector = "form.shopping-add-row button[type='submit']";
 
     private readonly IBrowserContext _context;
     private readonly string _baseAddress;
@@ -60,12 +67,33 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
 
     public async Task DelayRouteAsync(string urlGlobPattern, int delayMilliseconds)
     {
-        await Page.DelayNavigationAsync(urlGlobPattern, delayMilliseconds);
+        await Page.RouteAsync(urlGlobPattern, async route =>
+        {
+            await Task.Delay(delayMilliseconds);
+            await route.ContinueAsync();
+        });
     }
 
     public async Task BlockRouteAsync(string urlGlobPattern)
     {
         await Page.RouteAsync(urlGlobPattern, _ => Task.CompletedTask);
+    }
+
+    public async Task SubmitNavigationSearchAsync(string term)
+    {
+        await Page.FillAsync(SearchInputSelector, term);
+        await Page.ClickAsync(SearchSubmitSelector, new PageClickOptions { NoWaitAfter = true });
+    }
+
+    public async Task SubmitInteractiveShoppingListItemAsync(string itemName)
+    {
+        await GotoAsync(ShoppingListHref);
+        await Page.ClickAsync(ShoppingListEditSelector);
+        await Page.ClickAsync(ShoppingListAddGroupSelector);
+        await Page.WaitForSelectorAsync(ShoppingListAddRowSelector);
+
+        await Page.FillAsync(ShoppingListAddRowInputSelector, itemName);
+        await Page.ClickAsync(ShoppingListAddRowSubmitSelector);
     }
 
     public async Task<bool> IsLoadingBarActiveAsync()

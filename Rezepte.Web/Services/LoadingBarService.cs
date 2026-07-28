@@ -17,9 +17,11 @@ public sealed class LoadingBarService : ILoadingBarService
     private const int HideDelayMaxMilliseconds = 60_000;
     private const int MaxVisibleDurationMinMilliseconds = 100;
     private const int MaxVisibleDurationMaxMilliseconds = 300_000;
+    private const int AnimationDurationMinMilliseconds = 100;
+    private const int AnimationDurationMaxMilliseconds = 60_000;
 
     private static readonly LoadingBarOptions Defaults = new();
-    private static readonly Regex CssLengthPattern = new(@"^\d+(?:\.\d+)?(?:px|rem|em)$", RegexOptions.Compiled);
+    private static readonly Regex CssLengthPattern = new(@"^(\d+(?:\.\d+)?)(?:px|rem|em)$", RegexOptions.Compiled);
     private static readonly Regex CssTimePattern = new(@"^(\d+(?:\.\d+)?)(ms|s)$", RegexOptions.Compiled);
     private static readonly Regex HexColorPattern = new(@"^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$", RegexOptions.Compiled);
     private static readonly int DefaultHideDelayMilliseconds = ToDefaultMilliseconds(Defaults.HideDelay);
@@ -39,8 +41,9 @@ public sealed class LoadingBarService : ILoadingBarService
 
     private LoadingBarSettings BuildSettings(LoadingBarOptions options)
     {
-        var height = ValidateAgainstPattern(options.Height, CssLengthPattern, Defaults.Height, nameof(LoadingBarOptions.Height));
-        var animationDuration = ValidateAgainstPattern(options.AnimationDuration, CssTimePattern, Defaults.AnimationDuration, nameof(LoadingBarOptions.AnimationDuration));
+        var height = ValidateHeight(options.Height, Defaults.Height);
+        var animationDuration = ValidateCssTimeValue(
+            options.AnimationDuration, Defaults.AnimationDuration, nameof(LoadingBarOptions.AnimationDuration), AnimationDurationMinMilliseconds, AnimationDurationMaxMilliseconds);
         var hideDelayMilliseconds = ValidateCssTimeAsMilliseconds(
             options.HideDelay, DefaultHideDelayMilliseconds, nameof(LoadingBarOptions.HideDelay), HideDelayMinMilliseconds, HideDelayMaxMilliseconds);
         var maxVisibleDurationMilliseconds = ValidateCssTimeAsMilliseconds(
@@ -55,6 +58,17 @@ public sealed class LoadingBarService : ILoadingBarService
                 hideDelayMilliseconds,
                 Defaults.MaxVisibleDuration);
             maxVisibleDurationMilliseconds = DefaultMaxVisibleDurationMilliseconds;
+
+            if (maxVisibleDurationMilliseconds <= hideDelayMilliseconds)
+            {
+                _logger.LogWarning(
+                    "LoadingBar:{Field} ({ValueMilliseconds}ms) is still not smaller than the fallback LoadingBar:MaxVisibleDuration ({MaxVisibleDurationMilliseconds}ms). Falling back to default '{Default}'.",
+                    nameof(LoadingBarOptions.HideDelay),
+                    hideDelayMilliseconds,
+                    maxVisibleDurationMilliseconds,
+                    Defaults.HideDelay);
+                hideDelayMilliseconds = DefaultHideDelayMilliseconds;
+            }
         }
 
         var colors = ValidateColors(options.Colors);
@@ -68,9 +82,24 @@ public sealed class LoadingBarService : ILoadingBarService
             maxVisibleDurationMilliseconds);
     }
 
-    private string ValidateAgainstPattern(string? value, Regex pattern, string fallback, string fieldName)
+    private string ValidateHeight(string? value, string fallback)
     {
-        if (!string.IsNullOrWhiteSpace(value) && pattern.IsMatch(value))
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var match = CssLengthPattern.Match(value);
+            if (match.Success && double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) > 0)
+            {
+                return value;
+            }
+        }
+
+        _logger.LogWarning("Invalid LoadingBar:{Field} value '{Value}'. Falling back to default '{Default}'.", nameof(LoadingBarOptions.Height), value, fallback);
+        return fallback;
+    }
+
+    private string ValidateCssTimeValue(string? value, string fallback, string fieldName, int minMilliseconds, int maxMilliseconds)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && TryToMilliseconds(value, out var milliseconds) && milliseconds >= minMilliseconds && milliseconds <= maxMilliseconds)
         {
             return value;
         }

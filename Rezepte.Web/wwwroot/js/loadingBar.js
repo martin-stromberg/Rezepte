@@ -108,6 +108,19 @@
     return url.origin === window.location.origin;
   }
 
+  // Shared by handleLinkClick and handleFormSubmit: an element with a foreign target
+  // (e.g. target="_blank") navigates a different frame/tab, and a resolved URL pointing
+  // to another origin is not something loadingBar can observe completing, so neither
+  // case should trigger the animation.
+  function resolveSameOriginTarget(element, rawUrl) {
+    if (element.target && element.target !== '_self') {
+      return null;
+    }
+
+    const url = resolveUrl(rawUrl);
+    return url && isSameOriginNavigation(url) ? url : null;
+  }
+
   function isFragmentOrCurrentAddress(url) {
     const currentWithoutHash = lastConfirmedUrl.split('#')[0];
     const targetWithoutHash = url.href.split('#')[0];
@@ -143,10 +156,6 @@
       return;
     }
 
-    if (anchor.target && anchor.target !== '_self') {
-      return;
-    }
-
     if (anchor.hasAttribute('download')) {
       return;
     }
@@ -156,8 +165,8 @@
       return;
     }
 
-    const url = resolveUrl(anchor.href);
-    if (!url || !isSameOriginNavigation(url)) {
+    const url = resolveSameOriginTarget(anchor, anchor.href);
+    if (!url) {
       return;
     }
 
@@ -178,15 +187,11 @@
       return;
     }
 
-    if (form.target && form.target !== '_self') {
-      return;
-    }
-
     const submitter = event.submitter;
     const rawAction = (submitter && submitter.getAttribute('formaction')) || form.getAttribute('action') || form.action;
 
-    const url = resolveUrl(rawAction);
-    if (!url || !isSameOriginNavigation(url)) {
+    const url = resolveSameOriginTarget(form, rawAction);
+    if (!url) {
       return;
     }
 

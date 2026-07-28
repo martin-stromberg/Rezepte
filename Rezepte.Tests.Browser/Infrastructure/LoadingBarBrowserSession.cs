@@ -13,10 +13,19 @@ internal static class LoadingBarBrowserSession
         RezepteAppFixture appFixture)
     {
         Skip.IfNot(browserFixture.BrowsersAvailable, browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(appFixture.ApplicationAvailable, RezepteAppFixture.ApplicationUnavailableSkipReason);
+        Skip.IfNot(appFixture.ApplicationAvailable, appFixture.ApplicationUnavailableSkipReason);
 
         var pageObject = await LoadingBarPageObject.CreateAsync(browserFixture.Browser!, appFixture.BaseAddress);
-        await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
+        try
+        {
+            await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
+        }
+        catch
+        {
+            await pageObject.DisposeAsync();
+            throw;
+        }
+
         return pageObject;
     }
 }

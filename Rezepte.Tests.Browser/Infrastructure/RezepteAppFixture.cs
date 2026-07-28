@@ -14,8 +14,6 @@ public class RezepteAppFixture : IAsyncLifetime
 {
     public const string TestUsername = "browsertest";
     public const string TestPassword = "BrowserTest!123";
-    public const string ApplicationUnavailableSkipReason =
-        "Rezepte.Web is not published. Run 'dotnet publish Rezepte.Web -c Release' before running the browser tests.";
 
     private const string PublishDirectoryEnvironmentVariable = "REZEPTE_PUBLISH_DIR";
     private const string RegisterEndpoint = "api/auth/register";
@@ -30,6 +28,8 @@ public class RezepteAppFixture : IAsyncLifetime
     public string BaseAddress { get; private set; } = string.Empty;
 
     public bool ApplicationAvailable { get; private set; }
+
+    public string ApplicationUnavailableSkipReason { get; private set; } = "Rezepte.Web is not published.";
 
     public async Task InitializeAsync()
     {
@@ -69,6 +69,7 @@ public class RezepteAppFixture : IAsyncLifetime
         finally
         {
             _process?.Dispose();
+            _process = null;
 
             if (_tempDirectory is not null && Directory.Exists(_tempDirectory))
             {
@@ -81,6 +82,8 @@ public class RezepteAppFixture : IAsyncLifetime
                     // Best effort cleanup; a lingering temp file must not fail the test run.
                 }
             }
+
+            _tempDirectory = null;
         }
 
         return Task.CompletedTask;
@@ -189,7 +192,7 @@ public class RezepteAppFixture : IAsyncLifetime
         }
     }
 
-    private static string? ResolveApplicationDllPath()
+    private string? ResolveApplicationDllPath()
     {
         var overrideDirectory = Environment.GetEnvironmentVariable(PublishDirectoryEnvironmentVariable);
         if (!string.IsNullOrWhiteSpace(overrideDirectory))
@@ -223,6 +226,13 @@ public class RezepteAppFixture : IAsyncLifetime
         var repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         var dllPath = Path.Combine(repositoryRoot.FullName, "Rezepte.Web", "bin", configuration, tfm, "publish", "Rezepte.Web.dll");
 
-        return File.Exists(dllPath) ? dllPath : null;
+        if (File.Exists(dllPath))
+        {
+            return dllPath;
+        }
+
+        ApplicationUnavailableSkipReason =
+            $"Rezepte.Web is not published at '{dllPath}'. Run 'dotnet publish Rezepte.Web -c {configuration}' before running the browser tests.";
+        return null;
     }
 }
