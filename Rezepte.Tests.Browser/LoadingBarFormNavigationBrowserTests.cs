@@ -24,7 +24,11 @@ public class LoadingBarFormNavigationBrowserTests(PlaywrightBrowserFixture brows
         // ever observe the *new* page's fresh (inactive) bar, never the old page's active one.
         // WaitForFunctionAsync's polling does not have that limitation, so a successful wait
         // here (it throws on timeout) is itself the proof that the bar became active in time.
-        await pageObject.WaitUntilLoadingBarActiveAsync();
+        // The default 1000ms timeout is too tight here: unlike a client-side link click, this
+        // submit first needs a full SignalR round trip to invoke OnSubmitSearch on the server
+        // before NavigateTo() (and therefore 'beforeunload') even happens, which is noticeably
+        // slower under load (e.g. on a shared CI runner) than the near-instant enhanced-nav path.
+        await pageObject.WaitUntilLoadingBarActiveAsync(timeoutMilliseconds: 5000);
     }
 
     [SkippableFact]
