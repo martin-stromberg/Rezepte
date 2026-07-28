@@ -49,7 +49,7 @@ jobs:
         run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test Rezepte.sln --configuration Release --no-build --logger "console;verbosity=detailed"
+        run: dotnet test Rezepte.sln --configuration Release --no-build
 
       - name: Export import plugin contract
         shell: pwsh
