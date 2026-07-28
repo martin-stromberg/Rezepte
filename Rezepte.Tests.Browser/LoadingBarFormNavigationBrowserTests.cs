@@ -17,9 +17,14 @@ public class LoadingBarFormNavigationBrowserTests(PlaywrightBrowserFixture brows
         await pageObject.DelayRouteAsync(LoadingBarPageObject.SearchRouteGlob, 1500);
         await pageObject.SubmitNavigationSearchAsync("Suppe");
 
+        // Unlike an enhanced-navigation link click, this search submit performs a genuine
+        // full-page navigation (NavigationManager.NavigateTo() from the server-side handler).
+        // Once such a navigation is in flight, Playwright's single-shot queries against the
+        // page (e.g. GetAttributeAsync) block until the navigation settles - they would only
+        // ever observe the *new* page's fresh (inactive) bar, never the old page's active one.
+        // WaitForFunctionAsync's polling does not have that limitation, so a successful wait
+        // here (it throws on timeout) is itself the proof that the bar became active in time.
         await pageObject.WaitUntilLoadingBarActiveAsync();
-
-        (await pageObject.IsLoadingBarActiveAsync()).Should().BeTrue();
     }
 
     [SkippableFact]
@@ -29,8 +34,8 @@ public class LoadingBarFormNavigationBrowserTests(PlaywrightBrowserFixture brows
 
         // The shopping list's "add item" form uses @onsubmit:preventDefault on an
         // @rendermode InteractiveServer component: the submit is handled entirely over the
-        // circuit and never triggers a navigation. loadingBar.js's capture-phase submit
-        // listener must not activate the bar for this kind of submit.
+        // circuit and never triggers a navigation, so neither Blazor's 'enhancednavigationstart'
+        // nor the browser's own 'beforeunload' fire for it - the bar must stay inactive.
         await pageObject.SubmitInteractiveShoppingListItemAsync("Testzutat");
 
         // There is no positive signal to poll for here: the bar must never activate, so a
