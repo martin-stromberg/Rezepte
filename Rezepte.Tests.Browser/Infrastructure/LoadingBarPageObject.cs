@@ -9,6 +9,12 @@ namespace Rezepte.Tests.Browser.Infrastructure;
 /// </summary>
 public sealed class LoadingBarPageObject : IAsyncDisposable
 {
+    public const string CookbooksHref = "/cookbooks";
+    public const string CookbooksRouteGlob = "**/cookbooks";
+    public const string ShoppingListHref = "/shopping-list";
+    public const string ShoppingListRouteGlob = "**/shopping-list";
+    public const string SearchRouteGlob = "**/recipes/search*";
+
     private const string HostSelector = "#loading-bar";
     private const string ActiveClass = "loading-bar-active";
 
@@ -47,6 +53,21 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
         await Page.GotoAsync($"{_baseAddress}{path}");
     }
 
+    public async Task ClickNavigationLinkAsync(string href)
+    {
+        await Page.ClickAsync($"a[href='{href}']", new PageClickOptions { NoWaitAfter = true });
+    }
+
+    public async Task DelayRouteAsync(string urlGlobPattern, int delayMilliseconds)
+    {
+        await Page.DelayNavigationAsync(urlGlobPattern, delayMilliseconds);
+    }
+
+    public async Task BlockRouteAsync(string urlGlobPattern)
+    {
+        await Page.RouteAsync(urlGlobPattern, _ => Task.CompletedTask);
+    }
+
     public async Task<bool> IsLoadingBarActiveAsync()
     {
         var classAttribute = await Page.GetAttributeAsync(HostSelector, "class");
@@ -72,6 +93,14 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
         await Page.WaitForFunctionAsync(
             $"() => {{ const el = document.querySelector('{HostSelector}'); return !!el && el.classList.contains('{ActiveClass}'); }}",
             arg: null,
+            new PageWaitForFunctionOptions { Timeout = timeoutMilliseconds });
+    }
+
+    public async Task WaitUntilLoadingBarColorChangedAsync(string previousColor, int timeoutMilliseconds = 2000)
+    {
+        await Page.WaitForFunctionAsync(
+            $"expected => {{ const el = document.querySelector('{HostSelector}'); return !!el && getComputedStyle(el).getPropertyValue('--loading-bar-color').trim() !== expected; }}",
+            arg: previousColor,
             new PageWaitForFunctionOptions { Timeout = timeoutMilliseconds });
     }
 

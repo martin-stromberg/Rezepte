@@ -71,6 +71,36 @@ public class LoadingBarServiceValidationTests
     }
 
     [Fact]
+    public void GetSettings_WithHideDelayAboveMaximum_FallsBackToDefaultHideDelay()
+    {
+        var sut = LoadingBarServiceTestFactory.CreateService(new LoadingBarOptions { HideDelay = "999999999s" });
+
+        var result = sut.GetSettings();
+
+        result.HideDelayMilliseconds.Should().Be(300);
+    }
+
+    [Fact]
+    public void GetSettings_WithMaxVisibleDurationAboveMaximum_FallsBackToDefaultMaxVisibleDuration()
+    {
+        var sut = LoadingBarServiceTestFactory.CreateService(new LoadingBarOptions { MaxVisibleDuration = "999999999s" });
+
+        var result = sut.GetSettings();
+
+        result.MaxVisibleDurationMilliseconds.Should().Be(15000);
+    }
+
+    [Fact]
+    public void GetSettings_WithMaxVisibleDurationBelowMinimum_FallsBackToDefaultMaxVisibleDuration()
+    {
+        var sut = LoadingBarServiceTestFactory.CreateService(new LoadingBarOptions { MaxVisibleDuration = "50ms" });
+
+        var result = sut.GetSettings();
+
+        result.MaxVisibleDurationMilliseconds.Should().Be(15000);
+    }
+
+    [Fact]
     public void GetSettings_WithInvalidColorEntries_RemovesInvalidEntries()
     {
         var sut = LoadingBarServiceTestFactory.CreateService(new LoadingBarOptions { Colors = new[] { "#FF6B6B", "not-a-color", "#123" } });
@@ -87,7 +117,7 @@ public class LoadingBarServiceValidationTests
 
         var result = sut.GetSettings();
 
-        result.Colors.Should().BeEquivalentTo(new LoadingBarOptions().Colors);
+        result.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
     [Fact]
@@ -97,7 +127,7 @@ public class LoadingBarServiceValidationTests
 
         var result = sut.GetSettings();
 
-        result.Colors.Should().BeEquivalentTo(new LoadingBarOptions().Colors);
+        result.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
     [Fact]
@@ -107,7 +137,7 @@ public class LoadingBarServiceValidationTests
 
         var result = sut.GetSettings();
 
-        result.Colors.Should().BeEquivalentTo(new LoadingBarOptions().Colors);
+        result.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
     [Fact]

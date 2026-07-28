@@ -13,11 +13,17 @@ namespace Rezepte.Web.Services;
 /// </summary>
 public sealed class LoadingBarService : ILoadingBarService
 {
+    private const int HideDelayMinMilliseconds = 0;
+    private const int HideDelayMaxMilliseconds = 60_000;
+    private const int MaxVisibleDurationMinMilliseconds = 100;
+    private const int MaxVisibleDurationMaxMilliseconds = 300_000;
+
     private static readonly LoadingBarOptions Defaults = new();
-    private static readonly IReadOnlyList<string> DefaultColors = new ReadOnlyCollection<string>(new LoadingBarOptions().Colors);
     private static readonly Regex CssLengthPattern = new(@"^\d+(?:\.\d+)?(?:px|rem|em)$", RegexOptions.Compiled);
     private static readonly Regex CssTimePattern = new(@"^(\d+(?:\.\d+)?)(ms|s)$", RegexOptions.Compiled);
     private static readonly Regex HexColorPattern = new(@"^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$", RegexOptions.Compiled);
+    private static readonly int DefaultHideDelayMilliseconds = ToDefaultMilliseconds(Defaults.HideDelay);
+    private static readonly int DefaultMaxVisibleDurationMilliseconds = ToDefaultMilliseconds(Defaults.MaxVisibleDuration);
 
     private readonly ILogger<LoadingBarService> _logger;
     private readonly Lazy<LoadingBarSettings> _settings;
@@ -35,8 +41,10 @@ public sealed class LoadingBarService : ILoadingBarService
     {
         var height = ValidateAgainstPattern(options.Height, CssLengthPattern, Defaults.Height, nameof(LoadingBarOptions.Height));
         var animationDuration = ValidateAgainstPattern(options.AnimationDuration, CssTimePattern, Defaults.AnimationDuration, nameof(LoadingBarOptions.AnimationDuration));
-        var hideDelayMilliseconds = ValidateCssTimeAsMilliseconds(options.HideDelay, ToDefaultMilliseconds(Defaults.HideDelay), nameof(LoadingBarOptions.HideDelay));
-        var maxVisibleDurationMilliseconds = ValidateCssTimeAsMilliseconds(options.MaxVisibleDuration, ToDefaultMilliseconds(Defaults.MaxVisibleDuration), nameof(LoadingBarOptions.MaxVisibleDuration));
+        var hideDelayMilliseconds = ValidateCssTimeAsMilliseconds(
+            options.HideDelay, DefaultHideDelayMilliseconds, nameof(LoadingBarOptions.HideDelay), HideDelayMinMilliseconds, HideDelayMaxMilliseconds);
+        var maxVisibleDurationMilliseconds = ValidateCssTimeAsMilliseconds(
+            options.MaxVisibleDuration, DefaultMaxVisibleDurationMilliseconds, nameof(LoadingBarOptions.MaxVisibleDuration), MaxVisibleDurationMinMilliseconds, MaxVisibleDurationMaxMilliseconds);
 
         if (maxVisibleDurationMilliseconds <= hideDelayMilliseconds)
         {
@@ -46,7 +54,7 @@ public sealed class LoadingBarService : ILoadingBarService
                 maxVisibleDurationMilliseconds,
                 hideDelayMilliseconds,
                 Defaults.MaxVisibleDuration);
-            maxVisibleDurationMilliseconds = ToDefaultMilliseconds(Defaults.MaxVisibleDuration);
+            maxVisibleDurationMilliseconds = DefaultMaxVisibleDurationMilliseconds;
         }
 
         var colors = ValidateColors(options.Colors);
@@ -71,11 +79,24 @@ public sealed class LoadingBarService : ILoadingBarService
         return fallback;
     }
 
-    private int ValidateCssTimeAsMilliseconds(string? value, int fallbackMilliseconds, string fieldName)
+    private int ValidateCssTimeAsMilliseconds(string? value, int fallbackMilliseconds, string fieldName, int minMilliseconds, int maxMilliseconds)
     {
         if (!string.IsNullOrWhiteSpace(value) && TryToMilliseconds(value, out var milliseconds))
         {
-            return milliseconds;
+            if (milliseconds >= minMilliseconds && milliseconds <= maxMilliseconds)
+            {
+                return milliseconds;
+            }
+
+            _logger.LogWarning(
+                "LoadingBar:{Field} value '{Value}' ({ValueMilliseconds}ms) is outside the allowed range [{MinMilliseconds}ms, {MaxMilliseconds}ms]. Falling back to default '{DefaultMilliseconds}ms'.",
+                fieldName,
+                value,
+                milliseconds,
+                minMilliseconds,
+                maxMilliseconds,
+                fallbackMilliseconds);
+            return fallbackMilliseconds;
         }
 
         _logger.LogWarning("Invalid LoadingBar:{Field} value '{Value}'. Falling back to default '{DefaultMilliseconds}ms'.", fieldName, value, fallbackMilliseconds);
@@ -100,7 +121,7 @@ public sealed class LoadingBarService : ILoadingBarService
         if (validColors.Count == 0)
         {
             _logger.LogWarning("LoadingBar:Colors contains no valid entries after filtering. Falling back to the default color list.");
-            return DefaultColors;
+            return LoadingBarOptions.DefaultColors;
         }
 
         return new ReadOnlyCollection<string>(validColors);

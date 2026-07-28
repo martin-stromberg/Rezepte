@@ -1,7 +1,7 @@
 .loading-bar {
     --loading-bar-indicator-width: 30%;
     width: 100%;
-    height: var(--loading-bar-height, 3px);
+    height: var(--loading-bar-height);
     overflow: hidden;
     opacity: 0;
     transition: opacity 200ms ease-out;
@@ -22,7 +22,7 @@
 }
 
 .loading-bar.loading-bar-active .loading-bar-indicator {
-    animation: rezepte-loading-bar-sweep var(--loading-bar-duration, 2s) linear infinite;
+    animation: rezepte-loading-bar-sweep var(--loading-bar-duration) linear infinite;
 }
 
 @keyframes rezepte-loading-bar-sweep {

@@ -95,7 +95,7 @@ public class LoadingBarRenderingTests : IDisposable
             enabled,
             height,
             animationDuration,
-            colors ?? new LoadingBarOptions().Colors,
+            colors ?? LoadingBarOptions.DefaultColors,
             hideDelayMilliseconds,
             maxVisibleDurationMilliseconds);
     }

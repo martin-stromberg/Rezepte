@@ -33,13 +33,13 @@ Unter der Navigationsleiste wird waehrend der Navigation automatisch eine schmal
 Die Animation wird ausgeloest durch:
 - Klick auf einen Navigationslink
 - Absenden der Suchleiste
-- Absenden von Formulareneː Login, Registrierung, Abmeldung oder andere Formulare
+- Absenden von Formularen: Login, Registrierung, Abmeldung oder andere Formulare
 
-Die Ladebalke wird mit einer zufaellig gewaehlten Farbe aus einer vorkonfigurierten Palette angezeigt und bewegt sich von rechts nach links. Sie verschwindet nach Abschluss der Navigation. Bei wiederholten, schnellen Navigationen wird die Farbe bei jedem Klick neu gewaelt, damit der Farbwechsel dem Benutzer signalisiert, dass seine Interaktion registriert wurde.
+Der Ladebalken wird mit einer zufaellig gewaehlten Farbe aus einer vorkonfigurierten Palette angezeigt und bewegt sich von rechts nach links. Er verschwindet nach Abschluss der Navigation. Bei wiederholten, schnellen Navigationen wird die Farbe bei jedem Klick neu gewaehlt, damit der Farbwechsel dem Benutzer signalisiert, dass seine Interaktion registriert wurde.
 
 Konfiguration: Ein Administrator kann das Feature vollstaendig deaktivieren, die Hoehe, die Animationsdauer, die Verzögerung bis zum Ausblenden und die verfuegbare Farbliste in der `appsettings.json` unter dem Abschnitt `LoadingBar` anpassen.
 
-Barrierefreiheit: Die Ladebalke wird von Screenreadern ausgeblendet (`aria-hidden="true"`). Sie respektiert die Benutzereinstellung `prefers-reduced-motion: reduce` — statt einer kontinuierlichen Bewegung erscheint in diesem Fall ein statischer, farbiger Balken.
+Barrierefreiheit: Der Ladebalken wird von Screenreadern ausgeblendet (`aria-hidden="true"`). Sie respektiert die Benutzereinstellung `prefers-reduced-motion: reduce` — statt einer kontinuierlichen Bewegung erscheint in diesem Fall ein statischer, farbiger Balken.
 
 ## Einrichtung
 

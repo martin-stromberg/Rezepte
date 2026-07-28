@@ -49,18 +49,11 @@
     return color;
   }
 
-  function clearSafetyTimer() {
-    if (safetyTimer) {
-      clearTimeout(safetyTimer);
-      safetyTimer = null;
+  function clearTimer(timerId) {
+    if (timerId) {
+      clearTimeout(timerId);
     }
-  }
-
-  function clearHideTimer() {
-    if (hideTimer) {
-      clearTimeout(hideTimer);
-      hideTimer = null;
-    }
+    return null;
   }
 
   function deactivate() {
@@ -68,7 +61,7 @@
   }
 
   function startAnimation() {
-    clearHideTimer();
+    hideTimer = clearTimer(hideTimer);
 
     const color = pickColor();
     if (color) {
@@ -79,7 +72,7 @@
     void host.offsetWidth; // force reflow so the animation restarts
     host.classList.add(ACTIVE_CLASS);
 
-    clearSafetyTimer();
+    safetyTimer = clearTimer(safetyTimer);
     if (maxVisibleDuration > 0) {
       safetyTimer = setTimeout(function () {
         safetyTimer = null;
@@ -90,8 +83,8 @@
 
   function completeNavigation() {
     lastConfirmedUrl = window.location.href;
-    clearSafetyTimer();
-    clearHideTimer();
+    safetyTimer = clearTimer(safetyTimer);
+    hideTimer = clearTimer(hideTimer);
 
     hideTimer = setTimeout(function () {
       hideTimer = null;
@@ -100,7 +93,7 @@
   }
 
   function isIgnorableInteraction(event) {
-    return event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+    return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
   }
 
   function resolveUrl(rawUrl) {
@@ -123,6 +116,21 @@
 
   function isBarCurrentlyActive() {
     return host.classList.contains(ACTIVE_CLASS);
+  }
+
+  // event.defaultPrevented only reflects every handler's decision once event delivery has
+  // fully completed. Both loadingBar's own listener and any handler that may call
+  // preventDefault() (e.g. an interactive Blazor component) are registered for the same
+  // event, so checking defaultPrevented synchronously here would always observe it as false
+  // regardless of what those other handlers do. Deferring via setTimeout(..., 0) runs the
+  // check after the browser has finished dispatching the event to all listeners, while the
+  // event object itself remains valid for that check.
+  function startAnimationUnlessPrevented(event) {
+    setTimeout(function () {
+      if (!event.defaultPrevented) {
+        startAnimation();
+      }
+    }, 0);
   }
 
   function handleLinkClick(event) {
@@ -157,7 +165,7 @@
       return;
     }
 
-    startAnimation();
+    startAnimationUnlessPrevented(event);
   }
 
   // Unlike handleLinkClick, this handler intentionally does not skip same-address targets.
@@ -165,10 +173,6 @@
   // validation failure), and that is a real navigation that must be announced, whereas a
   // same-address anchor click typically navigates nowhere.
   function handleFormSubmit(event) {
-    if (event.defaultPrevented) {
-      return;
-    }
-
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) {
       return;
@@ -186,7 +190,7 @@
       return;
     }
 
-    startAnimation();
+    startAnimationUnlessPrevented(event);
   }
 
   document.addEventListener('click', handleLinkClick, true);

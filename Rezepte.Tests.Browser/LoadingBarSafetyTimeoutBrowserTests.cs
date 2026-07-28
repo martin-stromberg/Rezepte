@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.Playwright;
 using Rezepte.Tests.Browser.Infrastructure;
 using Xunit;
 
@@ -17,9 +16,9 @@ public class LoadingBarSafetyTimeoutBrowserTests(
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(browserFixture, appFixture);
 
         // Route the target navigation but never fulfill, continue, or abort it, so the request hangs forever.
-        await pageObject.Page.RouteAsync("**/shopping-list", _ => Task.CompletedTask);
+        await pageObject.BlockRouteAsync(LoadingBarPageObject.ShoppingListRouteGlob);
 
-        await pageObject.Page.ClickAsync("a[href='/shopping-list']", new PageClickOptions { NoWaitAfter = true });
+        await pageObject.ClickNavigationLinkAsync(LoadingBarPageObject.ShoppingListHref);
 
         await pageObject.WaitUntilLoadingBarActiveAsync();
         (await pageObject.IsLoadingBarActiveAsync()).Should().BeTrue();

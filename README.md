@@ -118,19 +118,6 @@ Das Testprojekt `Rezepte.Tests` deckt zentrale Services wie Benutzer, Kochbueche
 
 Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koennen wie ueblich per User Secrets, Umgebungsvariablen oder Deployment-Konfiguration ueberschrieben werden.
 
-### Ladebalken und visuelles Feedback
-
-Bei der Navigation (Klicks auf Navigationslinks oder Absenden von Formularen) wird ein schmaler, farbiger Ladebalken unterhalb der Navigationsleiste angezeigt. Der Balken:
-
-- Erscheint sofort beim Benutzerinterakt und bietet Feedback auf langsamen Servern
-- Nutzt eine zufaellig gewaehlte Farbe aus der konfigurierten Farbpalette
-- Animiert sich mit einer linearen Bewegung von rechts nach links (Sweep-Effekt)
-- Wird ausgeblendet, sobald die Navigation abgeschlossen ist oder ein Sicherheits-Timeout auslaueft
-
-Das Feature ist standarmaessig aktiviert (`LoadingBar:Enabled: true`), kann aber global deaktiviert werden. Bei aktiviertem `prefers-reduced-motion` (Systemeinstellung) wird die Bewegung durch einen statischen, farbigen Balken ersetzt.
-
-**Konfigurierbare Parameter:**
-
 | Einstellung | Bedeutung |
 |-------------|-----------|
 | `ConnectionStrings:Default` | SQLite-Connection-String. Fallback: `Data Source=rezepte.db`. |
@@ -147,6 +134,12 @@ Das Feature ist standarmaessig aktiviert (`LoadingBar:Enabled: true`), kann aber
 | `LoadingBar:HideDelay` | Wartezeit nach Navigationabschluss bis zum Ausblenden des Balkens, z. B. `"300ms"` (Standard: `"300ms"`). |
 | `LoadingBar:MaxVisibleDuration` | Sicherheitsgrenze, nach der der Balken auch ohne Abschlusssignal ausgeblendet wird, z. B. `"15s"` (Standard: `"15s"`). |
 | `LoadingBar:Colors` | Liste von Hexfarben in der Form `["#RGB", "#RRGGBB", ...]`, aus denen pro Navigationsinteraktion eine zufaellige Farbe gewaehlt wird. |
+
+### Ladebalken und visuelles Feedback
+
+Bei der Navigation (Klicks auf Navigationslinks oder Absenden von Formularen) wird ein schmaler, farbiger Ladebalken unterhalb der Navigationsleiste angezeigt. Der Balken erscheint sofort bei Benutzerinteraktionen und bietet Feedback auf langsamen Servern, nutzt eine zufaellig gewaehlte Farbe aus der konfigurierten Farbpalette und animiert sich mit einer linearen Bewegung von rechts nach links (Sweep-Effekt). Er wird ausgeblendet, sobald die Navigation abgeschlossen ist oder ein Sicherheits-Timeout auslaeuft.
+
+Das Feature ist standardmaessig aktiviert (`LoadingBar:Enabled: true`), kann aber global deaktiviert werden. Bei aktiviertem `prefers-reduced-motion` (Systemeinstellung) wird die Bewegung durch einen statischen, farbigen Balken ersetzt. Details zu allen `LoadingBar:*`-Parametern stehen in `Docs/help/loading-bar-configuration.md`.
 
 ## Daten und Sicherheit
 

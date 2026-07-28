@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.Playwright;
 using Rezepte.Tests.Browser.Infrastructure;
 using Xunit;
 
@@ -13,8 +12,8 @@ public class LoadingBarVisibilityBrowserTests(PlaywrightBrowserFixture browserFi
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(browserFixture, appFixture);
 
-        await pageObject.Page.DelayNavigationAsync("**/cookbooks", 1500);
-        await pageObject.Page.ClickAsync("a[href='/cookbooks']", new PageClickOptions { NoWaitAfter = true });
+        await pageObject.DelayRouteAsync(LoadingBarPageObject.CookbooksRouteGlob, 1500);
+        await pageObject.ClickNavigationLinkAsync(LoadingBarPageObject.CookbooksHref);
 
         await pageObject.WaitUntilLoadingBarActiveAsync();
 
@@ -26,8 +25,8 @@ public class LoadingBarVisibilityBrowserTests(PlaywrightBrowserFixture browserFi
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(browserFixture, appFixture);
 
-        await pageObject.Page.DelayNavigationAsync("**/cookbooks", 1500);
-        await pageObject.Page.ClickAsync("a[href='/cookbooks']", new PageClickOptions { NoWaitAfter = true });
+        await pageObject.DelayRouteAsync(LoadingBarPageObject.CookbooksRouteGlob, 1500);
+        await pageObject.ClickNavigationLinkAsync(LoadingBarPageObject.CookbooksHref);
 
         await pageObject.WaitUntilLoadingBarActiveAsync();
 
@@ -39,8 +38,8 @@ public class LoadingBarVisibilityBrowserTests(PlaywrightBrowserFixture browserFi
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(browserFixture, appFixture);
 
-        await pageObject.Page.DelayNavigationAsync("**/cookbooks", 800);
-        await pageObject.Page.ClickAsync("a[href='/cookbooks']", new PageClickOptions { NoWaitAfter = true });
+        await pageObject.DelayRouteAsync(LoadingBarPageObject.CookbooksRouteGlob, 800);
+        await pageObject.ClickNavigationLinkAsync(LoadingBarPageObject.CookbooksHref);
 
         await pageObject.WaitUntilLoadingBarActiveAsync();
         (await pageObject.IsLoadingBarActiveAsync()).Should().BeTrue();
