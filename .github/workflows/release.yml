@@ -99,11 +99,31 @@ jobs:
       - name: Restore publish runtime
         run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime linux-x64
 
+      - name: Build application and plugins
+        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
+
+      - name: Build browser tests
+        run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
+
+      - name: Install Playwright browsers
+        run: |
+          PLAYWRIGHT_SCRIPT=$(find Rezepte.Tests.Browser/bin/Release -name "playwright.ps1" | head -n 1)
+          if [ -z "$PLAYWRIGHT_SCRIPT" ]; then
+            echo "playwright.ps1 not found under Rezepte.Tests.Browser/bin/Release - did the browser test build succeed?" >&2
+            exit 1
+          fi
+          pwsh "$PLAYWRIGHT_SCRIPT" install --with-deps chromium
+
+      - name: Publish application for browser tests
+        run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
       - name: Test
         run: |
-          dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
-          dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
-          dotnet test Rezepte.sln --configuration Release --no-build
+          dotnet test Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-build
+          dotnet test Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-build
 
       - name: Publish
         run: >

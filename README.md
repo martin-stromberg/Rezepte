@@ -156,7 +156,7 @@ Das Feature ist standardmaessig aktiviert (`LoadingBar:Enabled: true`), kann abe
 
 `Docs/install.md` ist die verbindliche Schritt-fuer-Schritt-Anleitung fuer Publish, Runtime-Pruefung und systemd-Betrieb auf Linux, zum Beispiel aus `/var/www/rezepte`.
 
-GitHub Actions pruefen Pull Requests gegen `main` automatisch mit Restore, Build, Tests, Contract-Export, optionalem ApiCompat-Vergleich gegen die neueste passende gespeicherte Contract-Baseline und Format-Check. Nach einem gemergten Pull Request erstellt der Release-Workflow ein `release.zip` sowie ein separates Import-Contract-ZIP als Actions-Artefakte und bei SemVer-relevanten Conventional Commits zusaetzlich einen GitHub Release. Details stehen in `Docs/help/github-actions.md`.
+GitHub Actions pruefen Pull Requests gegen `main` automatisch mit Restore, Build, Tests, Contract-Export, optionalem ApiCompat-Vergleich gegen die neueste passende gespeicherte Contract-Baseline und Format-Check. Nach einem gemergten Pull Request baut der Release-Workflow die Anwendung sowie beide Testprojekte, bereitet Playwright fuer die Browser-Tests vor, fuehrt die Release-Tests projektweise aus und erstellt anschliessend ein `release.zip` sowie ein separates Import-Contract-ZIP als Actions-Artefakte. Bei SemVer-relevanten Conventional Commits wird zusaetzlich ein GitHub Release erstellt. Details stehen in `Docs/help/github-actions.md`.
 
 Typischer framework-abhaengiger Publish-Befehl:
 
