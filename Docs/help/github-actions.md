@@ -24,7 +24,16 @@ Schlaegt dieser Schritt mit `CP0001`/`CP0002`-Meldungen fehl, weil eine PR die o
 
 Der Workflow `.github/workflows/release.yml` startet, wenn ein Pull Request gegen `main` geschlossen und tatsaechlich gemergt wurde. Geschlossene, nicht gemergte Pull Requests loesen keinen Release-Build aus.
 
-Der Release-Job checkt den Merge-Commit aus, fuehrt Tests aus, publisht `Rezepte.Web` framework-abhaengig fuer `net10.0` und `linux-x64` und erstellt daraus `release.zip`. Zusaetzlich erzeugt `scripts/Export-ImportContract.ps1` ein separates Import-Contract-ZIP mit `contract-export.json`, Dateihashes, ZIP-SHA-256-Metadaten und ApiCompat-Baseline-DLLs. Web-ZIP und Contract-ZIP werden als getrennte GitHub-Actions-Artefakte hochgeladen.
+Der Release-Job checkt den Merge-Commit aus, baut die Anwendung sowie beide Testprojekte, fuehrt Tests aus, publisht `Rezepte.Web` framework-abhaengig fuer `net10.0` und `linux-x64` und erstellt daraus `release.zip`. Zusaetzlich erzeugt `scripts/Export-ImportContract.ps1` ein separates Import-Contract-ZIP mit `contract-export.json`, Dateihashes, ZIP-SHA-256-Metadaten und ApiCompat-Baseline-DLLs. Web-ZIP und Contract-ZIP werden als getrennte GitHub-Actions-Artefakte hochgeladen.
+
+Vor den Browser-Tests installiert der Release-Workflow die Playwright-Abhaengigkeiten fuer Chromium ueber das beim Build von `Rezepte.Tests.Browser` erzeugte `playwright.ps1`-Skript. Ausserdem wird `Rezepte.Web` vorab ohne runtime-spezifisches Ausgabeziel veroeffentlicht, damit die Browser-Testfixture den erwarteten Publish-Output findet.
+
+Die Release-Tests werden projektweise gestartet:
+
+- `dotnet test Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-build`
+- `dotnet test Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-build`
+
+Der Release-Workflow uebergibt keine gebauten Testassemblies als freie Argumente an den Testrunner. Dadurch bleibt der Testaufruf mit dem .NET-10-Testrunner kompatibel und `Rezepte.Tests.Browser.dll` wird nicht als ungueltiges Kommandozeilenargument interpretiert.
 
 Das Contract-ZIP ist fuer externe Import-Plugin-Repositories credential-frei abrufbar, sobald es als Release-Asset veroeffentlicht wurde. Die Release-Notizen nennen `contractVersion`, `sourceCommit`, ZIP-SHA-256, den Contract-Assetnamen und die konkrete URL `https://github.com/<owner>/<repo>/releases/download/<tag>/rezepte-import-contract-<contractVersion>.zip`. Dieselbe URL wird in der als Release-Asset veroeffentlichten `contract-export.metadata.json` als `artifactUrl` ergaenzt. Actions-Artefakte aus nicht taggenden Merges bleiben CI-Artefakte und sind nicht der dokumentierte credential-freie Plugin-Importpfad. Ein normaler Plugin-Build laedt diesen Stand nicht automatisch herunter; Updates werden im Plugin-Repository manuell mit konkreter Artefakt-URL und erwartetem ZIP-SHA-256 ausgefuehrt.
 
