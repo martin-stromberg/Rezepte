@@ -1,0 +1,22 @@
+# Auto detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# Ensure UTF-8 encoding for text files
+*.cs text diff=utf8
+*.razor text diff=utf8
+*.csproj text diff=utf8
+*.json text diff=utf8
+*.md text diff=utf8
+*.txt text diff=utf8
+*.xml text diff=utf8
+*.xaml text diff=utf8
+*.config text diff=utf8
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
