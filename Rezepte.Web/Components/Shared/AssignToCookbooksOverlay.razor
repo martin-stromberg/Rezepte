@@ -2,25 +2,25 @@
 @inject ApiClient Api
 @inject IJSRuntime JS
 
-@* If Show param exists — render overlay wrapper *@
+@* If Show param exists ? render overlay wrapper *@
 @if (Show)
 {
     <div class="overlay-backdrop" @onclick="OnClose">
         <div class="overlay-content overlay-assign" @onclick:stopPropagation>
-            <button class="btn btn-sm btn-danger overlay-close" @onclick="OnCancelClick">×</button>
-            <h5>Zuweisung zu Kochbüchern</h5>
-            <p class="text-muted">Wähle aus, in welchen Kochbüchern dieses Rezept erscheinen soll.</p>
+            <button class="btn btn-sm btn-danger overlay-close" @onclick="OnCancelClick">Ã—</button>
+            <h5>Zuweisung zu KochbÃ¼chern</h5>
+            <p class="text-muted">WÃ¤hle aus, in welchen KochbÃ¼chern dieses Rezept erscheinen soll.</p>
 
             @if (isLoading)
             {
-                <div class="text-muted">Lade…</div>
+                <div class="text-muted">Lade...</div>
             }
             else
             {
                 <div class="mb-3" style="max-height:40vh; overflow:auto;">
                     @if (cookbooks?.Count == 0)
                     {
-                        <div class="text-muted">Keine Kochbücher vorhanden.</div>
+                        <div class="text-muted">Keine KochbÃ¼cher vorhanden.</div>
                     }
                     else
                     {
@@ -74,7 +74,7 @@
             // POST api/cookbooks/{cookbookId}/recipes (body: array of recipeIds) => adds recipes to cookbook
             // DELETE api/cookbooks/{cookbookId}/recipes/{recipeId} => removes recipe from cookbook
             //
-            // Passe die URLs an euer API an falls nötig.
+            // Passe die URLs an euer API an falls nÃ¶tig.
 
             cookbooks = await Api.Http.GetFromJsonAsync<List<CookbookDto>>("api/cookbooks");
             var assigned = await Api.Http.GetFromJsonAsync<List<string>>($"api/recipes/{RecipeId}/cookbooks");
@@ -114,7 +114,7 @@
                 var resp = await Api.Http.PostAsync($"api/cookbooks/{cbId}/recipes", body);
                 if (!resp.IsSuccessStatusCode)
                 {
-                    message = $"Hinzufügen in '{cbId}' fehlgeschlagen: {resp.StatusCode}";
+                    message = $"HinzufÃ¼gen in '{cbId}' fehlgeschlagen: {resp.StatusCode}";
                 }
             }
 

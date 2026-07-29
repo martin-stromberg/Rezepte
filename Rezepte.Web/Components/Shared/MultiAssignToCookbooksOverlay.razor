@@ -9,20 +9,20 @@ else
 {
     <div class="overlay-backdrop" @onclick="OnCancelClick">
         <div class="overlay-content" @onclick:stopPropagation>
-            <button class="btn btn-sm btn-danger overlay-close" @onclick="OnCancelClick">×</button>
-            <h5>Zuweisung zu Kochbüchern (Mehrfachauswahl)</h5>
-            <p class="text-muted">Wähle die Kochbücher, in denen die ausgewählten Rezepte erscheinen sollen.</p>
+            <button class="btn btn-sm btn-danger overlay-close" @onclick="OnCancelClick">Ã—</button>
+            <h5>Zuweisung zu KochbÃ¼chern (Mehrfachauswahl)</h5>
+            <p class="text-muted">WÃ¤hle die KochbÃ¼cher, in denen die ausgewÃ¤hlten Rezepte erscheinen sollen.</p>
 
             @if (isLoading)
             {
-                <div class="text-muted">Lade…</div>
+                <div class="text-muted">Lade...</div>
             }
             else
             {
                 <div class="mb-3" style="max-height:40vh; overflow:auto;">
                     @if (cookbooks?.Count == 0)
                     {
-                        <div class="text-muted">Keine Kochbücher vorhanden.</div>
+                        <div class="text-muted">Keine KochbÃ¼cher vorhanden.</div>
                     }
                     else
                     {
@@ -143,7 +143,7 @@ else
                 var resp = await Api.Http.PostAsync($"api/cookbooks/{cbId}/recipes", body);
                 if (!resp.IsSuccessStatusCode)
                 {
-                    message = $"Hinzufügen in '{cbId}' fehlgeschlagen: {resp.StatusCode}";
+                    message = $"HinzufÃ¼gen in '{cbId}' fehlgeschlagen: {resp.StatusCode}";
                 }
             }
 
