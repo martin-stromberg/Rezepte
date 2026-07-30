@@ -14,6 +14,14 @@ Administratoren starten die Sicherung unter "Sicherung" ueber "Gesamtexport (Adm
 
 Der Download fertiger Exportdateien ist an den ausloesenden Benutzer gebunden. Administratoren koennen Admin-Exportjobs abrufen.
 
+## Update-Backups
+
+Vor automatischen Programmupdates erstellt die Anwendung einen systemischen Gesamtexport als Pre-Install-Backup. Dieser Export wird nicht ueber die Oberflaeche gestartet, sondern durch den Update-Pre-Install-Callback ausgeloest.
+
+Das Backup wird in das per `UpdateBackups:Directory` konfigurierte Zielverzeichnis geschrieben. Ob Bilder und PDFs enthalten sind, steuern `UpdateBackups:IncludeImages` und `UpdateBackups:IncludePdf`. Die Anzahl der behaltenen Update-Backups richtet sich nach `UpdateBackups:RetentionCount`.
+
+Weitere Details zur Aktivierung und zur zwingenden Adapter-Voraussetzung stehen unter [Programmupdates](application-updates.md).
+
 ## Wiederherstellung
 
 Die Wiederherstellung erfolgt weiterhin ueber den Upload einer ZIP-Datei im Bereich "Sicherung". Vor dem Start muss die Wiederherstellung bestaetigt werden, da bestehende Daten ueberschrieben werden koennen.

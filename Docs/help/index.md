@@ -11,5 +11,6 @@
 - [Import-Plugins](import-plugins.md) — Plugin-Framework für Rezeptimporte, Pluginverwaltung und Nutzbarkeitsprüfung
 - [Ladeanimation — Konfiguration](loading-bar-configuration.md) — Einrichtung und Konfiguration der Navigations-Ladeanimation
 - [Navigation](navigation.md) — Struktur und Navigation der Anwendung
+- [Programmupdates](application-updates.md) — Konfiguration automatischer Updates und Pre-Install-Backups
 - [Rezeptsuche](recipe-search.md) — Funktionen zur Suche und Filterung von Rezepten
 - [Beilagen](side-dishes.md) — Funktionalität für Beilagen-Management

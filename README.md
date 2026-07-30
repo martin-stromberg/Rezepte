@@ -25,6 +25,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Globale GitHub-Pluginquellen in den Admin-Einstellungen mit automatischer Pruefung beim Anwendungsstart.
 - Optionale KI-Importe ueber Gemini fuer URL-Quellen sowie Google Vision und Gemini fuer Fotoimporte.
 - Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
+- Vorbereitung fuer Programmupdates mit Pre-Install-Update-Backups; produktive automatische Updates setzen einen verifizierten `msTools.Updater`-Adapter voraus.
 - GitHub Actions fuer Pull-Request-Pruefungen und automatisierte Release-Artefakte.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
 
@@ -128,6 +129,9 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 | `AI:Simulate`, `AI:EnableCache`, `AI:CacheDurationHours` | Optionale Einstellungen fuer KI-Importe und Caching. |
 | `GoogleCredentials:ServiceAccountFilePath`, `GoogleCredentials:GeminiApiKey` | Fallback fuer Google-Credentials, wenn die Umgebungsvariablen `GOOGLE_APPLICATION_CREDENTIALS` bzw. `GOOGLE_GEMINI_API_KEY` nicht gesetzt sind. |
 | `PluginUpdates:GitHubApiBaseUrl`, `PluginUpdates:TimeoutSeconds`, `PluginUpdates:UserAgent` | Serverseitige GitHub-Kommunikation fuer die Startpruefung konfigurierter Pluginquellen. |
+| `UpdateBackups:Directory`, `UpdateBackups:RetentionCount` | Zielverzeichnis und Aufbewahrungsanzahl fuer automatische Backups vor Programmupdates. |
+| `UpdateBackups:IncludeImages`, `UpdateBackups:IncludePdf`, `UpdateBackups:SystemInitiatorUserId` | Umfang und technischer Initiator der Update-Backups. |
+| `ApplicationUpdates:Enabled`, `ApplicationUpdates:CheckOnStartup` | Steuerung vorbereiteter Programmupdates. Produktiv erst aktivieren, wenn ein echter `msTools.Updater`-Adapter verifiziert angebunden ist. |
 | `LoadingBar:Enabled` | Aktiviert oder deaktiviert den Ladebalken bei Navigation global (Standard: `true`). |
 | `LoadingBar:Height` | Hoehe des Ladebalkens als CSS-Laenge, z. B. `"3px"` oder `"0.25rem"` (Standard: `"3px"`). |
 | `LoadingBar:AnimationDuration` | Dauer eines vollstaendigen Sweeps von rechts nach links als CSS-Zeit, z. B. `"2s"` (Standard: `"2s"`). |
@@ -140,6 +144,10 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 Bei der Navigation (Klicks auf Navigationslinks oder Absenden von Formularen) wird ein schmaler, farbiger Ladebalken unterhalb der Navigationsleiste angezeigt. Der Balken erscheint sofort bei Benutzerinteraktionen und bietet Feedback auf langsamen Servern, nutzt eine zufaellig gewaehlte Farbe aus der konfigurierten Farbpalette und animiert sich mit einer linearen Bewegung von rechts nach links (Sweep-Effekt). Er wird ausgeblendet, sobald die Navigation abgeschlossen ist oder ein Sicherheits-Timeout auslaeuft.
 
 Das Feature ist standardmaessig aktiviert (`LoadingBar:Enabled: true`), kann aber global deaktiviert werden. Bei aktiviertem `prefers-reduced-motion` (Systemeinstellung) wird die Bewegung durch einen statischen, farbigen Balken ersetzt. Details zu allen `LoadingBar:*`-Parametern stehen in `Docs/help/loading-bar-configuration.md`.
+
+### Programmupdates und Update-Backups
+
+Die Anwendung enthaelt eine interne Adapter-Grenze fuer kuenftige Programmupdates mit `msTools.Updater`. Vor einer Installation soll der Pre-Install-Ablauf ein Update-Backup im konfigurierten Zielverzeichnis erstellen und die konfigurierte Aufbewahrungsanzahl anwenden. Solange kein verifizierter Adapter fuer die echte `msTools.Updater`-API angebunden ist, duerfen echte automatische Programmupdates nicht als produktiv aktiv betrachtet werden. Details stehen in `Docs/help/application-updates.md`.
 
 ## Daten und Sicherheit
 
@@ -187,6 +195,7 @@ Aenderungen sind in `changes.log` dokumentiert. Beim Merge zu `main` werden auto
 - `Docs/help/navigation.md`: Bedienhinweise zur Navigation, Einrichtung und zum Benutzermenue.
 - `Docs/help/user-accounts.md`: Bedienhinweise zu Registrierung, Profil und Admin-Benutzerverwaltung.
 - `Docs/help/exports.md`: Bedienhinweise zu Datenexporten, Sicherungen und Fortschrittsanzeige.
+- `Docs/help/application-updates.md`: Hinweise zu vorbereiteten Programmupdates, Update-Backups, Retention und Aktivierungsvoraussetzungen.
 - `Docs/help/import-plugins.md`: Bedienhinweise und aktueller Umsetzungsstand des Import-Pluginsystems.
 - `Docs/help/github-actions.md`: Hinweise zu Pull-Request-Pruefungen, Release-Artefakten und SemVer-Versionierung.
 - `Docs/help/side-dishes.md`: Bedienhinweise zu Beilagen in Rezepten, Kalender und Einkaufsliste.

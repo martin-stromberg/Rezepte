@@ -12,6 +12,7 @@ using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.BackgroundJobs.Handlers;
 using Rezepte.Web.Services.Import;
 using Rezepte.Web.Services.Import.Plugins;
+using Rezepte.Web.Services.Updates;
 using Rezepte.Web.Services.Validation;
 using Rezepte.Web.ViewModels;
 using System.Net;
@@ -28,6 +29,8 @@ public static class ServiceCollectionExtensions
         services.Configure<ImageOptions>(configuration.GetSection("Images"));
         services.Configure<AIOptions>(configuration.GetSection("AI"));
         services.Configure<PluginUpdateOptions>(configuration.GetSection("PluginUpdates"));
+        services.Configure<UpdateBackupOptions>(configuration.GetSection("UpdateBackups"));
+        services.Configure<ApplicationUpdateOptions>(configuration.GetSection("ApplicationUpdates"));
         services.Configure<GoogleCredentialsOptions>(configuration.GetSection("GoogleCredentials"));
         services.Configure<LoadingBarOptions>(configuration.GetSection("LoadingBar"));
         // Razor Components
@@ -138,6 +141,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICookbookService, CookbookService>();
         services.AddScoped<IRecipeService, RecipeService>();
         services.AddScoped<IExportService, ExportService>();
+        services.AddScoped<IUpdateBackupService, UpdateBackupService>();
         services.AddScoped<ExportJobFileStore>();
         services.AddScoped<IBackgroundJobHandler, ExportUserJobHandler>();
         services.AddScoped<IBackgroundJobHandler, ExportAllJobHandler>();
@@ -147,6 +151,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPluginManager, PluginManager>();
         services.AddHostedService<PluginStartupService>();
         services.AddHostedService<PluginUpdateHostedService>();
+        services.AddSingleton<IApplicationUpdater, DisabledApplicationUpdater>();
+        services.AddSingleton<IApplicationUpdatePreInstallHandler, ApplicationUpdatePreInstallHandler>();
+        services.AddHostedService<ApplicationUpdateHostedService>();
         services.AddHttpClient<IGitHubReleaseClient, GitHubReleaseClient>((sp, client) =>
         {
             var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PluginUpdateOptions>>().Value;
