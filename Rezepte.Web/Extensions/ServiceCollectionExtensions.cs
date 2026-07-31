@@ -151,7 +151,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPluginManager, PluginManager>();
         services.AddHostedService<PluginStartupService>();
         services.AddHostedService<PluginUpdateHostedService>();
-        services.AddSingleton<IApplicationUpdater, DisabledApplicationUpdater>();
         services.AddSingleton<IApplicationUpdatePreInstallHandler, ApplicationUpdatePreInstallHandler>();
         services.AddHostedService<ApplicationUpdateHostedService>();
         services.AddHttpClient<IGitHubReleaseClient, GitHubReleaseClient>((sp, client) =>

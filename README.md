@@ -131,7 +131,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 | `PluginUpdates:GitHubApiBaseUrl`, `PluginUpdates:TimeoutSeconds`, `PluginUpdates:UserAgent` | Serverseitige GitHub-Kommunikation fuer die Startpruefung konfigurierter Pluginquellen. |
 | `UpdateBackups:Directory`, `UpdateBackups:RetentionCount` | Zielverzeichnis und Aufbewahrungsanzahl fuer automatische Backups vor Programmupdates. |
 | `UpdateBackups:IncludeImages`, `UpdateBackups:IncludePdf`, `UpdateBackups:SystemInitiatorUserId` | Umfang und technischer Initiator der Update-Backups. |
-| `ApplicationUpdates:Enabled`, `ApplicationUpdates:CheckOnStartup` | Steuerung vorbereiteter Programmupdates. Produktiv erst aktivieren, wenn ein echter `msTools.Updater`-Adapter verifiziert angebunden ist. |
+| `ApplicationUpdates:*` | Steuerung der eingebundenen `msTools.Updater`-Programmupdates, inklusive Quelle, Downloadpfad, automatischem Download und automatischer Installation. |
 | `LoadingBar:Enabled` | Aktiviert oder deaktiviert den Ladebalken bei Navigation global (Standard: `true`). |
 | `LoadingBar:Height` | Hoehe des Ladebalkens als CSS-Laenge, z. B. `"3px"` oder `"0.25rem"` (Standard: `"3px"`). |
 | `LoadingBar:AnimationDuration` | Dauer eines vollstaendigen Sweeps von rechts nach links als CSS-Zeit, z. B. `"2s"` (Standard: `"2s"`). |
@@ -147,7 +147,7 @@ Das Feature ist standardmaessig aktiviert (`LoadingBar:Enabled: true`), kann abe
 
 ### Programmupdates und Update-Backups
 
-Die Anwendung enthaelt eine interne Adapter-Grenze fuer kuenftige Programmupdates mit `msTools.Updater`. Vor einer Installation soll der Pre-Install-Ablauf ein Update-Backup im konfigurierten Zielverzeichnis erstellen und die konfigurierte Aufbewahrungsanzahl anwenden. Solange kein verifizierter Adapter fuer die echte `msTools.Updater`-API angebunden ist, duerfen echte automatische Programmupdates nicht als produktiv aktiv betrachtet werden. Details stehen in `Docs/help/application-updates.md`.
+Die Anwendung bindet `msTools.Updater` als externe Update-Komponente ein. Vor einer Installation erstellt das `BeforeInstall`-Event ein Update-Backup im konfigurierten Zielverzeichnis und wendet die konfigurierte Aufbewahrungsanzahl an. Schlaegt das Backup fehl, wird die Installation abgebrochen. Details stehen in `Docs/help/application-updates.md`.
 
 ## Daten und Sicherheit
 

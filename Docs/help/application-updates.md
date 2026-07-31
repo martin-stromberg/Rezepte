@@ -1,8 +1,8 @@
 # Automatische Programmupdates
 
-Die Anwendung bereitet automatische Programmupdates ueber eine interne Adapter-Grenze fuer `msTools.Updater` vor. Produktiv duerfen automatische Programmupdates erst aktiviert werden, wenn ein verifizierter Adapter fuer die echte `msTools.Updater`-API angebunden ist.
+Die Anwendung bindet `msTools.Updater` als externe Projektkomponente ein. Der Updater prueft konfigurierte Quellen auf neue Versionen, kann Updates herunterladen und installiert sie nach den Einstellungen unter `ApplicationUpdates`.
 
-Solange die Anwendung den internen `DisabledApplicationUpdater` verwendet, darf `ApplicationUpdates:Enabled` nicht produktiv auf `true` gesetzt werden. Die Aktivierung ist erst zulaessig, wenn Paket oder Projekt, DI-Registrierung, Update-Quelle, Update-Check und die awaitbare Pre-Install-Semantik von `msTools.Updater` nachweislich integriert und getestet wurden.
+Vor jeder Installation abonniert die Anwendung das `BeforeInstall`-Event von `msTools.Updater`. In diesem Schritt wird ein Update-Backup erstellt. Schlaegt das Backup fehl, setzt der Event-Handler die Installation auf abgebrochen.
 
 ## Konfiguration
 
@@ -29,16 +29,32 @@ Die Programmupdate-Funktion selbst wird ueber `ApplicationUpdates` gesteuert:
 ```json
 "ApplicationUpdates": {
   "Enabled": false,
-  "CheckOnStartup": false
+  "EnableAutomaticDownload": true,
+  "EnableAutomaticInstallation": false,
+  "DownloadPath": "updates",
+  "HostedServicesEnabled": true,
+  "StopHostAfterScriptStart": false,
+  "HealthTimeoutSeconds": 120,
+  "UpdateUnitName": "RezepteWebAutoUpdate",
+  "RepositoryOwner": "martin-stromberg",
+  "RepositoryName": "Rezepte",
+  "ManifestAssetName": "update.json"
 }
 ```
 
-- `Enabled`: aktiviert die Registrierung des Updaters und des Pre-Install-Backups. Dieser Wert muss produktiv `false` bleiben, bis ein verifizierter `msTools.Updater`-Adapter angebunden ist.
-- `CheckOnStartup`: fuehrt beim Anwendungsstart einen Update-Check aus, sofern `Enabled` aktiv ist.
+- `Enabled`: aktiviert die Update-Pruefung in `msTools.Updater`.
+- `EnableAutomaticDownload`: laedt gefundene neue Versionen automatisch herunter.
+- `EnableAutomaticInstallation`: installiert heruntergeladene Updates automatisch. Bei `false` kann die Installation ueber die `msTools.Updater`-Kommandos manuell ausgeloest werden.
+- `DownloadPath`: lokaler Arbeitsordner fuer Updatepakete, Statusdateien und Locks.
+- `HostedServicesEnabled`: aktiviert die Hintergrunddienste von `msTools.Updater`.
+- `StopHostAfterScriptStart`: beendet den Host, nachdem das Installationsskript gestartet wurde.
+- `HealthTimeoutSeconds`: Timeout fuer Health-/Lock-Bewertungen des Updaters.
+- `UpdateUnitName`: eindeutiger Name fuer die systemd-Update-Unit auf Linux.
+- `RepositoryOwner`, `RepositoryName`, `ManifestAssetName`: GitHub-Release-Quelle fuer `update.json` und Updatepakete. Sind keine GitHub-Werte gesetzt, kann `LocalSourceDirectory` fuer eine lokale Quelle verwendet werden.
 
 ## Pre-Install-Backup
 
-Vor der Installation einer neuen Version muss der Updater den Pre-Install-Callback ausfuehren. Der Callback erstellt ueber `IUpdateBackupService` einen vollstaendigen Systemexport und wartet auf dessen Abschluss.
+Vor der Installation einer neuen Version loest `msTools.Updater` das `BeforeInstall`-Event aus. Der Event-Handler erstellt ueber `IUpdateBackupService` einen vollstaendigen Systemexport und wartet synchron auf dessen Abschluss, weil das Updater-Event cancellable ist.
 
 Das Backup-Verhalten:
 
@@ -47,11 +63,10 @@ Das Backup-Verhalten:
 - Der Export wird zunaechst in eine temporaere Datei im Backup-Verzeichnis geschrieben.
 - Erst nach erfolgreichem Schreiben wird die Datei unter einem finalen Namen wie `update-backup-20260730-1530000000000Z.zip` veroeffentlicht.
 - Erfolg und Fehler werden protokolliert, inklusive Zielpfad und Dateigroesse bei erfolgreichen Backups.
-- Schlaegt Export, Schreiben, Konfiguration oder Retention fehl, wird der Fehler an den Updater zurueckgegeben und die Installation darf nicht fortgesetzt werden.
+- Schlaegt Export, Schreiben, Konfiguration oder Retention fehl, wird `BeforeInstall` abgebrochen und die Installation wird nicht fortgesetzt.
 
 ## Retention
 
 Nach einem erfolgreichen Backup wird die Aufbewahrung angewendet. Beruecksichtigt werden nur Dateien im konfigurierten Backup-Verzeichnis, deren Namen dem Muster `update-backup-*.zip` entsprechen.
 
 Die neuesten `UpdateBackups:RetentionCount` Backups bleiben erhalten. Aeltere passende Dateien werden geloescht und die Loeschungen werden protokolliert. Dateien mit anderen Namen im selben Verzeichnis bleiben unberuehrt. Wenn die Retention nicht verlaesslich angewendet werden kann, gilt das Pre-Install-Backup als fehlgeschlagen und die Installation darf nicht weiterlaufen.
-

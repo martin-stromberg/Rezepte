@@ -1,0 +1,3 @@
+[submodule "external/msTools.Updater"]
+	path = external/msTools.Updater
+	url = https://github.com/martin-stromberg/msTools.Updater.git

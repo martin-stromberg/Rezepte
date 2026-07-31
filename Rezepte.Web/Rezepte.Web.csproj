@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
+    <ProjectReference Include="..\external\msTools.Updater\msTools.Updater\msTools.Updater.csproj" />
   </ItemGroup>
 
   <ItemGroup>

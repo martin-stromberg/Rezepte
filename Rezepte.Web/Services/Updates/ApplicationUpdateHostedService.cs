@@ -1,22 +1,23 @@
 using Microsoft.Extensions.Options;
+using msTools.Updater;
 using Rezepte.Web.Configuration;
 
 namespace Rezepte.Web.Services.Updates;
 
 public sealed class ApplicationUpdateHostedService : IHostedService
 {
-    private readonly IApplicationUpdater _updater;
+    private readonly IAutoUpdateEventAggregator _events;
     private readonly IApplicationUpdatePreInstallHandler _preInstallHandler;
     private readonly IOptions<ApplicationUpdateOptions> _options;
     private readonly ILogger<ApplicationUpdateHostedService> _logger;
 
     public ApplicationUpdateHostedService(
-        IApplicationUpdater updater,
+        IAutoUpdateEventAggregator events,
         IApplicationUpdatePreInstallHandler preInstallHandler,
         IOptions<ApplicationUpdateOptions> options,
         ILogger<ApplicationUpdateHostedService> logger)
     {
-        _updater = updater;
+        _events = events;
         _preInstallHandler = preInstallHandler;
         _options = options;
         _logger = logger;
@@ -31,15 +32,37 @@ public sealed class ApplicationUpdateHostedService : IHostedService
             return;
         }
 
-        await _updater
-            .RegisterPreInstallBackupAsync(_preInstallHandler.RunPreInstallBackupAsync, cancellationToken)
-            .ConfigureAwait(false);
+        _events.BeforeInstall += OnBeforeInstall;
+        _events.ErrorOccurred += OnErrorOccurred;
 
-        if (options.CheckOnStartup)
+        await Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _events.BeforeInstall -= OnBeforeInstall;
+        _events.ErrorOccurred -= OnErrorOccurred;
+        return Task.CompletedTask;
+    }
+
+    private void OnBeforeInstall(object? sender, BeforeInstallEventArgs args)
+    {
+        try
         {
-            await _updater.CheckAndInstallUpdatesAsync(cancellationToken).ConfigureAwait(false);
+            _preInstallHandler.RunPreInstallBackupAsync(CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            args.Cancel = true;
+            _logger.LogError(
+                ex,
+                "Pre-install update backup failed for package {PackagePath}. Installation is canceled.",
+                args.PackageFile.FullName);
         }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    private void OnErrorOccurred(object? sender, AutoUpdateErrorEventArgs args)
+    {
+        _logger.LogError(args.Error, "Application update failed during {Phase}.", args.Phase);
+    }
 }

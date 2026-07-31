@@ -8,11 +8,34 @@ using Rezepte.Web.Configuration;
 using Rezepte.Web.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using msTools.Updater;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure logging (Serilog via extension)
 builder.ConfigureSerilog();
+
+builder.UseAutoUpdate(autoUpdate =>
+{
+    autoUpdate.BindConfiguration("ApplicationUpdates");
+
+    var updateOptions = builder.Configuration
+        .GetSection("ApplicationUpdates")
+        .Get<ApplicationUpdateOptions>() ?? new ApplicationUpdateOptions();
+
+    if (!string.IsNullOrWhiteSpace(updateOptions.RepositoryOwner) &&
+        !string.IsNullOrWhiteSpace(updateOptions.RepositoryName))
+    {
+        autoUpdate.UseGithubSource(
+            updateOptions.RepositoryOwner,
+            updateOptions.RepositoryName,
+            updateOptions.ManifestAssetName);
+    }
+    else if (!string.IsNullOrWhiteSpace(updateOptions.LocalSourceDirectory))
+    {
+        autoUpdate.UseLocalFolderSource(updateOptions.LocalSourceDirectory);
+    }
+});
 
 // Register all application services via project extension (DbContext, auth, DI, controllers, etc.)
 builder.Services.AddRezepteServices(builder.Configuration, builder.Environment);

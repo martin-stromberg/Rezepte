@@ -20,7 +20,7 @@ Vor automatischen Programmupdates erstellt die Anwendung einen systemischen Gesa
 
 Das Backup wird in das per `UpdateBackups:Directory` konfigurierte Zielverzeichnis geschrieben. Ob Bilder und PDFs enthalten sind, steuern `UpdateBackups:IncludeImages` und `UpdateBackups:IncludePdf`. Die Anzahl der behaltenen Update-Backups richtet sich nach `UpdateBackups:RetentionCount`.
 
-Weitere Details zur Aktivierung und zur zwingenden Adapter-Voraussetzung stehen unter [Programmupdates](application-updates.md).
+Weitere Details zur Aktivierung und zur `msTools.Updater`-Integration stehen unter [Programmupdates](application-updates.md).
 
 ## Wiederherstellung
 
