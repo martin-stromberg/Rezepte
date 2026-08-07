@@ -160,6 +160,7 @@ public class SettingsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> SetGlobalMaxRequestsPerHour([FromBody] int? value, CancellationToken ct)
     {
+        if (value.HasValue && value.Value <= 0) return BadRequest("Der Wert muss größer als 0 sein.");
         await _settings.SetGlobalMaxRequestsPerHourAsync(value, ct);
         return NoContent();
     }
@@ -169,6 +170,7 @@ public class SettingsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> SetGlobalMaxRequestsPerDay([FromBody] int? value, CancellationToken ct)
     {
+        if (value.HasValue && value.Value <= 0) return BadRequest("Der Wert muss größer als 0 sein.");
         await _settings.SetGlobalMaxRequestsPerDayAsync(value, ct);
         return NoContent();
     }
