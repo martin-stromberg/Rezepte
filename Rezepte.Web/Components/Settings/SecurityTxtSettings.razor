@@ -1,5 +1,6 @@
 @using System.Net.Http.Json
 @inject ApiClient Client
+@inject ILogger<Rezepte.Web.Components.Settings.SecurityTxtSettings> Logger
 
 @if (isLoading)
 {
@@ -20,13 +21,13 @@ else
         }
 
         <div class="form-check form-switch mb-3">
-            <input class="form-check-input" type="checkbox" id="securitytxt-enabled" checked="@form.Enabled" @onchange="OnEnabledChanged" disabled="@isSaving" />
+            <input class="form-check-input" type="checkbox" id="securitytxt-enabled" @bind="Enabled" @bind:event="onchange" disabled="@isSaving" />
             <label class="form-check-label" for="securitytxt-enabled">security.txt aktivieren</label>
         </div>
 
         <div class="mb-2">
             <label class="form-label small" for="securitytxt-contact">Contact (ein URI oder E-Mail pro Zeile, Pflichtfeld)</label>
-            <textarea id="securitytxt-contact" class="form-control form-control-sm" rows="3" @bind="form.Contact" disabled="@isSaving"></textarea>
+            <textarea id="securitytxt-contact" class="form-control form-control-sm" rows="3" @bind="Contact" disabled="@isSaving"></textarea>
         </div>
         <div class="mb-2">
             <label class="form-label small" for="securitytxt-expires">Expires (Pflichtfeld)</label>
@@ -34,27 +35,27 @@ else
         </div>
         <div class="mb-2">
             <label class="form-label small" for="securitytxt-encryption">Encryption</label>
-            <input id="securitytxt-encryption" class="form-control form-control-sm" type="text" @bind="form.Encryption" disabled="@isSaving" />
+            <input id="securitytxt-encryption" class="form-control form-control-sm" type="text" @bind="Encryption" disabled="@isSaving" />
         </div>
         <div class="mb-2">
             <label class="form-label small" for="securitytxt-acknowledgments">Acknowledgments (ein URI pro Zeile)</label>
-            <textarea id="securitytxt-acknowledgments" class="form-control form-control-sm" rows="3" @bind="form.Acknowledgments" disabled="@isSaving"></textarea>
+            <textarea id="securitytxt-acknowledgments" class="form-control form-control-sm" rows="3" @bind="Acknowledgments" disabled="@isSaving"></textarea>
         </div>
         <div class="mb-2">
             <label class="form-label small" for="securitytxt-preferred-languages">Preferred-Languages</label>
-            <input id="securitytxt-preferred-languages" class="form-control form-control-sm" type="text" @bind="form.PreferredLanguages" disabled="@isSaving" />
+            <input id="securitytxt-preferred-languages" class="form-control form-control-sm" type="text" @bind="PreferredLanguages" disabled="@isSaving" />
         </div>
         <div class="mb-2">
             <label class="form-label small" for="securitytxt-canonical">Canonical</label>
-            <input id="securitytxt-canonical" class="form-control form-control-sm" type="text" @bind="form.Canonical" disabled="@isSaving" />
+            <input id="securitytxt-canonical" class="form-control form-control-sm" type="text" @bind="Canonical" disabled="@isSaving" />
         </div>
         <div class="mb-2">
             <label class="form-label small" for="securitytxt-policy">Policy</label>
-            <input id="securitytxt-policy" class="form-control form-control-sm" type="text" @bind="form.Policy" disabled="@isSaving" />
+            <input id="securitytxt-policy" class="form-control form-control-sm" type="text" @bind="Policy" disabled="@isSaving" />
         </div>
         <div class="mb-2">
             <label class="form-label small" for="securitytxt-hiring">Hiring</label>
-            <input id="securitytxt-hiring" class="form-control form-control-sm" type="text" @bind="form.Hiring" disabled="@isSaving" />
+            <input id="securitytxt-hiring" class="form-control form-control-sm" type="text" @bind="Hiring" disabled="@isSaving" />
         </div>
 
         <button class="btn btn-primary btn-sm mt-2" @onclick="SaveAsync" disabled="@isSaving">Speichern</button>
@@ -62,15 +63,74 @@ else
 }
 
 @code {
-    private SecurityTxtForm form = new();
+    private Rezepte.Web.Dtos.SecurityTxtSettings form = EmptySettings;
     private bool isLoading = true;
     private bool isSaving;
     private string? errorMessage;
     private string? successMessage;
 
+    private static Rezepte.Web.Dtos.SecurityTxtSettings EmptySettings => new(
+        Enabled: false,
+        Contact: null,
+        Expires: null,
+        Encryption: null,
+        Acknowledgments: null,
+        PreferredLanguages: null,
+        Canonical: null,
+        Policy: null,
+        Hiring: null);
+
+    private bool Enabled
+    {
+        get => form.Enabled;
+        set => form = form with { Enabled = value };
+    }
+
+    private string? Contact
+    {
+        get => form.Contact;
+        set => form = form with { Contact = value };
+    }
+
     private string ExpiresLocal => form.Expires.HasValue
         ? form.Expires.Value.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")
         : string.Empty;
+
+    private string? Encryption
+    {
+        get => form.Encryption;
+        set => form = form with { Encryption = value };
+    }
+
+    private string? Acknowledgments
+    {
+        get => form.Acknowledgments;
+        set => form = form with { Acknowledgments = value };
+    }
+
+    private string? PreferredLanguages
+    {
+        get => form.PreferredLanguages;
+        set => form = form with { PreferredLanguages = value };
+    }
+
+    private string? Canonical
+    {
+        get => form.Canonical;
+        set => form = form with { Canonical = value };
+    }
+
+    private string? Policy
+    {
+        get => form.Policy;
+        set => form = form with { Policy = value };
+    }
+
+    private string? Hiring
+    {
+        get => form.Hiring;
+        set => form = form with { Hiring = value };
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,23 +146,21 @@ else
             var settings = await Client.GetAsync<Rezepte.Web.Dtos.SecurityTxtSettings>("api/settings/global/securitytxt");
             if (settings != null)
             {
-                form = new SecurityTxtForm
-                {
-                    Enabled = settings.Enabled,
-                    Contact = settings.Contact,
-                    Expires = settings.Expires,
-                    Encryption = settings.Encryption,
-                    Acknowledgments = settings.Acknowledgments,
-                    PreferredLanguages = settings.PreferredLanguages,
-                    Canonical = settings.Canonical,
-                    Policy = settings.Policy,
-                    Hiring = settings.Hiring
-                };
+                form = settings;
             }
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Einstellungen konnten nicht geladen werden.";
+        }
+        catch (TaskCanceledException)
+        {
+            errorMessage = "Laden dauert zu lange. Bitte erneut versuchen.";
         }
         catch (Exception ex)
         {
-            errorMessage = $"Einstellungen konnten nicht geladen werden: {ex.Message}";
+            Logger.LogError(ex, "Unerwarteter Fehler beim Laden der security.txt-Einstellungen.");
+            errorMessage = "Ein unerwarteter Fehler ist aufgetreten.";
         }
         finally
         {
@@ -117,18 +175,7 @@ else
         errorMessage = null;
         try
         {
-            var settings = new Rezepte.Web.Dtos.SecurityTxtSettings(
-                Enabled: form.Enabled,
-                Contact: form.Contact,
-                Expires: form.Expires,
-                Encryption: form.Encryption,
-                Acknowledgments: form.Acknowledgments,
-                PreferredLanguages: form.PreferredLanguages,
-                Canonical: form.Canonical,
-                Policy: form.Policy,
-                Hiring: form.Hiring);
-
-            var response = await Client.PutAsJsonAsync("api/settings/global/securitytxt", settings);
+            var response = await Client.PutAsJsonAsync("api/settings/global/securitytxt", form);
             if (response.IsSuccessStatusCode)
             {
                 successMessage = "Einstellungen gespeichert.";
@@ -139,9 +186,18 @@ else
                 errorMessage = $"Fehler: {body}";
             }
         }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Einstellungen konnten nicht gespeichert werden.";
+        }
+        catch (TaskCanceledException)
+        {
+            errorMessage = "Speichern dauert zu lange. Bitte erneut versuchen.";
+        }
         catch (Exception ex)
         {
-            errorMessage = $"Einstellungen konnten nicht gespeichert werden: {ex.Message}";
+            Logger.LogError(ex, "Unerwarteter Fehler beim Speichern der security.txt-Einstellungen.");
+            errorMessage = "Ein unerwarteter Fehler ist aufgetreten.";
         }
         finally
         {
@@ -149,29 +205,11 @@ else
         }
     }
 
-    private void OnEnabledChanged(ChangeEventArgs args)
-    {
-        form.Enabled = args.Value is bool b ? b : bool.TryParse(args.Value?.ToString(), out var v) && v;
-    }
-
     private void OnExpiresChanged(ChangeEventArgs args)
     {
         if (DateTime.TryParse(args.Value?.ToString(), out var dt))
-            form.Expires = new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Local));
+            form = form with { Expires = new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Local)) };
         else
-            form.Expires = null;
-    }
-
-    private sealed class SecurityTxtForm
-    {
-        public bool Enabled { get; set; }
-        public string? Contact { get; set; }
-        public DateTimeOffset? Expires { get; set; }
-        public string? Encryption { get; set; }
-        public string? Acknowledgments { get; set; }
-        public string? PreferredLanguages { get; set; }
-        public string? Canonical { get; set; }
-        public string? Policy { get; set; }
-        public string? Hiring { get; set; }
+            form = form with { Expires = null };
     }
 }

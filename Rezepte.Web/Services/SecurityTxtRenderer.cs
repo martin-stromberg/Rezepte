@@ -10,14 +10,16 @@ public class SecurityTxtRenderer : ISecurityTxtRenderer
     {
         var sb = new StringBuilder();
 
-        AppendMultiline(sb, "Contact", settings.Contact);
-        AppendSingle(sb, "Expires", settings.Expires?.ToString("O"));
-        AppendSingle(sb, "Encryption", settings.Encryption);
-        AppendMultiline(sb, "Acknowledgments", settings.Acknowledgments);
-        AppendSingle(sb, "Preferred-Languages", settings.PreferredLanguages);
-        AppendSingle(sb, "Canonical", settings.Canonical);
-        AppendSingle(sb, "Policy", settings.Policy);
-        AppendSingle(sb, "Hiring", settings.Hiring);
+        foreach (var directive in GetDirectives(settings))
+        {
+            if (directive.Multiline)
+            {
+                AppendMultiline(sb, directive.Key, directive.Value);
+                continue;
+            }
+
+            AppendSingle(sb, directive.Key, directive.Value);
+        }
 
         return sb.ToString();
     }
@@ -26,14 +28,10 @@ public class SecurityTxtRenderer : ISecurityTxtRenderer
     {
         var sb = new StringBuilder();
 
-        AppendMarkdownSection(sb, "Contact", settings.Contact);
-        AppendMarkdownSection(sb, "Expires", settings.Expires?.ToString("O"));
-        AppendMarkdownSection(sb, "Encryption", settings.Encryption);
-        AppendMarkdownSection(sb, "Acknowledgments", settings.Acknowledgments);
-        AppendMarkdownSection(sb, "Preferred-Languages", settings.PreferredLanguages);
-        AppendMarkdownSection(sb, "Canonical", settings.Canonical);
-        AppendMarkdownSection(sb, "Policy", settings.Policy);
-        AppendMarkdownSection(sb, "Hiring", settings.Hiring);
+        foreach (var directive in GetDirectives(settings))
+        {
+            AppendMarkdownSection(sb, directive.Key, directive.Value);
+        }
 
         return sb.ToString();
     }
@@ -41,17 +39,30 @@ public class SecurityTxtRenderer : ISecurityTxtRenderer
     public string RenderHtml(SecurityTxtSettings settings)
     {
         var sb = new StringBuilder();
+        sb.AppendLine("<html>");
+        sb.AppendLine("<body>");
 
-        AppendHtmlSection(sb, "Contact", settings.Contact);
-        AppendHtmlSection(sb, "Expires", settings.Expires?.ToString("O"));
-        AppendHtmlSection(sb, "Encryption", settings.Encryption);
-        AppendHtmlSection(sb, "Acknowledgments", settings.Acknowledgments);
-        AppendHtmlSection(sb, "Preferred-Languages", settings.PreferredLanguages);
-        AppendHtmlSection(sb, "Canonical", settings.Canonical);
-        AppendHtmlSection(sb, "Policy", settings.Policy);
-        AppendHtmlSection(sb, "Hiring", settings.Hiring);
+        foreach (var directive in GetDirectives(settings))
+        {
+            AppendHtmlSection(sb, directive.Key, directive.Value);
+        }
+
+        sb.AppendLine("</body>");
+        sb.AppendLine("</html>");
 
         return sb.ToString();
+    }
+
+    private static IEnumerable<Directive> GetDirectives(SecurityTxtSettings settings)
+    {
+        yield return new Directive("Contact", settings.Contact, true);
+        yield return new Directive("Expires", settings.Expires?.ToString("O"), false);
+        yield return new Directive("Encryption", settings.Encryption, false);
+        yield return new Directive("Acknowledgments", settings.Acknowledgments, true);
+        yield return new Directive("Preferred-Languages", settings.PreferredLanguages, false);
+        yield return new Directive("Canonical", settings.Canonical, false);
+        yield return new Directive("Policy", settings.Policy, false);
+        yield return new Directive("Hiring", settings.Hiring, false);
     }
 
     private static void AppendSingle(StringBuilder sb, string key, string? value)
@@ -81,6 +92,12 @@ public class SecurityTxtRenderer : ISecurityTxtRenderer
     private static void AppendHtmlSection(StringBuilder sb, string key, string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return;
-        sb.AppendLine($"<h2>{WebUtility.HtmlEncode(key)}</h2><p>{WebUtility.HtmlEncode(value)}</p>");
+        sb.AppendLine($"<h2>{WebUtility.HtmlEncode(key)}</h2>");
+        foreach (var line in value.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            sb.AppendLine($"<p>{WebUtility.HtmlEncode(line)}</p>");
+        }
     }
+
+    private sealed record Directive(string Key, string? Value, bool Multiline);
 }

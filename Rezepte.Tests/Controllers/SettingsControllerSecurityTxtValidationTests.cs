@@ -121,6 +121,16 @@ public class SettingsControllerSecurityTxtValidationTests
     }
 
     [Fact]
+    public async Task SetGlobalSecurityTxt_ReturnsBadRequest_WhenSettingsIsNull()
+    {
+        var controller = CreateController();
+
+        var result = await controller.SetGlobalSecurityTxt(null!, CancellationToken.None);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
     public async Task SetGlobalSecurityTxt_SkipsValidation_WhenDisabledEvenIfContactMissing()
     {
         var settingsMock = new Mock<ISettingsService>();

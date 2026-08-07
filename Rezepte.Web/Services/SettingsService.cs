@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Data;
 using Rezepte.Web.Dtos;
@@ -9,10 +8,12 @@ namespace Rezepte.Web.Services;
 public class SettingsService : ISettingsService
 {
     private readonly RezepteDbContext _db;
+    private readonly ISecurityTxtSettingsService _securityTxtSettingsService;
 
-    public SettingsService(RezepteDbContext db)
+    public SettingsService(RezepteDbContext db, ISecurityTxtSettingsService? securityTxtSettingsService = null)
     {
         _db = db;
+        _securityTxtSettingsService = securityTxtSettingsService ?? new SecurityTxtSettingsService(db);
     }
 
     public async Task<bool> GetUserAiEnabledAsync(string userId, CancellationToken ct = default)
@@ -37,23 +38,6 @@ public class SettingsService : ISettingsService
     private const string GlobalMaxPerDayKey = "GlobalMaxRequestsPerDay";
     private const string GlobalDisableOnLimitKey = "GlobalDisableOnLimitReached";
     private const string ShoppingListEditModePrefix = "ShoppingListEditMode:";
-
-    private const string SecurityTxtEnabledKey = "SecurityTxt.Enabled";
-    private const string SecurityTxtContactKey = "SecurityTxt.Contact";
-    private const string SecurityTxtExpiresKey = "SecurityTxt.Expires";
-    private const string SecurityTxtEncryptionKey = "SecurityTxt.Encryption";
-    private const string SecurityTxtAcknowledgmentsKey = "SecurityTxt.Acknowledgments";
-    private const string SecurityTxtPreferredLanguagesKey = "SecurityTxt.PreferredLanguages";
-    private const string SecurityTxtCanonicalKey = "SecurityTxt.Canonical";
-    private const string SecurityTxtPolicyKey = "SecurityTxt.Policy";
-    private const string SecurityTxtHiringKey = "SecurityTxt.Hiring";
-
-    private static readonly string[] SecurityTxtKeys =
-    {
-        SecurityTxtEnabledKey, SecurityTxtContactKey, SecurityTxtExpiresKey,
-        SecurityTxtEncryptionKey, SecurityTxtAcknowledgmentsKey, SecurityTxtPreferredLanguagesKey,
-        SecurityTxtCanonicalKey, SecurityTxtPolicyKey, SecurityTxtHiringKey
-    };
 
     public async Task<bool> GetGlobalAiEnabledAsync(CancellationToken ct = default)
     {
@@ -189,61 +173,12 @@ public class SettingsService : ISettingsService
 
     public async Task<SecurityTxtSettings> GetSecurityTxtSettingsAsync(CancellationToken ct = default)
     {
-        var rows = await _db.Set<AppSetting>()
-            .Where(s => SecurityTxtKeys.Contains(s.Key))
-            .ToListAsync(ct);
-
-        string? Get(string key) => rows.FirstOrDefault(r => r.Key == key)?.Value;
-
-        var enabledRaw = Get(SecurityTxtEnabledKey);
-        var enabled = bool.TryParse(enabledRaw, out var e) && e;
-
-        var expiresRaw = Get(SecurityTxtExpiresKey);
-        DateTimeOffset? expires = DateTimeOffset.TryParseExact(expiresRaw, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var exp) ? exp : null;
-
-        return new SecurityTxtSettings(
-            Enabled: enabled,
-            Contact: Get(SecurityTxtContactKey),
-            Expires: expires,
-            Encryption: Get(SecurityTxtEncryptionKey),
-            Acknowledgments: Get(SecurityTxtAcknowledgmentsKey),
-            PreferredLanguages: Get(SecurityTxtPreferredLanguagesKey),
-            Canonical: Get(SecurityTxtCanonicalKey),
-            Policy: Get(SecurityTxtPolicyKey),
-            Hiring: Get(SecurityTxtHiringKey));
+        return await _securityTxtSettingsService.GetSecurityTxtSettingsAsync(ct);
     }
 
     public async Task SetSecurityTxtSettingsAsync(SecurityTxtSettings settings, CancellationToken ct = default)
     {
-        var existing = await _db.Set<AppSetting>()
-            .Where(s => SecurityTxtKeys.Contains(s.Key))
-            .ToListAsync(ct);
-
-        void Upsert(string key, string? value)
-        {
-            var kv = existing.FirstOrDefault(r => r.Key == key);
-            if (value == null)
-            {
-                if (kv != null) _db.Remove(kv);
-                return;
-            }
-            if (kv == null)
-                _db.Add(new AppSetting { Key = key, Value = value });
-            else
-                kv.Value = value;
-        }
-
-        Upsert(SecurityTxtEnabledKey, settings.Enabled.ToString());
-        Upsert(SecurityTxtContactKey, settings.Contact);
-        Upsert(SecurityTxtExpiresKey, settings.Expires?.ToString("O"));
-        Upsert(SecurityTxtEncryptionKey, settings.Encryption);
-        Upsert(SecurityTxtAcknowledgmentsKey, settings.Acknowledgments);
-        Upsert(SecurityTxtPreferredLanguagesKey, settings.PreferredLanguages);
-        Upsert(SecurityTxtCanonicalKey, settings.Canonical);
-        Upsert(SecurityTxtPolicyKey, settings.Policy);
-        Upsert(SecurityTxtHiringKey, settings.Hiring);
-
-        await _db.SaveChangesAsync(ct);
+        await _securityTxtSettingsService.SetSecurityTxtSettingsAsync(settings, ct);
     }
 
     private async Task WriteString(string key, string value, CancellationToken ct)

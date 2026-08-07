@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Rezepte.Web.Components.Settings;
-using System.Runtime.InteropServices;
 
 namespace Rezepte.Web.ViewModels;
 
@@ -18,7 +17,6 @@ public class SettingsViewModel
 
     public IReadOnlyList<Item> Items { get; private set; } = Array.Empty<Item>();
     public Item? SelectedItem { get; private set; }
-    public bool Visible { get; }
 
     public SettingsViewModel(AuthenticationStateProvider authenticationStateProvider)
     {

@@ -72,6 +72,34 @@ public class SecurityTxtRendererTests
     }
 
     [Fact]
+    public void RenderHtml_ShouldReturnHtmlDocumentStructure()
+    {
+        var sut = new SecurityTxtRenderer();
+
+        var result = sut.RenderHtml(FullSettings);
+
+        result.Should().Contain("<html>");
+        result.Should().Contain("<body>");
+        result.Should().Contain("</body>");
+        result.Should().Contain("</html>");
+    }
+
+    [Fact]
+    public void RenderHtml_ShouldRenderMultilineValuesAsSeparateParagraphs()
+    {
+        var settings = FullSettings with
+        {
+            Contact = "mailto:a@example.com\nmailto:b@example.com"
+        };
+        var sut = new SecurityTxtRenderer();
+
+        var result = sut.RenderHtml(settings);
+
+        result.Should().Contain("<p>mailto:a@example.com</p>");
+        result.Should().Contain("<p>mailto:b@example.com</p>");
+    }
+
+    [Fact]
     public void RenderPlainText_ShouldOmitEmptyFields()
     {
         var settings = new SecurityTxtSettings(

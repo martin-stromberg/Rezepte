@@ -110,12 +110,19 @@ public class SettingsServiceTests
     }
 
     [Fact]
-    public async Task ShoppingListEditMode_ShouldPersistInitialValuePerUser()
+    public async Task GetUserShoppingListEditModeAsync_ShouldReturnFalseByDefault_WhenNoSettingExists()
     {
         using var db = CreateDb();
         var sut = new SettingsService(db);
 
         (await sut.GetUserShoppingListEditModeAsync("user-1", CancellationToken.None)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetUserShoppingListEditModeAsync_ShouldPersistValue_PerUser()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
 
         await sut.SetUserShoppingListEditModeAsync("user-1", true, CancellationToken.None);
         await sut.SetUserShoppingListEditModeAsync("user-2", false, CancellationToken.None);
