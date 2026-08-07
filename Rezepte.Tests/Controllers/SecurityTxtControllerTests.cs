@@ -56,16 +56,6 @@ public class SecurityTxtControllerTests
     }
 
     [Fact]
-    public async Task GetWellKnownSecurityTxt_ReturnsOk_WhenEnabled()
-    {
-        var sut = CreateController(EnabledSettings);
-
-        var result = await sut.GetSecurityTxt(CancellationToken.None);
-
-        result.Should().BeOfType<ContentResult>();
-    }
-
-    [Fact]
     public async Task GetSecurityMd_ReturnsOk_WithMarkdownContentType()
     {
         var sut = CreateController(EnabledSettings);

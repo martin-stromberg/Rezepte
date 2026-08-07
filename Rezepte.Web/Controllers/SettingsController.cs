@@ -198,6 +198,9 @@ public class SettingsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> SetGlobalSecurityTxt([FromBody] SecurityTxtSettings settings, CancellationToken ct)
     {
+        if (settings == null)
+            return BadRequest("Einstellungen dürfen nicht null sein.");
+
         if (settings.Enabled)
         {
             if (string.IsNullOrWhiteSpace(settings.Contact))

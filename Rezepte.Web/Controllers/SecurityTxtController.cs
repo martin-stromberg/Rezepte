@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Rezepte.Web.Dtos;
 using Rezepte.Web.Services;
 
 namespace Rezepte.Web.Controllers;
@@ -17,26 +18,24 @@ public class SecurityTxtController : ControllerBase
 
     [HttpGet("/security.txt")]
     [HttpGet("/.well-known/security.txt")]
-    public async Task<IActionResult> GetSecurityTxt(CancellationToken ct)
-    {
-        var settings = await _settings.GetSecurityTxtSettingsAsync(ct);
-        if (!settings.Enabled) return NotFound();
-        return Content(_renderer.RenderPlainText(settings), "text/plain; charset=utf-8");
-    }
+    public Task<IActionResult> GetSecurityTxt(CancellationToken ct) =>
+        RenderIfEnabledAsync(ct, _renderer.RenderPlainText, "text/plain; charset=utf-8");
 
     [HttpGet("/.well-known/security.md")]
-    public async Task<IActionResult> GetSecurityMd(CancellationToken ct)
-    {
-        var settings = await _settings.GetSecurityTxtSettingsAsync(ct);
-        if (!settings.Enabled) return NotFound();
-        return Content(_renderer.RenderMarkdown(settings), "text/markdown; charset=utf-8");
-    }
+    public Task<IActionResult> GetSecurityMd(CancellationToken ct) =>
+        RenderIfEnabledAsync(ct, _renderer.RenderMarkdown, "text/markdown; charset=utf-8");
 
     [HttpGet("/.well-known/security.html")]
-    public async Task<IActionResult> GetSecurityHtml(CancellationToken ct)
+    public Task<IActionResult> GetSecurityHtml(CancellationToken ct) =>
+        RenderIfEnabledAsync(ct, _renderer.RenderHtml, "text/html; charset=utf-8");
+
+    private async Task<IActionResult> RenderIfEnabledAsync(
+        CancellationToken ct,
+        Func<SecurityTxtSettings, string> render,
+        string contentType)
     {
         var settings = await _settings.GetSecurityTxtSettingsAsync(ct);
         if (!settings.Enabled) return NotFound();
-        return Content(_renderer.RenderHtml(settings), "text/html; charset=utf-8");
+        return Content(render(settings), contentType);
     }
 }
