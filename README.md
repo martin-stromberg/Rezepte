@@ -27,6 +27,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
 - GitHub Actions fuer Pull-Request-Pruefungen und automatisierte Release-Artefakte.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
+- `security.txt` gemaess RFC 9116 unter `/security.txt` und `/.well-known/security.txt` mit optionalen Zusatzformaten (`/.well-known/security.md`, `/.well-known/security.html`); Konfiguration durch Administratoren im Einstellungsbereich; alle Endpunkte oeffentlich erreichbar ohne Authentifizierung.
 
 ## Tech-Stack
 
@@ -134,6 +135,15 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 | `LoadingBar:HideDelay` | Wartezeit nach Navigationabschluss bis zum Ausblenden des Balkens, z. B. `"300ms"` (Standard: `"300ms"`). |
 | `LoadingBar:MaxVisibleDuration` | Sicherheitsgrenze, nach der der Balken auch ohne Abschlusssignal ausgeblendet wird, z. B. `"15s"` (Standard: `"15s"`). |
 | `LoadingBar:Colors` | Liste von Hexfarben in der Form `["#RGB", "#RRGGBB", ...]`, aus denen pro Navigationsinteraktion eine zufaellige Farbe gewaehlt wird. |
+| `SecurityTxt.Enabled` | Schaltet die security.txt-Auslieferung ein (`true`) oder aus (`false`). Standard: `false`. |
+| `SecurityTxt.Contact` | RFC-9116-Direktive `Contact` — URI oder E-Mail, ein Wert pro Zeile. Pflichtfeld bei `Enabled = true`. |
+| `SecurityTxt.Expires` | RFC-9116-Direktive `Expires` — Ablaufzeitpunkt als ISO-8601-Datum. Pflichtfeld bei `Enabled = true`; muss in der Zukunft liegen. |
+| `SecurityTxt.Encryption` | RFC-9116-Direktive `Encryption` — URL zum oeffentlichen Schluessel. Optional. |
+| `SecurityTxt.Acknowledgments` | RFC-9116-Direktive `Acknowledgments` — URL zur Danksagungsseite. Optional. |
+| `SecurityTxt.PreferredLanguages` | RFC-9116-Direktive `Preferred-Languages` — kommagetrennte Sprachcodes. Optional. |
+| `SecurityTxt.Canonical` | RFC-9116-Direktive `Canonical` — oeffentliche URL der security.txt-Datei. Optional; manuell durch den Administrator einzutragen. |
+| `SecurityTxt.Policy` | RFC-9116-Direktive `Policy` — URL zur Sicherheitsrichtlinie. Optional. |
+| `SecurityTxt.Hiring` | RFC-9116-Direktive `Hiring` — URL zu Sicherheitsstellen-Ausschreibungen. Optional. |
 
 ### Ladebalken und visuelles Feedback
 
@@ -151,6 +161,7 @@ Das Feature ist standardmaessig aktiviert (`LoadingBar:Enabled: true`), kann abe
 - Rezept-, Kochbuch-, Kalender- und Einstellungsdaten sind benutzerbezogen modelliert.
 - Session-basierte Importablaeufe sind an den initiierenden authentifizierten Benutzer gebunden; fremde oder ungueltige Session-IDs legen keine Sessiondetails offen.
 - PATs fuer private GitHub-Pluginquellen verbleiben im geschuetzten Secret-Speicher des Backends und werden nicht an das Frontend ausgegeben oder protokolliert.
+- Die Pfade `/security.txt`, `/.well-known/security.txt`, `/.well-known/security.md` und `/.well-known/security.html` sind explizit von der Authentifizierungspflicht ausgenommen und oeffentlich erreichbar; bei deaktivierter Funktion (`SecurityTxt.Enabled = false`) antworten alle vier Endpunkte mit HTTP 404.
 
 ## Deployment
 
@@ -192,6 +203,7 @@ Aenderungen sind in `changes.log` dokumentiert. Beim Merge zu `main` werden auto
 - `Docs/help/side-dishes.md`: Bedienhinweise zu Beilagen in Rezepten, Kalender und Einkaufsliste.
 - `Docs/help/recipe-search.md`: Bedienhinweise zur Rezeptsuche, Trefferlogik und Kochbuchfilterung.
 - `Docs/help/shopping-list.md`: Bedienhinweise zur Einkaufsliste und Rezeptuebernahme.
+- `Docs/help/security-txt/index.md`: Konfiguration und Betrieb der security.txt-Funktion gemaess RFC 9116.
 - `Docs/install.md`: manuelle Installationsnotizen fuer Linux/systemd.
 - `Docs/development-guide.md`: lokale Einrichtung von Google-Credentials ueber Umgebungsvariablen/User Secrets.
 - `Docs/deployment-guide.md`: Secret-Store- und Umgebungsvariablen-Setup fuer Google-Credentials in Production.
