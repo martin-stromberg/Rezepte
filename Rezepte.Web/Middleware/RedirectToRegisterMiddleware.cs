@@ -5,6 +5,8 @@ namespace Rezepte.Web.Middleware;
 
 public class RedirectToRegisterMiddleware
 {
+    private static readonly string[] StaticExtensions = [".css", ".js", ".map", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff2", ".woff", ".ttf", ".eot", ".webmanifest"];
+
     private readonly RequestDelegate _next;
 
     public RedirectToRegisterMiddleware(RequestDelegate next)
@@ -24,48 +26,56 @@ public class RedirectToRegisterMiddleware
         }
 
         var userService = context.RequestServices.GetRequiredService<IUserService>();
-        if (await RedirectToRegistration(context, path, userService))
+        var hasAnyUsers = await userService.HasAnyUsersAsync(context.RequestAborted);
+        if (await RedirectToRegistration(context, path, hasAnyUsers))
             return;
-        if (await RedirectToLogin(context, path, userService))
+        if (await RedirectToLogin(context, path, hasAnyUsers))
             return;
         await _next(context);
     }
 
-    private static async Task<bool> RedirectToRegistration(HttpContext context, string path, IUserService userService)
+    private static Task<bool> RedirectToRegistration(HttpContext context, string path, bool hasAnyUsers)
     {
-        if (!await userService.HasAnyUsersAsync(context.RequestAborted))
+        if (!hasAnyUsers)
         {
             if (!path.Equals("/register", StringComparison.OrdinalIgnoreCase))
             {
                 context.Response.Redirect("/register");
-                return true;
+                return Task.FromResult(true);
             }
         }
-        return false;
+        return Task.FromResult(false);
     }
 
-    private static async Task<bool> RedirectToLogin(HttpContext context, string path, IUserService userService)
+    private static Task<bool> RedirectToLogin(HttpContext context, string path, bool hasAnyUsers)
     {
-        // Wenn keine Benutzer vorhanden sind, nie zur Login-Seite umleiten (Registrierung soll möglich sein)
-        if (!await userService.HasAnyUsersAsync(context.RequestAborted))
-            return false;
+        // Wenn keine Benutzer vorhanden sind, nie zur Login-Seite umleiten (Registrierung soll mÃ¶glich sein)
+        if (!hasAnyUsers)
+            return Task.FromResult(false);
 
         var isAuthenticated = context.User?.Identity?.IsAuthenticated == true;
         if (!isAuthenticated && !path.Equals("/login", StringComparison.OrdinalIgnoreCase))
         {
             // Direkter Zugriff auf /register ist nicht erlaubt, wenn Benutzer existieren
             context.Response.Redirect("/login");
-            return true;
+            return Task.FromResult(true);
         }
-        return false;
+        return Task.FromResult(false);
     }
 
     private static bool IsExcluded(string path)
     {
         if (string.IsNullOrEmpty(path)) return true;
 
-        // Allow only login as auth route (Register wird über Middleware gesteuert)
+        // Allow only login as auth route (Register wird Ã¼ber Middleware gesteuert)
         if (path.Equals("/login", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Allow access to security.txt endpoints without authentication
+        if (path.Equals("/security.txt", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/.well-known/security.txt", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/.well-known/security.md", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/.well-known/security.html", StringComparison.OrdinalIgnoreCase))
             return true;
 
         // Exclude APIs and framework/static assets
@@ -77,8 +87,7 @@ public class RedirectToRegisterMiddleware
             return true;
 
         // Exclude typical static file extensions regardless of path (hashed filenames etc.)
-        var staticExtensions = new[] { ".css", ".js", ".map", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff2", ".woff", ".ttf", ".eot", ".webmanifest" };
-        var hasStaticExt = staticExtensions.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+        var hasStaticExt = StaticExtensions.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
         if (hasStaticExt) return true;
 
         return false;

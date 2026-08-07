@@ -4,6 +4,7 @@
 
 ## Funktionsbereiche
 
+- [Beilagen](side-dishes.md) — Funktionalität für Beilagen-Management
 - [Benutzerkonten](user-accounts.md) — Verwaltung von Benutzerkonten und Authentifizierung
 - [Einkaufszettel](shopping-list.md) — Funktionen für die Verwaltung von Einkaufslisten
 - [Exporte](exports.md) — Export von Rezepten und Daten
@@ -12,4 +13,4 @@
 - [Ladeanimation — Konfiguration](loading-bar-configuration.md) — Einrichtung und Konfiguration der Navigations-Ladeanimation
 - [Navigation](navigation.md) — Struktur und Navigation der Anwendung
 - [Rezeptsuche](recipe-search.md) — Funktionen zur Suche und Filterung von Rezepten
-- [Beilagen](side-dishes.md) — Funktionalität für Beilagen-Management
+- [security.txt](security-txt/index.md) — Auslieferung einer security.txt-Datei gemäß RFC 9116 mit Admin-Konfiguration
