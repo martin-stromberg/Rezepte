@@ -4,7 +4,7 @@
 
 ## Übersicht
 
-Eingehende öffentliche Anfragen durchlaufen die `RedirectToRegisterMiddleware`, die die security.txt-Pfade explizit von der Authentifizierungsweiterleitung ausnimmt. Der `SecurityTxtController` liest über `ISettingsService` die gespeicherte Konfiguration und delegiert die Formatierung an `ISecurityTxtRenderer`. Admin-Konfigurationsanfragen laufen über `SettingsController` mit `[Authorize(Roles = "Admin")]`.
+Eingehende öffentliche Anfragen durchlaufen die `RedirectToRegisterMiddleware`, die die security.txt-Pfade explizit von der Authentifizierungsweiterleitung ausnimmt. Der `SecurityTxtController` liest über `ISettingsService` die gespeicherte Konfiguration, setzt `Canonical` serverseitig anhand des angeforderten Ausgabeformats und delegiert die Formatierung an `ISecurityTxtRenderer`. Admin-Konfigurationsanfragen laufen über `SettingsController` mit `[Authorize(Roles = "Admin")]`.
 
 ---
 
@@ -24,7 +24,8 @@ Beteiligte Komponenten:
 ### 3. Einstellungen lesen
 
 - `ISettingsService.GetSecurityTxtSettingsAsync` wird aufgerufen.
-- `SettingsService` lädt alle `AppSetting`-Einträge mit den Schlüsseln `SecurityTxt.*` in einem einzigen Datenbankzugriff.
+- `SettingsService` delegiert an `ISecurityTxtSettingsService.GetSecurityTxtSettingsAsync`.
+- `SecurityTxtSettingsService` lädt alle `AppSetting`-Einträge mit den Schlüsseln `SecurityTxt.*` in einem einzigen Datenbankzugriff.
 - Die Einträge werden in ein `SecurityTxtSettings`-Record gemappt:
   - `SecurityTxt.Enabled` → `bool Enabled`
   - `SecurityTxt.Expires` → `DateTimeOffset?` (geparst mit Format `"O"`, round-trip)
@@ -37,6 +38,11 @@ Ist `SecurityTxtSettings.Enabled == false`, gibt der Controller **HTTP 404** zur
 ### 5. Rendering
 
 `ISecurityTxtRenderer.RenderPlainText(settings)` wird aufgerufen.
+
+Vor dem Rendering setzt `SecurityTxtController.RenderIfEnabledAsync` die kanonische URL:
+- Plain-Text-Endpunkte (`/security.txt`, `/.well-known/security.txt`) → `Canonical: https://{host}/security.txt`
+- Markdown-Endpunkt → `Canonical: https://{host}/.well-known/security.md`
+- HTML-Endpunkt → `Canonical: https://{host}/.well-known/security.html`
 
 `SecurityTxtRenderer.RenderPlainText`:
 - Iteriert über alle Direktiven in der Reihenfolge: `Contact`, `Expires`, `Encryption`, `Acknowledgments`, `Preferred-Languages`, `Canonical`, `Policy`, `Hiring`.
@@ -80,13 +86,15 @@ Identisch zu Ablauf 1, außer:
    - `Contact` fehlt oder ist Leerstring → HTTP 400
    - `Expires` ist `null` → HTTP 400
    - `Expires` liegt in der Vergangenheit → HTTP 400
-4. `ISettingsService.SetSecurityTxtSettingsAsync(settings, ct)` wird aufgerufen.
-5. `SettingsService.SetSecurityTxtSettingsAsync`:
-   - Lädt alle neun `SecurityTxt.*`-Einträge aus der Datenbank.
+4. `ISettingsService.SetSecurityTxtSettingsAsync(settings with { Canonical = null }, ct)` wird aufgerufen.
+5. `SettingsService.SetSecurityTxtSettingsAsync` delegiert an `ISecurityTxtSettingsService.SetSecurityTxtSettingsAsync`.
+6. `SecurityTxtSettingsService.SetSecurityTxtSettingsAsync`:
+   - Lädt alle `SecurityTxt.*`-Einträge aus der Datenbank.
    - Führt ein Upsert durch: vorhandene Einträge werden aktualisiert, fehlende angelegt.
    - `null`-Werte löschen den zugehörigen `AppSetting`-Eintrag.
+   - `SecurityTxt.Canonical` wird immer gelöscht (`Upsert(SecurityTxtCanonicalKey, null)`), damit kein manueller Canonical-Wert persistiert bleibt.
    - `Expires` wird als ISO-8601-Round-Trip-String (`"O"`-Format) gespeichert.
-6. HTTP 204 No Content.
+7. HTTP 204 No Content.
 
 ---
 
@@ -99,16 +107,17 @@ flowchart TD
     C --> D[ISettingsService.GetSecurityTxtSettingsAsync]
     D --> E{Enabled?}
     E -- Nein --> F[404 Not Found]
-    E -- Ja --> G[ISecurityTxtRenderer.RenderPlainText]
-    G --> H[200 OK text/plain]
+    E -- Ja --> G[Canonical aus Request + Zielpfad berechnen]
+    G --> H[ISecurityTxtRenderer.RenderPlainText]
+    H --> I[200 OK text/plain]
 
-    I[PUT /api/settings/global/securitytxt] --> J[SettingsController.SetGlobalSecurityTxt]
-    J --> K{Enabled == true?}
-    K -- Ja --> L{Contact + Expires vorhanden und Expires in Zukunft?}
-    L -- Nein --> M[400 Bad Request]
-    L -- Ja --> N[ISettingsService.SetSecurityTxtSettingsAsync]
-    K -- Nein --> N
-    N --> O[204 No Content]
+    J[PUT /api/settings/global/securitytxt] --> K[SettingsController.SetGlobalSecurityTxt]
+    K --> L{Enabled == true?}
+    L -- Ja --> M{Contact + Expires vorhanden und Expires in Zukunft?}
+    M -- Nein --> N[400 Bad Request]
+    M -- Ja --> O[ISettingsService.SetSecurityTxtSettingsAsync with Canonical=null]
+    L -- Nein --> O
+    O --> P[204 No Content]
 ```
 
 ---

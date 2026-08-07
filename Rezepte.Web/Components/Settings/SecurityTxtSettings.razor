@@ -46,10 +46,6 @@ else
             <input id="securitytxt-preferred-languages" class="form-control form-control-sm" type="text" @bind="PreferredLanguages" disabled="@isSaving" />
         </div>
         <div class="mb-2">
-            <label class="form-label small" for="securitytxt-canonical">Canonical</label>
-            <input id="securitytxt-canonical" class="form-control form-control-sm" type="text" @bind="Canonical" disabled="@isSaving" />
-        </div>
-        <div class="mb-2">
             <label class="form-label small" for="securitytxt-policy">Policy</label>
             <input id="securitytxt-policy" class="form-control form-control-sm" type="text" @bind="Policy" disabled="@isSaving" />
         </div>
@@ -112,12 +108,6 @@ else
     {
         get => form.PreferredLanguages;
         set => form = form with { PreferredLanguages = value };
-    }
-
-    private string? Canonical
-    {
-        get => form.Canonical;
-        set => form = form with { Canonical = value };
     }
 
     private string? Policy

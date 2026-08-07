@@ -10,6 +10,8 @@
 
 Administratoren aktivieren und konfigurieren die Funktion im Einstellungsbereich unter dem Menüpunkt **security.txt** (🔒). Die eingetragenen Direktiven werden als Key-Value-Einträge in der `AppSetting`-Tabelle persistiert (Schlüsselpräfix `SecurityTxt.*`).
 
+Die `Canonical`-Direktive wird nicht im Admin-Formular gepflegt. Stattdessen berechnet der Server beim Ausliefern automatisch die kanonische URL passend zum jeweils angeforderten Ausgabeformat.
+
 Ist die Funktion aktiviert, liefert die Anwendung den Inhalt unter vier öffentlichen Endpunkten aus:
 
 | Pfad | Format | Content-Type |
@@ -30,7 +32,7 @@ Ist die Funktion deaktiviert (`Enabled = false`), antworten alle vier Endpunkte 
 | `Encryption` | Nein | URL zu einem PGP-Public-Key |
 | `Acknowledgments` | Nein | URL zu einer Danksagungsseite; mehrere Werte möglich (ein Wert pro Zeile) |
 | `Preferred-Languages` | Nein | Bevorzugte Sprachen für Sicherheitsmeldungen |
-| `Canonical` | Nein | Kanonische URL dieser security.txt-Datei |
+| `Canonical` | Nein | Wird serverseitig automatisch je Ausgabeformat gesetzt |
 | `Policy` | Nein | URL zur Sicherheitsrichtlinie |
 | `Hiring` | Nein | URL zu sicherheitsrelevanten Stellenangeboten |
 
@@ -52,7 +54,7 @@ Expires: 2026-12-31T00:00:00+00:00
 Encryption: https://example.com/pgp-key.asc
 Acknowledgments: https://example.com/thanks
 Preferred-Languages: de, en
-Canonical: https://example.com/.well-known/security.txt
+Canonical: https://example.com/security.txt
 Policy: https://example.com/security-policy
 Hiring: https://example.com/jobs/security
 ```
@@ -60,5 +62,5 @@ Hiring: https://example.com/jobs/security
 ## Einschränkungen
 
 - PGP-Signierung der Datei (laut RFC 9116 empfohlen) ist nicht implementiert.
-- Die `Canonical`-URL wird manuell eingetragen; es gibt keine automatische Ableitung aus der Anwendungs-Basis-URL.
+- Die `Canonical`-URL kann nicht manuell gesetzt werden; sie wird aus Request-Schema, Host, PathBase und Ausgabeformat erzeugt.
 - Mehrfachwerte für `Contact` und `Acknowledgments` werden als mehrzeiliger Text eingegeben (ein Wert pro Zeile) und beim Rendering in separate Direktiv-Zeilen aufgeteilt.

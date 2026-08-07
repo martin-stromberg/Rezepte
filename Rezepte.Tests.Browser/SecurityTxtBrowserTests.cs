@@ -29,7 +29,14 @@ public class SecurityTxtBrowserTests(PlaywrightBrowserFixture browserFixture, Re
     [SkippableFact]
     public async Task GetSecurityTxt_ReturnsNotFound_WhenDisabled()
     {
+        Skip.IfNot(browserFixture.BrowsersAvailable, browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
         Skip.IfNot(appFixture.ApplicationAvailable, appFixture.ApplicationUnavailableSkipReason);
+
+        await using var pageObject = await SecurityTxtPageObject.CreateAsync(browserFixture.Browser!, appFixture.BaseAddress);
+        await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
+        await pageObject.NavigateToSettingsAsync();
+        await pageObject.ClickSecurityTxtMenuItemAsync();
+        await pageObject.DisableAndSaveSecurityTxtAsync();
 
         var (statusCode, _) = await SecurityTxtPageObject.GetPublicSecurityTxtAsync(appFixture.BaseAddress);
 

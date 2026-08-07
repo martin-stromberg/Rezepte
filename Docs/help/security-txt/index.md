@@ -1,6 +1,6 @@
 # security.txt
 
-Die Anwendung kann eine `security.txt`-Datei gemäß [RFC 9116](https://www.rfc-editor.org/rfc/rfc9116) ausliefern. Administratoren konfigurieren die Direktiven über den Einstellungsbereich; normalen Benutzern bleibt dieser Bereich verborgen.
+Die Anwendung liefert eine `security.txt`-Datei gemäß [RFC 9116](https://www.rfc-editor.org/rfc/rfc9116) öffentlich aus. Administratoren konfigurieren die Direktiven im Einstellungsbereich; die `Canonical`-Direktive wird dabei serverseitig je Ausgabeformat automatisch bestimmt.
 
 ## Inhalt
 

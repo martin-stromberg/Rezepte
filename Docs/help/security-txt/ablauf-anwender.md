@@ -19,7 +19,7 @@ Navigieren Sie in der Anwendung zur Einstellungsseite und klicken Sie auf den Me
 
 ### 2. Funktion aktivieren
 
-Setzen Sie den Schalter **Aktiviert** auf „Ein". Erst dann sind die Felder für die Direktiven verpflichtend auszufüllen.
+Setzen Sie den Schalter **security.txt aktivieren** auf „Ein". Erst dann sind die Pflichtfelder auszufüllen.
 
 ### 3. Pflichtfelder ausfüllen
 
@@ -37,7 +37,6 @@ Folgende Felder sind optional:
 | **Encryption** | `https://example.com/pgp-key.asc` | URL zu einem PGP-Public-Key |
 | **Acknowledgments** | `https://example.com/thanks` | URL zu einer Danksagungsseite; mehrere URLs möglich (eine pro Zeile) |
 | **Preferred-Languages** | `de, en` | Bevorzugte Sprachen für Meldungen |
-| **Canonical** | `https://example.com/.well-known/security.txt` | Kanonische URL dieser Datei (öffentliche Adresse der eigenen Instanz) |
 | **Policy** | `https://example.com/security-policy` | URL zur Sicherheitsrichtlinie |
 | **Hiring** | `https://example.com/jobs` | URL zu sicherheitsrelevanten Stellenangeboten |
 
@@ -45,7 +44,9 @@ Folgende Felder sind optional:
 
 Klicken Sie auf **Speichern**. Bei Erfolg wird eine Bestätigung angezeigt.
 
-> **Hinweis:** Wenn **Aktiviert** eingeschaltet ist und **Contact** oder **Expires** fehlen (oder **Expires** in der Vergangenheit liegt), wird das Speichern mit einer Fehlermeldung abgewiesen.
+> **Hinweis:** Wenn **security.txt aktivieren** eingeschaltet ist und **Contact** oder **Expires** fehlen (oder **Expires** in der Vergangenheit liegt), wird das Speichern mit einer Fehlermeldung abgewiesen.
+
+> **Hinweis:** Die `Canonical`-Direktive wird automatisch vom Server gesetzt. Dafür gibt es kein eigenes Eingabefeld.
 
 ---
 
@@ -62,4 +63,4 @@ Nach dem Speichern ist die `security.txt`-Datei ohne Anmeldung unter folgenden A
 
 ## Funktion deaktivieren
 
-Setzen Sie den Schalter **Aktiviert** auf „Aus" und speichern Sie. Alle vier Endpunkte antworten daraufhin mit „Nicht gefunden" (HTTP 404). Die eingetragenen Direktiven bleiben gespeichert und können jederzeit reaktiviert werden.
+Setzen Sie den Schalter **security.txt aktivieren** auf „Aus" und speichern Sie. Alle vier Endpunkte antworten daraufhin mit „Nicht gefunden" (HTTP 404). Die eingetragenen Direktiven bleiben gespeichert und können jederzeit reaktiviert werden.

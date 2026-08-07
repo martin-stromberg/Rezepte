@@ -26,7 +26,7 @@ public class AiUsageServiceTests
     public async Task TryRecordRequestAsync_counts_only_request_entries_and_blocks_when_limit_reached()
     {
         using var db = CreateDb();
-        var settings = new SettingsService(db);
+        var settings = new SettingsService(db, new SecurityTxtSettingsService(db));
         var logger = NullLogger<AiUsageService>.Instance;
         var sut = new AiUsageService(db, settings, logger);
 
@@ -52,7 +52,7 @@ public class AiUsageServiceTests
     public async Task Success_entries_are_not_counted_against_limits()
     {
         using var db = CreateDb();
-        var settings = new SettingsService(db);
+        var settings = new SettingsService(db, new SecurityTxtSettingsService(db));
         var logger = NullLogger<AiUsageService>.Instance;
         var sut = new AiUsageService(db, settings, logger);
 
@@ -81,7 +81,7 @@ public class AiUsageServiceTests
     public async Task When_disableOnLimit_reached_global_ai_is_disabled()
     {
         using var db = CreateDb();
-        var settings = new SettingsService(db);
+        var settings = new SettingsService(db, new SecurityTxtSettingsService(db));
         var logger = NullLogger<AiUsageService>.Instance;
         var sut = new AiUsageService(db, settings, logger);
 

@@ -47,6 +47,22 @@
 
 ---
 
+## Canonical wird immer serverseitig gesetzt
+
+**Beschreibung:** Die kanonische URL darf nicht manuell konfiguriert werden, damit sie immer zur tatsächlich ausgelieferten Ressource passt.
+
+**Verhalten:**
+- Beim Speichern über `PUT /api/settings/global/securitytxt` wird ein übergebener Wert in `Canonical` verworfen.
+- In der Persistenz wird `SecurityTxt.Canonical` nicht gehalten.
+- Beim Ausliefern setzt der Controller `Canonical` je Ausgabeformat:
+  - `/security.txt` und `/.well-known/security.txt` → `/security.txt`
+  - `/.well-known/security.md` → `/.well-known/security.md`
+  - `/.well-known/security.html` → `/.well-known/security.html`
+
+**Umsetzung:** `SettingsController.SetGlobalSecurityTxt`, `SecurityTxtSettingsService.SetSecurityTxtSettingsAsync`, `SecurityTxtController.RenderIfEnabledAsync`.
+
+---
+
 ## Null-Werte löschen AppSetting-Einträge
 
 **Beschreibung:** Optionale Direktiven, die nicht gesetzt sind (`null`), sollen keinen leeren Eintrag in der `AppSetting`-Tabelle hinterlassen.
@@ -55,7 +71,7 @@
 - Wird ein Feld mit `null` übergeben, wird der zugehörige `AppSetting`-Eintrag gelöscht (falls vorhanden).
 - Felder mit Leerstring verhalten sich wie `null`.
 
-**Umsetzung:** `SettingsService.SetSecurityTxtSettingsAsync` — `Upsert`-Hilfsmethode: `if (value == null) { if (kv != null) _db.Remove(kv); return; }`
+**Umsetzung:** `SecurityTxtSettingsService.SetSecurityTxtSettingsAsync` — `Upsert`-Hilfsmethode: `if (value == null) { if (kv != null) _db.Remove(kv); return; }`
 
 ---
 
@@ -64,5 +80,5 @@
 **Beschreibung:** `Expires` wird intern als `DateTimeOffset` verarbeitet und im ISO-8601-Round-Trip-Format (`"O"`) in der `AppSetting`-Tabelle gespeichert, damit eine verlustfreie Rundreise zwischen Lesen und Schreiben gewährleistet ist.
 
 **Umsetzung:**
-- Speichern: `settings.Expires?.ToString("O")` in `SettingsService.SetSecurityTxtSettingsAsync`
-- Lesen: `DateTimeOffset.TryParseExact(expiresRaw, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, ...)` in `SettingsService.GetSecurityTxtSettingsAsync`
+- Speichern: `settings.Expires?.ToString("O")` in `SecurityTxtSettingsService.SetSecurityTxtSettingsAsync`
+- Lesen: `DateTimeOffset.TryParseExact(expiresRaw, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, ...)` in `SecurityTxtSettingsService.GetSecurityTxtSettingsAsync`

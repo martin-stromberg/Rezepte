@@ -10,10 +10,10 @@ public class SettingsService : ISettingsService
     private readonly RezepteDbContext _db;
     private readonly ISecurityTxtSettingsService _securityTxtSettingsService;
 
-    public SettingsService(RezepteDbContext db, ISecurityTxtSettingsService? securityTxtSettingsService = null)
+    public SettingsService(RezepteDbContext db, ISecurityTxtSettingsService securityTxtSettingsService)
     {
         _db = db;
-        _securityTxtSettingsService = securityTxtSettingsService ?? new SecurityTxtSettingsService(db);
+        _securityTxtSettingsService = securityTxtSettingsService;
     }
 
     public async Task<bool> GetUserAiEnabledAsync(string userId, CancellationToken ct = default)

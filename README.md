@@ -27,7 +27,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
 - GitHub Actions fuer Pull-Request-Pruefungen und automatisierte Release-Artefakte.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
-- `security.txt` gemaess RFC 9116 unter `/security.txt` und `/.well-known/security.txt` mit optionalen Zusatzformaten (`/.well-known/security.md`, `/.well-known/security.html`); Konfiguration durch Administratoren im Einstellungsbereich; alle Endpunkte oeffentlich erreichbar ohne Authentifizierung.
+- `security.txt` gemaess RFC 9116 unter `/security.txt` und `/.well-known/security.txt` mit optionalen Zusatzformaten (`/.well-known/security.md`, `/.well-known/security.html`); Konfiguration durch Administratoren im Einstellungsbereich (Canonical wird serverseitig je Ausgabeformat bestimmt); alle Endpunkte oeffentlich erreichbar ohne Authentifizierung.
 
 ## Tech-Stack
 
@@ -55,6 +55,10 @@ Rezepte.Import.Plugins.AIFoto/
 Rezepte.Import.Plugins.AIUrl/
                     KI-Webseiten-Import-Plugin im Hauptrepository
 Rezepte.Tests/      Unit-Tests fuer zentrale Services
+Rezepte.Tests.Browser/
+                    Browser-/E2E-Tests mit Playwright
+Rezepte.Tests.PluginFixture/
+                    Testfixture fuer Plugin-bezogene Tests
 Docs/               Anforderungskatalog und Installationshinweise
 ```
 
@@ -113,7 +117,15 @@ Beim ersten Start wird die SQLite-Datenbank automatisch vorbereitet. Sind EF-Cor
 dotnet test
 ```
 
-Das Testprojekt `Rezepte.Tests` deckt zentrale Services wie Benutzer, Kochbuecher, Rezepte, Einstellungen und KI-Nutzung ab.
+`Rezepte.Tests` deckt zentrale Services wie Benutzer, Kochbuecher, Rezepte, Einstellungen und KI-Nutzung ab. `Rezepte.Tests.Browser` enthaelt Browser-/E2E-Tests (u. a. fuer den security.txt-Flow inklusive Admin-UI und oeffentlichen Endpunkten).
+
+Fuer Browser-Tests muss zusaetzlich Playwright-Chromium installiert sein:
+
+```powershell
+dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj -c Release
+pwsh (Get-ChildItem Rezepte.Tests.Browser/bin/Release -Recurse -Filter playwright.ps1 | Select-Object -First 1 -ExpandProperty FullName) install --with-deps chromium
+dotnet test Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj -c Release --no-build
+```
 
 ## Konfiguration
 
@@ -141,9 +153,10 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 | `SecurityTxt.Encryption` | RFC-9116-Direktive `Encryption` — URL zum oeffentlichen Schluessel. Optional. |
 | `SecurityTxt.Acknowledgments` | RFC-9116-Direktive `Acknowledgments` — URL zur Danksagungsseite. Optional. |
 | `SecurityTxt.PreferredLanguages` | RFC-9116-Direktive `Preferred-Languages` — kommagetrennte Sprachcodes. Optional. |
-| `SecurityTxt.Canonical` | RFC-9116-Direktive `Canonical` — oeffentliche URL der security.txt-Datei. Optional; manuell durch den Administrator einzutragen. |
 | `SecurityTxt.Policy` | RFC-9116-Direktive `Policy` — URL zur Sicherheitsrichtlinie. Optional. |
 | `SecurityTxt.Hiring` | RFC-9116-Direktive `Hiring` — URL zu Sicherheitsstellen-Ausschreibungen. Optional. |
+
+Hinweis: `Canonical` ist nicht admin-konfigurierbar. Die Direktive wird vom Server je Ausgabeformat (Plain-Text/Markdown/HTML) automatisch aus Request-Schema, Host, PathBase und Zielpfad erzeugt.
 
 ### Ladebalken und visuelles Feedback
 

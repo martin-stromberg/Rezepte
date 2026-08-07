@@ -89,6 +89,18 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
         await Page.WaitForSelectorAsync(SuccessAlertSelector, new PageWaitForSelectorOptions { Timeout = 10000 });
     }
 
+    public async Task DisableAndSaveSecurityTxtAsync()
+    {
+        var enabledChecked = await Page.IsCheckedAsync(EnabledCheckboxSelector);
+        if (enabledChecked)
+        {
+            await Page.ClickAsync(EnabledCheckboxSelector);
+        }
+
+        await Page.ClickAsync(SaveButtonSelector);
+        await Page.WaitForSelectorAsync(SuccessAlertSelector, new PageWaitForSelectorOptions { Timeout = 10000 });
+    }
+
     public static async Task RegisterUserAsync(string baseAddress, string username, string password)
     {
         using var httpClient = new HttpClient { BaseAddress = new Uri(baseAddress) };
