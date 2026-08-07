@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Rezepte.Web.Controllers;
@@ -29,7 +30,22 @@ public class SecurityTxtControllerTests
         settingsMock.Setup(s => s.GetSecurityTxtSettingsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings);
         var renderer = new SecurityTxtRenderer();
-        return new SecurityTxtController(settingsMock.Object, renderer);
+        return new SecurityTxtController(settingsMock.Object, renderer)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
+    }
+
+    private static SecurityTxtController CreateControllerForRequest(SecurityTxtSettings settings, string path)
+    {
+        var controller = CreateController(settings);
+        controller.HttpContext.Request.Scheme = "https";
+        controller.HttpContext.Request.Host = new HostString("rezepte.example");
+        controller.HttpContext.Request.Path = path;
+        return controller;
     }
 
     [Fact]
@@ -78,13 +94,46 @@ public class SecurityTxtControllerTests
     }
 
     [Fact]
-    public async Task GetSecurityTxt_RequiresNoAuthentication()
+    public async Task GetSecurityTxt_UsesCanonicalForPlainTextPath()
     {
-        var sut = CreateController(EnabledSettings);
+        var sut = CreateControllerForRequest(EnabledSettings, "/security.txt");
 
         var result = await sut.GetSecurityTxt(CancellationToken.None);
+        var content = (ContentResult)result;
 
-        result.Should().NotBeOfType<UnauthorizedResult>();
-        result.Should().NotBeOfType<ForbidResult>();
+        content.Content.Should().Contain("Canonical: https://rezepte.example/security.txt");
+    }
+
+    [Fact]
+    public async Task GetSecurityTxt_UsesCanonicalForWellKnownAliasPath()
+    {
+        var sut = CreateControllerForRequest(EnabledSettings, "/.well-known/security.txt");
+
+        var result = await sut.GetSecurityTxt(CancellationToken.None);
+        var content = (ContentResult)result;
+
+        content.Content.Should().Contain("Canonical: https://rezepte.example/security.txt");
+    }
+
+    [Fact]
+    public async Task GetSecurityMd_UsesCanonicalForMarkdownPath()
+    {
+        var sut = CreateControllerForRequest(EnabledSettings, "/.well-known/security.md");
+
+        var result = await sut.GetSecurityMd(CancellationToken.None);
+        var content = (ContentResult)result;
+
+        content.Content.Should().Contain("https://rezepte.example/.well-known/security.md");
+    }
+
+    [Fact]
+    public async Task GetSecurityHtml_UsesCanonicalForHtmlPath()
+    {
+        var sut = CreateControllerForRequest(EnabledSettings, "/.well-known/security.html");
+
+        var result = await sut.GetSecurityHtml(CancellationToken.None);
+        var content = (ContentResult)result;
+
+        content.Content.Should().Contain("https://rezepte.example/.well-known/security.html");
     }
 }

@@ -69,6 +69,32 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
         });
     }
 
+    [Fact]
+    public void RenderedForm_DoesNotContainCanonicalInput()
+    {
+        var settings = new SecurityTxtSettings(
+            Enabled: true,
+            Contact: "mailto:security@example.com",
+            Expires: DateTimeOffset.UtcNow.AddDays(7),
+            Encryption: null,
+            Acknowledgments: null,
+            PreferredLanguages: null,
+            Canonical: "https://example.com/ignored",
+            Policy: null,
+            Hiring: null);
+
+        var apiClient = CreateApiClient(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(settings)
+        });
+        _context.Services.AddSingleton(apiClient);
+
+        var cut = _context.RenderComponent<Rezepte.Web.Components.Settings.SecurityTxtSettings>();
+
+        cut.WaitForAssertion(() => cut.Find("#securitytxt-enabled"));
+        cut.FindAll("#securitytxt-canonical").Should().BeEmpty();
+    }
+
     public void Dispose()
     {
         _context.Dispose();

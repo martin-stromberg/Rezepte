@@ -24,7 +24,7 @@ public class SettingsServiceTests
     public async Task GetUserAiEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         var result = await sut.GetUserAiEnabledAsync("user-1", CancellationToken.None);
 
@@ -35,7 +35,7 @@ public class SettingsServiceTests
     public async Task SetUserAiEnabledAsync_ShouldPersistValue_WhenSettingInitially()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetUserAiEnabledAsync("user-2", false, CancellationToken.None);
 
@@ -47,7 +47,7 @@ public class SettingsServiceTests
     public async Task SetUserAiEnabledAsync_ShouldUpdateExistingValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetUserAiEnabledAsync("user-2", false, CancellationToken.None);
         await sut.SetUserAiEnabledAsync("user-2", true, CancellationToken.None);
@@ -60,7 +60,7 @@ public class SettingsServiceTests
     public async Task GetGlobalAiEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         var result = await sut.GetGlobalAiEnabledAsync(CancellationToken.None);
 
@@ -71,7 +71,7 @@ public class SettingsServiceTests
     public async Task SetGlobalAiEnabledAsync_ShouldPersistValue_WhenSettingInitially()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalAiEnabledAsync(false, CancellationToken.None);
 
@@ -83,7 +83,7 @@ public class SettingsServiceTests
     public async Task SetGlobalAiEnabledAsync_ShouldUpdateExistingValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalAiEnabledAsync(false, CancellationToken.None);
         await sut.SetGlobalAiEnabledAsync(true, CancellationToken.None);
@@ -96,7 +96,7 @@ public class SettingsServiceTests
     public async Task UserAndGlobalSettings_ShouldBeIndependent()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         // set global false, user true -> effective: user still stored true, but callers should check global separately
         await sut.SetGlobalAiEnabledAsync(false, CancellationToken.None);
@@ -113,7 +113,7 @@ public class SettingsServiceTests
     public async Task GetUserShoppingListEditModeAsync_ShouldReturnFalseByDefault_WhenNoSettingExists()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         (await sut.GetUserShoppingListEditModeAsync("user-1", CancellationToken.None)).Should().BeFalse();
     }
@@ -122,7 +122,7 @@ public class SettingsServiceTests
     public async Task SetUserShoppingListEditModeAsync_ShouldPersistValue_PerUser()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetUserShoppingListEditModeAsync("user-1", true, CancellationToken.None);
         await sut.SetUserShoppingListEditModeAsync("user-2", false, CancellationToken.None);
@@ -135,7 +135,7 @@ public class SettingsServiceTests
     public async Task ShoppingListEditMode_ShouldUpdateExistingValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetUserShoppingListEditModeAsync("user-1", true, CancellationToken.None);
         await sut.SetUserShoppingListEditModeAsync("user-1", false, CancellationToken.None);
@@ -147,7 +147,7 @@ public class SettingsServiceTests
     public async Task GetSecurityTxtSettingsAsync_ShouldReturnDefaults_WhenNoSettingsExist()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         var result = await sut.GetSecurityTxtSettingsAsync(CancellationToken.None);
 
@@ -166,7 +166,7 @@ public class SettingsServiceTests
     public async Task SetSecurityTxtSettingsAsync_ShouldPersistAllFields()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
         var expires = new DateTimeOffset(2030, 6, 1, 0, 0, 0, TimeSpan.Zero);
 
         var settings = new Rezepte.Web.Dtos.SecurityTxtSettings(
@@ -176,7 +176,7 @@ public class SettingsServiceTests
             Encryption: "https://example.com/pgp.txt",
             Acknowledgments: "https://example.com/thanks",
             PreferredLanguages: "de, en",
-            Canonical: "https://example.com/.well-known/security.txt",
+            Canonical: "https://example.com/will-be-ignored",
             Policy: "https://example.com/policy",
             Hiring: "https://example.com/jobs");
 
@@ -189,7 +189,7 @@ public class SettingsServiceTests
         read.Encryption.Should().Be("https://example.com/pgp.txt");
         read.Acknowledgments.Should().Be("https://example.com/thanks");
         read.PreferredLanguages.Should().Be("de, en");
-        read.Canonical.Should().Be("https://example.com/.well-known/security.txt");
+        read.Canonical.Should().BeNull();
         read.Policy.Should().Be("https://example.com/policy");
         read.Hiring.Should().Be("https://example.com/jobs");
     }
@@ -198,7 +198,7 @@ public class SettingsServiceTests
     public async Task SetSecurityTxtSettingsAsync_ShouldOverwriteExistingValues()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
         var expiresV1 = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var expiresV2 = new DateTimeOffset(2031, 12, 31, 0, 0, 0, TimeSpan.Zero);
 
@@ -237,7 +237,7 @@ public class SettingsServiceTests
     public async Task SetSecurityTxtSettingsAsync_ShouldClearNullableFields_WhenPassedNull()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
         var expires = new DateTimeOffset(2030, 6, 1, 0, 0, 0, TimeSpan.Zero);
 
         var withValues = new Rezepte.Web.Dtos.SecurityTxtSettings(
@@ -247,7 +247,7 @@ public class SettingsServiceTests
             Encryption: "https://example.com/pgp.txt",
             Acknowledgments: "https://example.com/thanks",
             PreferredLanguages: "de",
-            Canonical: "https://example.com/.well-known/security.txt",
+            Canonical: "https://example.com/will-be-ignored",
             Policy: "https://example.com/policy",
             Hiring: "https://example.com/jobs");
         await sut.SetSecurityTxtSettingsAsync(withValues, CancellationToken.None);
@@ -275,10 +275,32 @@ public class SettingsServiceTests
     }
 
     [Fact]
+    public async Task SetSecurityTxtSettingsAsync_ShouldNotPersistCanonical_WhenProvided()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
+        var expires = DateTimeOffset.UtcNow.AddDays(2);
+
+        await sut.SetSecurityTxtSettingsAsync(new Rezepte.Web.Dtos.SecurityTxtSettings(
+            Enabled: true,
+            Contact: "mailto:security@example.com",
+            Expires: expires,
+            Encryption: null,
+            Acknowledgments: null,
+            PreferredLanguages: null,
+            Canonical: "https://example.com/should-not-be-stored",
+            Policy: null,
+            Hiring: null), CancellationToken.None);
+
+        (await db.Set<AppSetting>().FindAsync("SecurityTxt.Canonical")).Should().BeNull();
+        (await sut.GetSecurityTxtSettingsAsync(CancellationToken.None)).Canonical.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetSecurityTxtSettingsAsync_ShouldReturnNullExpires_WhenValueIsInvalidDateString()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         var settings = new Rezepte.Web.Dtos.SecurityTxtSettings(
             Enabled: true,
@@ -305,7 +327,7 @@ public class SettingsServiceTests
     public async Task SetGlobalGoogleVisionEnabledAsync_ShouldPersistValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalGoogleVisionEnabledAsync(false, CancellationToken.None);
 
@@ -317,7 +339,7 @@ public class SettingsServiceTests
     public async Task SetGlobalGoogleVisionEnabledAsync_ShouldUpdateExistingValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalGoogleVisionEnabledAsync(false, CancellationToken.None);
         await sut.SetGlobalGoogleVisionEnabledAsync(true, CancellationToken.None);
@@ -330,7 +352,7 @@ public class SettingsServiceTests
     public async Task GetGlobalGoogleVisionEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         var result = await sut.GetGlobalGoogleVisionEnabledAsync(CancellationToken.None);
 
@@ -341,7 +363,7 @@ public class SettingsServiceTests
     public async Task SetGlobalGeminiEnabledAsync_ShouldPersistValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalGeminiEnabledAsync(false, CancellationToken.None);
 
@@ -353,7 +375,7 @@ public class SettingsServiceTests
     public async Task SetGlobalGeminiEnabledAsync_ShouldUpdateExistingValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalGeminiEnabledAsync(false, CancellationToken.None);
         await sut.SetGlobalGeminiEnabledAsync(true, CancellationToken.None);
@@ -366,7 +388,7 @@ public class SettingsServiceTests
     public async Task GetGlobalGeminiEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         var result = await sut.GetGlobalGeminiEnabledAsync(CancellationToken.None);
 
@@ -377,7 +399,7 @@ public class SettingsServiceTests
     public async Task SetGlobalMaxRequestsPerHourAsync_ShouldPersistValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalMaxRequestsPerHourAsync(100, CancellationToken.None);
 
@@ -389,7 +411,7 @@ public class SettingsServiceTests
     public async Task SetGlobalMaxRequestsPerHourAsync_ShouldClearValue_WhenPassedNull()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalMaxRequestsPerHourAsync(100, CancellationToken.None);
         await sut.SetGlobalMaxRequestsPerHourAsync(null, CancellationToken.None);
@@ -402,7 +424,7 @@ public class SettingsServiceTests
     public async Task GetGlobalMaxRequestsPerHourAsync_ShouldReturnNull_WhenNoSettingExists()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         var result = await sut.GetGlobalMaxRequestsPerHourAsync(CancellationToken.None);
 
@@ -413,7 +435,7 @@ public class SettingsServiceTests
     public async Task SetGlobalMaxRequestsPerDayAsync_ShouldPersistValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalMaxRequestsPerDayAsync(500, CancellationToken.None);
 
@@ -425,7 +447,7 @@ public class SettingsServiceTests
     public async Task SetGlobalMaxRequestsPerDayAsync_ShouldClearValue_WhenPassedNull()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalMaxRequestsPerDayAsync(500, CancellationToken.None);
         await sut.SetGlobalMaxRequestsPerDayAsync(null, CancellationToken.None);
@@ -438,7 +460,7 @@ public class SettingsServiceTests
     public async Task GetGlobalMaxRequestsPerDayAsync_ShouldReturnNull_WhenNoSettingExists()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         var result = await sut.GetGlobalMaxRequestsPerDayAsync(CancellationToken.None);
 
@@ -449,7 +471,7 @@ public class SettingsServiceTests
     public async Task SetGlobalDisableOnLimitReachedAsync_ShouldPersistValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalDisableOnLimitReachedAsync(true, CancellationToken.None);
 
@@ -461,7 +483,7 @@ public class SettingsServiceTests
     public async Task SetGlobalDisableOnLimitReachedAsync_ShouldUpdateExistingValue()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         await sut.SetGlobalDisableOnLimitReachedAsync(true, CancellationToken.None);
         await sut.SetGlobalDisableOnLimitReachedAsync(false, CancellationToken.None);
@@ -474,10 +496,11 @@ public class SettingsServiceTests
     public async Task GetGlobalDisableOnLimitReachedAsync_ShouldReturnFalseByDefault_WhenNoSettingExists()
     {
         using var db = CreateDb();
-        var sut = new SettingsService(db);
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
 
         var result = await sut.GetGlobalDisableOnLimitReachedAsync(CancellationToken.None);
 
         result.Should().BeFalse();
     }
 }
+

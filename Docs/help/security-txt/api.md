@@ -17,7 +17,7 @@ Es gibt zwei Endpunktgruppen:
 
 **Admin-Endpunkte:** Bearer-Token im `Authorization`-Header:
 ```
-Authorization: Bearer <JWT-Token>
+Authorization: Bearer <jwt-token>
 ```
 Das Token muss die Rolle `Admin` enthalten.
 
@@ -41,6 +41,7 @@ Das Token muss die Rolle `Admin` enthalten.
 ```
 Contact: mailto:security@example.com
 Expires: 2026-12-31T00:00:00.0000000+00:00
+Canonical: https://example.com/security.txt
 Policy: https://example.com/security-policy
 ```
 
@@ -66,6 +67,10 @@ mailto:security@example.com
 ## Expires
 
 2026-12-31T00:00:00.0000000+00:00
+
+## Canonical
+
+https://example.com/.well-known/security.md
 ```
 
 ---
@@ -85,6 +90,7 @@ mailto:security@example.com
 ```html
 <h2>Contact</h2><p>mailto:security@example.com</p>
 <h2>Expires</h2><p>2026-12-31T00:00:00.0000000+00:00</p>
+<h2>Canonical</h2><p>https://example.com/.well-known/security.html</p>
 ```
 
 ---
@@ -107,7 +113,7 @@ mailto:security@example.com
   "encryption": null,
   "acknowledgments": null,
   "preferredLanguages": "de, en",
-  "canonical": "https://example.com/.well-known/security.txt",
+  "canonical": null,
   "policy": null,
   "hiring": null
 }
@@ -121,7 +127,7 @@ mailto:security@example.com
 | `encryption` | `string?` | RFC-9116-Direktive `Encryption` |
 | `acknowledgments` | `string?` | RFC-9116-Direktive `Acknowledgments`; mehrere Werte zeilengetrennt |
 | `preferredLanguages` | `string?` | RFC-9116-Direktive `Preferred-Languages` |
-| `canonical` | `string?` | RFC-9116-Direktive `Canonical` |
+| `canonical` | `string?` | Nicht konfigurierbar; wird in der Antwort aktuell immer `null` geliefert |
 | `policy` | `string?` | RFC-9116-Direktive `Policy` |
 | `hiring` | `string?` | RFC-9116-Direktive `Hiring` |
 
@@ -140,6 +146,8 @@ mailto:security@example.com
 **Authentifizierung:** Bearer-Token, Rolle `Admin`
 
 **Body:** JSON mit denselben Feldern wie die GET-Antwort.
+
+Hinweis: Ein übergebener Wert in `canonical` wird serverseitig ignoriert und nicht gespeichert.
 
 **Fehler:**
 

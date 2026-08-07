@@ -13,4 +13,4 @@
 - [Ladeanimation — Konfiguration](loading-bar-configuration.md) — Einrichtung und Konfiguration der Navigations-Ladeanimation
 - [Navigation](navigation.md) — Struktur und Navigation der Anwendung
 - [Rezeptsuche](recipe-search.md) — Funktionen zur Suche und Filterung von Rezepten
-- [security.txt](security-txt/index.md) — Auslieferung einer security.txt-Datei gemäß RFC 9116 mit Admin-Konfiguration
+- [security.txt](security-txt/index.md) — Öffentliche RFC-9116-Auslieferung mit Admin-Konfiguration und serverseitiger Canonical-Ableitung je Format
