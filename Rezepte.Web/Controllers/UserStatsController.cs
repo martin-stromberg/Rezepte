@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rezepte.Web.Dto;
+using Rezepte.Web.Controllers;
 using Rezepte.Web.Services;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class UserStatsController : ControllerBase
+public class UserStatsController : ApiControllerBase
 {
     private readonly IRecipeService _recipes;
     private readonly ICookbookService _cookbooks;
@@ -25,7 +26,7 @@ public class UserStatsController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetMyStats(CancellationToken ct)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
         var user = await _users.GetByIdAsync(userId, ct);

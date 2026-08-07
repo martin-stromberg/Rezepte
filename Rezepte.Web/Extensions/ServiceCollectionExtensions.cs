@@ -10,6 +10,7 @@ using Rezepte.Web.Data;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.BackgroundJobs.Handlers;
+using Rezepte.Web.Services.Http;
 using Rezepte.Web.Services.Import;
 using Rezepte.Web.Services.Import.Plugins;
 using Rezepte.Web.Services.Validation;
@@ -143,6 +144,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBackgroundJobHandler, ExportAllJobHandler>();
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<IImportService, ImportService>();
+        services.AddScoped<IRemoteContentFetcher, RemoteContentFetcher>();
         services.AddScoped<IImportedRecipePersister, ImportedRecipePersister>();
         services.AddSingleton<IPluginManager, PluginManager>();
         services.AddHostedService<PluginStartupService>();

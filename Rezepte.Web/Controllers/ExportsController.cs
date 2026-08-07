@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +9,7 @@ namespace Rezepte.Web.Controllers;
 [ApiController]
 [Route("api/exports")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class ExportsController : ControllerBase
+public class ExportsController : ApiControllerBase
 {
     private readonly IBackgroundJobQueue _jobQueue;
     private readonly ILogger<ExportsController> _logger;
@@ -20,8 +19,6 @@ public class ExportsController : ControllerBase
         _jobQueue = jobQueue;
         _logger = logger;
     }
-
-    private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     /// <summary>
     /// Exportiert die Rezeptesammlung des angemeldeten Benutzers.

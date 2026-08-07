@@ -1,8 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Rezepte.Web.Extensions;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.BackgroundJobs;
 
@@ -11,7 +11,7 @@ namespace Rezepte.Web.Controllers;
 [ApiController]
 [Route("api/admin/exports")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
-public class AdminExportsController : ControllerBase
+public class AdminExportsController : ApiControllerBase
 {
     private readonly IExportService _exportService;
     private readonly IBackgroundJobQueue _jobQueue;
@@ -23,8 +23,6 @@ public class AdminExportsController : ControllerBase
         _jobQueue = jobQueue;
         _logger = logger;
     }
-
-    private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     /// <summary>
     /// Admin-Export: Exportiert alle Daten (inkl. Benutzer).
@@ -82,9 +80,7 @@ public class AdminExportsController : ControllerBase
 
         try
         {
-            using var ms = new MemoryStream();
-            await file.CopyToAsync(ms, ct).ConfigureAwait(false);
-            ms.Seek(0, SeekOrigin.Begin);
+            await using var ms = await file.ReadToMemoryStreamAsync(ct);
 
             // Delegiere die eigentliche Wiederherstellungslogik an den Service.
             // Implementierung ist vorsichtig: legt nur fehlende Entitaeten an, ueberschreibt nichts.
