@@ -14,20 +14,26 @@ public class SettingsViewModel
         public bool Visible { get; } = visible;
     }
 
-    public IReadOnlyList<Item> Items { get; }
-    public Item SelectedItem { get; private set; }
+    private readonly AuthenticationStateProvider _authenticationStateProvider;
+
+    public IReadOnlyList<Item> Items { get; private set; } = Array.Empty<Item>();
+    public Item? SelectedItem { get; private set; }
     public bool Visible { get; }
 
     public SettingsViewModel(AuthenticationStateProvider authenticationStateProvider)
     {
-        // Achtung: synchronous block / kurz und bewusst — Auth-State ist zur Initialisierung benötigt.
-        var authState = authenticationStateProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult();
+        _authenticationStateProvider = authenticationStateProvider;
+    }
+
+    public async Task InitializeAsync()
+    {
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         var isAdmin = authState.User?.IsInRole("Admin") ?? false;
 
         Items = new List<Item>
         {
             new Item("Profil", "👤", true, typeof(UserProfile)),
-            new Item("Einstellungen", "⚙️", true, typeof(AiSettings)), // Neu: Einstellungen-Bereich (userbezogene Optionen)
+            new Item("Einstellungen", "⚙️", true, typeof(AiSettings)),
             new Item("Benutzer", "👥", isAdmin, typeof(UserAdmin)),
             new Item("Plugins", "🔌", isAdmin, typeof(PluginSettings)),
             new Item("security.txt", "🔒", isAdmin, typeof(SecurityTxtSettings)),

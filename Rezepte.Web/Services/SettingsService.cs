@@ -48,6 +48,13 @@ public class SettingsService : ISettingsService
     private const string SecurityTxtPolicyKey = "SecurityTxt.Policy";
     private const string SecurityTxtHiringKey = "SecurityTxt.Hiring";
 
+    private static readonly string[] SecurityTxtKeys =
+    {
+        SecurityTxtEnabledKey, SecurityTxtContactKey, SecurityTxtExpiresKey,
+        SecurityTxtEncryptionKey, SecurityTxtAcknowledgmentsKey, SecurityTxtPreferredLanguagesKey,
+        SecurityTxtCanonicalKey, SecurityTxtPolicyKey, SecurityTxtHiringKey
+    };
+
     public async Task<bool> GetGlobalAiEnabledAsync(CancellationToken ct = default)
     {
         var kv = await _db.Set<AppSetting>().FindAsync(new object[] { AiKey }, ct);
@@ -182,15 +189,8 @@ public class SettingsService : ISettingsService
 
     public async Task<SecurityTxtSettings> GetSecurityTxtSettingsAsync(CancellationToken ct = default)
     {
-        var keys = new[]
-        {
-            SecurityTxtEnabledKey, SecurityTxtContactKey, SecurityTxtExpiresKey,
-            SecurityTxtEncryptionKey, SecurityTxtAcknowledgmentsKey, SecurityTxtPreferredLanguagesKey,
-            SecurityTxtCanonicalKey, SecurityTxtPolicyKey, SecurityTxtHiringKey
-        };
-
         var rows = await _db.Set<AppSetting>()
-            .Where(s => keys.Contains(s.Key))
+            .Where(s => SecurityTxtKeys.Contains(s.Key))
             .ToListAsync(ct);
 
         string? Get(string key) => rows.FirstOrDefault(r => r.Key == key)?.Value;
@@ -215,15 +215,8 @@ public class SettingsService : ISettingsService
 
     public async Task SetSecurityTxtSettingsAsync(SecurityTxtSettings settings, CancellationToken ct = default)
     {
-        var keys = new[]
-        {
-            SecurityTxtEnabledKey, SecurityTxtContactKey, SecurityTxtExpiresKey,
-            SecurityTxtEncryptionKey, SecurityTxtAcknowledgmentsKey, SecurityTxtPreferredLanguagesKey,
-            SecurityTxtCanonicalKey, SecurityTxtPolicyKey, SecurityTxtHiringKey
-        };
-
         var existing = await _db.Set<AppSetting>()
-            .Where(s => keys.Contains(s.Key))
+            .Where(s => SecurityTxtKeys.Contains(s.Key))
             .ToListAsync(ct);
 
         void Upsert(string key, string? value)
@@ -256,26 +249,6 @@ public class SettingsService : ISettingsService
     private async Task WriteString(string key, string value, CancellationToken ct)
     {
         var kv = await _db.Set<AppSetting>().FindAsync(new object[] { key }, ct);
-        if (kv == null)
-        {
-            _db.Add(new AppSetting { Key = key, Value = value });
-        }
-        else
-        {
-            kv.Value = value;
-            _db.Update(kv);
-        }
-        await _db.SaveChangesAsync(ct);
-    }
-
-    private async Task WriteNullableString(string key, string? value, CancellationToken ct)
-    {
-        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { key }, ct);
-        if (value == null)
-        {
-            if (kv != null) { _db.Remove(kv); await _db.SaveChangesAsync(ct); }
-            return;
-        }
         if (kv == null)
         {
             _db.Add(new AppSetting { Key = key, Value = value });

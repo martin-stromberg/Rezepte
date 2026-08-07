@@ -6,51 +6,66 @@
 
 ## Umgesetzte Planelemente
 
-### Neue Klassen
+### Neue Klassen und Objekte
 
-- [x] `SecurityTxtSettings` (Record / DTO) — angelegt unter `Rezepte.Web/Dtos/SecurityTxtSettings.cs` mit allen neun Feldern (`Enabled`, `Contact`, `Expires`, `Encryption`, `Acknowledgments`, `PreferredLanguages`, `Canonical`, `Policy`, `Hiring`)
-- [x] `ISecurityTxtRenderer` (Interface) — angelegt unter `Rezepte.Web/Services/ISecurityTxtRenderer.cs` mit `RenderPlainText`, `RenderMarkdown`, `RenderHtml`
-- [x] `SecurityTxtRenderer` (Klasse) — angelegt unter `Rezepte.Web/Services/SecurityTxtRenderer.cs`; implementiert alle drei Render-Methoden; in DI registriert (`AddScoped<ISecurityTxtRenderer, SecurityTxtRenderer>` in `ServiceCollectionExtensions.cs`)
-- [x] `SecurityTxtController` (Controller ohne `[Authorize]`) — angelegt unter `Rezepte.Web/Controllers/SecurityTxtController.cs`; vier Endpunkte (`GET /security.txt`, `GET /.well-known/security.txt`, `GET /.well-known/security.md`, `GET /.well-known/security.html`); 404 bei `Enabled = false`; korrekte `Content-Type`-Header
-- [x] `SecurityTxtSettings.razor` (Blazor-Komponente) — angelegt unter `Rezepte.Web/Components/Settings/SecurityTxtSettings.razor`; alle neun Felder als Eingabefelder; lädt per `GET api/settings/global/securitytxt`, speichert per `PUT`
-- [x] `SecurityTxtRendererTests` (Testklasse) — angelegt unter `Rezepte.Tests/Services/SecurityTxtRendererTests.cs`
-- [x] `SecurityTxtControllerTests` (Testklasse) — angelegt unter `Rezepte.Tests/Controllers/SecurityTxtControllerTests.cs`
+- [x] `SecurityTxtSettings` (Record / DTO) — angelegt in `Rezepte.Web/Dtos/SecurityTxtSettings.cs`
+- [x] Feld `bool Enabled` in `SecurityTxtSettings` — vorhanden
+- [x] Feld `string? Contact` in `SecurityTxtSettings` — vorhanden
+- [x] Feld `DateTimeOffset? Expires` in `SecurityTxtSettings` — vorhanden
+- [x] Feld `string? Encryption` in `SecurityTxtSettings` — vorhanden
+- [x] Feld `string? Acknowledgments` in `SecurityTxtSettings` — vorhanden
+- [x] Feld `string? PreferredLanguages` in `SecurityTxtSettings` — vorhanden
+- [x] Feld `string? Canonical` in `SecurityTxtSettings` — vorhanden
+- [x] Feld `string? Policy` in `SecurityTxtSettings` — vorhanden
+- [x] Feld `string? Hiring` in `SecurityTxtSettings` — vorhanden
+- [x] `ISecurityTxtRenderer` (Interface) — angelegt in `Rezepte.Web/Services/ISecurityTxtRenderer.cs`
+- [x] Methode `RenderPlainText(SecurityTxtSettings)` in `ISecurityTxtRenderer` — vorhanden
+- [x] Methode `RenderMarkdown(SecurityTxtSettings)` in `ISecurityTxtRenderer` — vorhanden
+- [x] Methode `RenderHtml(SecurityTxtSettings)` in `ISecurityTxtRenderer` — vorhanden
+- [x] `SecurityTxtRenderer` (Klasse) — angelegt in `Rezepte.Web/Services/SecurityTxtRenderer.cs`
+- [x] Methode `RenderPlainText` in `SecurityTxtRenderer` — vorhanden; Mehrfachwerte per `\n` splitten, jede Zeile als eigene `Key:`-Direktive
+- [x] Methode `RenderMarkdown` in `SecurityTxtRenderer` — vorhanden; Abschnitte als `## Key`
+- [x] Methode `RenderHtml` in `SecurityTxtRenderer` — vorhanden; Abschnitte als `<h2>Key</h2><p>Value</p>`
+- [x] `SecurityTxtRenderer` in DI registriert — `ServiceCollectionExtensions.cs`: `services.AddScoped<ISecurityTxtRenderer, SecurityTxtRenderer>()`
+- [x] `SecurityTxtController` (Controller ohne `[Authorize]`) — angelegt in `Rezepte.Web/Controllers/SecurityTxtController.cs`
+- [x] Methode `GetSecurityTxt` (`GET /security.txt` + `GET /.well-known/security.txt`) in `SecurityTxtController` — vorhanden; 404 bei `Enabled = false`, `text/plain; charset=utf-8`
+- [x] Methode `GetSecurityMd` (`GET /.well-known/security.md`) in `SecurityTxtController` — vorhanden; `text/markdown; charset=utf-8`
+- [x] Methode `GetSecurityHtml` (`GET /.well-known/security.html`) in `SecurityTxtController` — vorhanden; `text/html; charset=utf-8`
+- [x] `SecurityTxtSettings.razor` (Blazor-Komponente) — angelegt in `Rezepte.Web/Components/Settings/SecurityTxtSettings.razor`; alle neun Felder als Eingabefelder, Laden bei Init, Speichern via PUT
 
 ### Änderungen an bestehenden Klassen
 
-- [x] `ISettingsService` — um `GetSecurityTxtSettingsAsync` und `SetSecurityTxtSettingsAsync` erweitert (`Rezepte.Web/Services/ISettingsService.cs`, Zeilen 45–46)
-- [x] `SettingsService` — alle neun Schlüsselkonstanten (`SecurityTxtEnabledKey`, `SecurityTxtContactKey`, `SecurityTxtExpiresKey`, `SecurityTxtEncryptionKey`, `SecurityTxtAcknowledgmentsKey`, `SecurityTxtPreferredLanguagesKey`, `SecurityTxtCanonicalKey`, `SecurityTxtPolicyKey`, `SecurityTxtHiringKey`) sowie Implementierungen beider Methoden vorhanden (`SettingsService.cs`, Zeilen 41–49, 183–251)
-- [x] `SettingsController` — `GetGlobalSecurityTxt` (`GET global/securitytxt`, `[Authorize(Roles = "Admin")]`) und `SetGlobalSecurityTxt` (`PUT global/securitytxt`, `[Authorize(Roles = "Admin")]`) mit Pflichtfeldvalidierung für `Contact` und `Expires`; HTTP 204 bei Erfolg
-- [x] `SettingsViewModel` — neues `Item("security.txt", "🔒", isAdmin, typeof(SecurityTxtSettings))` im Konstruktor eingetragen
-- [x] `RedirectToRegisterMiddleware.IsExcluded` — alle vier Pfade (`/security.txt`, `/.well-known/security.txt`, `/.well-known/security.md`, `/.well-known/security.html`) als Ausnahmen eingetragen (Zeilen 75–78)
+- [x] Methode `GetSecurityTxtSettingsAsync(CancellationToken)` in `ISettingsService` — vorhanden
+- [x] Methode `SetSecurityTxtSettingsAsync(SecurityTxtSettings, CancellationToken)` in `ISettingsService` — vorhanden
+- [x] Implementierung `GetSecurityTxtSettingsAsync` in `SettingsService` — vorhanden
+- [x] Implementierung `SetSecurityTxtSettingsAsync` in `SettingsService` — vorhanden
+- [x] Schlüsselkonstanten in `SettingsService` (`SecurityTxtEnabledKey`, `SecurityTxtContactKey`, `SecurityTxtExpiresKey`, `SecurityTxtEncryptionKey`, `SecurityTxtAcknowledgmentsKey`, `SecurityTxtPreferredLanguagesKey`, `SecurityTxtCanonicalKey`, `SecurityTxtPolicyKey`, `SecurityTxtHiringKey`) — alle neun vorhanden
+- [x] Methode `GetGlobalSecurityTxt` (`GET global/securitytxt`, `[Authorize(Roles = "Admin")]`) in `SettingsController` — vorhanden
+- [x] Methode `SetGlobalSecurityTxt` (`PUT global/securitytxt`, `[Authorize(Roles = "Admin")]`) in `SettingsController` — vorhanden; Pflichtfeldvalidierung für `Contact` und `Expires` bei `Enabled = true` mit HTTP 400; `Expires` muss in der Zukunft liegen
+- [x] `SettingsViewModel` Konstruktor — neues `Item` für `SecurityTxtSettings.razor` mit `isAdmin`-Sichtbarkeit vorhanden
+- [x] `RedirectToRegisterMiddleware.IsExcluded` — alle vier Pfade (`/security.txt`, `/.well-known/security.txt`, `/.well-known/security.md`, `/.well-known/security.html`) als Ausnahmen eingetragen
 
-### Routing / Konfiguration
+### Tests
 
-- [x] `Program.cs` — `app.UseStaticFiles()` (Zeile 37) liegt vor `app.MapControllers()` (Zeile 57); da keine physischen Dateien unter `wwwroot/.well-known/` vorhanden sind, werden die Anfragen korrekt an den Controller weitergegeben
-
-### Neue Tests
-
-- [x] `RenderPlainText_ShouldReturnRfc9116Format_WhenAllFieldsSet` — `SecurityTxtRendererTests`
-- [x] `RenderPlainText_ShouldRepeatDirective_ForMultilineContact` — `SecurityTxtRendererTests`
-- [x] `RenderMarkdown_ShouldReturnSectionHeaders` — `SecurityTxtRendererTests`
-- [x] `RenderHtml_ShouldReturnH2AndParagraph` — `SecurityTxtRendererTests`
-- [x] `RenderPlainText_ShouldOmitEmptyFields` — `SecurityTxtRendererTests`
-- [x] `GetSecurityTxt_ReturnsOk_WhenEnabled` — `SecurityTxtControllerTests`
-- [x] `GetSecurityTxt_ReturnsNotFound_WhenDisabled` — `SecurityTxtControllerTests`
-- [x] `GetWellKnownSecurityTxt_ReturnsOk_WhenEnabled` — `SecurityTxtControllerTests`
-- [x] `GetSecurityMd_ReturnsOk_WithMarkdownContentType` — `SecurityTxtControllerTests`
-- [x] `GetSecurityHtml_ReturnsOk_WithHtmlContentType` — `SecurityTxtControllerTests`
-- [x] `GetSecurityTxt_RequiresNoAuthentication` — `SecurityTxtControllerTests`
-- [x] `GetSecurityTxtSettingsAsync_ShouldReturnDefaults_WhenNoSettingsExist` — `SettingsServiceTests` (Erweiterung)
-- [x] `SetSecurityTxtSettingsAsync_ShouldPersistAllFields` — `SettingsServiceTests` (Erweiterung)
-
-### E2E-Tests (Pflicht)
-
-- [x] `GetSecurityTxt_ReturnsOk_WithoutAuthentication_WhenEnabled` — `Rezepte.Tests.Browser/SecurityTxtBrowserTests.cs`
-- [x] `GetSecurityTxt_ReturnsNotFound_WhenDisabled` — `Rezepte.Tests.Browser/SecurityTxtBrowserTests.cs`
-- [x] `Admin_CanConfigureSecurityTxtViaUi_AndContentAppearsInPublicEndpoint` — `Rezepte.Tests.Browser/SecurityTxtBrowserTests.cs`
-- [x] `RegularUser_DoesNotSeeSecurityTxtMenuItemInSettings` — `Rezepte.Tests.Browser/SecurityTxtBrowserTests.cs`
-- [x] `SecurityTxtPageObject` (Infrastruktur) — `Rezepte.Tests.Browser/Infrastructure/SecurityTxtPageObject.cs`
+- [x] `SecurityTxtRendererTests` — angelegt in `Rezepte.Tests/Services/SecurityTxtRendererTests.cs`
+- [x] `RenderPlainText_ShouldReturnRfc9116Format_WhenAllFieldsSet` — vorhanden
+- [x] `RenderPlainText_ShouldRepeatDirective_ForMultilineContact` — vorhanden
+- [x] `RenderPlainText_ShouldOmitEmptyFields` — vorhanden
+- [x] `RenderMarkdown_ShouldReturnSectionHeaders` — vorhanden
+- [x] `RenderHtml_ShouldReturnH2AndParagraph` — vorhanden
+- [x] `SecurityTxtControllerTests` — angelegt in `Rezepte.Tests/Controllers/SecurityTxtControllerTests.cs`
+- [x] `GetSecurityTxt_ReturnsOk_WhenEnabled` — vorhanden
+- [x] `GetSecurityTxt_ReturnsNotFound_WhenDisabled` — vorhanden
+- [x] `GetWellKnownSecurityTxt_ReturnsOk_WhenEnabled` — vorhanden
+- [x] `GetSecurityMd_ReturnsOk_WithMarkdownContentType` — vorhanden
+- [x] `GetSecurityHtml_ReturnsOk_WithHtmlContentType` — vorhanden
+- [x] `GetSecurityTxt_RequiresNoAuthentication` — vorhanden
+- [x] `SettingsServiceTests` (Erweiterung) — `GetSecurityTxtSettingsAsync_ShouldReturnDefaults_WhenNoSettingsExist` und `SetSecurityTxtSettingsAsync_ShouldPersistAllFields` in `Rezepte.Tests/Services/SettingsServiceTests.cs` vorhanden; zusätzlich: `SetSecurityTxtSettingsAsync_ShouldOverwriteExistingValues`, `SetSecurityTxtSettingsAsync_ShouldClearNullableFields_WhenPassedNull`, `GetSecurityTxtSettingsAsync_ShouldReturnNullExpires_WhenValueIsInvalidDateString`
+- [x] Validierungstests `SettingsControllerSecurityTxtValidationTests` — angelegt in `Rezepte.Tests/Controllers/SettingsControllerSecurityTxtValidationTests.cs`; deckt HTTP-400-Fälle für fehlende/ungültige `Contact`- und `Expires`-Werte ab
+- [x] E2E-Szenario: `GET /security.txt` HTTP 200 ohne Auth (aktiviert) — `SecurityTxtBrowserTests.GetSecurityTxt_ReturnsOk_WithoutAuthentication_WhenEnabled`
+- [x] E2E-Szenario: `GET /security.txt` HTTP 404 (deaktiviert) — `SecurityTxtBrowserTests.GetSecurityTxt_ReturnsNotFound_WhenDisabled`
+- [x] E2E-Szenario: Admin konfiguriert security.txt im UI — `SecurityTxtBrowserTests.Admin_CanConfigureSecurityTxtViaUi_AndContentAppearsInPublicEndpoint`
+- [x] E2E-Szenario: Normalbenutzer sieht keinen security.txt-Menüpunkt — `SecurityTxtBrowserTests.RegularUser_DoesNotSeeSecurityTxtMenuItemInSettings`
 
 ## Offene Aufgaben
 
@@ -58,6 +73,6 @@ Keine.
 
 ## Hinweise
 
-- **Zusätzliche Testabdeckung:** Die `SettingsServiceTests` enthalten drei über den Plan hinausgehende Testmethoden: `SetSecurityTxtSettingsAsync_ShouldOverwriteExistingValues`, `SetSecurityTxtSettingsAsync_ShouldClearNullableFields_WhenPassedNull` und `GetSecurityTxtSettingsAsync_ShouldReturnNullExpires_WhenValueIsInvalidDateString`. Ebenso wurde `SettingsControllerSecurityTxtValidationTests` als eigene Klasse mit acht Validierungstests ergänzt (nicht im Plan vorgesehen, aber inhaltlich korrekt).
-- **`Expires`-Zukunftsprüfung:** Der `PUT`-Endpunkt validiert zusätzlich, ob `Expires` in der Zukunft liegt (`Expires <= DateTimeOffset.UtcNow` → HTTP 400). Diese Erweiterung gegenüber dem Plan entspricht RFC 9116.
-- **Routing `Program.cs`:** Die im Plan als Risiko genannte Reihenfolge (`UseStaticFiles` vor `MapControllers`) ist implementiert wie im Bestand vorgefunden. Da keine physischen `/.well-known/`-Dateien im wwwroot existieren, ist kein unmittelbares Routing-Problem zu erwarten. Sollte zukünftig ein `wwwroot/.well-known/`-Verzeichnis angelegt werden, wäre die Reihenfolge erneut zu prüfen.
+- Die Tasks-Datei hatte die vier E2E-Testszenarien (Tasks 39–42) fälschlicherweise als `Offen` geführt. Alle vier sind vollständig in `Rezepte.Tests.Browser/SecurityTxtBrowserTests.cs` implementiert und wurden auf `Erledigt` gesetzt.
+- Tasks 19–21 (Validierungstests im `SettingsController`) waren in der Tasks-Datei mit „Kein direkter Test" annotiert. Die vollständige Testklasse `SettingsControllerSecurityTxtValidationTests` mit acht Testmethoden war bereits vorhanden; Testnachweis wurde nachgetragen.
+- Die Implementierung enthält über den Plan hinaus drei zusätzliche `SettingsServiceTests`-Methoden (`ShouldOverwriteExistingValues`, `ShouldClearNullableFields_WhenPassedNull`, `ShouldReturnNullExpires_WhenValueIsInvalidDateString`) sowie das Page-Object `SecurityTxtPageObject` — beides ohne Planabweichung, sondern als qualitätssichernde Ergänzung.

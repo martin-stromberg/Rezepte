@@ -293,4 +293,184 @@ public class SettingsServiceTests
 
         read.Expires.Should().BeNull();
     }
+
+    [Fact]
+    public async Task SetGlobalGoogleVisionEnabledAsync_ShouldPersistValue()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalGoogleVisionEnabledAsync(false, CancellationToken.None);
+
+        var read = await sut.GetGlobalGoogleVisionEnabledAsync(CancellationToken.None);
+        read.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetGlobalGoogleVisionEnabledAsync_ShouldUpdateExistingValue()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalGoogleVisionEnabledAsync(false, CancellationToken.None);
+        await sut.SetGlobalGoogleVisionEnabledAsync(true, CancellationToken.None);
+
+        var read = await sut.GetGlobalGoogleVisionEnabledAsync(CancellationToken.None);
+        read.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetGlobalGoogleVisionEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        var result = await sut.GetGlobalGoogleVisionEnabledAsync(CancellationToken.None);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetGlobalGeminiEnabledAsync_ShouldPersistValue()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalGeminiEnabledAsync(false, CancellationToken.None);
+
+        var read = await sut.GetGlobalGeminiEnabledAsync(CancellationToken.None);
+        read.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SetGlobalGeminiEnabledAsync_ShouldUpdateExistingValue()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalGeminiEnabledAsync(false, CancellationToken.None);
+        await sut.SetGlobalGeminiEnabledAsync(true, CancellationToken.None);
+
+        var read = await sut.GetGlobalGeminiEnabledAsync(CancellationToken.None);
+        read.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetGlobalGeminiEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        var result = await sut.GetGlobalGeminiEnabledAsync(CancellationToken.None);
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetGlobalMaxRequestsPerHourAsync_ShouldPersistValue()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalMaxRequestsPerHourAsync(100, CancellationToken.None);
+
+        var read = await sut.GetGlobalMaxRequestsPerHourAsync(CancellationToken.None);
+        read.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task SetGlobalMaxRequestsPerHourAsync_ShouldClearValue_WhenPassedNull()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalMaxRequestsPerHourAsync(100, CancellationToken.None);
+        await sut.SetGlobalMaxRequestsPerHourAsync(null, CancellationToken.None);
+
+        var read = await sut.GetGlobalMaxRequestsPerHourAsync(CancellationToken.None);
+        read.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetGlobalMaxRequestsPerHourAsync_ShouldReturnNull_WhenNoSettingExists()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        var result = await sut.GetGlobalMaxRequestsPerHourAsync(CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SetGlobalMaxRequestsPerDayAsync_ShouldPersistValue()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalMaxRequestsPerDayAsync(500, CancellationToken.None);
+
+        var read = await sut.GetGlobalMaxRequestsPerDayAsync(CancellationToken.None);
+        read.Should().Be(500);
+    }
+
+    [Fact]
+    public async Task SetGlobalMaxRequestsPerDayAsync_ShouldClearValue_WhenPassedNull()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalMaxRequestsPerDayAsync(500, CancellationToken.None);
+        await sut.SetGlobalMaxRequestsPerDayAsync(null, CancellationToken.None);
+
+        var read = await sut.GetGlobalMaxRequestsPerDayAsync(CancellationToken.None);
+        read.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetGlobalMaxRequestsPerDayAsync_ShouldReturnNull_WhenNoSettingExists()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        var result = await sut.GetGlobalMaxRequestsPerDayAsync(CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SetGlobalDisableOnLimitReachedAsync_ShouldPersistValue()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalDisableOnLimitReachedAsync(true, CancellationToken.None);
+
+        var read = await sut.GetGlobalDisableOnLimitReachedAsync(CancellationToken.None);
+        read.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetGlobalDisableOnLimitReachedAsync_ShouldUpdateExistingValue()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        await sut.SetGlobalDisableOnLimitReachedAsync(true, CancellationToken.None);
+        await sut.SetGlobalDisableOnLimitReachedAsync(false, CancellationToken.None);
+
+        var read = await sut.GetGlobalDisableOnLimitReachedAsync(CancellationToken.None);
+        read.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetGlobalDisableOnLimitReachedAsync_ShouldReturnFalseByDefault_WhenNoSettingExists()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db);
+
+        var result = await sut.GetGlobalDisableOnLimitReachedAsync(CancellationToken.None);
+
+        result.Should().BeFalse();
+    }
 }
