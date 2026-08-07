@@ -7,6 +7,7 @@
 @rendermode InteractiveServer
 @inject ApiClient Client
 @inject NavigationManager Nav
+@inject ILogger<Rezepte.Web.Components.Pages.Calendar> Logger
 
 <PageTitle>Mein Kalender</PageTitle>
 
@@ -24,6 +25,10 @@
 @if (isLoading)
 {
     <div>lade…</div>
+}
+else if (loadError)
+{
+    <div class="alert alert-danger">Der Kalender konnte nicht geladen werden.</div>
 }
 else
 {
@@ -151,6 +156,7 @@ else
 
     private List<OccurrenceView> occurrences = new();
     private bool isLoading = true;
+    private bool loadError;
     private bool showForm;
     private string? editingid;
     private CalendarEventDto? editingEvent;
@@ -178,6 +184,7 @@ else
     private async Task LoadMonthAsync(DateTime monthStartLocal)
     {
         isLoading = true;
+        loadError = false;
         occurrences.Clear();
         recipePreviews.Clear();
 
@@ -186,22 +193,31 @@ else
         var fromUtc = fromLocal.ToUniversalTime();
         var toUtc = toLocal.ToUniversalTime();
 
-        var resp = await Client.Http.GetFromJsonAsync<ApiCalendarResponse>($"/api/calendar?from={fromUtc:o}&to={toUtc:o}");
-        if (resp?.items != null)
+        try
         {
-            foreach (var it in resp.items)
+            var resp = await Client.Http.GetFromJsonAsync<ApiCalendarResponse>($"/api/calendar?from={fromUtc:o}&to={toUtc:o}");
+            if (resp?.items != null)
             {
-                var title = string.IsNullOrWhiteSpace(it.recipeId) ? "Termin" : "Rezept";
-                occurrences.Add(new OccurrenceView(
-                    it.id,
-                    it.recipeId,
-                    it.occurrence,
-                    it.occurrence.TimeOfDay,
-                    title,
-                    (int)it.portions,
-                    it.recurrence,
-                    it.recurrenceDays));
+                foreach (var it in resp.items)
+                {
+                    var title = string.IsNullOrWhiteSpace(it.recipeId) ? "Termin" : "Rezept";
+                    occurrences.Add(new OccurrenceView(
+                        it.id,
+                        it.recipeId,
+                        it.occurrence,
+                        it.occurrence.TimeOfDay,
+                        title,
+                        (int)it.portions,
+                        it.recurrence,
+                        it.recurrenceDays));
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Loading calendar entries from {From} to {To} failed", fromUtc, toUtc);
+            loadError = true;
+            occurrences.Clear();
         }
 
         var recipeIds = occurrences.Where(o => !string.IsNullOrWhiteSpace(o.RecipeId)).Select(o => o.RecipeId!).Distinct().ToList();
@@ -212,7 +228,10 @@ else
                 var dto = await Client.Http.GetFromJsonAsync<RecipePreviewDto>($"/api/recipes/{rid}");
                 if (dto != null) recipePreviews[rid] = dto;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Could not load the preview of recipe {RecipeId} for the calendar", rid);
+            }
         }
 
         BuildMonthDays(monthStartLocal);

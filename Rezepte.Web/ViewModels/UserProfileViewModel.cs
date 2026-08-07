@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Rezepte.Web.Contracts;
 
 namespace Rezepte.Web.ViewModels;
@@ -8,6 +9,7 @@ namespace Rezepte.Web.ViewModels;
 public class UserProfileViewModel
 {
     private readonly HttpClient _http;
+    private readonly ILogger<UserProfileViewModel> _logger;
     public event Action? OnChange;
 
     public bool IsLoading { get; private set; } = true;
@@ -18,9 +20,10 @@ public class UserProfileViewModel
     public ProfileModel Profile { get; private set; } = new();
     public PasswordModel Password { get; set; } = new();
 
-    public UserProfileViewModel(ApiClient apiClient)
+    public UserProfileViewModel(ApiClient apiClient, ILogger<UserProfileViewModel> logger)
     {
         _http = apiClient.Http;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task LoadAsync(CancellationToken ct = default)
@@ -56,8 +59,10 @@ public class UserProfileViewModel
 
             Ok(null);
         }
-        catch
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Loading the user profile failed.");
             Fail("Profile could not be loaded.");
         }
         finally
@@ -90,8 +95,10 @@ public class UserProfileViewModel
             }
             Ok("Profile saved.");
         }
-        catch
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Saving the user profile failed.");
             Fail("Profile could not be saved.");
         }
         finally
@@ -126,8 +133,10 @@ public class UserProfileViewModel
             Password.ConfirmPassword = string.Empty;
             Ok("Password changed.");
         }
-        catch
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Changing the password failed.");
             Fail("Password could not be changed.");
         }
         finally
@@ -144,7 +153,10 @@ public class UserProfileViewModel
             if (obj is not null && obj.TryGetValue("message", out var v) && v is string s)
                 return s;
         }
-        catch { /* ignore */ }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException or HttpRequestException)
+        {
+            _logger.LogDebug(ex, "Error response with status {StatusCode} did not contain a readable message.", (int)res.StatusCode);
+        }
         return null;
     }
 

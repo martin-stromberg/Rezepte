@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
 @inject Rezepte.Web.Services.ITokenService TokenService
+@inject ILogger<Rezepte.Web.Components.Shared.ImageCropper> Logger
 @rendermode InteractiveServer
 
 @if (Show)
@@ -63,8 +64,9 @@
                     _initialized = ok;
                     _lastImageDataUrl = ImageDataUrl;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.LogWarning(ex, "Could not initialize the image cropper for {ImageElementId}", ImgId);
                     _initialized = false;
                 }
                 StateHasChanged();
@@ -72,7 +74,18 @@
         }
         else if (!Show && _initialized)
         {
-            try { await JS.InvokeVoidAsync("imageCropper.destroy", ImgId); } catch { }
+            try
+            {
+                await JS.InvokeVoidAsync("imageCropper.destroy", ImgId);
+            }
+            catch (JSDisconnectedException)
+            {
+                // circuit is already gone; nothing left to clean up on the client
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Could not destroy the image cropper for {ImageElementId}", ImgId);
+            }
             _initialized = false;
             _lastImageDataUrl = null;
         }
@@ -111,8 +124,9 @@
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Could not create an upload token from the current authentication state");
             token = null;
         }
 
@@ -127,8 +141,9 @@
                 if (string.IsNullOrEmpty(token))
                     token = await JS.InvokeAsync<string>("sessionStorage.getItem", "access_token");
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.LogWarning(ex, "Could not read an upload token from client storage");
                 token = null;
             }
         }
@@ -143,7 +158,11 @@
             if (doc.RootElement.TryGetProperty("ok", out var p) && p.GetBoolean())
                 ok = true;
         }
-        catch { ok = false; }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not interpret the upload result of the image cropper");
+            ok = false;
+        }
 
         isUploading = false;
         StateHasChanged();

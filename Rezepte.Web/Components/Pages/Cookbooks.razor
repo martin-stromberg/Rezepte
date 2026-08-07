@@ -5,6 +5,7 @@
 @inject ApiClient Api
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject ILogger<Rezepte.Web.Components.Pages.Cookbooks> Logger
 
 <PageTitle>Kochbücher</PageTitle>
 <h4 class="mb-3">Kochbücher</h4>
@@ -128,9 +129,9 @@ else
                     var latest = await Api.Http.GetFromJsonAsync<List<RecipeListItemDto>>($"api/recipes/latest?cookbookId={b.Id}&count=1");
                     imageUrl = latest?.FirstOrDefault()?.ImageUrl;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Fallback: kein Bild
+                    Logger.LogWarning(ex, "Could not load the preview image of cookbook {CookbookId}", b.Id);
                     imageUrl = null;
                 }
 
@@ -143,8 +144,9 @@ else
 
             isError = false; message = null;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Loading the cookbooks failed");
             isError = true; message = "Kochbücher konnten nicht geladen werden.";
             gridItems = new();
         }
@@ -175,7 +177,11 @@ else
             newName = string.Empty; newDescription = string.Empty;
             isError = false; message = "Kochbuch angelegt.";
         }
-        catch { isError = true; message = "Anlegen fehlgeschlagen."; }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Creating a cookbook failed");
+            isError = true; message = "Anlegen fehlgeschlagen.";
+        }
         finally { isBusy = false; StateHasChanged(); }
     }
 
