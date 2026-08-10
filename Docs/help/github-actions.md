@@ -1,15 +1,29 @@
 # GitHub Actions
 
-Das Repository enthaelt zwei Workflows fuer Pull Requests und Releases.
+Das Repository enthaelt Workflows fuer den zweistufigen Staging-Flow.
 
-## Pull-Request-Pruefung
+## Branch-Modell
 
-Der Workflow `.github/workflows/pr.yml` startet fuer Pull Requests gegen `main`, wenn ein PR erstellt, wieder geoeffnet oder durch neue Commits aktualisiert wird.
+- Feature-Branches oeffnen Pull Requests gegen `staging`.
+- Nach erfolgreicher CI auf `staging` wird automatisch ein Draft-PR `staging -> main` erstellt.
+- Nur PRs aus `staging` sind nach `main` erlaubt.
+- Nach jedem Merge/Push auf `main` wird ein Sync-PR `main -> staging` erstellt, damit Release-Tags auf `staging` erreichbar bleiben.
+- `main` bleibt fuer stabile Releases und erzeugt `release.zip`.
 
-Der Workflow fuehrt auf `ubuntu-latest` mit .NET `10.0.x` diese Pruefungen aus:
+## Pull-Request-Pruefung auf staging
+
+Der Workflow `.github/workflows/pr.yml` startet fuer Pull Requests gegen `staging`, wenn ein PR erstellt, wieder geoeffnet oder durch neue Commits aktualisiert wird.
+
+Reine Back-Merge-PRs (`main -> staging`) erkennt der Workflow an `github.head_ref == 'main'` und ueberspringen alle weiteren Checks.
+
+Fuer alle anderen PRs fuehrt der Workflow auf `ubuntu-latest` mit .NET `10.0.x` diese Pruefungen aus:
 
 - `dotnet restore Rezepte.sln`
-- `dotnet build Rezepte.sln --configuration Release --no-restore`
+- `dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore`
+- `dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore`
+- `dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore`
+- Playwright-Browser-Installation
+- `dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore`
 - `dotnet test Rezepte.sln --configuration Release --no-build`
 - `./scripts/Export-ImportContract.ps1 -OutputDirectory artifacts/contract-export`
 - `dotnet format Rezepte.sln --verify-no-changes --no-restore`
@@ -19,6 +33,20 @@ Neue Commits in einem bestehenden Pull Request brechen veraltete PR-Laeufe ab un
 Wenn gespeicherte ApiCompat-Referenzen unter `contract-baselines/import-contract/<semver>/` vorhanden sind, installiert der Workflow `Microsoft.DotNet.ApiCompat.Tool` und der Contract-Export muss gegen `Rezepte.Import.Abstractions.dll` und `Rezepte.Import.PluginSdk.dll` aus der ausgewaehlten Baseline bestehen. Ohne explizite `-ApiCompatBaselineVersion` verwendet das Skript die neueste gespeicherte SemVer-Baseline bis zur aktuellen Contract-Version; ohne passende gespeicherte Baseline wird der historische Vergleich protokolliert uebersprungen.
 
 Schlaegt dieser Schritt mit `CP0001`/`CP0002`-Meldungen fehl, weil eine PR die oeffentliche API von `Rezepte.Import.Abstractions` oder `Rezepte.Import.PluginSdk` erweitert hat, ist das beabsichtigt: Der Vergleich laeuft im `--strict-mode` und meldet auch additive Aenderungen. Das Vorgehen zum Aufloesen (Versions-Bump, neue Baseline, betroffene Tests) ist im Abschnitt „Oeffentliche API im Plugin-Vertrag aendern (Breaking-Change-Workflow)" in [Import-Plugins](import-plugins.md) beschrieben.
+
+## Staging-Branch-CI
+
+Der Workflow `.github/workflows/staging-ci.yml` startet fuer jeden Push auf `staging`. Er prueft zunaechst, ob der aktuelle Tree identisch zu `main` ist (reiner Back-Merge), und fuehrt in diesem Fall keine Checks aus. Andernfalls laeuft dieselbe Build-/Test-/Format-/Contract-Validierung wie im PR-Workflow.
+
+Nach einem erfolgreichen Lauf startet `.github/workflows/staging-to-main-promotion.yml` und erstellt einen Draft-PR `staging -> main`, falls noch keiner existiert. Der eigentliche Merge in `main` erfordert weiterhin eine manuelle Freigabe.
+
+## Quellenpruefung fuer main
+
+Der Workflow `.github/workflows/verify-pr-source.yml` verhindert, dass Pull Requests von anderen Branches als `staging` nach `main` geoeffnet werden. PRs aus `main` selbst (Ruecksync) laufen gegen `staging` und werden durch `pr.yml` abgedeckt.
+
+## Synchronisation staging mit main
+
+Der Workflow `.github/workflows/sync-staging-with-main.yml` startet nach jedem Push auf `main` und erstellt einen PR `main -> staging`, falls `staging` hinter `main` zurueckliegt. Dies haelt die Release-Tags und History auf `staging` konsistent. Der Sync-PR sollte mit "Create a merge commit" gemergt werden.
 
 ## Release-Build
 
