@@ -1,15 +1,14 @@
-name: Pull Request
+name: Staging Branch CI
 
 "on":
-  pull_request:
+  push:
     branches: [staging]
-    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
 
 concurrency:
-  group: pr-${{ github.event.pull_request.number }}
+  group: staging-ci
   cancel-in-progress: true
 
 jobs:
@@ -18,14 +17,18 @@ jobs:
     outputs:
       is_backmerge: ${{ steps.check.outputs.is_backmerge }}
     steps:
-      - name: Check whether PR is a back-merge from main
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check whether push is a pure back-merge from main
         id: check
-        env:
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          if [ "$HEAD_REF" = "main" ]; then
+          git fetch origin main --no-tags
+          if git diff --quiet origin/main HEAD; then
             echo "is_backmerge=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Back-Merge-PR from main detected - CI checks will be skipped."
+            echo "::notice::Pure back-merge from main detected (tree identical) - CI checks will be skipped."
           else
             echo "is_backmerge=false" >> "$GITHUB_OUTPUT"
           fi
@@ -78,7 +81,7 @@ jobs:
         run: |
           $exportArgs = @{
             OutputDirectory = "artifacts/contract-export"
-            SourceCommit = "${{ github.event.pull_request.head.sha }}"
+            SourceCommit = "${{ github.sha }}"
           }
 
           $baselineDirectory = "contract-baselines/import-contract"
