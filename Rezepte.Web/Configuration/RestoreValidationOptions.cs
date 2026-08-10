@@ -25,12 +25,12 @@ public sealed class RestoreValidationOptions
     /// <summary>
     /// Maximum uncompressed size of a single image entry.
     /// </summary>
-    public long MaxImageUncompressedBytes { get; set; } = 10_485_760; // 10 MB
+    public long MaxImageUncompressedBytes { get; set; } = 52_428_800; // 50 MB
 
     /// <summary>
     /// Maximum total size of all image entries combined.
     /// </summary>
-    public long MaxTotalImageBytes { get; set; } = 262_144_000; // 250 MB
+    public long MaxTotalImageBytes { get; set; } = 524_288_000; // 500 MB
 
     /// <summary>
     /// Maximum allowed compression ratio for any single archive entry.
