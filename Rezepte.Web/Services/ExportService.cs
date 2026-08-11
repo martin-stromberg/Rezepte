@@ -184,7 +184,7 @@ public class ExportService : BaseService, IExportService
                         RecipeId = sd.RecipeId,
                         SideDishRecipeId = sd.SideDishRecipeId,
                         OrderIndex = sd.OrderIndex
-                }).ToList()
+                    }).ToList()
             };
 
             // Images: map to relative paths that will be present in the archive
@@ -474,299 +474,299 @@ public class ExportService : BaseService, IExportService
         await _restoreLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-        if (zipStream.CanSeek && zipStream.Length > _validationOptions.MaxUploadFileSizeBytes)
-            throw new InvalidDataException("Restore archive exceeds the maximum upload size.");
+            if (zipStream.CanSeek && zipStream.Length > _validationOptions.MaxUploadFileSizeBytes)
+                throw new InvalidDataException("Restore archive exceeds the maximum upload size.");
 
-        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: true);
+            using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: true);
 
-        ValidateArchive(archive, _validationOptions);
+            ValidateArchive(archive, _validationOptions);
 
-        // recipes.json lesen
-        var jsonEntry = archive.GetEntry("recipes.json");
-        if (jsonEntry == null)
-            throw new InvalidDataException("Invalid export archive: recipes.json missing.");
+            // recipes.json lesen
+            var jsonEntry = archive.GetEntry("recipes.json");
+            if (jsonEntry == null)
+                throw new InvalidDataException("Invalid export archive: recipes.json missing.");
 
-        var recipeJsonBytes = await ReadEntryBytesAsync(jsonEntry, _validationOptions.MaxRecipesJsonUncompressedBytes, ct).ConfigureAwait(false);
-        await using var recipeJsonStream = new MemoryStream(recipeJsonBytes);
-        var exportRoot = await JsonSerializer.DeserializeAsync<ExportRootDto>(recipeJsonStream, _jsonOptions, ct).ConfigureAwait(false);
+            var recipeJsonBytes = await ReadEntryBytesAsync(jsonEntry, _validationOptions.MaxRecipesJsonUncompressedBytes, ct).ConfigureAwait(false);
+            await using var recipeJsonStream = new MemoryStream(recipeJsonBytes);
+            var exportRoot = await JsonSerializer.DeserializeAsync<ExportRootDto>(recipeJsonStream, _jsonOptions, ct).ConfigureAwait(false);
 
-        if (exportRoot == null)
-            throw new InvalidDataException("Invalid export archive: recipes.json could not be parsed.");
+            if (exportRoot == null)
+                throw new InvalidDataException("Invalid export archive: recipes.json could not be parsed.");
 
-        // Beginne DB-Transaktion fuer atomare Wiederherstellung
-        await using var tx = await _db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
-        try
-        {
-            // --- NEU: Entferne vorhandene Daten, behalte nur das Konto des ausfuehrenden Benutzers ---
-            if (string.IsNullOrEmpty(adminUserId))
-                throw new InvalidOperationException("adminUserId must be provided to perform destructive restore.");
-
-            _logger.LogInformation("Destructive restore: deleting existing data except user {AdminUserId}", adminUserId);
-
-            // Loesche Dependents zuerst, dann uebergeordnete Entitaeten.
-            // Verwende ExecuteDeleteAsync fuer performante Batch-Loeschungen (EF Core 7+).
-            // Falls ExecuteDeleteAsync in eurer Umgebung nicht verfuegbar ist, ersetzt durch RemoveRange()-Pattern.
-            await _db.ShoppingListItems.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.ShoppingListGroups.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.CalendarEvents.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.BackgroundJobs.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.AiRequestLogs.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.PluginSourceReleases.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.PluginSources.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.PluginSettings.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.AppSettings.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.UserSettings.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.RecipeImages.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.RecipeIngredients.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.RecipeSteps.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.RecipeCookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.RecipeSideDishes.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.Recipes.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-            await _db.Cookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);
-
-            // Benutzer: alle loeschen ausser adminUserId (das Konto bleibt erhalten)
-            await _db.Users.Where(u => u.Id != adminUserId).ExecuteDeleteAsync(ct).ConfigureAwait(false);
-
-            // Stelle sicher, dass DB in konsistentem Zustand ist bevor wir neue Daten anlegen
-            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
-            _db.ChangeTracker.Clear();
-
-            // 1) Benutzer anlegen (nur wenn nicht existierend). Passwort-Hash wird nicht wiederhergestellt.
-            if (exportRoot.Users != null)
+            // Beginne DB-Transaktion fuer atomare Wiederherstellung
+            await using var tx = await _db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+            try
             {
-                var existingUserNames = await _db.Users
-                    .AsNoTracking()
-                    .Select(u => u.Username)
-                    .ToListAsync(ct)
-                    .ConfigureAwait(false);
-                var knownUserNames = existingUserNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                // --- NEU: Entferne vorhandene Daten, behalte nur das Konto des ausfuehrenden Benutzers ---
+                if (string.IsNullOrEmpty(adminUserId))
+                    throw new InvalidOperationException("adminUserId must be provided to perform destructive restore.");
 
-                foreach (var u in exportRoot.Users)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    var exists = await _db.Users.AnyAsync(x => x.Id == u.Id, ct).ConfigureAwait(false);
-                    if (exists) continue;
-                    if (!knownUserNames.Add(u.UserName))
-                    {
-                        _logger.LogInformation(
-                            "Skipping restored user {RestoredUserId} because username {Username} already exists. Owned data will be assigned to restore admin if needed.",
-                            u.Id,
-                            u.UserName);
-                        continue;
-                    }
+                _logger.LogInformation("Destructive restore: deleting existing data except user {AdminUserId}", adminUserId);
 
-                    var newUser = new Rezepte.Web.Entities.User
-                    {
-                        Id = u.Id,
-                        Username = u.UserName,
-                        Email = u.Email ?? string.Empty,
-                        PasswordHash = string.Empty, // sichere Wiederherstellung: Admin muss Passwort neu setzen
-                        IsAdmin = u.IsAdmin
-                    };
-                    _db.Users.Add(newUser);
-                }
+                // Loesche Dependents zuerst, dann uebergeordnete Entitaeten.
+                // Verwende ExecuteDeleteAsync fuer performante Batch-Loeschungen (EF Core 7+).
+                // Falls ExecuteDeleteAsync in eurer Umgebung nicht verfuegbar ist, ersetzt durch RemoveRange()-Pattern.
+                await _db.ShoppingListItems.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.ShoppingListGroups.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.CalendarEvents.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.BackgroundJobs.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.AiRequestLogs.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.PluginSourceReleases.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.PluginSources.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.PluginSettings.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.AppSettings.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.UserSettings.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.RecipeImages.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.RecipeIngredients.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.RecipeSteps.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.RecipeCookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.RecipeSideDishes.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.Recipes.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.Cookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+
+                // Benutzer: alle loeschen ausser adminUserId (das Konto bleibt erhalten)
+                await _db.Users.Where(u => u.Id != adminUserId).ExecuteDeleteAsync(ct).ConfigureAwait(false);
+
+                // Stelle sicher, dass DB in konsistentem Zustand ist bevor wir neue Daten anlegen
                 await _db.SaveChangesAsync(ct).ConfigureAwait(false);
-            }
-            var allUsers = (await _db.Users
-                    .AsNoTracking()
-                    .Select(u => u.Id)
-                    .ToListAsync(ct)
-                    .ConfigureAwait(false))
-                .ToHashSet(StringComparer.Ordinal);
+                _db.ChangeTracker.Clear();
 
-            // 2) Cookbooks anlegen falls fehlen
-            if (exportRoot.Cookbooks != null)
-            {
-                foreach (var cb in exportRoot.Cookbooks)
+                // 1) Benutzer anlegen (nur wenn nicht existierend). Passwort-Hash wird nicht wiederhergestellt.
+                if (exportRoot.Users != null)
                 {
-                    ct.ThrowIfCancellationRequested();
-                    var exists = await _db.Cookbooks.AnyAsync(x => x.Id == cb.Id, ct).ConfigureAwait(false);
-                    if (exists) continue;
-
-                    var newCb = new Rezepte.Web.Entities.Cookbook
-                    {
-                        Id = cb.Id,
-                        UserId = cb.UserId,
-                        Name = cb.Title,
-                        Description = cb.Description,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    if (!allUsers.Contains(newCb.UserId))
-                        newCb.UserId = adminUserId;
-                    _db.Cookbooks.Add(newCb);
-                }
-                await _db.SaveChangesAsync(ct).ConfigureAwait(false);
-            }
-
-            // 3) Rezepte, Schritte, Zutaten, Bilder
-            if (exportRoot.Recipes != null)
-            {
-                long totalImageBytes = 0;
-                foreach (var r in exportRoot.Recipes)
-                {
-                    ct.ThrowIfCancellationRequested();
-
-                    var recipeExists = await _db.Recipes.AnyAsync(x => x.Id == r.Id, ct).ConfigureAwait(false);
-                    if (!recipeExists)
-                    {
-                        var newRecipe = new Rezepte.Web.Entities.Recipe
-                        {
-                            Id = r.Id,
-                            UserId = r.OwnerId ?? string.Empty,
-                            Title = r.Title ?? string.Empty,
-                            Description = r.Description,
-                            Uri = r.Uri,
-                            Portions = r.Portions ?? 0,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        if (!allUsers.Contains(newRecipe.UserId))
-                            newRecipe.UserId = adminUserId;
-
-                        foreach (var cb in r.Cookbooks ?? Enumerable.Empty<ExportRecipeCookbookDto>())
-                        {
-                            // Pruefe, ob Cookbook existiert
-                            var cbExists = await _db.Cookbooks.AnyAsync(x => x.Id == cb.CookbookId, ct).ConfigureAwait(false);
-                            if (!cbExists) continue;
-                            var rc = new Rezepte.Web.Entities.RecipeCookbook
-                            {
-                                RecipeId = r.Id,
-                                CookbookId = cb.CookbookId
-                            };
-                            newRecipe.RecipeCookbooks.Add(rc);
-                        }
-
-                        _db.Recipes.Add(newRecipe);
-                        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
-                    }
-
-                    // Schritte & Zutaten (lege nur an, falls die Step-Id nicht vorhanden ist)
-                    if (r.Steps != null)
-                    {
-                        foreach (var s in r.Steps.OrderBy(x => x.StepIndex))
-                        {
-                            var stepExists = await _db.RecipeSteps.AnyAsync(x => x.Id == s.Id, ct).ConfigureAwait(false);
-                            if (!stepExists)
-                            {
-                                var newStep = new Rezepte.Web.Entities.RecipeStep
-                                {
-                                    Id = s.Id,
-                                    RecipeId = r.Id,
-                                    StepIndex = s.StepIndex,
-                                    Title = s.Title,
-                                    Description = s.Description,
-                                    DurationMinutes = s.DurationMinutes,
-                                    RequiresOvernightRest = s.RequiresOvernightRest
-                                };
-                                _db.RecipeSteps.Add(newStep);
-                            }
-
-                            if (s.Ingredients != null)
-                            {
-                                foreach (var ing in s.Ingredients)
-                                {
-                                    var ingExists = await _db.RecipeIngredients.AnyAsync(x => x.Id == ing.Id, ct).ConfigureAwait(false);
-                                    if (!ingExists)
-                                    {
-                                        var newIng = new Rezepte.Web.Entities.RecipeIngredient
-                                        {
-                                            Id = ing.Id,
-                                            StepId = s.Id,
-                                            Amount = ing.Amount,
-                                            Unit = ing.Unit,
-                                            Name = ing.Name
-                                        };
-                                        _db.RecipeIngredients.Add(newIng);
-                                    }
-                                }
-                            }
-                        }
-                        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
-                    }
-
-                    // Bilder: werden im ExportRoot als relative Pfade (images/{recipeId}/...) gelistet.
-                    if (r.ImagePaths != null)
-                    {
-                        foreach (var imgPath in r.ImagePaths)
-                        {
-                            var normalized = imgPath.Replace('\\', '/');
-                            var entry = archive.GetEntry(normalized);
-                            if (entry == null) continue;
-
-                            // Pruefe, ob Bild bereits existiert (Vergleich auf FileName + RecipeId)
-                            var fileName = Path.GetFileName(normalized);
-                            var imgExists = await _db.RecipeImages.AnyAsync(x => x.RecipeId == r.Id && x.FileName == fileName, ct).ConfigureAwait(false);
-                            if (imgExists) continue;
-
-                            var imgBytes = await ReadEntryBytesAsync(entry, _validationOptions.MaxImageUncompressedBytes, ct).ConfigureAwait(false);
-
-                            totalImageBytes += imgBytes.Length;
-                            if (totalImageBytes > _validationOptions.MaxTotalImageBytes)
-                                throw new InvalidDataException("Total image size in restore archive exceeds the allowed limit.");
-
-                            var newImg = new Rezepte.Web.Entities.RecipeImage
-                            {
-                                Id = Guid.NewGuid().ToString(),
-                                RecipeId = r.Id,
-                                FileName = fileName,
-                                ContentType = GetContentTypeFromExtension(Path.GetExtension(fileName)),
-                                Data = imgBytes,
-                                CreatedAt = DateTime.UtcNow
-                            };
-                            _db.RecipeImages.Add(newImg);
-                        }
-                        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
-                    }
-                }
-
-                var restoredRecipeIds = (await _db.Recipes
+                    var existingUserNames = await _db.Users
                         .AsNoTracking()
-                        .Select(r => r.Id)
+                        .Select(u => u.Username)
+                        .ToListAsync(ct)
+                        .ConfigureAwait(false);
+                    var knownUserNames = existingUserNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var u in exportRoot.Users)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        var exists = await _db.Users.AnyAsync(x => x.Id == u.Id, ct).ConfigureAwait(false);
+                        if (exists) continue;
+                        if (!knownUserNames.Add(u.UserName))
+                        {
+                            _logger.LogInformation(
+                                "Skipping restored user {RestoredUserId} because username {Username} already exists. Owned data will be assigned to restore admin if needed.",
+                                u.Id,
+                                u.UserName);
+                            continue;
+                        }
+
+                        var newUser = new Rezepte.Web.Entities.User
+                        {
+                            Id = u.Id,
+                            Username = u.UserName,
+                            Email = u.Email ?? string.Empty,
+                            PasswordHash = string.Empty, // sichere Wiederherstellung: Admin muss Passwort neu setzen
+                            IsAdmin = u.IsAdmin
+                        };
+                        _db.Users.Add(newUser);
+                    }
+                    await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+                }
+                var allUsers = (await _db.Users
+                        .AsNoTracking()
+                        .Select(u => u.Id)
                         .ToListAsync(ct)
                         .ConfigureAwait(false))
                     .ToHashSet(StringComparer.Ordinal);
 
-                foreach (var r in exportRoot.Recipes)
+                // 2) Cookbooks anlegen falls fehlen
+                if (exportRoot.Cookbooks != null)
                 {
-                    foreach (var sd in r.SideDishes ?? Enumerable.Empty<ExportRecipeSideDishDto>())
+                    foreach (var cb in exportRoot.Cookbooks)
                     {
                         ct.ThrowIfCancellationRequested();
-                        var recipeId = string.IsNullOrWhiteSpace(sd.RecipeId) ? r.Id : sd.RecipeId;
-                        if (!restoredRecipeIds.Contains(recipeId) || !restoredRecipeIds.Contains(sd.SideDishRecipeId))
-                            continue;
+                        var exists = await _db.Cookbooks.AnyAsync(x => x.Id == cb.Id, ct).ConfigureAwait(false);
+                        if (exists) continue;
 
-                        var sideDishExists = await _db.RecipeSideDishes
-                            .AnyAsync(x => x.Id == sd.Id || (x.RecipeId == recipeId && x.SideDishRecipeId == sd.SideDishRecipeId), ct)
-                            .ConfigureAwait(false);
-                        if (sideDishExists) continue;
-
-                        _db.RecipeSideDishes.Add(new RecipeSideDish
+                        var newCb = new Rezepte.Web.Entities.Cookbook
                         {
-                            Id = sd.Id,
-                            RecipeId = recipeId,
-                            SideDishRecipeId = sd.SideDishRecipeId,
-                            OrderIndex = sd.OrderIndex
-                        });
+                            Id = cb.Id,
+                            UserId = cb.UserId,
+                            Name = cb.Title,
+                            Description = cb.Description,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        if (!allUsers.Contains(newCb.UserId))
+                            newCb.UserId = adminUserId;
+                        _db.Cookbooks.Add(newCb);
                     }
+                    await _db.SaveChangesAsync(ct).ConfigureAwait(false);
                 }
-                await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+                // 3) Rezepte, Schritte, Zutaten, Bilder
+                if (exportRoot.Recipes != null)
+                {
+                    long totalImageBytes = 0;
+                    foreach (var r in exportRoot.Recipes)
+                    {
+                        ct.ThrowIfCancellationRequested();
+
+                        var recipeExists = await _db.Recipes.AnyAsync(x => x.Id == r.Id, ct).ConfigureAwait(false);
+                        if (!recipeExists)
+                        {
+                            var newRecipe = new Rezepte.Web.Entities.Recipe
+                            {
+                                Id = r.Id,
+                                UserId = r.OwnerId ?? string.Empty,
+                                Title = r.Title ?? string.Empty,
+                                Description = r.Description,
+                                Uri = r.Uri,
+                                Portions = r.Portions ?? 0,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            if (!allUsers.Contains(newRecipe.UserId))
+                                newRecipe.UserId = adminUserId;
+
+                            foreach (var cb in r.Cookbooks ?? Enumerable.Empty<ExportRecipeCookbookDto>())
+                            {
+                                // Pruefe, ob Cookbook existiert
+                                var cbExists = await _db.Cookbooks.AnyAsync(x => x.Id == cb.CookbookId, ct).ConfigureAwait(false);
+                                if (!cbExists) continue;
+                                var rc = new Rezepte.Web.Entities.RecipeCookbook
+                                {
+                                    RecipeId = r.Id,
+                                    CookbookId = cb.CookbookId
+                                };
+                                newRecipe.RecipeCookbooks.Add(rc);
+                            }
+
+                            _db.Recipes.Add(newRecipe);
+                            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+                        }
+
+                        // Schritte & Zutaten (lege nur an, falls die Step-Id nicht vorhanden ist)
+                        if (r.Steps != null)
+                        {
+                            foreach (var s in r.Steps.OrderBy(x => x.StepIndex))
+                            {
+                                var stepExists = await _db.RecipeSteps.AnyAsync(x => x.Id == s.Id, ct).ConfigureAwait(false);
+                                if (!stepExists)
+                                {
+                                    var newStep = new Rezepte.Web.Entities.RecipeStep
+                                    {
+                                        Id = s.Id,
+                                        RecipeId = r.Id,
+                                        StepIndex = s.StepIndex,
+                                        Title = s.Title,
+                                        Description = s.Description,
+                                        DurationMinutes = s.DurationMinutes,
+                                        RequiresOvernightRest = s.RequiresOvernightRest
+                                    };
+                                    _db.RecipeSteps.Add(newStep);
+                                }
+
+                                if (s.Ingredients != null)
+                                {
+                                    foreach (var ing in s.Ingredients)
+                                    {
+                                        var ingExists = await _db.RecipeIngredients.AnyAsync(x => x.Id == ing.Id, ct).ConfigureAwait(false);
+                                        if (!ingExists)
+                                        {
+                                            var newIng = new Rezepte.Web.Entities.RecipeIngredient
+                                            {
+                                                Id = ing.Id,
+                                                StepId = s.Id,
+                                                Amount = ing.Amount,
+                                                Unit = ing.Unit,
+                                                Name = ing.Name
+                                            };
+                                            _db.RecipeIngredients.Add(newIng);
+                                        }
+                                    }
+                                }
+                            }
+                            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+                        }
+
+                        // Bilder: werden im ExportRoot als relative Pfade (images/{recipeId}/...) gelistet.
+                        if (r.ImagePaths != null)
+                        {
+                            foreach (var imgPath in r.ImagePaths)
+                            {
+                                var normalized = imgPath.Replace('\\', '/');
+                                var entry = archive.GetEntry(normalized);
+                                if (entry == null) continue;
+
+                                // Pruefe, ob Bild bereits existiert (Vergleich auf FileName + RecipeId)
+                                var fileName = Path.GetFileName(normalized);
+                                var imgExists = await _db.RecipeImages.AnyAsync(x => x.RecipeId == r.Id && x.FileName == fileName, ct).ConfigureAwait(false);
+                                if (imgExists) continue;
+
+                                var imgBytes = await ReadEntryBytesAsync(entry, _validationOptions.MaxImageUncompressedBytes, ct).ConfigureAwait(false);
+
+                                totalImageBytes += imgBytes.Length;
+                                if (totalImageBytes > _validationOptions.MaxTotalImageBytes)
+                                    throw new InvalidDataException("Total image size in restore archive exceeds the allowed limit.");
+
+                                var newImg = new Rezepte.Web.Entities.RecipeImage
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    RecipeId = r.Id,
+                                    FileName = fileName,
+                                    ContentType = GetContentTypeFromExtension(Path.GetExtension(fileName)),
+                                    Data = imgBytes,
+                                    CreatedAt = DateTime.UtcNow
+                                };
+                                _db.RecipeImages.Add(newImg);
+                            }
+                            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+                        }
+                    }
+
+                    var restoredRecipeIds = (await _db.Recipes
+                            .AsNoTracking()
+                            .Select(r => r.Id)
+                            .ToListAsync(ct)
+                            .ConfigureAwait(false))
+                        .ToHashSet(StringComparer.Ordinal);
+
+                    foreach (var r in exportRoot.Recipes)
+                    {
+                        foreach (var sd in r.SideDishes ?? Enumerable.Empty<ExportRecipeSideDishDto>())
+                        {
+                            ct.ThrowIfCancellationRequested();
+                            var recipeId = string.IsNullOrWhiteSpace(sd.RecipeId) ? r.Id : sd.RecipeId;
+                            if (!restoredRecipeIds.Contains(recipeId) || !restoredRecipeIds.Contains(sd.SideDishRecipeId))
+                                continue;
+
+                            var sideDishExists = await _db.RecipeSideDishes
+                                .AnyAsync(x => x.Id == sd.Id || (x.RecipeId == recipeId && x.SideDishRecipeId == sd.SideDishRecipeId), ct)
+                                .ConfigureAwait(false);
+                            if (sideDishExists) continue;
+
+                            _db.RecipeSideDishes.Add(new RecipeSideDish
+                            {
+                                Id = sd.Id,
+                                RecipeId = recipeId,
+                                SideDishRecipeId = sd.SideDishRecipeId,
+                                OrderIndex = sd.OrderIndex
+                            });
+                        }
+                    }
+                    await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+                }
+
+                await RestoreSystemDataAsync(exportRoot.SystemData, adminUserId, ct).ConfigureAwait(false);
+
+                await tx.CommitAsync(ct).ConfigureAwait(false);
+                _logger.LogInformation("Restore finished successfully by {AdminUserId}", adminUserId);
             }
-
-            await RestoreSystemDataAsync(exportRoot.SystemData, adminUserId, ct).ConfigureAwait(false);
-
-            await tx.CommitAsync(ct).ConfigureAwait(false);
-            _logger.LogInformation("Restore finished successfully by {AdminUserId}", adminUserId);
-        }
-        catch (OperationCanceledException)
-        {
-            await tx.RollbackAsync(ct).ConfigureAwait(false);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            await tx.RollbackAsync(ct).ConfigureAwait(false);
-            _logger.LogError(ex, "Restore failed, transaction rolled back (admin={AdminUserId})", adminUserId);
-            throw;
-        }
+            catch (OperationCanceledException)
+            {
+                await tx.RollbackAsync(ct).ConfigureAwait(false);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync(ct).ConfigureAwait(false);
+                _logger.LogError(ex, "Restore failed, transaction rolled back (admin={AdminUserId})", adminUserId);
+                throw;
+            }
         }
         finally
         {
