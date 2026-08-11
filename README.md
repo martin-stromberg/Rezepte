@@ -24,7 +24,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Plugin-Framework fuer Rezeptimporte mit aktivierbarer Reihenfolge in den Admin-Einstellungen.
 - Globale GitHub-Pluginquellen in den Admin-Einstellungen mit automatischer Pruefung beim Anwendungsstart.
 - Optionale KI-Importe ueber Gemini fuer URL-Quellen sowie Google Vision und Gemini fuer Fotoimporte.
-- Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
+- Export- und Sicherungsfunktionen inklusive Fortschrittsanzeige fuer Datenexporte sowie validierte Wiederherstellung aus ZIP-Archiven mit Ressourcenlimits.
 - GitHub Actions fuer Pull-Request-Pruefungen auf `staging`, automatische Promotion- und Sync-PRs sowie automatisierte Release-Artefakte.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
 - `security.txt` gemaess RFC 9116 unter `/security.txt` und `/.well-known/security.txt` mit optionalen Zusatzformaten (`/.well-known/security.md`, `/.well-known/security.html`); Konfiguration durch Administratoren im Einstellungsbereich (Canonical wird serverseitig je Ausgabeformat bestimmt); alle Endpunkte oeffentlich erreichbar ohne Authentifizierung.
