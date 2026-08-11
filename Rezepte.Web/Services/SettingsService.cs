@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Data;
+using Rezepte.Web.Dtos;
 using Rezepte.Web.Entities;
 
 namespace Rezepte.Web.Services;
@@ -7,10 +8,12 @@ namespace Rezepte.Web.Services;
 public class SettingsService : ISettingsService
 {
     private readonly RezepteDbContext _db;
+    private readonly ISecurityTxtSettingsService _securityTxtSettingsService;
 
-    public SettingsService(RezepteDbContext db)
+    public SettingsService(RezepteDbContext db, ISecurityTxtSettingsService securityTxtSettingsService)
     {
         _db = db;
+        _securityTxtSettingsService = securityTxtSettingsService;
     }
 
     public async Task<bool> GetUserAiEnabledAsync(string userId, CancellationToken ct = default)
@@ -23,18 +26,7 @@ public class SettingsService : ISettingsService
     public async Task SetUserAiEnabledAsync(string userId, bool enabled, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(userId)) throw new ArgumentNullException(nameof(userId));
-        var set = await _db.Set<UserSetting>().FindAsync(new object[] { userId }, ct);
-        if (set == null)
-        {
-            set = new UserSetting { UserId = userId, AiEnabled = enabled };
-            _db.Add(set);
-        }
-        else
-        {
-            set.AiEnabled = enabled;
-            _db.Update(set);
-        }
-        await _db.SaveChangesAsync(ct);
+        await UpdateUserSettingAsync(userId, s => s.AiEnabled = enabled, ct);
     }
 
     private const string AiKey = "AiEnabled";
@@ -56,18 +48,7 @@ public class SettingsService : ISettingsService
 
     public async Task SetGlobalAiEnabledAsync(bool enabled, CancellationToken ct = default)
     {
-        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { AiKey }, ct);
-        if (kv == null)
-        {
-            kv = new AppSetting { Key = AiKey, Value = enabled.ToString() };
-            _db.Add(kv);
-        }
-        else
-        {
-            kv.Value = enabled.ToString();
-            _db.Update(kv);
-        }
-        await _db.SaveChangesAsync(ct);
+        await WriteBool(AiKey, enabled, ct);
     }
 
     // per-user service toggles
@@ -81,18 +62,7 @@ public class SettingsService : ISettingsService
     public async Task SetUserGoogleVisionEnabledAsync(string userId, bool enabled, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(userId)) throw new ArgumentNullException(nameof(userId));
-        var set = await _db.Set<UserSetting>().FindAsync(new object[] { userId }, ct);
-        if (set == null)
-        {
-            set = new UserSetting { UserId = userId, GoogleVisionEnabled = enabled };
-            _db.Add(set);
-        }
-        else
-        {
-            set.GoogleVisionEnabled = enabled;
-            _db.Update(set);
-        }
-        await _db.SaveChangesAsync(ct);
+        await UpdateUserSettingAsync(userId, s => s.GoogleVisionEnabled = enabled, ct);
     }
 
     public async Task<bool> GetUserGeminiEnabledAsync(string userId, CancellationToken ct = default)
@@ -105,18 +75,7 @@ public class SettingsService : ISettingsService
     public async Task SetUserGeminiEnabledAsync(string userId, bool enabled, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(userId)) throw new ArgumentNullException(nameof(userId));
-        var set = await _db.Set<UserSetting>().FindAsync(new object[] { userId }, ct);
-        if (set == null)
-        {
-            set = new UserSetting { UserId = userId, GeminiEnabled = enabled };
-            _db.Add(set);
-        }
-        else
-        {
-            set.GeminiEnabled = enabled;
-            _db.Update(set);
-        }
-        await _db.SaveChangesAsync(ct);
+        await UpdateUserSettingAsync(userId, s => s.GeminiEnabled = enabled, ct);
     }
 
     // New: per-user confirmation requirement
@@ -130,18 +89,7 @@ public class SettingsService : ISettingsService
     public async Task SetUserRequireAiConfirmationAsync(string userId, bool required, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(userId)) throw new ArgumentNullException(nameof(userId));
-        var set = await _db.Set<UserSetting>().FindAsync(new object[] { userId }, ct);
-        if (set == null)
-        {
-            set = new UserSetting { UserId = userId, RequireAiConfirmation = required };
-            _db.Add(set);
-        }
-        else
-        {
-            set.RequireAiConfirmation = required;
-            _db.Update(set);
-        }
-        await _db.SaveChangesAsync(ct);
+        await UpdateUserSettingAsync(userId, s => s.RequireAiConfirmation = required, ct);
     }
 
     public async Task<bool> GetUserShoppingListEditModeAsync(string userId, CancellationToken ct = default)
@@ -154,20 +102,7 @@ public class SettingsService : ISettingsService
     public async Task SetUserShoppingListEditModeAsync(string userId, bool editMode, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(userId)) throw new ArgumentNullException(nameof(userId));
-        var key = ShoppingListEditModeKey(userId);
-        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { key }, ct);
-        if (kv == null)
-        {
-            kv = new AppSetting { Key = key, Value = editMode.ToString() };
-            _db.Add(kv);
-        }
-        else
-        {
-            kv.Value = editMode.ToString();
-            _db.Update(kv);
-        }
-
-        await _db.SaveChangesAsync(ct);
+        await WriteString(ShoppingListEditModeKey(userId), editMode.ToString(), ct);
     }
 
     private static string ShoppingListEditModeKey(string userId) => ShoppingListEditModePrefix + userId;
@@ -182,18 +117,7 @@ public class SettingsService : ISettingsService
 
     public async Task SetGlobalGoogleVisionEnabledAsync(bool enabled, CancellationToken ct = default)
     {
-        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GoogleVisionKey }, ct);
-        if (kv == null)
-        {
-            kv = new AppSetting { Key = GoogleVisionKey, Value = enabled.ToString() };
-            _db.Add(kv);
-        }
-        else
-        {
-            kv.Value = enabled.ToString();
-            _db.Update(kv);
-        }
-        await _db.SaveChangesAsync(ct);
+        await WriteBool(GoogleVisionKey, enabled, ct);
     }
 
     public async Task<bool> GetGlobalGeminiEnabledAsync(CancellationToken ct = default)
@@ -205,18 +129,7 @@ public class SettingsService : ISettingsService
 
     public async Task SetGlobalGeminiEnabledAsync(bool enabled, CancellationToken ct = default)
     {
-        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GeminiKey }, ct);
-        if (kv == null)
-        {
-            kv = new AppSetting { Key = GeminiKey, Value = enabled.ToString() };
-            _db.Add(kv);
-        }
-        else
-        {
-            kv.Value = enabled.ToString();
-            _db.Update(kv);
-        }
-        await _db.SaveChangesAsync(ct);
+        await WriteBool(GeminiKey, enabled, ct);
     }
 
     // New: global limits implementation
@@ -230,24 +143,7 @@ public class SettingsService : ISettingsService
 
     public async Task SetGlobalMaxRequestsPerHourAsync(int? value, CancellationToken ct = default)
     {
-        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GlobalMaxPerHourKey }, ct);
-        if (value == null)
-        {
-            if (kv != null) { _db.Remove(kv); await _db.SaveChangesAsync(ct); }
-            return;
-        }
-
-        if (kv == null)
-        {
-            kv = new AppSetting { Key = GlobalMaxPerHourKey, Value = value.Value.ToString() };
-            _db.Add(kv);
-        }
-        else
-        {
-            kv.Value = value.Value.ToString();
-            _db.Update(kv);
-        }
-        await _db.SaveChangesAsync(ct);
+        await WriteNullableInt(GlobalMaxPerHourKey, value, ct);
     }
 
     public async Task<int?> GetGlobalMaxRequestsPerDayAsync(CancellationToken ct = default)
@@ -260,24 +156,7 @@ public class SettingsService : ISettingsService
 
     public async Task SetGlobalMaxRequestsPerDayAsync(int? value, CancellationToken ct = default)
     {
-        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GlobalMaxPerDayKey }, ct);
-        if (value == null)
-        {
-            if (kv != null) { _db.Remove(kv); await _db.SaveChangesAsync(ct); }
-            return;
-        }
-
-        if (kv == null)
-        {
-            kv = new AppSetting { Key = GlobalMaxPerDayKey, Value = value.Value.ToString() };
-            _db.Add(kv);
-        }
-        else
-        {
-            kv.Value = value.Value.ToString();
-            _db.Update(kv);
-        }
-        await _db.SaveChangesAsync(ct);
+        await WriteNullableInt(GlobalMaxPerDayKey, value, ct);
     }
 
     public async Task<bool> GetGlobalDisableOnLimitReachedAsync(CancellationToken ct = default)
@@ -289,16 +168,72 @@ public class SettingsService : ISettingsService
 
     public async Task SetGlobalDisableOnLimitReachedAsync(bool disable, CancellationToken ct = default)
     {
-        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { GlobalDisableOnLimitKey }, ct);
+        await WriteBool(GlobalDisableOnLimitKey, disable, ct);
+    }
+
+    public async Task<SecurityTxtSettings> GetSecurityTxtSettingsAsync(CancellationToken ct = default)
+    {
+        return await _securityTxtSettingsService.GetSecurityTxtSettingsAsync(ct);
+    }
+
+    public async Task SetSecurityTxtSettingsAsync(SecurityTxtSettings settings, CancellationToken ct = default)
+    {
+        await _securityTxtSettingsService.SetSecurityTxtSettingsAsync(settings, ct);
+    }
+
+    private async Task WriteString(string key, string value, CancellationToken ct)
+    {
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { key }, ct);
         if (kv == null)
         {
-            kv = new AppSetting { Key = GlobalDisableOnLimitKey, Value = disable.ToString() };
-            _db.Add(kv);
+            _db.Add(new AppSetting { Key = key, Value = value });
         }
         else
         {
-            kv.Value = disable.ToString();
+            kv.Value = value;
             _db.Update(kv);
+        }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    private async Task WriteBool(string key, bool value, CancellationToken ct)
+    {
+        await WriteString(key, value.ToString(), ct);
+    }
+
+    private async Task WriteNullableInt(string key, int? value, CancellationToken ct)
+    {
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { key }, ct);
+        if (value == null)
+        {
+            if (kv != null) { _db.Remove(kv); await _db.SaveChangesAsync(ct); }
+            return;
+        }
+        if (kv == null)
+        {
+            _db.Add(new AppSetting { Key = key, Value = value.Value.ToString() });
+        }
+        else
+        {
+            kv.Value = value.Value.ToString();
+            _db.Update(kv);
+        }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    private async Task UpdateUserSettingAsync(string userId, Action<UserSetting> update, CancellationToken ct)
+    {
+        var set = await _db.Set<UserSetting>().FindAsync(new object[] { userId }, ct);
+        if (set == null)
+        {
+            set = new UserSetting { UserId = userId };
+            update(set);
+            _db.Add(set);
+        }
+        else
+        {
+            update(set);
+            _db.Update(set);
         }
         await _db.SaveChangesAsync(ct);
     }

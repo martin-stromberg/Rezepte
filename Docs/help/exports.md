@@ -24,4 +24,20 @@ Weitere Details zur Aktivierung und zur `msTools.Updater`-Integration stehen unt
 
 ## Wiederherstellung
 
-Die Wiederherstellung erfolgt weiterhin ueber den Upload einer ZIP-Datei im Bereich "Sicherung". Vor dem Start muss die Wiederherstellung bestaetigt werden, da bestehende Daten ueberschrieben werden koennen.
+Die Wiederherstellung erfolgt ueber den Upload einer ZIP-Datei im Bereich "Sicherung". Vor dem Start muss die Wiederherstellung bestaetigt werden, da bestehende Daten ueberschrieben werden koennen.
+
+### Archivvalidierung und Ressourcenlimits
+
+Bevor Daten in die Datenbank uebernommen werden, prueft die Anwendung das hochgeladene Archiv auf Gueltigkeit. Unzulaessige Archive werden abgewiesen, ohne dass Daten veraendert werden.
+
+Folgende Limits werden durchgesetzt:
+
+- Maximale Uploadgroesse: 500 MB
+- Maximal 10.000 Eintraege im Archiv
+- Maximal 1 GB ungepackte Gesamtgroesse aller Eintraege
+- Maximal 50 MB fuer `recipes.json`
+- Maximal 50 MB pro Bild
+- Maximal 500 MB Bilddaten insgesamt
+- Maximal erlaubtes Kompressionsverhaeltnis von 100:1 pro Eintrag, um ZIP-Bomben zu vermeiden
+
+Zusaetzlich werden ungueltige Pfade oder Pfade mit Verzeichniswechseln (`..`) abgelehnt. Waehrend der Wiederherstellung wird der Vorgang serverseitig seriell ausgefuehrt, sodass nur ein Restore gleichzeitig laeuft. Fehlerhafte oder nicht unterstuetzte Archive fuehren zu einer HTTP-400-Fehlermeldung mit Hinweis auf den Abbruchgrund.

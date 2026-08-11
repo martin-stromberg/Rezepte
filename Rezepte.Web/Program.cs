@@ -84,3 +84,5 @@ app.UseRedirectToRegisterWhenNoUsers();
 
 // Run
 app.Run();
+
+public partial class Program;

@@ -55,3 +55,17 @@ Kein Code laedt Credential-Dateien mehr aus einem festen Pfad im Dateisystem. `G
 ## Testing / CI
 
 Unit- und Integrationstests verwenden Test-Fixtures bzw. Mock-Objekte (z. B. `TestGeminiClient`) und keine echten Credential-Dateien. In der CI-Pipeline werden aktuell keine echten Google-Credentials verwendet.
+
+## Pre-Commit-Hook
+
+Ein Git-Pre-Commit-Hook liegt unter `.githooks/pre-commit`. Er prueft vor jedem Commit, ob die Solution formatiert ist (`dotnet format Rezepte.sln --verify-no-changes --no-restore`). Ein Commit wird abgelehnt, wenn die Formatierung nicht passt. Fuehrt einmalig aus:
+
+```powershell
+git config core.hooksPath .githooks
+```
+
+Wenn der Hook abbricht, repariert die Formatierung mit:
+
+```powershell
+dotnet format Rezepte.sln
+```

@@ -1,3 +1,5 @@
+using Rezepte.Web.Dtos;
+
 namespace Rezepte.Web.Services;
 
 public interface ISettingsService
@@ -39,4 +41,7 @@ public interface ISettingsService
 
     Task<bool> GetGlobalDisableOnLimitReachedAsync(CancellationToken ct = default);
     Task SetGlobalDisableOnLimitReachedAsync(bool disable, CancellationToken ct = default);
+
+    Task<SecurityTxtSettings> GetSecurityTxtSettingsAsync(CancellationToken ct = default);
+    Task SetSecurityTxtSettingsAsync(SecurityTxtSettings settings, CancellationToken ct = default);
 }

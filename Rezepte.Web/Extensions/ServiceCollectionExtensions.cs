@@ -165,7 +165,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPluginUpdateService, PluginUpdateService>();
         services.AddScoped<IPluginSettingsService, PluginSettingsService>();
         services.AddScoped<IAiUsageService, AiUsageService>();
+        services.AddScoped<ISecurityTxtSettingsService, SecurityTxtSettingsService>();
         services.AddScoped<ISettingsService, SettingsService>();
+        services.AddScoped<ISecurityTxtRenderer, SecurityTxtRenderer>();
         services.AddScoped<ICalendarService, CalendarService>();
         services.AddScoped<IShoppingListService, ShoppingListService>();
         services.AddScoped<IGeminiClient, GeminiClient>();

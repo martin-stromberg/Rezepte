@@ -24,10 +24,11 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Plugin-Framework fuer Rezeptimporte mit aktivierbarer Reihenfolge in den Admin-Einstellungen.
 - Globale GitHub-Pluginquellen in den Admin-Einstellungen mit automatischer Pruefung beim Anwendungsstart.
 - Optionale KI-Importe ueber Gemini fuer URL-Quellen sowie Google Vision und Gemini fuer Fotoimporte.
-- Exportfunktionen und Hintergrundjobs fuer laenger laufende Aufgaben, inklusive Fortschrittsanzeige fuer Datenexporte und Sicherungen.
-- Vorbereitung fuer Programmupdates mit Pre-Install-Update-Backups; produktive automatische Updates setzen einen verifizierten `msTools.Updater`-Adapter voraus.
-- GitHub Actions fuer Pull-Request-Pruefungen und automatisierte Release-Artefakte.
+- Export- und Sicherungsfunktionen inklusive Fortschrittsanzeige fuer Datenexporte sowie validierte Wiederherstellung aus ZIP-Archiven mit Ressourcenlimits.
+- Programmupdates ueber `msTools.Updater` mit Status, Pruefung, Download und Installation in den Admin-Einstellungen sowie Pre-Install-Update-Backups.
+- GitHub Actions fuer Pull-Request-Pruefungen auf `staging`, automatische Promotion- und Sync-PRs sowie automatisierte Release-Artefakte.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
+- `security.txt` gemaess RFC 9116 unter `/security.txt` und `/.well-known/security.txt` mit optionalen Zusatzformaten (`/.well-known/security.md`, `/.well-known/security.html`); Konfiguration durch Administratoren im Einstellungsbereich (Canonical wird serverseitig je Ausgabeformat bestimmt); alle Endpunkte oeffentlich erreichbar ohne Authentifizierung.
 
 ## Tech-Stack
 
@@ -55,6 +56,10 @@ Rezepte.Import.Plugins.AIFoto/
 Rezepte.Import.Plugins.AIUrl/
                     KI-Webseiten-Import-Plugin im Hauptrepository
 Rezepte.Tests/      Unit-Tests fuer zentrale Services
+Rezepte.Tests.Browser/
+                    Browser-/E2E-Tests mit Playwright
+Rezepte.Tests.PluginFixture/
+                    Testfixture fuer Plugin-bezogene Tests
 Docs/               Anforderungskatalog und Installationshinweise
 ```
 
@@ -113,7 +118,15 @@ Beim ersten Start wird die SQLite-Datenbank automatisch vorbereitet. Sind EF-Cor
 dotnet test
 ```
 
-Das Testprojekt `Rezepte.Tests` deckt zentrale Services wie Benutzer, Kochbuecher, Rezepte, Einstellungen und KI-Nutzung ab.
+`Rezepte.Tests` deckt zentrale Services wie Benutzer, Kochbuecher, Rezepte, Einstellungen und KI-Nutzung ab. `Rezepte.Tests.Browser` enthaelt Browser-/E2E-Tests (u. a. fuer den security.txt-Flow inklusive Admin-UI und oeffentlichen Endpunkten).
+
+Fuer Browser-Tests muss zusaetzlich Playwright-Chromium installiert sein:
+
+```powershell
+dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj -c Release
+pwsh (Get-ChildItem Rezepte.Tests.Browser/bin/Release -Recurse -Filter playwright.ps1 | Select-Object -First 1 -ExpandProperty FullName) install --with-deps chromium
+dotnet test Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj -c Release --no-build
+```
 
 ## Konfiguration
 
@@ -138,6 +151,16 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 | `LoadingBar:HideDelay` | Wartezeit nach Navigationabschluss bis zum Ausblenden des Balkens, z. B. `"300ms"` (Standard: `"300ms"`). |
 | `LoadingBar:MaxVisibleDuration` | Sicherheitsgrenze, nach der der Balken auch ohne Abschlusssignal ausgeblendet wird, z. B. `"15s"` (Standard: `"15s"`). |
 | `LoadingBar:Colors` | Liste von Hexfarben in der Form `["#RGB", "#RRGGBB", ...]`, aus denen pro Navigationsinteraktion eine zufaellige Farbe gewaehlt wird. |
+| `SecurityTxt.Enabled` | Schaltet die security.txt-Auslieferung ein (`true`) oder aus (`false`). Standard: `false`. |
+| `SecurityTxt.Contact` | RFC-9116-Direktive `Contact` — URI oder E-Mail, ein Wert pro Zeile. Pflichtfeld bei `Enabled = true`. |
+| `SecurityTxt.Expires` | RFC-9116-Direktive `Expires` — Ablaufzeitpunkt als ISO-8601-Datum. Pflichtfeld bei `Enabled = true`; muss in der Zukunft liegen. |
+| `SecurityTxt.Encryption` | RFC-9116-Direktive `Encryption` — URL zum oeffentlichen Schluessel. Optional. |
+| `SecurityTxt.Acknowledgments` | RFC-9116-Direktive `Acknowledgments` — URL zur Danksagungsseite. Optional. |
+| `SecurityTxt.PreferredLanguages` | RFC-9116-Direktive `Preferred-Languages` — kommagetrennte Sprachcodes. Optional. |
+| `SecurityTxt.Policy` | RFC-9116-Direktive `Policy` — URL zur Sicherheitsrichtlinie. Optional. |
+| `SecurityTxt.Hiring` | RFC-9116-Direktive `Hiring` — URL zu Sicherheitsstellen-Ausschreibungen. Optional. |
+
+Hinweis: `Canonical` ist nicht admin-konfigurierbar. Die Direktive wird vom Server je Ausgabeformat (Plain-Text/Markdown/HTML) automatisch aus Request-Schema, Host, PathBase und Zielpfad erzeugt.
 
 ### Ladebalken und visuelles Feedback
 
@@ -159,6 +182,7 @@ Die Anwendung bindet `msTools.Updater` als externe Update-Komponente ein. Admini
 - Rezept-, Kochbuch-, Kalender- und Einstellungsdaten sind benutzerbezogen modelliert.
 - Session-basierte Importablaeufe sind an den initiierenden authentifizierten Benutzer gebunden; fremde oder ungueltige Session-IDs legen keine Sessiondetails offen.
 - PATs fuer private GitHub-Pluginquellen verbleiben im geschuetzten Secret-Speicher des Backends und werden nicht an das Frontend ausgegeben oder protokolliert.
+- Die Pfade `/security.txt`, `/.well-known/security.txt`, `/.well-known/security.md` und `/.well-known/security.html` sind explizit von der Authentifizierungspflicht ausgenommen und oeffentlich erreichbar; bei deaktivierter Funktion (`SecurityTxt.Enabled = false`) antworten alle vier Endpunkte mit HTTP 404.
 
 ## Deployment
 
@@ -201,6 +225,7 @@ Aenderungen sind in `changes.log` dokumentiert. Beim Merge zu `main` werden auto
 - `Docs/help/side-dishes.md`: Bedienhinweise zu Beilagen in Rezepten, Kalender und Einkaufsliste.
 - `Docs/help/recipe-search.md`: Bedienhinweise zur Rezeptsuche, Trefferlogik und Kochbuchfilterung.
 - `Docs/help/shopping-list.md`: Bedienhinweise zur Einkaufsliste und Rezeptuebernahme.
+- `Docs/help/security-txt/index.md`: Konfiguration und Betrieb der security.txt-Funktion gemaess RFC 9116.
 - `Docs/install.md`: manuelle Installationsnotizen fuer Linux/systemd.
 - `Docs/development-guide.md`: lokale Einrichtung von Google-Credentials ueber Umgebungsvariablen/User Secrets.
 - `Docs/deployment-guide.md`: Secret-Store- und Umgebungsvariablen-Setup fuer Google-Credentials in Production.

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Rezepte.Web.Components.Settings;
-using System.Runtime.InteropServices;
 
 namespace Rezepte.Web.ViewModels;
 
@@ -14,23 +13,29 @@ public class SettingsViewModel
         public bool Visible { get; } = visible;
     }
 
-    public IReadOnlyList<Item> Items { get; }
-    public Item SelectedItem { get; private set; }
-    public bool Visible { get; }
+    private readonly AuthenticationStateProvider _authenticationStateProvider;
+
+    public IReadOnlyList<Item> Items { get; private set; } = Array.Empty<Item>();
+    public Item? SelectedItem { get; private set; }
 
     public SettingsViewModel(AuthenticationStateProvider authenticationStateProvider)
     {
-        // Achtung: synchronous block / kurz und bewusst — Auth-State ist zur Initialisierung benötigt.
-        var authState = authenticationStateProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult();
+        _authenticationStateProvider = authenticationStateProvider;
+    }
+
+    public async Task InitializeAsync()
+    {
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         var isAdmin = authState.User?.IsInRole("Admin") ?? false;
 
         Items = new List<Item>
         {
             new Item("Profil", "👤", true, typeof(UserProfile)),
-            new Item("Einstellungen", "⚙️", true, typeof(AiSettings)), // Neu: Einstellungen-Bereich (userbezogene Optionen)
+            new Item("Einstellungen", "⚙️", true, typeof(AiSettings)),
             new Item("Benutzer", "👥", isAdmin, typeof(UserAdmin)),
             new Item("Plugins", "🔌", isAdmin, typeof(PluginSettings)),
             new Item("Updates", "⬆️", isAdmin, typeof(ApplicationUpdates)),
+            new Item("security.txt", "🔒", isAdmin, typeof(SecurityTxtSettings)),
             new Item("Datenexport", "📤", true, typeof(Rezepte.Web.Components.Settings.ExportData)),
             new Item("Sicherung", "💾", isAdmin, typeof(Rezepte.Web.Components.Settings.BackupRestore)),
             new Item("Nutzungsstatistiken", "📊", true, typeof(Rezepte.Web.Components.Settings.UsageStats))

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Rezepte.Web.Configuration;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
 using System.IO.Compression;
@@ -49,16 +50,19 @@ public interface IPdfGenerator
 /// </summary>
 public class ExportService : BaseService, IExportService
 {
+    private static readonly SemaphoreSlim _restoreLock = new(1, 1);
     private readonly RezepteDbContext _db;
     private readonly ILogger<ExportService> _logger;
     private readonly IPdfGenerator? _pdfGenerator;
+    private readonly RestoreValidationOptions _validationOptions;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public ExportService(RezepteDbContext db, ILogger<ExportService> logger, IPdfGenerator? pdfGenerator = null)
+    public ExportService(RezepteDbContext db, ILogger<ExportService> logger, IPdfGenerator? pdfGenerator = null, RestoreValidationOptions? validationOptions = null)
     {
         _db = db;
         _logger = logger;
         _pdfGenerator = pdfGenerator;
+        _validationOptions = validationOptions ?? new RestoreValidationOptions();
         _jsonOptions = new JsonSerializerOptions
         {
             WriteIndented = true,
@@ -467,21 +471,27 @@ public class ExportService : BaseService, IExportService
         ArgumentNullException.ThrowIfNull(zipStream);
         _logger.LogInformation("Starting restore by {AdminUserId}", adminUserId);
 
+        await _restoreLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+        if (zipStream.CanSeek && zipStream.Length > _validationOptions.MaxUploadFileSizeBytes)
+            throw new InvalidDataException("Restore archive exceeds the maximum upload size.");
+
         using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: true);
+
+        ValidateArchive(archive, _validationOptions);
 
         // recipes.json lesen
         var jsonEntry = archive.GetEntry("recipes.json");
         if (jsonEntry == null)
-            throw new InvalidOperationException("Invalid export archive: recipes.json missing.");
+            throw new InvalidDataException("Invalid export archive: recipes.json missing.");
 
-        ExportRootDto? exportRoot;
-        await using (var jsonStream = jsonEntry.Open())
-        {
-            exportRoot = await JsonSerializer.DeserializeAsync<ExportRootDto>(jsonStream, _jsonOptions, ct).ConfigureAwait(false);
-        }
+        var recipeJsonBytes = await ReadEntryBytesAsync(jsonEntry, _validationOptions.MaxRecipesJsonUncompressedBytes, ct).ConfigureAwait(false);
+        await using var recipeJsonStream = new MemoryStream(recipeJsonBytes);
+        var exportRoot = await JsonSerializer.DeserializeAsync<ExportRootDto>(recipeJsonStream, _jsonOptions, ct).ConfigureAwait(false);
 
         if (exportRoot == null)
-            throw new InvalidOperationException("Invalid export archive: recipes.json could not be parsed.");
+            throw new InvalidDataException("Invalid export archive: recipes.json could not be parsed.");
 
         // Beginne DB-Transaktion fuer atomare Wiederherstellung
         await using var tx = await _db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
@@ -591,6 +601,7 @@ public class ExportService : BaseService, IExportService
             // 3) Rezepte, Schritte, Zutaten, Bilder
             if (exportRoot.Recipes != null)
             {
+                long totalImageBytes = 0;
                 foreach (var r in exportRoot.Recipes)
                 {
                     ct.ThrowIfCancellationRequested();
@@ -686,10 +697,11 @@ public class ExportService : BaseService, IExportService
                             var imgExists = await _db.RecipeImages.AnyAsync(x => x.RecipeId == r.Id && x.FileName == fileName, ct).ConfigureAwait(false);
                             if (imgExists) continue;
 
-                            await using var entryStream = entry.Open();
-                            await using var msImg = new MemoryStream();
-                            await entryStream.CopyToAsync(msImg, ct).ConfigureAwait(false);
-                            var imgBytes = msImg.ToArray();
+                            var imgBytes = await ReadEntryBytesAsync(entry, _validationOptions.MaxImageUncompressedBytes, ct).ConfigureAwait(false);
+
+                            totalImageBytes += imgBytes.Length;
+                            if (totalImageBytes > _validationOptions.MaxTotalImageBytes)
+                                throw new InvalidDataException("Total image size in restore archive exceeds the allowed limit.");
 
                             var newImg = new Rezepte.Web.Entities.RecipeImage
                             {
@@ -755,6 +767,75 @@ public class ExportService : BaseService, IExportService
             _logger.LogError(ex, "Restore failed, transaction rolled back (admin={AdminUserId})", adminUserId);
             throw;
         }
+        }
+        finally
+        {
+            _restoreLock.Release();
+        }
+    }
+
+    private static void ValidateArchive(ZipArchive archive, RestoreValidationOptions options)
+    {
+        if (archive.Entries.Count > options.MaxArchiveEntries)
+            throw new InvalidDataException($"Archive contains {archive.Entries.Count} entries, exceeding the limit of {options.MaxArchiveEntries}.");
+
+        long totalUncompressed = 0;
+        foreach (var entry in archive.Entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.FullName) || entry.FullName.EndsWith("/", StringComparison.Ordinal))
+                continue;
+
+            var normalized = entry.FullName.Replace('\\', '/');
+            if (normalized.StartsWith("/", StringComparison.Ordinal) ||
+                normalized.Contains("../", StringComparison.Ordinal) ||
+                normalized.Contains("/..", StringComparison.Ordinal) ||
+                normalized == "..")
+                throw new InvalidDataException($"Archive entry {entry.FullName} uses an invalid path.");
+
+            var uncompressed = entry.Length;
+            var compressed = entry.CompressedLength;
+            if (uncompressed > 0 && compressed > 0)
+            {
+                var ratio = (double)uncompressed / compressed;
+                if (ratio > options.MaxCompressionRatio)
+                    throw new InvalidDataException($"Archive entry {entry.FullName} has a compression ratio of {ratio:F1}, exceeding the limit of {options.MaxCompressionRatio}.");
+            }
+
+            if (entry.FullName.StartsWith("images/", StringComparison.OrdinalIgnoreCase) &&
+                uncompressed > options.MaxImageUncompressedBytes)
+                throw new InvalidDataException($"Image {entry.FullName} size {uncompressed} exceeds the limit {options.MaxImageUncompressedBytes}.");
+
+            totalUncompressed += uncompressed;
+        }
+
+        if (totalUncompressed > options.MaxTotalUncompressedBytes)
+            throw new InvalidDataException($"Archive total uncompressed size {totalUncompressed} exceeds the limit {options.MaxTotalUncompressedBytes}.");
+
+        var recipesJson = archive.Entries.FirstOrDefault(e => string.Equals(e.FullName, "recipes.json", StringComparison.OrdinalIgnoreCase));
+        if (recipesJson == null)
+            throw new InvalidDataException("Invalid export archive: recipes.json missing.");
+        if (recipesJson.Length > options.MaxRecipesJsonUncompressedBytes)
+            throw new InvalidDataException($"recipes.json size {recipesJson.Length} exceeds the limit {options.MaxRecipesJsonUncompressedBytes}.");
+    }
+
+    private static async Task<byte[]> ReadEntryBytesAsync(ZipArchiveEntry entry, long maxBytes, CancellationToken ct)
+    {
+        await using var entryStream = entry.Open();
+        var buffer = new byte[8192];
+        var ms = new MemoryStream();
+        long total = 0;
+        int read;
+
+        while ((read = await entryStream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct).ConfigureAwait(false)) > 0)
+        {
+            total += read;
+            if (total > maxBytes)
+                throw new InvalidDataException($"Archive entry {entry.FullName} exceeds the limit {maxBytes}.");
+
+            await ms.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
+        }
+
+        return ms.ToArray();
     }
 
     private async Task RestoreSystemDataAsync(ExportSystemDataDto? systemData, string adminUserId, CancellationToken ct)

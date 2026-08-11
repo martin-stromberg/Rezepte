@@ -1,39 +1,55 @@
-name: Release
+name: Staging Branch CI
 
 "on":
-  pull_request_target:
-    branches: [main]
-    types: [closed]
+  push:
+    branches: [staging]
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
-  group: release-main
-  cancel-in-progress: false
+  group: staging-ci
+  cancel-in-progress: true
 
 jobs:
-  release:
-    name: Publish release artifact
+  detect-backmerge:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    if: github.event.pull_request.merged == true
-
+    outputs:
+      is_backmerge: ${{ steps.check.outputs.is_backmerge }}
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
-          persist-credentials: false
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: Check whether push is a pure back-merge from main
+        id: check
+        run: |
+          git fetch origin main --no-tags
+          if git diff --quiet origin/main HEAD; then
+            echo "is_backmerge=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Pure back-merge from main detected (tree identical) - CI checks will be skipped."
+          else
+            echo "is_backmerge=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  version:
+    runs-on: ubuntu-latest
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+    outputs:
+      next_version: ${{ steps.semver.outputs.next_version }}
+      rc_version: ${{ steps.semver.outputs.rc_version }}
+      bump: ${{ steps.semver.outputs.bump }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          dotnet-version: 10.0.x
+          fetch-depth: 0
 
-      - name: Determine version
-        id: version
+      - name: Compute next semantic version and release candidate
+        id: semver
         shell: bash
         run: |
           set -euo pipefail
@@ -46,9 +62,9 @@ jobs:
           )"
 
           if [[ -z "$last_tag" ]]; then
-            version="1.0.0"
-            create_tag="true"
-            range="HEAD"
+            base_version="0.0.0"
+            bump="minor"
+            next_version="1.0.0"
           else
             base_version="${last_tag#v}"
             range="${last_tag}..HEAD"
@@ -70,34 +86,44 @@ jobs:
 
             case "$bump" in
               major)
-                version="$((major + 1)).0.0"
-                create_tag="true"
+                next_version="$((major + 1)).0.0"
                 ;;
               minor)
-                version="${major}.$((minor + 1)).0"
-                create_tag="true"
+                next_version="${major}.$((minor + 1)).0"
                 ;;
               patch)
-                version="${major}.${minor}.$((patch + 1))"
-                create_tag="true"
+                next_version="${major}.${minor}.$((patch + 1))"
                 ;;
               none)
-                version="$base_version"
-                create_tag="false"
+                next_version="$base_version"
                 ;;
             esac
           fi
 
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "create_tag=$create_tag" >> "$GITHUB_OUTPUT"
-          echo "tag=v$version" >> "$GITHUB_OUTPUT"
-          echo "range=$range" >> "$GITHUB_OUTPUT"
+          rc_version="${next_version}-rc.${GITHUB_RUN_NUMBER}"
+
+          echo "next_version=$next_version" >> "$GITHUB_OUTPUT"
+          echo "rc_version=$rc_version" >> "$GITHUB_OUTPUT"
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+
+  verify:
+    name: Restore, build, test, and format
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
 
       - name: Restore
         run: dotnet restore Rezepte.sln
-
-      - name: Restore publish runtime
-        run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime linux-x64
 
       - name: Build application and plugins
         run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
@@ -121,11 +147,68 @@ jobs:
         run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
 
       - name: Test
-        run: |
-          dotnet test Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-build
-          dotnet test Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-build
+        run: dotnet test Rezepte.sln --configuration Release --no-build
 
-      - name: Publish
+      - name: Export import plugin contract
+        shell: pwsh
+        run: |
+          $exportArgs = @{
+            OutputDirectory = "artifacts/contract-export"
+            SourceCommit = "${{ github.sha }}"
+          }
+
+          $baselineDirectory = "contract-baselines/import-contract"
+          if (Test-Path -LiteralPath $baselineDirectory -PathType Container) {
+            dotnet tool install Microsoft.DotNet.ApiCompat.Tool --tool-path ./.tools
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to install Microsoft.DotNet.ApiCompat.Tool."
+            }
+
+            $apiCompatTool = if ($IsWindows) { ".\\.tools\\apicompat.exe" } else { "./.tools/apicompat" }
+            $exportArgs["ApiCompatBaselineDirectory"] = $baselineDirectory
+            $exportArgs["ApiCompatToolPath"] = $apiCompatTool
+          }
+          else {
+            Write-Host "No stored ApiCompat baselines found; contract export will skip historical API comparison."
+          }
+
+          ./scripts/Export-ImportContract.ps1 @exportArgs
+
+      - name: Check formatting
+        run: dotnet format Rezepte.sln --verify-no-changes --no-restore
+
+  prerelease:
+    name: Create release candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [detect-backmerge, version, verify]
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Rezepte.sln
+
+      - name: Build application and plugins
+        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
+
+      - name: Build browser tests
+        run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
+
+      - name: Restore publish runtime
+        run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime linux-x64
+
+      - name: Publish application
         run: >
           dotnet publish Rezepte.Web/Rezepte.Web.csproj
           --configuration Release
@@ -140,8 +223,8 @@ jobs:
         run: |
           cat > artifacts/publish/release-metadata.json <<EOF
           {
-            "version": "${{ steps.version.outputs.version }}",
-            "commit": "${{ github.event.pull_request.merge_commit_sha }}",
+            "version": "${{ needs.version.outputs.rc_version }}",
+            "commit": "${{ github.sha }}",
             "runId": "${{ github.run_id }}",
             "createdAt": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           }
@@ -152,7 +235,7 @@ jobs:
         run: |
           $exportArgs = @{
             OutputDirectory = "artifacts/contract-export"
-            SourceCommit = "${{ github.event.pull_request.merge_commit_sha }}"
+            SourceCommit = "${{ github.sha }}"
           }
 
           $baselineDirectory = "contract-baselines/import-contract"
@@ -181,9 +264,8 @@ jobs:
       - name: Create update manifest
         shell: bash
         env:
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ steps.version.outputs.tag }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          VERSION: ${{ needs.version.outputs.rc_version }}
+          TAG: v${{ needs.version.outputs.rc_version }}
         run: |
           set -euo pipefail
 
@@ -193,7 +275,7 @@ jobs:
 
           jq -n \
             --arg version "$VERSION" \
-            --arg releaseNotes "Automated release for ${MERGE_SHA}" \
+            --arg releaseNotes "Release candidate for ${GITHUB_SHA}" \
             --arg publishedAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
             --arg assetUrl "$release_asset_url" \
             --arg sha256 "$release_sha" \
@@ -214,47 +296,16 @@ jobs:
               ]
             }' > artifacts/update.json
 
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+      - name: Create release candidate
+        uses: softprops/action-gh-release@v2
         with:
-          name: release-${{ steps.version.outputs.version }}-${{ github.event.pull_request.merge_commit_sha }}
-          path: |
+          tag_name: v${{ needs.version.outputs.rc_version }}
+          name: Pre-release v${{ needs.version.outputs.rc_version }}
+          target_commitish: ${{ github.sha }}
+          draft: false
+          prerelease: true
+          files: |
             artifacts/release.zip
             artifacts/update.json
-          if-no-files-found: error
-
-      - name: Upload import contract artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: import-contract-${{ github.event.pull_request.merge_commit_sha }}
-          path: |
-            artifacts/contract-export/rezepte-import-contract-*.zip
-            artifacts/contract-export/contract-export.metadata.json
-          if-no-files-found: error
-
-      - name: Create Git tag and GitHub Release
-        if: steps.version.outputs.create_tag == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ steps.version.outputs.tag }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-        shell: bash
-        run: |
-          contract_zip="$(find artifacts/contract-export -maxdepth 1 -name 'rezepte-import-contract-*.zip' | sort | head -n 1)"
-          contract_sha="$(jq -r '.artifactSha256' artifacts/contract-export/contract-export.metadata.json)"
-          contract_version="$(jq -r '.contractVersion' artifacts/contract-export/contract-export.metadata.json)"
-          contract_asset="$(basename "$contract_zip")"
-          contract_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${contract_asset}"
-          metadata_tmp="$(mktemp)"
-          jq --arg artifactUrl "$contract_asset_url" '. + { artifactUrl: $artifactUrl }' \
-            artifacts/contract-export/contract-export.metadata.json > "$metadata_tmp"
-          mv "$metadata_tmp" artifacts/contract-export/contract-export.metadata.json
-
-          notes="$(printf 'Automated release for %s\n\nImport contract:\n- contractVersion: %s\n- sourceCommit: %s\n- zipSha256: %s\n- asset: %s\n- assetUrl: %s' \
-            "$MERGE_SHA" "$contract_version" "$MERGE_SHA" "$contract_sha" "$contract_asset" "$contract_asset_url")"
-
-          gh release create "$TAG" artifacts/release.zip artifacts/update.json "$contract_zip" artifacts/contract-export/contract-export.metadata.json \
-            --title "$TAG" \
-            --target "$MERGE_SHA" \
-            --notes "$notes"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
