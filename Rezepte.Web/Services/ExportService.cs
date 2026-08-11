@@ -300,6 +300,8 @@ public class ExportService : BaseService, IExportService
             }
         }
 
+        await zipFs.FlushAsync(ct).ConfigureAwait(false);
+
         _logger.LogInformation("Export ZIP prepared (initiator={Initiator})", initiatorUserId);
         return zipFs;
     }
