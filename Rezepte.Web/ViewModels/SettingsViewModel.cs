@@ -34,6 +34,7 @@ public class SettingsViewModel
             new Item("Einstellungen", "⚙️", true, typeof(AiSettings)),
             new Item("Benutzer", "👥", isAdmin, typeof(UserAdmin)),
             new Item("Plugins", "🔌", isAdmin, typeof(PluginSettings)),
+            new Item("Updates", "⬆️", isAdmin, typeof(ApplicationUpdates)),
             new Item("security.txt", "🔒", isAdmin, typeof(SecurityTxtSettings)),
             new Item("Datenexport", "📤", true, typeof(Rezepte.Web.Components.Settings.ExportData)),
             new Item("Sicherung", "💾", isAdmin, typeof(Rezepte.Web.Components.Settings.BackupRestore)),

@@ -218,6 +218,18 @@ jobs:
           --no-restore
           --output artifacts/publish
 
+      - name: Write release metadata
+        shell: bash
+        run: |
+          cat > artifacts/publish/release-metadata.json <<EOF
+          {
+            "version": "${{ needs.version.outputs.rc_version }}",
+            "commit": "${{ github.sha }}",
+            "runId": "${{ github.run_id }}",
+            "createdAt": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          }
+          EOF
+
       - name: Export import plugin contract
         shell: pwsh
         run: |
@@ -249,6 +261,41 @@ jobs:
           cd artifacts/publish
           zip -r ../release.zip .
 
+      - name: Create update manifest
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.rc_version }}
+          TAG: v${{ needs.version.outputs.rc_version }}
+        run: |
+          set -euo pipefail
+
+          release_sha="$(sha256sum artifacts/release.zip | awk '{print $1}')"
+          release_size="$(stat -c%s artifacts/release.zip)"
+          release_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release.zip"
+
+          jq -n \
+            --arg version "$VERSION" \
+            --arg releaseNotes "Release candidate for ${GITHUB_SHA}" \
+            --arg publishedAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --arg assetUrl "$release_asset_url" \
+            --arg sha256 "$release_sha" \
+            --argjson sizeBytes "$release_size" \
+            '{
+              version: $version,
+              releaseNotes: $releaseNotes,
+              publishedAt: $publishedAt,
+              assets: [
+                {
+                  platform: "linux",
+                  runtimeIdentifier: "linux-x64",
+                  assetName: "release.zip",
+                  assetUrl: $assetUrl,
+                  sha256: $sha256,
+                  sizeBytes: $sizeBytes
+                }
+              ]
+            }' > artifacts/update.json
+
       - name: Create release candidate
         uses: softprops/action-gh-release@v2
         with:
@@ -259,5 +306,6 @@ jobs:
           prerelease: true
           files: |
             artifacts/release.zip
+            artifacts/update.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

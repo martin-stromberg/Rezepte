@@ -31,5 +31,9 @@
     <ProjectReference Include="..\Rezepte.Import.Plugins.AIUrl\Rezepte.Import.Plugins.AIUrl.csproj" />
     <ProjectReference Include="..\Rezepte.Tests.PluginFixture\Rezepte.Tests.PluginFixture.csproj" />
     <ProjectReference Include="..\Rezepte.Web\Rezepte.Web.csproj" />
+    <Reference Include="msTools.Updater">
+      <HintPath>..\lib\msTools.Updater\net10.0\msTools.Updater.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 </Project>
