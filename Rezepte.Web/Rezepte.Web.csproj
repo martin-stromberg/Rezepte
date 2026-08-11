@@ -37,7 +37,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
-    <ProjectReference Include="..\external\msTools.Updater\msTools.Updater\msTools.Updater.csproj" />
+    <Reference Include="msTools.Updater">
+      <HintPath>..\lib\msTools.Updater\net10.0\msTools.Updater.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

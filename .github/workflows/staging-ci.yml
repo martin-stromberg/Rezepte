@@ -116,9 +116,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.MSTOOLS_UPDATER_READ_TOKEN || github.token }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -190,9 +187,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.MSTOOLS_UPDATER_READ_TOKEN || github.token }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4

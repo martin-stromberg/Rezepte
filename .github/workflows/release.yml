@@ -26,8 +26,6 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           persist-credentials: false
-          submodules: recursive
-          token: ${{ secrets.MSTOOLS_UPDATER_READ_TOKEN || github.token }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
