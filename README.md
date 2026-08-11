@@ -25,7 +25,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbuechern, 
 - Globale GitHub-Pluginquellen in den Admin-Einstellungen mit automatischer Pruefung beim Anwendungsstart.
 - Optionale KI-Importe ueber Gemini fuer URL-Quellen sowie Google Vision und Gemini fuer Fotoimporte.
 - Export- und Sicherungsfunktionen inklusive Fortschrittsanzeige fuer Datenexporte sowie validierte Wiederherstellung aus ZIP-Archiven mit Ressourcenlimits.
-- Programmupdates ueber `msTools.Updater` mit Status, Pruefung, Download und Installation in den Admin-Einstellungen sowie Pre-Install-Update-Backups.
+- Programmupdates über `msTools.Updater` mit Status, Prüfung, Download und Installation in den Admin-Einstellungen sowie Pre-Install-Update-Backups.
 - GitHub Actions fuer Pull-Request-Pruefungen auf `staging`, automatische Promotion- und Sync-PRs sowie automatisierte Release-Artefakte.
 - Nutzungs- und KI-Limits ueber Einstellungen und Protokollierung.
 - `security.txt` gemaess RFC 9116 unter `/security.txt` und `/.well-known/security.txt` mit optionalen Zusatzformaten (`/.well-known/security.md`, `/.well-known/security.html`); Konfiguration durch Administratoren im Einstellungsbereich (Canonical wird serverseitig je Ausgabeformat bestimmt); alle Endpunkte oeffentlich erreichbar ohne Authentifizierung.
@@ -170,7 +170,7 @@ Das Feature ist standardmaessig aktiviert (`LoadingBar:Enabled: true`), kann abe
 
 ### Programmupdates und Update-Backups
 
-Die Anwendung bindet `msTools.Updater` als externe Update-Komponente ein. Administratoren sehen den Update-Status in den Einstellungen und koennen dort Pruefung, Download und Installation ausloesen. Vor einer Installation erstellt das `BeforeInstall`-Event ein Update-Backup im konfigurierten Zielverzeichnis und wendet die konfigurierte Aufbewahrungsanzahl an. Schlaegt das Backup fehl, wird die Installation abgebrochen. Details stehen in `Docs/help/application-updates.md`.
+Die Anwendung bindet `msTools.Updater` als externe Update-Komponente ein. Administratoren sehen den Update-Status in den Einstellungen und können dort Prüfung, Download und Installation auslösen. Vor einer Installation erstellt das `BeforeInstall`-Event ein Update-Backup im konfigurierten Zielverzeichnis und wendet die konfigurierte Aufbewahrungsanzahl an. Schlägt das Backup fehl, wird die Installation abgebrochen. Details stehen in `Docs/help/application-updates.md`.
 
 ## Daten und Sicherheit
 

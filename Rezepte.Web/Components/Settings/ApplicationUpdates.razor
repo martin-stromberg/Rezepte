@@ -23,10 +23,10 @@ else
                     <dt class="col-5">Installiert</dt>
                     <dd class="col-7">@Display(status?.InstalledVersion)</dd>
 
-                    <dt class="col-5">Verfuegbar</dt>
+                    <dt class="col-5">Verfügbar</dt>
                     <dd class="col-7">@Display(status?.AvailableVersion)</dd>
 
-                    <dt class="col-5">Zuletzt geprueft</dt>
+                    <dt class="col-5">Zuletzt geprüft</dt>
                     <dd class="col-7">@FormatDate(status?.LastCheckedAt)</dd>
 
                     <dt class="col-5">Gesperrt</dt>
@@ -39,7 +39,7 @@ else
             <section>
                 <h3 class="h6">Aktionen</h3>
                 <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-primary btn-sm" disabled="@isBusy" @onclick="CheckAsync">Jetzt pruefen</button>
+                    <button type="button" class="btn btn-primary btn-sm" disabled="@isBusy" @onclick="CheckAsync">Jetzt prüfen</button>
                     <button type="button" class="btn btn-outline-primary btn-sm" disabled="@isBusy" @onclick="DownloadAsync">Herunterladen</button>
                     <button type="button" class="btn btn-danger btn-sm" disabled="@isBusy" @onclick="InstallAsync">Installieren</button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@isBusy" @onclick="LoadAsync">Aktualisieren</button>
@@ -54,7 +54,7 @@ else
             <table class="table table-sm align-middle">
                 <tbody>
                     <tr>
-                        <th style="width: 180px;">Pruefung</th>
+                        <th style="width: 180px;">Prüfung</th>
                         <td>@Display(status?.LastCheckSummary)</td>
                     </tr>
                     <tr>
@@ -94,7 +94,7 @@ else
         return Task.CompletedTask;
     }
 
-    private async Task CheckAsync() => await RunCommandAsync("Pruefung", UpdateSettings.CheckAsync);
+    private async Task CheckAsync() => await RunCommandAsync("Prüfung", UpdateSettings.CheckAsync);
 
     private async Task DownloadAsync() => await RunCommandAsync("Download", UpdateSettings.DownloadAsync);
 
@@ -132,12 +132,12 @@ else
 
     private static string StateBadgeClass(string? state) => state switch
     {
-        "Idle" => "badge text-bg-secondary",
-        "UpdateAvailable" => "badge text-bg-info",
-        "ReadyToInstall" => "badge text-bg-primary",
-        "Success" => "badge text-bg-success",
-        "Failed" => "badge text-bg-danger",
-        "Disabled" => "badge text-bg-secondary",
+        "Bereit" => "badge text-bg-secondary",
+        "Update verfügbar" => "badge text-bg-info",
+        "Installationsbereit" => "badge text-bg-primary",
+        "Erfolgreich" => "badge text-bg-success",
+        "Fehlgeschlagen" => "badge text-bg-danger",
+        "Deaktiviert" => "badge text-bg-secondary",
         _ => "badge text-bg-warning"
     };
 }

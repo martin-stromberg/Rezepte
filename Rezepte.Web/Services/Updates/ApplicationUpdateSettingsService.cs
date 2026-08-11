@@ -14,13 +14,17 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
 {
     private readonly IAutoUpdateStatusProvider _statusProvider;
     private readonly IAutoUpdateCommandHandler _commandHandler;
+    private readonly AutoUpdateOptions _options;
+    private readonly SemaphoreSlim _manualCheckGate = new(1, 1);
 
     public ApplicationUpdateSettingsService(
         IAutoUpdateStatusProvider statusProvider,
-        IAutoUpdateCommandHandler commandHandler)
+        IAutoUpdateCommandHandler commandHandler,
+        AutoUpdateOptions options)
     {
         _statusProvider = statusProvider;
         _commandHandler = commandHandler;
+        _options = options;
     }
 
     public ApplicationUpdateStatusItem GetStatus()
@@ -30,7 +34,21 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
     }
 
     public async Task<ApplicationUpdateCommandResult> CheckAsync(CancellationToken ct = default)
-        => ApplicationUpdateCommandResult.FromResult(await _commandHandler.CheckAsync(ct).ConfigureAwait(false));
+    {
+        await _manualCheckGate.WaitAsync(ct).ConfigureAwait(false);
+        var wasEnabled = _options.Enabled;
+
+        try
+        {
+            _options.Enabled = true;
+            return ApplicationUpdateCommandResult.FromResult(await _commandHandler.CheckAsync(ct).ConfigureAwait(false));
+        }
+        finally
+        {
+            _options.Enabled = wasEnabled;
+            _manualCheckGate.Release();
+        }
+    }
 
     public async Task<ApplicationUpdateCommandResult> DownloadAsync(CancellationToken ct = default)
         => ApplicationUpdateCommandResult.FromResult(await _commandHandler.DownloadAsync(ct).ConfigureAwait(false));
@@ -53,14 +71,14 @@ public sealed record ApplicationUpdateStatusItem(
 {
     public static ApplicationUpdateStatusItem FromSnapshot(AutoUpdateStatusSnapshot snapshot)
         => new(
-            snapshot.State.ToString(),
+            LocalizeState(snapshot.State.ToString()),
             snapshot.InstalledVersion,
             snapshot.AvailableVersion,
             snapshot.LastCheckedAt,
             FormatCheck(snapshot.LastCheckResult),
             FormatDownload(snapshot.LastDownloadResult),
             FormatInstall(snapshot.LastInstallResult),
-            snapshot.LastError,
+            ApplicationUpdateText.Localize(snapshot.LastError),
             snapshot.IsLocked,
             snapshot.LockCreatedAt);
 
@@ -75,6 +93,20 @@ public sealed record ApplicationUpdateStatusItem(
             ? "Keine neue Version gefunden."
             : $"Version {result.AvailableVersion} gefunden.";
     }
+
+    private static string LocalizeState(string state) => state switch
+    {
+        "Idle" => "Bereit",
+        "Checking" => "Prüfung läuft",
+        "UpdateAvailable" => "Update verfügbar",
+        "Downloading" => "Download läuft",
+        "ReadyToInstall" => "Installationsbereit",
+        "Installing" => "Installation läuft",
+        "Success" => "Erfolgreich",
+        "Failed" => "Fehlgeschlagen",
+        "Disabled" => "Deaktiviert",
+        _ => state
+    };
 
     private static string? FormatDownload(AutoUpdateDownloadResult? result)
     {
@@ -103,12 +135,57 @@ public sealed record ApplicationUpdateCommandResult(
     string? Message,
     string? Error)
 {
-    public bool IsSuccess => Error is null && Outcome is not nameof(AutoUpdateOutcome.Failed);
+    public bool IsSuccess => Error is null && Outcome is not nameof(AutoUpdateOutcome.Failed) and not "Fehlgeschlagen";
 
     public static ApplicationUpdateCommandResult FromResult(AutoUpdateResult result)
         => new(
-            result.Outcome.ToString(),
-            result.State.ToString(),
-            result.Message,
-            result.Error?.Message);
+            ApplicationUpdateText.LocalizeOutcome(result.Outcome.ToString()),
+            ApplicationUpdateText.LocalizeState(result.State.ToString()),
+            ApplicationUpdateText.Localize(result.Message),
+            ApplicationUpdateText.Localize(result.Error?.Message));
+}
+
+internal static class ApplicationUpdateText
+{
+    public static string? Localize(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        return value.Trim() switch
+        {
+            "Auto-update is disabled." => "Automatische Updates sind deaktiviert.",
+            "Auto-update is disabled" => "Automatische Updates sind deaktiviert.",
+            "No update available." => "Keine neue Version verfügbar.",
+            "No update available" => "Keine neue Version verfügbar.",
+            "No update." => "Keine neue Version verfügbar.",
+            "No update" => "Keine neue Version verfügbar.",
+            _ => value
+        };
+    }
+
+    public static string LocalizeOutcome(string outcome) => outcome switch
+    {
+        nameof(AutoUpdateOutcome.Success) => "Erfolgreich",
+        nameof(AutoUpdateOutcome.NoUpdate) => "Keine neue Version",
+        nameof(AutoUpdateOutcome.Skipped) => "Übersprungen",
+        nameof(AutoUpdateOutcome.Failed) => "Fehlgeschlagen",
+        _ => outcome
+    };
+
+    public static string LocalizeState(string state) => state switch
+    {
+        "Idle" => "Bereit",
+        "Checking" => "Prüfung läuft",
+        "UpdateAvailable" => "Update verfügbar",
+        "Downloading" => "Download läuft",
+        "ReadyToInstall" => "Installationsbereit",
+        "Installing" => "Installation läuft",
+        "Success" => "Erfolgreich",
+        "Failed" => "Fehlgeschlagen",
+        "Disabled" => "Deaktiviert",
+        _ => state
+    };
 }
