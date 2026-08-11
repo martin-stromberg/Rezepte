@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
-using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -109,12 +108,14 @@ public class ExportService : BaseService, IExportService
         var recipes = await _db.Recipes
             .AsNoTracking()
             .Include(r => r.RecipeCookbooks)
+            .Include(r => r.SideDishes)
             .Include(r => r.Images!)
             .Include(r => r.Steps!)
                 .ThenInclude(s => s.Ingredients!)
             .ToListAsync(ct);
+        var systemData = await CreateSystemBackupDataAsync(ct).ConfigureAwait(false);
 
-        return await CreateZipAsync(adminUserId, true, cookbooks, recipes, includeImages, includePdf, ct, users);
+        return await CreateZipAsync(adminUserId, true, cookbooks, recipes, includeImages, includePdf, ct, users, systemData);
     }
 
     private async Task<Stream> CreateZipAsync(
@@ -125,7 +126,8 @@ public class ExportService : BaseService, IExportService
         bool includeImages,
         bool includePdf,
         CancellationToken ct,
-        List<User>? users = null)
+        List<User>? users = null,
+        ExportSystemDataDto? systemData = null)
     {
         ct.ThrowIfCancellationRequested();
         // Prepare DTOs for JSON export
@@ -147,6 +149,8 @@ public class ExportService : BaseService, IExportService
                 OwnerId = r.UserId,
                 Title = r.Title,
                 Description = r.Description,
+                Uri = r.Uri,
+                Portions = r.Portions,
                 Steps = (r.Steps ?? Enumerable.Empty<RecipeStep>())
                     .OrderBy(s => s.StepIndex)
                     .Select(s => new ExportStepDto
@@ -171,7 +175,16 @@ public class ExportService : BaseService, IExportService
                 {
                     RecipeId = r.Id,
                     CookbookId = rc.CookbookId
-                }).ToList()
+                }).ToList(),
+                SideDishes = (r.SideDishes ?? Enumerable.Empty<RecipeSideDish>())
+                    .OrderBy(sd => sd.OrderIndex)
+                    .Select(sd => new ExportRecipeSideDishDto
+                    {
+                        Id = sd.Id,
+                        RecipeId = sd.RecipeId,
+                        SideDishRecipeId = sd.SideDishRecipeId,
+                        OrderIndex = sd.OrderIndex
+                    }).ToList()
             };
 
             // Images: map to relative paths that will be present in the archive
@@ -199,28 +212,21 @@ public class ExportService : BaseService, IExportService
             ExportedAt = DateTime.UtcNow,
             Cookbooks = cookbookDtos,
             Recipes = recipeDtos,
-            Users = includeUsers ? users?.Select(u => new ExportUserDto { Id = u.Id, UserName = u.Username, Email = u.Email, IsAdmin = u.IsAdmin }).ToList() : null
+            Users = includeUsers ? users?.Select(u => new ExportUserDto { Id = u.Id, UserName = u.Username, Email = u.Email, IsAdmin = u.IsAdmin }).ToList() : null,
+            SystemData = includeUsers ? systemData : null
         };
 
         // Serialize recipes.json
         var recipesJson = JsonSerializer.Serialize(exportRoot, _jsonOptions);
 
-        // Create ZIP on disk (caller should dispose, temp file is deleted on close)
-        var tempPath = Path.Combine(Path.GetTempPath(), $"rezepte-export-{Guid.NewGuid()}.zip");
-        var zipFs = new FileStream(
-            tempPath,
-            FileMode.Create,
-            FileAccess.ReadWrite,
-            FileShare.None,
-            81920,
-            FileOptions.Asynchronous | FileOptions.DeleteOnClose);
-
-        using (var archive = new ZipArchive(zipFs, ZipArchiveMode.Create, leaveOpen: true))
+        // Create ZIP in memory (caller should dispose)
+        var ms = new MemoryStream();
+        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
         {
             // recipes.json
             var jsonEntry = archive.CreateEntry("recipes.json", CompressionLevel.Optimal);
             await using (var entryStream = jsonEntry.Open())
-            using (var sw = new StreamWriter(entryStream, Encoding.UTF8, -1, true))
+            using (var sw = new StreamWriter(entryStream, Encoding.UTF8))
             {
                 await sw.WriteAsync(recipesJson).ConfigureAwait(false);
             }
@@ -239,8 +245,7 @@ public class ExportService : BaseService, IExportService
                         var imageFileName = $"image{(i + 1):D2}{ext}";
                         var entryPath = $"images/{r.Id}/{imageFileName}";
 
-                        // Images are already compressed; store them uncompressed for speed and compatibility.
-                        var imageEntry = archive.CreateEntry(entryPath, CompressionLevel.NoCompression);
+                        var imageEntry = archive.CreateEntry(entryPath, CompressionLevel.Optimal);
                         await using (var entryStream = imageEntry.Open())
                         {
                             // img.Data may be large; stream it
@@ -265,7 +270,7 @@ public class ExportService : BaseService, IExportService
                                 var safeAuthor = SanitizeFileName(r.UserId ?? "Unknown");
                                 var safeTitle = SanitizeFileName(r.Title ?? "Recipe");
                                 var pdfName = $"{safeAuthor} - {safeTitle}.pdf";
-                                var pdfEntry = archive.CreateEntry($"pdf/{pdfName}", CompressionLevel.NoCompression);
+                                var pdfEntry = archive.CreateEntry($"pdf/{pdfName}", CompressionLevel.Optimal);
                                 await using (var entryStream = pdfEntry.Open())
                                 {
                                     await entryStream.WriteAsync(pdfBytes, 0, pdfBytes.Length, ct).ConfigureAwait(false);
@@ -293,7 +298,7 @@ public class ExportService : BaseService, IExportService
                 };
                 var metaEntry = archive.CreateEntry("metadata.json", CompressionLevel.Optimal);
                 await using (var entryStream = metaEntry.Open())
-                using (var sw = new StreamWriter(entryStream, Encoding.UTF8, -1, true))
+                using (var sw = new StreamWriter(entryStream, Encoding.UTF8))
                 {
                     await sw.WriteAsync(JsonSerializer.Serialize(meta, _jsonOptions)).ConfigureAwait(false);
                 }
@@ -302,8 +307,165 @@ public class ExportService : BaseService, IExportService
 
         await zipFs.FlushAsync(ct).ConfigureAwait(false);
 
+        ms.Seek(0, SeekOrigin.Begin);
         _logger.LogInformation("Export ZIP prepared (initiator={Initiator})", initiatorUserId);
-        return zipFs;
+        return ms;
+    }
+
+    private async Task<ExportSystemDataDto> CreateSystemBackupDataAsync(CancellationToken ct)
+    {
+        return new ExportSystemDataDto
+        {
+            CalendarEvents = await _db.CalendarEvents.AsNoTracking()
+                .Select(e => new ExportCalendarEventDto
+                {
+                    Id = e.Id,
+                    UserId = e.UserId,
+                    StartDate = e.StartDate,
+                    TimeOfDay = e.TimeOfDay,
+                    RecipeId = e.RecipeId,
+                    Portions = e.Portions,
+                    Recurrence = e.Recurrence,
+                    RecurrenceDays = e.RecurrenceDays,
+                    CreatedAt = e.CreatedAt,
+                    ModifiedAt = e.ModifiedAt
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false),
+            ShoppingListGroups = await _db.ShoppingListGroups.AsNoTracking()
+                .Select(g => new ExportShoppingListGroupDto
+                {
+                    Id = g.Id,
+                    UserId = g.UserId,
+                    Name = g.Name,
+                    RecipeId = g.RecipeId,
+                    OrderIndex = g.OrderIndex,
+                    CreatedAt = g.CreatedAt,
+                    ModifiedAt = g.ModifiedAt
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false),
+            ShoppingListItems = await _db.ShoppingListItems.AsNoTracking()
+                .Select(i => new ExportShoppingListItemDto
+                {
+                    Id = i.Id,
+                    GroupId = i.GroupId,
+                    Amount = i.Amount,
+                    Unit = i.Unit,
+                    Name = i.Name,
+                    IsChecked = i.IsChecked,
+                    OrderIndex = i.OrderIndex,
+                    CreatedAt = i.CreatedAt,
+                    ModifiedAt = i.ModifiedAt
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false),
+            UserSettings = await _db.UserSettings.AsNoTracking()
+                .Select(s => new ExportUserSettingDto
+                {
+                    UserId = s.UserId,
+                    AiEnabled = s.AiEnabled,
+                    GoogleVisionEnabled = s.GoogleVisionEnabled,
+                    GeminiEnabled = s.GeminiEnabled,
+                    RequireAiConfirmation = s.RequireAiConfirmation
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false),
+            AppSettings = await _db.AppSettings.AsNoTracking()
+                .Select(s => new ExportAppSettingDto
+                {
+                    Key = s.Key,
+                    Value = s.Value
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false),
+            PluginSettings = await _db.PluginSettings.AsNoTracking()
+                .Select(p => new ExportPluginSettingDto
+                {
+                    PluginId = p.PluginId,
+                    DisplayName = p.DisplayName,
+                    Description = p.Description,
+                    AssemblyName = p.AssemblyName,
+                    TypeName = p.TypeName,
+                    Enabled = p.Enabled,
+                    OrderIndex = p.OrderIndex,
+                    Status = p.Status,
+                    Error = p.Error,
+                    DiscoveredAt = p.DiscoveredAt,
+                    LastSeenAt = p.LastSeenAt
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false),
+            PluginSources = await _db.PluginSources.AsNoTracking()
+                .Select(p => new ExportPluginSourceDto
+                {
+                    Id = p.Id,
+                    RepositoryUrl = p.RepositoryUrl,
+                    Owner = p.Owner,
+                    Repository = p.Repository,
+                    IsPrivate = p.IsPrivate,
+                    Enabled = p.Enabled,
+                    TrustConfirmed = p.TrustConfirmed,
+                    SecretName = p.SecretName,
+                    LastSuccessfulReleaseTag = p.LastSuccessfulReleaseTag,
+                    LastError = p.LastError,
+                    LastCheckedAt = p.LastCheckedAt,
+                    LastErrorAt = p.LastErrorAt,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false),
+            PluginSourceReleases = await _db.PluginSourceReleases.AsNoTracking()
+                .Select(r => new ExportPluginSourceReleaseDto
+                {
+                    Id = r.Id,
+                    PluginSourceId = r.PluginSourceId,
+                    ReleaseTag = r.ReleaseTag,
+                    GitHubReleaseId = r.GitHubReleaseId,
+                    AssetId = r.AssetId,
+                    AssetName = r.AssetName,
+                    Status = r.Status,
+                    Error = r.Error,
+                    CreatedAt = r.CreatedAt,
+                    DownloadedAt = r.DownloadedAt,
+                    ValidatedAt = r.ValidatedAt,
+                    InstalledAt = r.InstalledAt,
+                    ReloadStatus = r.ReloadStatus,
+                    ReloadedAt = r.ReloadedAt,
+                    ReloadError = r.ReloadError
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false),
+            AiRequestLogs = await _db.AiRequestLogs.AsNoTracking()
+                .Select(l => new ExportAiRequestLogDto
+                {
+                    Id = l.Id,
+                    UserId = l.UserId,
+                    Service = l.Service,
+                    Timestamp = l.Timestamp,
+                    Type = l.Type
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false),
+            BackgroundJobs = await _db.BackgroundJobs.AsNoTracking()
+                .Select(j => new ExportBackgroundJobDto
+                {
+                    Id = j.Id,
+                    JobType = j.JobType,
+                    InitiatorUserId = j.InitiatorUserId,
+                    CreatedAt = j.CreatedAt,
+                    StartedAt = j.StartedAt,
+                    CompletedAt = j.CompletedAt,
+                    Status = j.Status,
+                    PayloadJson = j.PayloadJson,
+                    Progress = j.Progress,
+                    ResultMessage = j.ResultMessage,
+                    Error = j.Error
+                })
+                .ToListAsync(ct)
+                .ConfigureAwait(false)
+        };
     }
 
     public async Task RestoreFromZipAsync(Stream zipStream, string adminUserId, CancellationToken ct = default)
@@ -321,17 +483,17 @@ public class ExportService : BaseService, IExportService
 
             ValidateArchive(archive, _validationOptions);
 
+            // recipes.json lesen
             var jsonEntry = archive.GetEntry("recipes.json");
             if (jsonEntry == null)
                 throw new InvalidDataException("Invalid export archive: recipes.json missing.");
 
             var recipeJsonBytes = await ReadEntryBytesAsync(jsonEntry, _validationOptions.MaxRecipesJsonUncompressedBytes, ct).ConfigureAwait(false);
-            var exportRoot = JsonSerializer.Deserialize<ExportRootDto>(recipeJsonBytes, _jsonOptions);
+            await using var recipeJsonStream = new MemoryStream(recipeJsonBytes);
+            var exportRoot = await JsonSerializer.DeserializeAsync<ExportRootDto>(recipeJsonStream, _jsonOptions, ct).ConfigureAwait(false);
+
             if (exportRoot == null)
                 throw new InvalidDataException("Invalid export archive: recipes.json could not be parsed.");
-
-            if (exportRoot.FormatVersion is not "1.0")
-                throw new InvalidDataException("Invalid export archive: unsupported format version.");
 
             // Beginne DB-Transaktion fuer atomare Wiederherstellung
             await using var tx = await _db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
@@ -346,10 +508,21 @@ public class ExportService : BaseService, IExportService
                 // Loesche Dependents zuerst, dann uebergeordnete Entitaeten.
                 // Verwende ExecuteDeleteAsync fuer performante Batch-Loeschungen (EF Core 7+).
                 // Falls ExecuteDeleteAsync in eurer Umgebung nicht verfuegbar ist, ersetzt durch RemoveRange()-Pattern.
+                await _db.ShoppingListItems.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.ShoppingListGroups.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.CalendarEvents.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.BackgroundJobs.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.AiRequestLogs.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.PluginSourceReleases.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.PluginSources.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.PluginSettings.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.AppSettings.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.UserSettings.ExecuteDeleteAsync(ct).ConfigureAwait(false);
                 await _db.RecipeImages.ExecuteDeleteAsync(ct).ConfigureAwait(false);
                 await _db.RecipeIngredients.ExecuteDeleteAsync(ct).ConfigureAwait(false);
                 await _db.RecipeSteps.ExecuteDeleteAsync(ct).ConfigureAwait(false);
                 await _db.RecipeCookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);
+                await _db.RecipeSideDishes.ExecuteDeleteAsync(ct).ConfigureAwait(false);
                 await _db.Recipes.ExecuteDeleteAsync(ct).ConfigureAwait(false);
                 await _db.Cookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);
 
@@ -358,6 +531,7 @@ public class ExportService : BaseService, IExportService
 
                 // Stelle sicher, dass DB in konsistentem Zustand ist bevor wir neue Daten anlegen
                 await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+                _db.ChangeTracker.Clear();
 
                 // 1) Benutzer anlegen (nur wenn nicht existierend). Passwort-Hash wird nicht wiederhergestellt.
                 if (exportRoot.Users != null)
@@ -395,7 +569,12 @@ public class ExportService : BaseService, IExportService
                     }
                     await _db.SaveChangesAsync(ct).ConfigureAwait(false);
                 }
-                var allUsers = await _db.Users.AsNoTracking().ToListAsync(ct).ConfigureAwait(false);
+                var allUsers = (await _db.Users
+                        .AsNoTracking()
+                        .Select(u => u.Id)
+                        .ToListAsync(ct)
+                        .ConfigureAwait(false))
+                    .ToHashSet(StringComparer.Ordinal);
 
                 // 2) Cookbooks anlegen falls fehlen
                 if (exportRoot.Cookbooks != null)
@@ -414,7 +593,7 @@ public class ExportService : BaseService, IExportService
                             Description = cb.Description,
                             CreatedAt = DateTime.UtcNow
                         };
-                        if (!allUsers.Any(u => u.Id == newCb.UserId))
+                        if (!allUsers.Contains(newCb.UserId))
                             newCb.UserId = adminUserId;
                         _db.Cookbooks.Add(newCb);
                     }
@@ -438,9 +617,11 @@ public class ExportService : BaseService, IExportService
                                 UserId = r.OwnerId ?? string.Empty,
                                 Title = r.Title ?? string.Empty,
                                 Description = r.Description,
+                                Uri = r.Uri,
+                                Portions = r.Portions ?? 0,
                                 CreatedAt = DateTime.UtcNow
                             };
-                            if (!allUsers.Any(u => u.Id == newRecipe.UserId))
+                            if (!allUsers.Contains(newRecipe.UserId))
                                 newRecipe.UserId = adminUserId;
 
                             foreach (var cb in r.Cookbooks ?? Enumerable.Empty<ExportRecipeCookbookDto>())
@@ -538,7 +719,41 @@ public class ExportService : BaseService, IExportService
                             await _db.SaveChangesAsync(ct).ConfigureAwait(false);
                         }
                     }
+
+                    var restoredRecipeIds = (await _db.Recipes
+                            .AsNoTracking()
+                            .Select(r => r.Id)
+                            .ToListAsync(ct)
+                            .ConfigureAwait(false))
+                        .ToHashSet(StringComparer.Ordinal);
+
+                    foreach (var r in exportRoot.Recipes)
+                    {
+                        foreach (var sd in r.SideDishes ?? Enumerable.Empty<ExportRecipeSideDishDto>())
+                        {
+                            ct.ThrowIfCancellationRequested();
+                            var recipeId = string.IsNullOrWhiteSpace(sd.RecipeId) ? r.Id : sd.RecipeId;
+                            if (!restoredRecipeIds.Contains(recipeId) || !restoredRecipeIds.Contains(sd.SideDishRecipeId))
+                                continue;
+
+                            var sideDishExists = await _db.RecipeSideDishes
+                                .AnyAsync(x => x.Id == sd.Id || (x.RecipeId == recipeId && x.SideDishRecipeId == sd.SideDishRecipeId), ct)
+                                .ConfigureAwait(false);
+                            if (sideDishExists) continue;
+
+                            _db.RecipeSideDishes.Add(new RecipeSideDish
+                            {
+                                Id = sd.Id,
+                                RecipeId = recipeId,
+                                SideDishRecipeId = sd.SideDishRecipeId,
+                                OrderIndex = sd.OrderIndex
+                            });
+                        }
+                    }
+                    await _db.SaveChangesAsync(ct).ConfigureAwait(false);
                 }
+
+                await RestoreSystemDataAsync(exportRoot.SystemData, adminUserId, ct).ConfigureAwait(false);
 
                 await tx.CommitAsync(ct).ConfigureAwait(false);
                 _logger.LogInformation("Restore finished successfully by {AdminUserId}", adminUserId);
@@ -569,14 +784,19 @@ public class ExportService : BaseService, IExportService
         long totalUncompressed = 0;
         foreach (var entry in archive.Entries)
         {
-            if (entry.FullName.Contains("..", StringComparison.Ordinal) ||
-                entry.FullName.StartsWith("/", StringComparison.Ordinal) ||
-                entry.FullName.StartsWith("\\", StringComparison.Ordinal))
-                throw new InvalidDataException($"Archive entry contains an invalid path: {entry.FullName}.");
+            if (string.IsNullOrWhiteSpace(entry.FullName) || entry.FullName.EndsWith("/", StringComparison.Ordinal))
+                continue;
+
+            var normalized = entry.FullName.Replace('\\', '/');
+            if (normalized.StartsWith("/", StringComparison.Ordinal) ||
+                normalized.Contains("../", StringComparison.Ordinal) ||
+                normalized.Contains("/..", StringComparison.Ordinal) ||
+                normalized == "..")
+                throw new InvalidDataException($"Archive entry {entry.FullName} uses an invalid path.");
 
             var uncompressed = entry.Length;
             var compressed = entry.CompressedLength;
-            if (compressed > 0)
+            if (uncompressed > 0 && compressed > 0)
             {
                 var ratio = (double)uncompressed / compressed;
                 if (ratio > options.MaxCompressionRatio)
@@ -596,7 +816,6 @@ public class ExportService : BaseService, IExportService
         var recipesJson = archive.Entries.FirstOrDefault(e => string.Equals(e.FullName, "recipes.json", StringComparison.OrdinalIgnoreCase));
         if (recipesJson == null)
             throw new InvalidDataException("Invalid export archive: recipes.json missing.");
-
         if (recipesJson.Length > options.MaxRecipesJsonUncompressedBytes)
             throw new InvalidDataException($"recipes.json size {recipesJson.Length} exceeds the limit {options.MaxRecipesJsonUncompressedBytes}.");
     }
@@ -608,16 +827,254 @@ public class ExportService : BaseService, IExportService
         var ms = new MemoryStream();
         long total = 0;
         int read;
+
         while ((read = await entryStream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct).ConfigureAwait(false)) > 0)
         {
             total += read;
             if (total > maxBytes)
-                throw new InvalidDataException($"Archive entry {entry.FullName} exceeds the maximum allowed size of {maxBytes} bytes.");
+                throw new InvalidDataException($"Archive entry {entry.FullName} exceeds the limit {maxBytes}.");
 
             await ms.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
         }
 
         return ms.ToArray();
+    }
+
+    private async Task RestoreSystemDataAsync(ExportSystemDataDto? systemData, string adminUserId, CancellationToken ct)
+    {
+        if (systemData is null)
+            return;
+
+        var userIds = (await _db.Users
+                .AsNoTracking()
+                .Select(u => u.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false))
+            .ToHashSet(StringComparer.Ordinal);
+        var recipeIds = (await _db.Recipes
+                .AsNoTracking()
+                .Select(r => r.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false))
+            .ToHashSet(StringComparer.Ordinal);
+
+        string ResolveRequiredUserId(string? userId) =>
+            !string.IsNullOrWhiteSpace(userId) && userIds.Contains(userId) ? userId : adminUserId;
+
+        string? ResolveRecipeId(string? recipeId) =>
+            !string.IsNullOrWhiteSpace(recipeId) && recipeIds.Contains(recipeId) ? recipeId : null;
+
+        foreach (var setting in systemData.UserSettings)
+        {
+            var userId = ResolveRequiredUserId(setting.UserId);
+            if (await _db.UserSettings.AnyAsync(s => s.UserId == userId, ct).ConfigureAwait(false))
+                continue;
+
+            _db.UserSettings.Add(new UserSetting
+            {
+                UserId = userId,
+                AiEnabled = setting.AiEnabled,
+                GoogleVisionEnabled = setting.GoogleVisionEnabled,
+                GeminiEnabled = setting.GeminiEnabled,
+                RequireAiConfirmation = setting.RequireAiConfirmation
+            });
+        }
+
+        foreach (var setting in systemData.AppSettings)
+        {
+            if (await _db.AppSettings.AnyAsync(s => s.Key == setting.Key, ct).ConfigureAwait(false))
+                continue;
+
+            _db.AppSettings.Add(new AppSetting
+            {
+                Key = setting.Key,
+                Value = setting.Value
+            });
+        }
+
+        foreach (var setting in systemData.PluginSettings)
+        {
+            if (await _db.PluginSettings.AnyAsync(p => p.PluginId == setting.PluginId, ct).ConfigureAwait(false))
+                continue;
+
+            _db.PluginSettings.Add(new PluginSetting
+            {
+                PluginId = setting.PluginId,
+                DisplayName = setting.DisplayName,
+                Description = setting.Description,
+                AssemblyName = setting.AssemblyName,
+                TypeName = setting.TypeName,
+                Enabled = setting.Enabled,
+                OrderIndex = setting.OrderIndex,
+                Status = setting.Status,
+                Error = setting.Error,
+                DiscoveredAt = setting.DiscoveredAt,
+                LastSeenAt = setting.LastSeenAt
+            });
+        }
+
+        foreach (var source in systemData.PluginSources)
+        {
+            if (await _db.PluginSources.AnyAsync(p => p.Id == source.Id, ct).ConfigureAwait(false))
+                continue;
+
+            _db.PluginSources.Add(new PluginSource
+            {
+                Id = source.Id,
+                RepositoryUrl = source.RepositoryUrl,
+                Owner = source.Owner,
+                Repository = source.Repository,
+                IsPrivate = source.IsPrivate,
+                Enabled = source.Enabled,
+                TrustConfirmed = source.TrustConfirmed,
+                SecretName = source.SecretName,
+                LastSuccessfulReleaseTag = source.LastSuccessfulReleaseTag,
+                LastError = source.LastError,
+                LastCheckedAt = source.LastCheckedAt,
+                LastErrorAt = source.LastErrorAt,
+                CreatedAt = source.CreatedAt,
+                UpdatedAt = source.UpdatedAt
+            });
+        }
+        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        var pluginSourceIds = (await _db.PluginSources
+                .AsNoTracking()
+                .Select(p => p.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false))
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var release in systemData.PluginSourceReleases)
+        {
+            if (!pluginSourceIds.Contains(release.PluginSourceId))
+                continue;
+            if (await _db.PluginSourceReleases.AnyAsync(r => r.Id == release.Id, ct).ConfigureAwait(false))
+                continue;
+
+            _db.PluginSourceReleases.Add(new PluginSourceRelease
+            {
+                Id = release.Id,
+                PluginSourceId = release.PluginSourceId,
+                ReleaseTag = release.ReleaseTag,
+                GitHubReleaseId = release.GitHubReleaseId,
+                AssetId = release.AssetId,
+                AssetName = release.AssetName,
+                Status = release.Status,
+                Error = release.Error,
+                CreatedAt = release.CreatedAt,
+                DownloadedAt = release.DownloadedAt,
+                ValidatedAt = release.ValidatedAt,
+                InstalledAt = release.InstalledAt,
+                ReloadStatus = release.ReloadStatus,
+                ReloadedAt = release.ReloadedAt,
+                ReloadError = release.ReloadError
+            });
+        }
+
+        foreach (var calendarEvent in systemData.CalendarEvents)
+        {
+            if (await _db.CalendarEvents.AnyAsync(e => e.Id == calendarEvent.Id, ct).ConfigureAwait(false))
+                continue;
+
+            _db.CalendarEvents.Add(new CalendarEvent
+            {
+                Id = calendarEvent.Id,
+                UserId = ResolveRequiredUserId(calendarEvent.UserId),
+                StartDate = calendarEvent.StartDate,
+                TimeOfDay = calendarEvent.TimeOfDay,
+                RecipeId = ResolveRecipeId(calendarEvent.RecipeId),
+                Portions = calendarEvent.Portions,
+                Recurrence = calendarEvent.Recurrence,
+                RecurrenceDays = calendarEvent.RecurrenceDays,
+                CreatedAt = calendarEvent.CreatedAt,
+                ModifiedAt = calendarEvent.ModifiedAt
+            });
+        }
+
+        foreach (var group in systemData.ShoppingListGroups)
+        {
+            if (await _db.ShoppingListGroups.AnyAsync(g => g.Id == group.Id, ct).ConfigureAwait(false))
+                continue;
+
+            _db.ShoppingListGroups.Add(new ShoppingListGroup
+            {
+                Id = group.Id,
+                UserId = ResolveRequiredUserId(group.UserId),
+                Name = group.Name,
+                RecipeId = ResolveRecipeId(group.RecipeId),
+                OrderIndex = group.OrderIndex,
+                CreatedAt = group.CreatedAt,
+                ModifiedAt = group.ModifiedAt
+            });
+        }
+        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        var shoppingListGroupIds = (await _db.ShoppingListGroups
+                .AsNoTracking()
+                .Select(g => g.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false))
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var item in systemData.ShoppingListItems)
+        {
+            if (!shoppingListGroupIds.Contains(item.GroupId))
+                continue;
+            if (await _db.ShoppingListItems.AnyAsync(i => i.Id == item.Id, ct).ConfigureAwait(false))
+                continue;
+
+            _db.ShoppingListItems.Add(new ShoppingListItem
+            {
+                Id = item.Id,
+                GroupId = item.GroupId,
+                Amount = item.Amount,
+                Unit = item.Unit,
+                Name = item.Name,
+                IsChecked = item.IsChecked,
+                OrderIndex = item.OrderIndex,
+                CreatedAt = item.CreatedAt,
+                ModifiedAt = item.ModifiedAt
+            });
+        }
+
+        foreach (var log in systemData.AiRequestLogs)
+        {
+            if (await _db.AiRequestLogs.AnyAsync(l => l.Id == log.Id, ct).ConfigureAwait(false))
+                continue;
+
+            _db.AiRequestLogs.Add(new AiRequestLog
+            {
+                Id = log.Id,
+                UserId = ResolveRequiredUserId(log.UserId),
+                Service = log.Service,
+                Timestamp = log.Timestamp,
+                Type = log.Type
+            });
+        }
+
+        foreach (var job in systemData.BackgroundJobs)
+        {
+            if (await _db.BackgroundJobs.AnyAsync(j => j.Id == job.Id, ct).ConfigureAwait(false))
+                continue;
+
+            _db.BackgroundJobs.Add(new BackgroundJobs.BackgroundJob
+            {
+                Id = job.Id,
+                JobType = job.JobType,
+                InitiatorUserId = string.IsNullOrWhiteSpace(job.InitiatorUserId)
+                    ? null
+                    : ResolveRequiredUserId(job.InitiatorUserId),
+                CreatedAt = job.CreatedAt,
+                StartedAt = job.StartedAt,
+                CompletedAt = job.CompletedAt,
+                Status = job.Status,
+                PayloadJson = job.PayloadJson,
+                Progress = job.Progress,
+                ResultMessage = job.ResultMessage,
+                Error = job.Error
+            });
+        }
+
+        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     private static string GetContentTypeFromExtension(string? ext)
@@ -655,6 +1112,7 @@ public record ExportRootDto
     public List<ExportCookbookDto>? Cookbooks { get; init; }
     public List<ExportRecipeDto>? Recipes { get; init; }
     public List<ExportUserDto>? Users { get; init; }
+    public ExportSystemDataDto? SystemData { get; init; }
 }
 
 public record ExportCookbookDto
@@ -676,12 +1134,21 @@ public record ExportRecipeDto
     public List<ExportStepDto>? Steps { get; init; }
     public List<string>? ImagePaths { get; init; }
     public List<ExportRecipeCookbookDto>? Cookbooks { get; init; }
+    public List<ExportRecipeSideDishDto>? SideDishes { get; init; }
 }
 
 public record ExportRecipeCookbookDto
 {
     public string RecipeId { get; init; } = default!;
     public string CookbookId { get; init; } = default!;
+}
+
+public record ExportRecipeSideDishDto
+{
+    public string Id { get; init; } = default!;
+    public string RecipeId { get; init; } = default!;
+    public string SideDishRecipeId { get; init; } = default!;
+    public int OrderIndex { get; init; }
 }
 
 public record ExportStepDto
@@ -709,5 +1176,148 @@ public record ExportUserDto
     public string UserName { get; init; } = default!;
     public string? Email { get; init; }
     public bool IsAdmin { get; init; }
+}
+
+public record ExportSystemDataDto
+{
+    public List<ExportCalendarEventDto> CalendarEvents { get; init; } = [];
+    public List<ExportShoppingListGroupDto> ShoppingListGroups { get; init; } = [];
+    public List<ExportShoppingListItemDto> ShoppingListItems { get; init; } = [];
+    public List<ExportUserSettingDto> UserSettings { get; init; } = [];
+    public List<ExportAppSettingDto> AppSettings { get; init; } = [];
+    public List<ExportPluginSettingDto> PluginSettings { get; init; } = [];
+    public List<ExportPluginSourceDto> PluginSources { get; init; } = [];
+    public List<ExportPluginSourceReleaseDto> PluginSourceReleases { get; init; } = [];
+    public List<ExportAiRequestLogDto> AiRequestLogs { get; init; } = [];
+    public List<ExportBackgroundJobDto> BackgroundJobs { get; init; } = [];
+}
+
+public record ExportCalendarEventDto
+{
+    public string Id { get; init; } = default!;
+    public string UserId { get; init; } = default!;
+    public DateTime StartDate { get; init; }
+    public TimeSpan TimeOfDay { get; init; }
+    public string? RecipeId { get; init; }
+    public int Portions { get; init; }
+    public RecurrenceType Recurrence { get; init; }
+    public WeekDays RecurrenceDays { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? ModifiedAt { get; init; }
+}
+
+public record ExportShoppingListGroupDto
+{
+    public string Id { get; init; } = default!;
+    public string UserId { get; init; } = default!;
+    public string Name { get; init; } = default!;
+    public string? RecipeId { get; init; }
+    public int OrderIndex { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? ModifiedAt { get; init; }
+}
+
+public record ExportShoppingListItemDto
+{
+    public string Id { get; init; } = default!;
+    public string GroupId { get; init; } = default!;
+    public decimal Amount { get; init; }
+    public string? Unit { get; init; }
+    public string Name { get; init; } = default!;
+    public bool IsChecked { get; init; }
+    public int OrderIndex { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? ModifiedAt { get; init; }
+}
+
+public record ExportUserSettingDto
+{
+    public string UserId { get; init; } = default!;
+    public bool AiEnabled { get; init; }
+    public bool GoogleVisionEnabled { get; init; }
+    public bool GeminiEnabled { get; init; }
+    public bool RequireAiConfirmation { get; init; }
+}
+
+public record ExportAppSettingDto
+{
+    public string Key { get; init; } = default!;
+    public string Value { get; init; } = default!;
+}
+
+public record ExportPluginSettingDto
+{
+    public string PluginId { get; init; } = default!;
+    public string DisplayName { get; init; } = default!;
+    public string? Description { get; init; }
+    public string AssemblyName { get; init; } = default!;
+    public string TypeName { get; init; } = default!;
+    public bool Enabled { get; init; }
+    public int OrderIndex { get; init; }
+    public string Status { get; init; } = default!;
+    public string? Error { get; init; }
+    public DateTime DiscoveredAt { get; init; }
+    public DateTime LastSeenAt { get; init; }
+}
+
+public record ExportPluginSourceDto
+{
+    public string Id { get; init; } = default!;
+    public string RepositoryUrl { get; init; } = default!;
+    public string Owner { get; init; } = default!;
+    public string Repository { get; init; } = default!;
+    public bool IsPrivate { get; init; }
+    public bool Enabled { get; init; }
+    public bool TrustConfirmed { get; init; }
+    public string? SecretName { get; init; }
+    public string? LastSuccessfulReleaseTag { get; init; }
+    public string? LastError { get; init; }
+    public DateTime? LastCheckedAt { get; init; }
+    public DateTime? LastErrorAt { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
+}
+
+public record ExportPluginSourceReleaseDto
+{
+    public string Id { get; init; } = default!;
+    public string PluginSourceId { get; init; } = default!;
+    public string ReleaseTag { get; init; } = default!;
+    public long GitHubReleaseId { get; init; }
+    public long AssetId { get; init; }
+    public string AssetName { get; init; } = default!;
+    public string Status { get; init; } = default!;
+    public string? Error { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? DownloadedAt { get; init; }
+    public DateTime? ValidatedAt { get; init; }
+    public DateTime? InstalledAt { get; init; }
+    public string? ReloadStatus { get; init; }
+    public DateTime? ReloadedAt { get; init; }
+    public string? ReloadError { get; init; }
+}
+
+public record ExportAiRequestLogDto
+{
+    public string Id { get; init; } = default!;
+    public string UserId { get; init; } = default!;
+    public string Service { get; init; } = default!;
+    public DateTime Timestamp { get; init; }
+    public AiRequestLogType Type { get; init; }
+}
+
+public record ExportBackgroundJobDto
+{
+    public Guid Id { get; init; }
+    public string JobType { get; init; } = default!;
+    public string? InitiatorUserId { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? StartedAt { get; init; }
+    public DateTime? CompletedAt { get; init; }
+    public BackgroundJobs.BackgroundJobStatus Status { get; init; }
+    public string? PayloadJson { get; init; }
+    public int Progress { get; init; }
+    public string? ResultMessage { get; init; }
+    public string? Error { get; init; }
 }
 #endregion

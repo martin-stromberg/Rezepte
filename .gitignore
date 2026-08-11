@@ -406,3 +406,5 @@ FodyWeavers.xsd
 issue.md
 Rezepte.Web/google.application-credentials.json
 Rezepte.Web/google.gemini.api-key.json
+/Rezepte.Web/updates/
+/.external/
