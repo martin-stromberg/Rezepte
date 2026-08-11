@@ -205,6 +205,9 @@ jobs:
       - name: Build browser tests
         run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
 
+      - name: Restore publish runtime
+        run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime linux-x64
+
       - name: Publish application
         run: >
           dotnet publish Rezepte.Web/Rezepte.Web.csproj
