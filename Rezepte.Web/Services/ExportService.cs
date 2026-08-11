@@ -219,14 +219,22 @@ public class ExportService : BaseService, IExportService
         // Serialize recipes.json
         var recipesJson = JsonSerializer.Serialize(exportRoot, _jsonOptions);
 
-        // Create ZIP in memory (caller should dispose)
-        var ms = new MemoryStream();
-        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+        // Create ZIP on disk (caller should dispose, temp file is deleted on close)
+        var tempPath = Path.Combine(Path.GetTempPath(), $"rezepte-export-{Guid.NewGuid()}.zip");
+        var zipFs = new FileStream(
+            tempPath,
+            FileMode.Create,
+            FileAccess.ReadWrite,
+            FileShare.None,
+            81920,
+            FileOptions.Asynchronous | FileOptions.DeleteOnClose);
+
+        using (var archive = new ZipArchive(zipFs, ZipArchiveMode.Create, leaveOpen: true))
         {
             // recipes.json
             var jsonEntry = archive.CreateEntry("recipes.json", CompressionLevel.Optimal);
             await using (var entryStream = jsonEntry.Open())
-            using (var sw = new StreamWriter(entryStream, Encoding.UTF8))
+            using (var sw = new StreamWriter(entryStream, Encoding.UTF8, -1, true))
             {
                 await sw.WriteAsync(recipesJson).ConfigureAwait(false);
             }
@@ -245,7 +253,8 @@ public class ExportService : BaseService, IExportService
                         var imageFileName = $"image{(i + 1):D2}{ext}";
                         var entryPath = $"images/{r.Id}/{imageFileName}";
 
-                        var imageEntry = archive.CreateEntry(entryPath, CompressionLevel.Optimal);
+                        // Images are already compressed; store them uncompressed for speed and compatibility.
+                        var imageEntry = archive.CreateEntry(entryPath, CompressionLevel.NoCompression);
                         await using (var entryStream = imageEntry.Open())
                         {
                             // img.Data may be large; stream it
@@ -270,7 +279,7 @@ public class ExportService : BaseService, IExportService
                                 var safeAuthor = SanitizeFileName(r.UserId ?? "Unknown");
                                 var safeTitle = SanitizeFileName(r.Title ?? "Recipe");
                                 var pdfName = $"{safeAuthor} - {safeTitle}.pdf";
-                                var pdfEntry = archive.CreateEntry($"pdf/{pdfName}", CompressionLevel.Optimal);
+                                var pdfEntry = archive.CreateEntry($"pdf/{pdfName}", CompressionLevel.NoCompression);
                                 await using (var entryStream = pdfEntry.Open())
                                 {
                                     await entryStream.WriteAsync(pdfBytes, 0, pdfBytes.Length, ct).ConfigureAwait(false);
@@ -298,7 +307,7 @@ public class ExportService : BaseService, IExportService
                 };
                 var metaEntry = archive.CreateEntry("metadata.json", CompressionLevel.Optimal);
                 await using (var entryStream = metaEntry.Open())
-                using (var sw = new StreamWriter(entryStream, Encoding.UTF8))
+                using (var sw = new StreamWriter(entryStream, Encoding.UTF8, -1, true))
                 {
                     await sw.WriteAsync(JsonSerializer.Serialize(meta, _jsonOptions)).ConfigureAwait(false);
                 }
@@ -307,9 +316,8 @@ public class ExportService : BaseService, IExportService
 
         await zipFs.FlushAsync(ct).ConfigureAwait(false);
 
-        ms.Seek(0, SeekOrigin.Begin);
         _logger.LogInformation("Export ZIP prepared (initiator={Initiator})", initiatorUserId);
-        return ms;
+        return zipFs;
     }
 
     private async Task<ExportSystemDataDto> CreateSystemBackupDataAsync(CancellationToken ct)
