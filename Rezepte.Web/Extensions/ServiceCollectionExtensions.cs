@@ -142,6 +142,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRecipeService, RecipeService>();
         services.AddScoped<IExportService, ExportService>();
         services.AddScoped<IUpdateBackupService, UpdateBackupService>();
+        services.AddScoped<IApplicationUpdateSettingsService, ApplicationUpdateSettingsService>();
         services.AddScoped<ExportJobFileStore>();
         services.AddScoped<IBackgroundJobHandler, ExportUserJobHandler>();
         services.AddScoped<IBackgroundJobHandler, ExportAllJobHandler>();

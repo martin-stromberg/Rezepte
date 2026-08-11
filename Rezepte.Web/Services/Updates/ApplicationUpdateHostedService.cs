@@ -32,6 +32,7 @@ public sealed class ApplicationUpdateHostedService : IHostedService
             return;
         }
 
+        _events.BeforeCheckSource += OnBeforeCheckSource;
         _events.BeforeInstall += OnBeforeInstall;
         _events.ErrorOccurred += OnErrorOccurred;
 
@@ -40,9 +41,15 @@ public sealed class ApplicationUpdateHostedService : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
+        _events.BeforeCheckSource -= OnBeforeCheckSource;
         _events.BeforeInstall -= OnBeforeInstall;
         _events.ErrorOccurred -= OnErrorOccurred;
         return Task.CompletedTask;
+    }
+
+    private void OnBeforeCheckSource(object? sender, AutoUpdateCancelEventArgs e)
+    {
+        _logger.LogDebug("Checking for application updates.");
     }
 
     private void OnBeforeInstall(object? sender, BeforeInstallEventArgs args)

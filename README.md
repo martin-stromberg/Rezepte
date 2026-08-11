@@ -147,7 +147,7 @@ Das Feature ist standardmaessig aktiviert (`LoadingBar:Enabled: true`), kann abe
 
 ### Programmupdates und Update-Backups
 
-Die Anwendung bindet `msTools.Updater` als externe Update-Komponente ein. Vor einer Installation erstellt das `BeforeInstall`-Event ein Update-Backup im konfigurierten Zielverzeichnis und wendet die konfigurierte Aufbewahrungsanzahl an. Schlaegt das Backup fehl, wird die Installation abgebrochen. Details stehen in `Docs/help/application-updates.md`.
+Die Anwendung bindet `msTools.Updater` als externe Update-Komponente ein. Administratoren sehen den Update-Status in den Einstellungen und koennen dort Pruefung, Download und Installation ausloesen. Vor einer Installation erstellt das `BeforeInstall`-Event ein Update-Backup im konfigurierten Zielverzeichnis und wendet die konfigurierte Aufbewahrungsanzahl an. Schlaegt das Backup fehl, wird die Installation abgebrochen. Details stehen in `Docs/help/application-updates.md`.
 
 ## Daten und Sicherheit
 

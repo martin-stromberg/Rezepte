@@ -70,3 +70,14 @@ Das Backup-Verhalten:
 Nach einem erfolgreichen Backup wird die Aufbewahrung angewendet. Beruecksichtigt werden nur Dateien im konfigurierten Backup-Verzeichnis, deren Namen dem Muster `update-backup-*.zip` entsprechen.
 
 Die neuesten `UpdateBackups:RetentionCount` Backups bleiben erhalten. Aeltere passende Dateien werden geloescht und die Loeschungen werden protokolliert. Dateien mit anderen Namen im selben Verzeichnis bleiben unberuehrt. Wenn die Retention nicht verlaesslich angewendet werden kann, gilt das Pre-Install-Backup als fehlgeschlagen und die Installation darf nicht weiterlaufen.
+
+## Bedienung in den Einstellungen
+
+Administratoren sehen unter "Einstellungen" den Bereich "Updates". Dort werden der aktuelle Updater-Zustand, die installierte Version, eine gefundene verfuegbare Version, die letzte Pruefung, der Lock-Status sowie die letzten Ergebnisse fuer Pruefung, Download und Installation angezeigt.
+
+Die Aktionen im Bereich:
+
+- "Jetzt pruefen": fragt die konfigurierte Update-Quelle nach einer neuen Version ab.
+- "Herunterladen": laedt ein gefundenes Updatepaket herunter.
+- "Installieren": startet die Installation mit Downtime-Bestaetigung. Vor der Installation wird automatisch das Pre-Install-Backup erstellt; bei Backupfehlern bricht die Installation ab.
+- "Aktualisieren": liest den aktuellen Updater-Status neu ein.
