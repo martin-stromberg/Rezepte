@@ -23,6 +23,11 @@ builder.UseAutoUpdate(autoUpdate =>
         .GetSection("ApplicationUpdates")
         .Get<ApplicationUpdateOptions>() ?? new ApplicationUpdateOptions();
 
+    if (updateOptions.AllowPrereleaseUpdates)
+    {
+        autoUpdate.EnablePrereleaseUpdates();
+    }
+
     if (!string.IsNullOrWhiteSpace(updateOptions.RepositoryOwner) &&
         !string.IsNullOrWhiteSpace(updateOptions.RepositoryName))
     {

@@ -5,6 +5,7 @@ public sealed class ApplicationUpdateOptions
     public bool Enabled { get; set; }
     public bool EnableAutomaticDownload { get; set; } = true;
     public bool EnableAutomaticInstallation { get; set; }
+    public bool AllowPrereleaseUpdates { get; set; }
     public string DownloadPath { get; set; } = "updates";
     public bool HostedServicesEnabled { get; set; } = true;
     public bool StopHostAfterScriptStart { get; set; }
