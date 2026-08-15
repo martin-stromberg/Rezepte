@@ -20,9 +20,9 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     private const string SearchInputSelector = "#nav-search";
     private const string SearchSubmitSelector = "button[aria-label='Suche starten']";
     private const string ShoppingListEditSelector = "button[aria-label='Bearbeiten']";
-    private const string ShoppingListAddGroupSelector = "button[title='Gruppe hinzufügen']";
+    private const string ShoppingListAddGroupSelector = "button[title='Gruppe hinzufuegen'], button[title='Gruppe hinzufügen']";
     private const string ShoppingListAddRowSelector = "form.shopping-add-row";
-    private const string ShoppingListAddRowInputSelector = "form.shopping-add-row input[aria-label='Zutat hinzufügen']";
+    private const string ShoppingListAddRowInputSelector = "form.shopping-add-row input[aria-label='Zutat hinzufuegen'], form.shopping-add-row input[aria-label='Zutat hinzufügen']";
     private const string ShoppingListAddRowSubmitSelector = "form.shopping-add-row button[type='submit']";
 
     private readonly IBrowserContext _context;
@@ -88,8 +88,32 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     public async Task SubmitInteractiveShoppingListItemAsync(string itemName)
     {
         await GotoAsync(ShoppingListHref);
-        await Page.ClickAsync(ShoppingListEditSelector);
-        await Page.ClickAsync(ShoppingListAddGroupSelector);
+        var editButton = Page.Locator(ShoppingListEditSelector);
+        var addGroupButton = Page.Locator(ShoppingListAddGroupSelector).First;
+
+        await editButton.WaitForAsync(new LocatorWaitForOptions
+        {
+            State = WaitForSelectorState.Visible,
+            Timeout = 10000,
+        });
+
+        for (var attempt = 0; attempt < 5 && !await addGroupButton.IsVisibleAsync(); attempt++)
+        {
+            await editButton.ClickAsync();
+            try
+            {
+                await addGroupButton.WaitForAsync(new LocatorWaitForOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 2000,
+                });
+            }
+            catch (TimeoutException) when (attempt < 4)
+            {
+            }
+        }
+
+        await addGroupButton.ClickAsync();
         await Page.WaitForSelectorAsync(ShoppingListAddRowSelector);
 
         await Page.FillAsync(ShoppingListAddRowInputSelector, itemName);
