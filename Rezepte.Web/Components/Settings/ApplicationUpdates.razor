@@ -1,0 +1,165 @@
+@using Rezepte.Web.Services.Updates
+@inject IApplicationUpdateSettingsService UpdateSettings
+
+@if (isLoading)
+{
+    <div>Lade...</div>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="@messageClass">@message</div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-5">
+            <section>
+                <h3 class="h6">Status</h3>
+                <dl class="row mb-0 small">
+                    <dt class="col-5">Zustand</dt>
+                    <dd class="col-7"><span class="@StateBadgeClass(status?.State)">@Display(status?.State)</span></dd>
+
+                    <dt class="col-5">Installiert</dt>
+                    <dd class="col-7">@Display(status?.InstalledVersion)</dd>
+
+                    <dt class="col-5">Verfügbar</dt>
+                    <dd class="col-7">@Display(status?.AvailableVersion)</dd>
+
+                    <dt class="col-5">Zuletzt geprüft</dt>
+                    <dd class="col-7">@FormatDate(status?.LastCheckedAt)</dd>
+
+                    <dt class="col-5">Gesperrt</dt>
+                    <dd class="col-7">@(status?.IsLocked == true ? $"Ja, seit {FormatDate(status.LockCreatedAt)}" : "Nein")</dd>
+                </dl>
+            </section>
+        </div>
+
+        <div class="col-12 col-xl-7">
+            <section>
+                <h3 class="h6">Aktionen</h3>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-primary btn-sm" disabled="@isBusy" @onclick="CheckAsync">Jetzt prüfen</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" disabled="@(isBusy || status?.HasAvailablePackage != true)" @onclick="DownloadAsync">Herunterladen</button>
+                    <button type="button" class="btn btn-danger btn-sm" disabled="@isBusy" @onclick="InstallAsync">Installieren</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@isBusy" @onclick="LoadAsync">Aktualisieren</button>
+                </div>
+            </section>
+
+            <section class="mt-3">
+                <h3 class="h6">Einstellungen</h3>
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           id="allowPrereleaseUpdates"
+                           checked="@(settings?.AllowPrereleaseUpdates == true)"
+                           disabled="@isBusy"
+                           @onchange="SetAllowPrereleaseUpdatesAsync" />
+                    <label class="form-check-label" for="allowPrereleaseUpdates">RC-Versionen akzeptieren</label>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <section class="mt-4">
+        <h3 class="h6">Letzte Ergebnisse</h3>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <tbody>
+                    <tr>
+                        <th style="width: 180px;">Prüfung</th>
+                        <td>@Display(status?.LastCheckSummary)</td>
+                    </tr>
+                    <tr>
+                        <th>Download</th>
+                        <td>@Display(status?.LastDownloadSummary)</td>
+                    </tr>
+                    <tr>
+                        <th>Installation</th>
+                        <td>@Display(status?.LastInstallSummary)</td>
+                    </tr>
+                    <tr>
+                        <th>Fehler</th>
+                        <td class="@(string.IsNullOrWhiteSpace(status?.LastError) ? null : "text-danger")">@Display(status?.LastError)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@code {
+    private ApplicationUpdateStatusItem? status;
+    private ApplicationUpdateSettingsItem? settings;
+    private bool isLoading = true;
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert alert-info py-2";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        status = UpdateSettings.GetStatus();
+        settings = await UpdateSettings.GetSettingsAsync();
+        isLoading = false;
+    }
+
+    private async Task CheckAsync() => await RunCommandAsync("Prüfung", UpdateSettings.CheckAsync);
+
+    private async Task DownloadAsync() => await RunCommandAsync("Download", UpdateSettings.DownloadAsync);
+
+    private async Task InstallAsync() => await RunCommandAsync("Installation", UpdateSettings.InstallAsync);
+
+    private async Task SetAllowPrereleaseUpdatesAsync(ChangeEventArgs args)
+    {
+        var allowPrereleaseUpdates = args.Value is bool value && value;
+        settings = await UpdateSettings.SetAllowPrereleaseUpdatesAsync(allowPrereleaseUpdates);
+        messageClass = "alert alert-success py-2";
+        message = "Einstellung gespeichert.";
+    }
+
+    private async Task RunCommandAsync(string label, Func<CancellationToken, Task<ApplicationUpdateCommandResult>> action)
+    {
+        isBusy = true;
+        message = null;
+        try
+        {
+            var result = await action(CancellationToken.None);
+            messageClass = result.IsSuccess ? "alert alert-success py-2" : "alert alert-warning py-2";
+            message = $"{label}: {Display(result.Message ?? result.Outcome)}";
+            if (!string.IsNullOrWhiteSpace(result.Error))
+            {
+                message = $"{message} ({result.Error})";
+            }
+        }
+        catch (Exception ex)
+        {
+            messageClass = "alert alert-danger py-2";
+            message = $"{label} fehlgeschlagen: {ex.Message}";
+        }
+        finally
+        {
+            status = UpdateSettings.GetStatus();
+            isBusy = false;
+        }
+    }
+
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static string FormatDate(DateTimeOffset? value) => value?.LocalDateTime.ToString("g") ?? "-";
+
+    private static string StateBadgeClass(string? state) => state switch
+    {
+        "Bereit" => "badge text-bg-secondary",
+        "Update verfügbar" => "badge text-bg-info",
+        "Installationsbereit" => "badge text-bg-primary",
+        "Erfolgreich" => "badge text-bg-success",
+        "Fehlgeschlagen" => "badge text-bg-danger",
+        "Deaktiviert" => "badge text-bg-secondary",
+        _ => "badge text-bg-warning"
+    };
+}

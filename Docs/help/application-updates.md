@@ -1,0 +1,83 @@
+# Automatische Programmupdates
+
+Die Anwendung bindet `msTools.Updater` als externe Projektkomponente ein. Der Updater prüft konfigurierte Quellen auf neue Versionen, kann Updates herunterladen und installiert sie nach den Einstellungen unter `ApplicationUpdates`.
+
+Vor jeder Installation abonniert die Anwendung das `BeforeInstall`-Event von `msTools.Updater`. In diesem Schritt wird ein Update-Backup erstellt. Schlägt das Backup fehl, setzt der Event-Handler die Installation auf abgebrochen.
+
+## Konfiguration
+
+Die Update-Sicherung wird über `UpdateBackups` konfiguriert:
+
+```json
+"UpdateBackups": {
+  "Directory": "update-backups",
+  "RetentionCount": 5,
+  "IncludeImages": true,
+  "IncludePdf": false,
+  "SystemInitiatorUserId": "system-update-backup"
+}
+```
+
+- `Directory`: Zielverzeichnis für automatische Update-Backups. Relative Pfade werden gegen das Content-Root der Anwendung aufgelöst; absolute Pfade sind erlaubt.
+- `RetentionCount`: Anzahl der aufzubewahrenden Update-Backups. Der Wert muss mindestens `1` sein.
+- `IncludeImages`: legt fest, ob Bilder in das Update-Backup aufgenommen werden.
+- `IncludePdf`: legt fest, ob Rezept-PDFs in das Update-Backup aufgenommen werden.
+- `SystemInitiatorUserId`: technischer Initiator für Protokollierung und Export-Metadaten.
+
+Die Programmupdate-Funktion selbst wird über `ApplicationUpdates` gesteuert:
+
+```json
+"ApplicationUpdates": {
+  "Enabled": false,
+  "EnableAutomaticDownload": true,
+  "EnableAutomaticInstallation": false,
+  "DownloadPath": "updates",
+  "HostedServicesEnabled": true,
+  "StopHostAfterScriptStart": false,
+  "HealthTimeoutSeconds": 120,
+  "UpdateUnitName": "RezepteWebAutoUpdate",
+  "RepositoryOwner": "martin-stromberg",
+  "RepositoryName": "Rezepte",
+  "ManifestAssetName": "update.json"
+}
+```
+
+- `Enabled`: aktiviert automatische Update-Läufe in `msTools.Updater`. Eine manuell gestartete Prüfung über "Jetzt prüfen" bleibt auch bei `false` möglich.
+- `EnableAutomaticDownload`: lädt gefundene neue Versionen automatisch herunter.
+- `EnableAutomaticInstallation`: installiert heruntergeladene Updates automatisch. Bei `false` kann die Installation über die `msTools.Updater`-Kommandos manuell ausgelöst werden.
+- `DownloadPath`: lokaler Arbeitsordner für Updatepakete, Statusdateien und Locks.
+- `HostedServicesEnabled`: aktiviert die Hintergrunddienste von `msTools.Updater`.
+- `StopHostAfterScriptStart`: beendet den Host, nachdem das Installationsskript gestartet wurde.
+- `HealthTimeoutSeconds`: Timeout für Health-/Lock-Bewertungen des Updaters.
+- `UpdateUnitName`: eindeutiger Name für die systemd-Update-Unit auf Linux.
+- `RepositoryOwner`, `RepositoryName`, `ManifestAssetName`: GitHub-Release-Quelle für `update.json` und Updatepakete. Sind keine GitHub-Werte gesetzt, kann `LocalSourceDirectory` für eine lokale Quelle verwendet werden.
+
+## Pre-Install-Backup
+
+Vor der Installation einer neuen Version löst `msTools.Updater` das `BeforeInstall`-Event aus. Der Event-Handler erstellt über `IUpdateBackupService` einen vollständigen Systemexport und wartet synchron auf dessen Abschluss, weil das Updater-Event cancellable ist.
+
+Das Backup-Verhalten:
+
+- Die Konfiguration wird vor dem Backup validiert.
+- Das Zielverzeichnis wird bei Bedarf erstellt.
+- Der Export wird zunächst in eine temporäre Datei im Backup-Verzeichnis geschrieben.
+- Erst nach erfolgreichem Schreiben wird die Datei unter einem finalen Namen wie `update-backup-20260730-1530000000000Z.zip` veröffentlicht.
+- Erfolg und Fehler werden protokolliert, inklusive Zielpfad und Dateigröße bei erfolgreichen Backups.
+- Schlägt Export, Schreiben, Konfiguration oder Retention fehl, wird `BeforeInstall` abgebrochen und die Installation wird nicht fortgesetzt.
+
+## Retention
+
+Nach einem erfolgreichen Backup wird die Aufbewahrung angewendet. Berücksichtigt werden nur Dateien im konfigurierten Backup-Verzeichnis, deren Namen dem Muster `update-backup-*.zip` entsprechen.
+
+Die neuesten `UpdateBackups:RetentionCount` Backups bleiben erhalten. Ältere passende Dateien werden gelöscht und die Löschungen werden protokolliert. Dateien mit anderen Namen im selben Verzeichnis bleiben unberührt. Wenn die Retention nicht verlässlich angewendet werden kann, gilt das Pre-Install-Backup als fehlgeschlagen und die Installation darf nicht weiterlaufen.
+
+## Bedienung in den Einstellungen
+
+Administratoren sehen unter "Einstellungen" den Bereich "Updates". Dort werden der aktuelle Updater-Zustand, die installierte Version, eine gefundene verfügbare Version, die letzte Prüfung, der Lock-Status sowie die letzten Ergebnisse für Prüfung, Download und Installation angezeigt.
+
+Die Aktionen im Bereich:
+
+- "Jetzt prüfen": fragt die konfigurierte Update-Quelle nach einer neuen Version ab.
+- "Herunterladen": lädt ein gefundenes Updatepaket herunter.
+- "Installieren": startet die Installation mit Downtime-Bestätigung. Vor der Installation wird automatisch das Pre-Install-Backup erstellt; bei Backupfehlern bricht die Installation ab.
+- "Aktualisieren": liest den aktuellen Updater-Status neu ein.
