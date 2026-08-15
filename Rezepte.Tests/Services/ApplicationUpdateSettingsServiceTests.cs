@@ -113,6 +113,29 @@ public sealed class ApplicationUpdateSettingsServiceTests
         result.State.Should().Be("Deaktiviert");
     }
 
+    [Fact]
+    public async Task CheckAsync_ShouldTranslateNoNewerUpdateMessage()
+    {
+        var commandHandler = new RecordingCommandHandler
+        {
+            CheckResult = new AutoUpdateResult(
+                AutoUpdateOutcome.NoUpdate,
+                AutoUpdateState.Idle,
+                "No newer update is available.",
+                null)
+        };
+        var sut = new ApplicationUpdateSettingsService(
+            new StubStatusProvider(AutoUpdateStatusSnapshot.Idle("1.0.0")),
+            commandHandler,
+            new AutoUpdateOptions());
+
+        var result = await sut.CheckAsync();
+
+        result.Message.Should().Be("Keine neuere Version verfügbar.");
+        result.Outcome.Should().Be("Keine neue Version");
+        result.State.Should().Be("Bereit");
+    }
+
     private sealed class StubStatusProvider : IAutoUpdateStatusProvider
     {
         private readonly AutoUpdateStatusSnapshot _snapshot;

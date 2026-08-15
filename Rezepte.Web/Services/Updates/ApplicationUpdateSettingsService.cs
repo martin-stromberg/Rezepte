@@ -154,17 +154,19 @@ internal static class ApplicationUpdateText
             return value;
         }
 
-        return value.Trim() switch
+        var trimmed = value.Trim();
+        return Normalize(trimmed) switch
         {
-            "Auto-update is disabled." => "Automatische Updates sind deaktiviert.",
-            "Auto-update is disabled" => "Automatische Updates sind deaktiviert.",
-            "No update available." => "Keine neue Version verfügbar.",
-            "No update available" => "Keine neue Version verfügbar.",
-            "No update." => "Keine neue Version verfügbar.",
-            "No update" => "Keine neue Version verfügbar.",
-            _ => value
+            "auto-update is disabled" => "Automatische Updates sind deaktiviert.",
+            "no update available" => "Keine neue Version verfügbar.",
+            "no update" => "Keine neue Version verfügbar.",
+            "no newer update is available" => "Keine neuere Version verfügbar.",
+            _ => trimmed
         };
     }
+
+    private static string Normalize(string value)
+        => value.Trim().TrimEnd('.').ToLowerInvariant();
 
     public static string LocalizeOutcome(string outcome) => outcome switch
     {
