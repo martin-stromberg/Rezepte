@@ -26,8 +26,21 @@ jobs:
       - name: Check whether push is a pure back-merge from main
         id: check
         run: |
-          git fetch origin main --no-tags
-          if git diff --quiet origin/main HEAD; then
+          git fetch origin main:refs/remotes/origin/main --no-tags
+
+          main_sha="$(git rev-parse origin/main)"
+          is_main_merge_parent=false
+          for parent in $(git show -s --format=%P HEAD); do
+            if [[ "$parent" == "$main_sha" ]]; then
+              is_main_merge_parent=true
+              break
+            fi
+          done
+
+          if [[ "$is_main_merge_parent" == "true" ]]; then
+            echo "is_backmerge=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Back-merge from main detected - CI checks will be skipped."
+          elif git diff --quiet origin/main HEAD; then
             echo "is_backmerge=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Pure back-merge from main detected (tree identical) - CI checks will be skipped."
           else
@@ -54,12 +67,23 @@ jobs:
         run: |
           set -euo pipefail
 
+          git fetch origin main:refs/remotes/origin/main --tags --force
+
           last_tag="$(
-            git tag --list 'v*' |
+            git tag --merged origin/main --list 'v*' |
               grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
               sort -V |
               tail -n 1 || true
           )"
+
+          if [[ -z "$last_tag" ]]; then
+            last_tag="$(
+              git tag --list 'v*' |
+                grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
+                sort -V |
+                tail -n 1 || true
+            )"
+          fi
 
           if [[ -z "$last_tag" ]]; then
             base_version="0.0.0"
@@ -67,7 +91,25 @@ jobs:
             next_version="1.0.0"
           else
             base_version="${last_tag#v}"
-            range="${last_tag}..HEAD"
+            comparison_base="origin/main"
+            range="origin/main..HEAD"
+            if ! git merge-base --is-ancestor origin/main HEAD; then
+              comparison_base="$(git merge-base origin/main HEAD)"
+            fi
+
+            change_base="$comparison_base"
+            latest_rc_tag="$(
+              git tag --merged HEAD --list 'v*-rc.*' |
+                grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$' |
+                sort -V |
+                tail -n 1 || true
+            )"
+
+            if [[ -n "$latest_rc_tag" ]] && git merge-base --is-ancestor "$comparison_base" "$latest_rc_tag"; then
+              change_base="$latest_rc_tag"
+            fi
+
+            range="${change_base}..HEAD"
             messages="$(git log --format=%B "$range")"
 
             if [[ -z "$(git rev-list --max-count=1 "$range")" ]]; then
@@ -77,6 +119,8 @@ jobs:
             elif printf '%s\n' "$messages" | grep -Eq '^feat(\([^)]+\))?:'; then
               bump="minor"
             elif printf '%s\n' "$messages" | grep -Eq '^fix(\([^)]+\))?:'; then
+              bump="patch"
+            elif ! git diff --quiet "$change_base" HEAD -- . ':!*.md' ':!docs/**' ':!.github/**'; then
               bump="patch"
             else
               bump="none"
@@ -100,7 +144,23 @@ jobs:
             esac
           fi
 
-          rc_version="${next_version}-rc.${GITHUB_RUN_NUMBER}"
+          escaped_next_version="${next_version//./\\.}"
+          last_rc="$(
+            git tag --list "v${next_version}-rc.*" |
+              grep -E "^v${escaped_next_version}-rc\.[0-9]+$" |
+              sed -E "s/^v${escaped_next_version}-rc\.([0-9]+)$/\1/" |
+              grep -E '^[0-9]+$' |
+              sort -n |
+              tail -n 1 || true
+          )"
+
+          if [[ -z "$last_rc" ]]; then
+            rc_number=1
+          else
+            rc_number=$((last_rc + 1))
+          fi
+
+          rc_version="${next_version}-rc.${rc_number}"
 
           echo "next_version=$next_version" >> "$GITHUB_OUTPUT"
           echo "rc_version=$rc_version" >> "$GITHUB_OUTPUT"
