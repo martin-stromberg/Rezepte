@@ -1,4 +1,6 @@
 using msTools.Updater;
+using Microsoft.Extensions.Options;
+using Rezepte.Web.Configuration;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
 
@@ -21,6 +23,7 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
     private readonly IAutoUpdateStatusProvider _statusProvider;
     private readonly IAutoUpdateCommandHandler _commandHandler;
     private readonly AutoUpdateOptions _options;
+    private readonly ApplicationUpdateOptions? _applicationOptions;
     private readonly RezepteDbContext? _db;
     private readonly SemaphoreSlim _manualCheckGate = new(1, 1);
 
@@ -28,11 +31,13 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
         IAutoUpdateStatusProvider statusProvider,
         IAutoUpdateCommandHandler commandHandler,
         AutoUpdateOptions options,
-        RezepteDbContext? db = null)
+        RezepteDbContext? db = null,
+        IOptions<ApplicationUpdateOptions>? applicationOptions = null)
     {
         _statusProvider = statusProvider;
         _commandHandler = commandHandler;
         _options = options;
+        _applicationOptions = applicationOptions?.Value;
         _db = db;
     }
 
@@ -52,7 +57,7 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
         var setting = await _db.Set<AppSetting>().FindAsync([AllowPrereleaseUpdatesKey], ct).ConfigureAwait(false);
         if (setting is not null && bool.TryParse(setting.Value, out var allowPrereleaseUpdates))
         {
-            _options.AllowPrereleaseUpdates = allowPrereleaseUpdates;
+            ApplyPrereleaseSetting(allowPrereleaseUpdates);
         }
 
         return new ApplicationUpdateSettingsItem(_options.AllowPrereleaseUpdates);
@@ -60,7 +65,7 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
 
     public async Task<ApplicationUpdateSettingsItem> SetAllowPrereleaseUpdatesAsync(bool allowPrereleaseUpdates, CancellationToken ct = default)
     {
-        _options.AllowPrereleaseUpdates = allowPrereleaseUpdates;
+        ApplyPrereleaseSetting(allowPrereleaseUpdates);
 
         if (_db is not null)
         {
@@ -82,6 +87,21 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
         }
 
         return new ApplicationUpdateSettingsItem(_options.AllowPrereleaseUpdates);
+    }
+
+    private void ApplyPrereleaseSetting(bool allowPrereleaseUpdates)
+    {
+        _options.AllowPrereleaseUpdates = allowPrereleaseUpdates;
+
+        if (!string.IsNullOrWhiteSpace(_applicationOptions?.RepositoryOwner) &&
+            !string.IsNullOrWhiteSpace(_applicationOptions.RepositoryName))
+        {
+            _options.Source = AutoUpdateGithubSource.Create(
+                _applicationOptions.RepositoryOwner,
+                _applicationOptions.RepositoryName,
+                _applicationOptions.ManifestAssetName,
+                allowPrereleaseUpdates);
+        }
     }
 
     public async Task<ApplicationUpdateCommandResult> CheckAsync(CancellationToken ct = default)

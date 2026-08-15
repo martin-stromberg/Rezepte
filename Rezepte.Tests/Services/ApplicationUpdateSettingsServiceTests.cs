@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using msTools.Updater;
+using Rezepte.Web.Configuration;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
 using Rezepte.Web.Services.Updates;
@@ -209,6 +211,32 @@ public sealed class ApplicationUpdateSettingsServiceTests
         var setting = await db.AppSettings.FindAsync("ApplicationUpdates:AllowPrereleaseUpdates");
         setting.Should().NotBeNull();
         setting!.Value.Should().Be(bool.TrueString);
+    }
+
+    [Fact]
+    public async Task SetAllowPrereleaseUpdatesAsync_ShouldRecreateGithubSourceWithPrereleaseSetting()
+    {
+        var options = new AutoUpdateOptions
+        {
+            Source = AutoUpdateGithubSource.Create("owner", "repo", null, includePrereleases: false)
+        };
+        var sut = new ApplicationUpdateSettingsService(
+            new StubStatusProvider(AutoUpdateStatusSnapshot.Idle("1.0.0")),
+            new RecordingCommandHandler(),
+            options,
+            applicationOptions: Options.Create(new ApplicationUpdateOptions
+            {
+                RepositoryOwner = "owner",
+                RepositoryName = "repo"
+            }));
+
+        var previousSource = options.Source;
+
+        await sut.SetAllowPrereleaseUpdatesAsync(true);
+
+        options.AllowPrereleaseUpdates.Should().BeTrue();
+        options.Source.Should().BeOfType<AutoUpdateGithubSource>();
+        options.Source.Should().NotBeSameAs(previousSource);
     }
 
     private static RezepteDbContext CreateDbContext()
