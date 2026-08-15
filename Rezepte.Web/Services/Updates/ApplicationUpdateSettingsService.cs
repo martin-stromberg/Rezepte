@@ -78,7 +78,7 @@ public sealed record ApplicationUpdateStatusItem(
             FormatCheck(snapshot.LastCheckResult),
             FormatDownload(snapshot.LastDownloadResult),
             FormatInstall(snapshot.LastInstallResult),
-            ApplicationUpdateText.Localize(snapshot.LastError),
+            ApplicationUpdateText.LocalizeError(snapshot.LastErrorCode, snapshot.LastError),
             snapshot.IsLocked,
             snapshot.LockCreatedAt);
 
@@ -141,12 +141,49 @@ public sealed record ApplicationUpdateCommandResult(
         => new(
             ApplicationUpdateText.LocalizeOutcome(result.Outcome.ToString()),
             ApplicationUpdateText.LocalizeState(result.State.ToString()),
-            ApplicationUpdateText.Localize(result.Message),
-            ApplicationUpdateText.Localize(result.Error?.Message));
+            ApplicationUpdateText.LocalizeResult(result.Code, result.Message),
+            ApplicationUpdateText.LocalizeError(result.Error?.Code, result.Error?.Message));
 }
 
 internal static class ApplicationUpdateText
 {
+    public static string? LocalizeResult(AutoUpdateResultCode code, string? fallback) => code switch
+    {
+        AutoUpdateResultCode.Success => "Aktion erfolgreich abgeschlossen.",
+        AutoUpdateResultCode.NoNewerUpdateAvailable => "Keine neuere Version verfügbar.",
+        AutoUpdateResultCode.AutoUpdateDisabled => "Automatische Updates sind deaktiviert.",
+        AutoUpdateResultCode.UpdateAvailable => "Update verfügbar.",
+        AutoUpdateResultCode.DownloadCompleted => "Download abgeschlossen.",
+        AutoUpdateResultCode.ReadyToInstall => "Update ist installationsbereit.",
+        AutoUpdateResultCode.InstallationStarted => "Installation gestartet.",
+        AutoUpdateResultCode.Skipped => "Aktion wurde übersprungen.",
+        AutoUpdateResultCode.Canceled => "Aktion wurde abgebrochen.",
+        AutoUpdateResultCode.Failed => Localize(fallback) ?? "Aktion fehlgeschlagen.",
+        AutoUpdateResultCode.Unknown => Localize(fallback),
+        _ => Localize(fallback)
+    };
+
+    public static string? LocalizeError(AutoUpdateErrorCode? code, string? fallback) => code switch
+    {
+        null or AutoUpdateErrorCode.None => Localize(fallback),
+        AutoUpdateErrorCode.SourceUnavailable => "Die Update-Quelle ist nicht erreichbar.",
+        AutoUpdateErrorCode.ManifestInvalid => "Das Update-Manifest ist ungültig.",
+        AutoUpdateErrorCode.ManifestDownloadFailed => "Das Update-Manifest konnte nicht heruntergeladen werden.",
+        AutoUpdateErrorCode.AssetNotFound => "Das benötigte Update-Paket wurde im Manifest nicht gefunden.",
+        AutoUpdateErrorCode.AssetSizeMismatch => "Die Größe des Update-Pakets stimmt nicht mit dem Manifest überein.",
+        AutoUpdateErrorCode.DownloadFailed => "Das Update-Paket konnte nicht heruntergeladen werden.",
+        AutoUpdateErrorCode.HashMismatch => "Die Prüfsumme des Update-Pakets stimmt nicht mit dem Manifest überein.",
+        AutoUpdateErrorCode.InstallationFailed => "Die Installation ist fehlgeschlagen.",
+        AutoUpdateErrorCode.SourceNotConfigured => "Es ist keine Update-Quelle konfiguriert.",
+        AutoUpdateErrorCode.ConfigurationInvalid => "Die Update-Konfiguration ist ungültig.",
+        AutoUpdateErrorCode.UnsupportedPlatform => "Für diese Plattform ist kein passendes Update verfügbar.",
+        AutoUpdateErrorCode.LockActive => "Eine andere Update-Aktion läuft bereits.",
+        AutoUpdateErrorCode.NoPackageAvailable => "Für diese Aktion ist kein Update-Paket verfügbar.",
+        AutoUpdateErrorCode.Canceled => "Die Aktion wurde abgebrochen.",
+        AutoUpdateErrorCode.Unknown => Localize(fallback) ?? "Ein unbekannter Update-Fehler ist aufgetreten.",
+        _ => Localize(fallback) ?? "Ein unbekannter Update-Fehler ist aufgetreten."
+    };
+
     public static string? Localize(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
