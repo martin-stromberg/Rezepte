@@ -20,9 +20,9 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     private const string SearchInputSelector = "#nav-search";
     private const string SearchSubmitSelector = "button[aria-label='Suche starten']";
     private const string ShoppingListEditSelector = "button[aria-label='Bearbeiten']";
-    private const string ShoppingListAddGroupSelector = "button[title='Gruppe hinzufuegen']";
+    private const string ShoppingListAddGroupSelector = "button[title='Gruppe hinzufügen']";
     private const string ShoppingListAddRowSelector = "form.shopping-add-row";
-    private const string ShoppingListAddRowInputSelector = "form.shopping-add-row input[aria-label='Zutat hinzufuegen']";
+    private const string ShoppingListAddRowInputSelector = "form.shopping-add-row input[aria-label='Zutat hinzufügen']";
     private const string ShoppingListAddRowSubmitSelector = "form.shopping-add-row button[type='submit']";
 
     private readonly IBrowserContext _context;
