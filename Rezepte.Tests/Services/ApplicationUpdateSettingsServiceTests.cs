@@ -1,5 +1,8 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using msTools.Updater;
+using Rezepte.Web.Data;
+using Rezepte.Web.Entities;
 using Rezepte.Web.Services.Updates;
 using Xunit;
 
@@ -138,6 +141,83 @@ public sealed class ApplicationUpdateSettingsServiceTests
         result.Message.Should().Be("Keine neuere Version verfügbar.");
         result.Outcome.Should().Be("Keine neue Version");
         result.State.Should().Be("Bereit");
+    }
+
+    [Fact]
+    public async Task GetSettingsAsync_ShouldMapPrereleaseSetting()
+    {
+        var sut = new ApplicationUpdateSettingsService(
+            new StubStatusProvider(AutoUpdateStatusSnapshot.Idle("1.0.0")),
+            new RecordingCommandHandler(),
+            new AutoUpdateOptions { AllowPrereleaseUpdates = true });
+
+        var settings = await sut.GetSettingsAsync();
+
+        settings.AllowPrereleaseUpdates.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetSettingsAsync_ShouldPreferPersistedPrereleaseSetting()
+    {
+        await using var db = CreateDbContext();
+        db.AppSettings.Add(new AppSetting
+        {
+            Key = "ApplicationUpdates:AllowPrereleaseUpdates",
+            Value = bool.TrueString
+        });
+        await db.SaveChangesAsync();
+        var options = new AutoUpdateOptions { AllowPrereleaseUpdates = false };
+        var sut = new ApplicationUpdateSettingsService(
+            new StubStatusProvider(AutoUpdateStatusSnapshot.Idle("1.0.0")),
+            new RecordingCommandHandler(),
+            options,
+            db);
+
+        var settings = await sut.GetSettingsAsync();
+
+        settings.AllowPrereleaseUpdates.Should().BeTrue();
+        options.AllowPrereleaseUpdates.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetAllowPrereleaseUpdatesAsync_ShouldUpdateRuntimeUpdaterOptions()
+    {
+        var options = new AutoUpdateOptions();
+        var sut = new ApplicationUpdateSettingsService(
+            new StubStatusProvider(AutoUpdateStatusSnapshot.Idle("1.0.0")),
+            new RecordingCommandHandler(),
+            options);
+
+        var settings = await sut.SetAllowPrereleaseUpdatesAsync(true);
+
+        settings.AllowPrereleaseUpdates.Should().BeTrue();
+        options.AllowPrereleaseUpdates.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetAllowPrereleaseUpdatesAsync_ShouldPersistPrereleaseSetting()
+    {
+        await using var db = CreateDbContext();
+        var sut = new ApplicationUpdateSettingsService(
+            new StubStatusProvider(AutoUpdateStatusSnapshot.Idle("1.0.0")),
+            new RecordingCommandHandler(),
+            new AutoUpdateOptions(),
+            db);
+
+        await sut.SetAllowPrereleaseUpdatesAsync(true);
+
+        var setting = await db.AppSettings.FindAsync("ApplicationUpdates:AllowPrereleaseUpdates");
+        setting.Should().NotBeNull();
+        setting!.Value.Should().Be(bool.TrueString);
+    }
+
+    private static RezepteDbContext CreateDbContext()
+    {
+        var options = new DbContextOptionsBuilder<RezepteDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
+            .Options;
+
+        return new RezepteDbContext(options);
     }
 
     private sealed class StubStatusProvider : IAutoUpdateStatusProvider

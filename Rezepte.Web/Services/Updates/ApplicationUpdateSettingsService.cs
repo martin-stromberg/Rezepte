@@ -1,10 +1,14 @@
 using msTools.Updater;
+using Rezepte.Web.Data;
+using Rezepte.Web.Entities;
 
 namespace Rezepte.Web.Services.Updates;
 
 public interface IApplicationUpdateSettingsService
 {
     ApplicationUpdateStatusItem GetStatus();
+    Task<ApplicationUpdateSettingsItem> GetSettingsAsync(CancellationToken ct = default);
+    Task<ApplicationUpdateSettingsItem> SetAllowPrereleaseUpdatesAsync(bool allowPrereleaseUpdates, CancellationToken ct = default);
     Task<ApplicationUpdateCommandResult> CheckAsync(CancellationToken ct = default);
     Task<ApplicationUpdateCommandResult> DownloadAsync(CancellationToken ct = default);
     Task<ApplicationUpdateCommandResult> InstallAsync(CancellationToken ct = default);
@@ -12,25 +16,72 @@ public interface IApplicationUpdateSettingsService
 
 public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSettingsService
 {
+    private const string AllowPrereleaseUpdatesKey = "ApplicationUpdates:AllowPrereleaseUpdates";
+
     private readonly IAutoUpdateStatusProvider _statusProvider;
     private readonly IAutoUpdateCommandHandler _commandHandler;
     private readonly AutoUpdateOptions _options;
+    private readonly RezepteDbContext? _db;
     private readonly SemaphoreSlim _manualCheckGate = new(1, 1);
 
     public ApplicationUpdateSettingsService(
         IAutoUpdateStatusProvider statusProvider,
         IAutoUpdateCommandHandler commandHandler,
-        AutoUpdateOptions options)
+        AutoUpdateOptions options,
+        RezepteDbContext? db = null)
     {
         _statusProvider = statusProvider;
         _commandHandler = commandHandler;
         _options = options;
+        _db = db;
     }
 
     public ApplicationUpdateStatusItem GetStatus()
     {
         var snapshot = _statusProvider.GetSnapshot();
         return ApplicationUpdateStatusItem.FromSnapshot(snapshot);
+    }
+
+    public async Task<ApplicationUpdateSettingsItem> GetSettingsAsync(CancellationToken ct = default)
+    {
+        if (_db is null)
+        {
+            return new ApplicationUpdateSettingsItem(_options.AllowPrereleaseUpdates);
+        }
+
+        var setting = await _db.Set<AppSetting>().FindAsync([AllowPrereleaseUpdatesKey], ct).ConfigureAwait(false);
+        if (setting is not null && bool.TryParse(setting.Value, out var allowPrereleaseUpdates))
+        {
+            _options.AllowPrereleaseUpdates = allowPrereleaseUpdates;
+        }
+
+        return new ApplicationUpdateSettingsItem(_options.AllowPrereleaseUpdates);
+    }
+
+    public async Task<ApplicationUpdateSettingsItem> SetAllowPrereleaseUpdatesAsync(bool allowPrereleaseUpdates, CancellationToken ct = default)
+    {
+        _options.AllowPrereleaseUpdates = allowPrereleaseUpdates;
+
+        if (_db is not null)
+        {
+            var setting = await _db.Set<AppSetting>().FindAsync([AllowPrereleaseUpdatesKey], ct).ConfigureAwait(false);
+            if (setting is null)
+            {
+                _db.Set<AppSetting>().Add(new AppSetting
+                {
+                    Key = AllowPrereleaseUpdatesKey,
+                    Value = allowPrereleaseUpdates.ToString()
+                });
+            }
+            else
+            {
+                setting.Value = allowPrereleaseUpdates.ToString();
+            }
+
+            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+
+        return new ApplicationUpdateSettingsItem(_options.AllowPrereleaseUpdates);
     }
 
     public async Task<ApplicationUpdateCommandResult> CheckAsync(CancellationToken ct = default)
@@ -56,6 +107,8 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
     public async Task<ApplicationUpdateCommandResult> InstallAsync(CancellationToken ct = default)
         => ApplicationUpdateCommandResult.FromResult(await _commandHandler.InstallAsync(confirmDowntime: true, ct).ConfigureAwait(false));
 }
+
+public sealed record ApplicationUpdateSettingsItem(bool AllowPrereleaseUpdates);
 
 public sealed record ApplicationUpdateStatusItem(
     string State,
