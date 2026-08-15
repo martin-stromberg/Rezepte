@@ -20,6 +20,7 @@ public sealed class ApplicationUpdateSettingsServiceTests
             null,
             null,
             null,
+            null,
             false,
             null));
         var sut = new ApplicationUpdateSettingsService(statusProvider, new RecordingCommandHandler(), new AutoUpdateOptions());
@@ -56,8 +57,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
             CheckResult = new AutoUpdateResult(
                 AutoUpdateOutcome.Failed,
                 AutoUpdateState.Failed,
+                AutoUpdateResultCode.Failed,
                 "Quelle konnte nicht geprüft werden.",
-                new InvalidOperationException("source failed"))
+                new AutoUpdateError(AutoUpdateErrorCode.SourceUnavailable, "source failed", null))
         };
         var sut = new ApplicationUpdateSettingsService(
             new StubStatusProvider(AutoUpdateStatusSnapshot.Idle("1.0.0")),
@@ -67,7 +69,7 @@ public sealed class ApplicationUpdateSettingsServiceTests
         var result = await sut.CheckAsync();
 
         result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Be("source failed");
+        result.Error.Should().Be("Die Update-Quelle ist nicht erreichbar.");
     }
 
     [Fact]
@@ -98,6 +100,7 @@ public sealed class ApplicationUpdateSettingsServiceTests
             CheckResult = new AutoUpdateResult(
                 AutoUpdateOutcome.Skipped,
                 AutoUpdateState.Disabled,
+                AutoUpdateResultCode.AutoUpdateDisabled,
                 "Auto-update is disabled.",
                 null)
         };
@@ -111,6 +114,30 @@ public sealed class ApplicationUpdateSettingsServiceTests
         result.Message.Should().Be("Automatische Updates sind deaktiviert.");
         result.Outcome.Should().Be("Übersprungen");
         result.State.Should().Be("Deaktiviert");
+    }
+
+    [Fact]
+    public async Task CheckAsync_ShouldTranslateNoNewerUpdateMessage()
+    {
+        var commandHandler = new RecordingCommandHandler
+        {
+            CheckResult = new AutoUpdateResult(
+                AutoUpdateOutcome.NoUpdate,
+                AutoUpdateState.Idle,
+                AutoUpdateResultCode.NoNewerUpdateAvailable,
+                "No newer update is available.",
+                null)
+        };
+        var sut = new ApplicationUpdateSettingsService(
+            new StubStatusProvider(AutoUpdateStatusSnapshot.Idle("1.0.0")),
+            commandHandler,
+            new AutoUpdateOptions());
+
+        var result = await sut.CheckAsync();
+
+        result.Message.Should().Be("Keine neuere Version verfügbar.");
+        result.Outcome.Should().Be("Keine neue Version");
+        result.State.Should().Be("Bereit");
     }
 
     private sealed class StubStatusProvider : IAutoUpdateStatusProvider
@@ -131,7 +158,12 @@ public sealed class ApplicationUpdateSettingsServiceTests
         public bool InstallCalled { get; private set; }
         public bool InstallConfirmDowntime { get; private set; }
         public Action? OnCheck { get; set; }
-        public AutoUpdateResult CheckResult { get; set; } = new(AutoUpdateOutcome.NoUpdate, AutoUpdateState.Idle, "Keine neue Version.", null);
+        public AutoUpdateResult CheckResult { get; set; } = new(
+            AutoUpdateOutcome.NoUpdate,
+            AutoUpdateState.Idle,
+            AutoUpdateResultCode.NoNewerUpdateAvailable,
+            "Keine neue Version.",
+            null);
 
         public Task<AutoUpdateResult> CheckAsync(CancellationToken ct = default)
         {
@@ -141,13 +173,23 @@ public sealed class ApplicationUpdateSettingsServiceTests
         }
 
         public Task<AutoUpdateResult> DownloadAsync(CancellationToken ct = default)
-            => Task.FromResult(new AutoUpdateResult(AutoUpdateOutcome.Success, AutoUpdateState.ReadyToInstall, "Download abgeschlossen.", null));
+            => Task.FromResult(new AutoUpdateResult(
+                AutoUpdateOutcome.Success,
+                AutoUpdateState.ReadyToInstall,
+                AutoUpdateResultCode.DownloadCompleted,
+                "Download abgeschlossen.",
+                null));
 
         public Task<AutoUpdateResult> InstallAsync(bool confirmDowntime, CancellationToken ct = default)
         {
             InstallCalled = true;
             InstallConfirmDowntime = confirmDowntime;
-            return Task.FromResult(new AutoUpdateResult(AutoUpdateOutcome.Success, AutoUpdateState.Installing, "Installation gestartet.", null));
+            return Task.FromResult(new AutoUpdateResult(
+                AutoUpdateOutcome.Success,
+                AutoUpdateState.Installing,
+                AutoUpdateResultCode.InstallationStarted,
+                "Installation gestartet.",
+                null));
         }
     }
 }
