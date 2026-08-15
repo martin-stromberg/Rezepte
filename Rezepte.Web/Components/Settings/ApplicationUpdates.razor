@@ -40,7 +40,7 @@ else
                 <h3 class="h6">Aktionen</h3>
                 <div class="d-flex flex-wrap gap-2">
                     <button type="button" class="btn btn-primary btn-sm" disabled="@isBusy" @onclick="CheckAsync">Jetzt prüfen</button>
-                    <button type="button" class="btn btn-outline-primary btn-sm" disabled="@isBusy" @onclick="DownloadAsync">Herunterladen</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" disabled="@(isBusy || status?.HasAvailablePackage != true)" @onclick="DownloadAsync">Herunterladen</button>
                     <button type="button" class="btn btn-danger btn-sm" disabled="@isBusy" @onclick="InstallAsync">Installieren</button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@isBusy" @onclick="LoadAsync">Aktualisieren</button>
                 </div>

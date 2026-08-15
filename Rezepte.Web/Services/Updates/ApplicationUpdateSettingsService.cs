@@ -134,6 +134,7 @@ public sealed record ApplicationUpdateStatusItem(
     string State,
     string? InstalledVersion,
     string? AvailableVersion,
+    bool HasAvailablePackage,
     DateTimeOffset? LastCheckedAt,
     string? LastCheckSummary,
     string? LastDownloadSummary,
@@ -147,6 +148,7 @@ public sealed record ApplicationUpdateStatusItem(
             LocalizeState(snapshot.State.ToString()),
             snapshot.InstalledVersion,
             snapshot.AvailableVersion,
+            snapshot.LastCheckResult?.Package is not null,
             snapshot.LastCheckedAt,
             FormatCheck(snapshot.LastCheckResult),
             FormatDownload(snapshot.LastDownloadResult),
@@ -164,6 +166,8 @@ public sealed record ApplicationUpdateStatusItem(
 
         return result.AvailableVersion is null
             ? "Keine neue Version gefunden."
+            : result.Package is null
+                ? $"Version {result.AvailableVersion} gefunden, aber kein Paket für diese Plattform."
             : $"Version {result.AvailableVersion} gefunden.";
     }
 
@@ -251,7 +255,7 @@ internal static class ApplicationUpdateText
         AutoUpdateErrorCode.ConfigurationInvalid => "Die Update-Konfiguration ist ungültig.",
         AutoUpdateErrorCode.UnsupportedPlatform => "Für diese Plattform ist kein passendes Update verfügbar.",
         AutoUpdateErrorCode.LockActive => "Eine andere Update-Aktion läuft bereits.",
-        AutoUpdateErrorCode.NoPackageAvailable => "Für diese Aktion ist kein Update-Paket verfügbar.",
+        AutoUpdateErrorCode.NoPackageAvailable => "Für die aktuelle Plattform ist kein Update-Paket verfügbar.",
         AutoUpdateErrorCode.Canceled => "Die Aktion wurde abgebrochen.",
         AutoUpdateErrorCode.Unknown => Localize(fallback) ?? "Ein unbekannter Update-Fehler ist aufgetreten.",
         _ => Localize(fallback) ?? "Ein unbekannter Update-Fehler ist aufgetreten."
@@ -271,6 +275,8 @@ internal static class ApplicationUpdateText
             "no update available" => "Keine neue Version verfügbar.",
             "no update" => "Keine neue Version verfügbar.",
             "no newer update is available" => "Keine neuere Version verfügbar.",
+            "no update package is available to download" => "Für die aktuelle Plattform ist kein Update-Paket verfügbar.",
+            "no update package is available" => "Für die aktuelle Plattform ist kein Update-Paket verfügbar.",
             _ => trimmed
         };
     }

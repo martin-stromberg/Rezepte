@@ -16,6 +16,40 @@ public sealed class ApplicationUpdateSettingsServiceTests
     public void GetStatus_ShouldMapUpdaterSnapshot()
     {
         var checkedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var package = new AutoUpdatePackageDescriptor(
+            "1.1.0",
+            "linux",
+            "linux-x64",
+            "release.zip",
+            new Uri("https://example.invalid/release.zip"),
+            new string('a', 64),
+            42);
+        var statusProvider = new StubStatusProvider(new AutoUpdateStatusSnapshot(
+            AutoUpdateState.UpdateAvailable,
+            "1.0.0",
+            "1.1.0",
+            checkedAt,
+            new AutoUpdateCheckResult("1.1.0", package, "Release notes", checkedAt),
+            null,
+            null,
+            null,
+            null,
+            false,
+            null));
+        var sut = new ApplicationUpdateSettingsService(statusProvider, new RecordingCommandHandler(), new AutoUpdateOptions());
+
+        var status = sut.GetStatus();
+
+        status.State.Should().Be("Update verfügbar");
+        status.InstalledVersion.Should().Be("1.0.0");
+        status.AvailableVersion.Should().Be("1.1.0");
+        status.LastCheckSummary.Should().Be("Version 1.1.0 gefunden.");
+    }
+
+    [Fact]
+    public void GetStatus_ShouldReportAvailableVersionWithoutMatchingPackage()
+    {
+        var checkedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
         var statusProvider = new StubStatusProvider(new AutoUpdateStatusSnapshot(
             AutoUpdateState.UpdateAvailable,
             "1.0.0",
@@ -32,9 +66,39 @@ public sealed class ApplicationUpdateSettingsServiceTests
 
         var status = sut.GetStatus();
 
-        status.State.Should().Be("Update verfügbar");
-        status.InstalledVersion.Should().Be("1.0.0");
-        status.AvailableVersion.Should().Be("1.1.0");
+        status.HasAvailablePackage.Should().BeFalse();
+        status.LastCheckSummary.Should().Be("Version 1.1.0 gefunden, aber kein Paket für diese Plattform.");
+    }
+
+    [Fact]
+    public void GetStatus_ShouldReportMatchingPackage()
+    {
+        var checkedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var package = new AutoUpdatePackageDescriptor(
+            "1.1.0",
+            "linux",
+            "linux-x64",
+            "release.zip",
+            new Uri("https://example.invalid/release.zip"),
+            new string('a', 64),
+            42);
+        var statusProvider = new StubStatusProvider(new AutoUpdateStatusSnapshot(
+            AutoUpdateState.UpdateAvailable,
+            "1.0.0",
+            "1.1.0",
+            checkedAt,
+            new AutoUpdateCheckResult("1.1.0", package, "Release notes", checkedAt),
+            null,
+            null,
+            null,
+            null,
+            false,
+            null));
+        var sut = new ApplicationUpdateSettingsService(statusProvider, new RecordingCommandHandler(), new AutoUpdateOptions());
+
+        var status = sut.GetStatus();
+
+        status.HasAvailablePackage.Should().BeTrue();
         status.LastCheckSummary.Should().Be("Version 1.1.0 gefunden.");
     }
 
