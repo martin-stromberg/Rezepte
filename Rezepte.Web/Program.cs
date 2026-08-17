@@ -61,6 +61,9 @@ else
     app.UseHsts();
 }
 
+// Request logging
+app.UseRequestLogging();
+
 // Static files (wwwroot)
 app.UseStaticFiles();
 
