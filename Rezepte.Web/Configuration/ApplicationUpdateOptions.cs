@@ -70,6 +70,16 @@ public sealed class ApplicationUpdateOptions
     public string? LocalSourceDirectory { get; set; }
 
     /// <summary>
+    /// Windows only: name of the IIS application pool to stop and restart during installation.
+    /// </summary>
+    public string? AppPoolName { get; set; }
+
+    /// <summary>
+    /// Windows only: optional name of the IIS site, used for logging when <see cref="AppPoolName"/> is set.
+    /// </summary>
+    public string? SiteName { get; set; }
+
+    /// <summary>
     /// Windows only: name of the service to stop and restart during installation.
     /// </summary>
     public string? ServiceName { get; set; }

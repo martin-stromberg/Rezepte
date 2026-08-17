@@ -42,7 +42,9 @@ Die Programmupdate-Funktion selbst wird über `ApplicationUpdates` gesteuert:
 }
 ```
 
-Für Windows muss zusätzlich `ServiceName` oder `ExecutablePath` gesetzt werden, damit `msTools.Updater` weiß, welcher Dienst bzw. Prozess gestoppt und neu gestartet werden soll:
+Für Windows muss zusätzlich ein Installationstyp konfiguriert werden. Ab Version `0.7.0-rc.10` wird auch IIS unterstützt:
+
+### Windows-Dienst
 
 ```json
 "ApplicationUpdates": {
@@ -50,9 +52,20 @@ Für Windows muss zusätzlich `ServiceName` oder `ExecutablePath` gesetzt werden
 }
 ```
 
+### Ausführbare Datei
+
 ```json
 "ApplicationUpdates": {
   "ExecutablePath": "C:\\Services\\Rezepte\\Rezepte.Web.exe"
+}
+```
+
+### IIS-Application-Pool
+
+```json
+"ApplicationUpdates": {
+  "AppPoolName": "RezepteWebAppPool",
+  "SiteName": "Rezepte"
 }
 ```
 
@@ -66,15 +79,23 @@ Für Windows muss zusätzlich `ServiceName` oder `ExecutablePath` gesetzt werden
 - `UpdateUnitName`: eindeutiger Name für die systemd-Update-Unit auf Linux. Die Unit muss existieren und im Systemd-Ziel aktiviert sein, sonst startet das Skript nicht.
 - `ServiceName`: Windows: Name des Dienstes, der gestoppt und neu gestartet wird.
 - `ExecutablePath`: Windows: Pfad zur ausführbaren Datei, falls kein Dienst verwendet wird.
+- `AppPoolName`: Windows (ab `0.7.0-rc.10`): Name des IIS-Application-Pools, der gestoppt und neu gestartet wird.
+- `SiteName`: Windows (ab `0.7.0-rc.10`): Optionale IIS-Site, ausschließlich für Logging, wenn `AppPoolName` verwendet wird.
 - `RepositoryOwner`, `RepositoryName`, `ManifestAssetName`: GitHub-Release-Quelle für `update.json` und Updatepakete. Sind keine GitHub-Werte gesetzt, kann `LocalSourceDirectory` für eine lokale Quelle verwendet werden.
 
 ## Plattform-spezifische Voraussetzungen
 
 ### Windows
 
-- Entweder `ServiceName` oder `ExecutablePath` konfigurieren.
-- Beispiel: `"ServiceName": "RezepteWeb"`.
-- Ohne diese Angabe bricht `msTools.Updater` mit dem Fehler `Installation: Configure a service name or executable path before starting installation.` ab.
+Einer der folgenden Installationstypen muss konfiguriert sein:
+
+- `ServiceName` – Windows-Dienst.
+- `ExecutablePath` – Ausführbare Datei.
+- `AppPoolName` – IIS-Application-Pool (ab `0.7.0-rc.10`).
+
+Wird `AppPoolName` gesetzt, verwendet `msTools.Updater` diesen und das optionale `SiteName` nur für Logging. Ansonsten wird `ServiceName` oder `ExecutablePath` verwendet.
+
+Der Service-Account benötigt ausreichende Berechtigungen (Administratoren bzw. Rechte zum Stoppen/Starten des App Pools oder Dienstes).
 
 ### Linux
 

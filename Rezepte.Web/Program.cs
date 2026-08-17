@@ -40,6 +40,11 @@ builder.UseAutoUpdate(autoUpdate =>
     {
         autoUpdate.UseLocalFolderSource(updateOptions.LocalSourceDirectory);
     }
+
+    if (!string.IsNullOrWhiteSpace(updateOptions.AppPoolName))
+    {
+        autoUpdate.WithIisApplicationPool(updateOptions.AppPoolName, updateOptions.SiteName ?? string.Empty);
+    }
 });
 
 // Register all application services via project extension (DbContext, auth, DI, controllers, etc.)
