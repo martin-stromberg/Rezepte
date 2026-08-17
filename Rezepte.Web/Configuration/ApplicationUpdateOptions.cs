@@ -15,4 +15,14 @@ public sealed class ApplicationUpdateOptions
     public string? RepositoryName { get; set; }
     public string? ManifestAssetName { get; set; }
     public string? LocalSourceDirectory { get; set; }
+
+    /// <summary>
+    /// Windows only: name of the service to stop and restart during installation.
+    /// </summary>
+    public string? ServiceName { get; set; }
+
+    /// <summary>
+    /// Windows only: path to the executable to restart, if no service is configured.
+    /// </summary>
+    public string? ExecutablePath { get; set; }
 }

@@ -145,6 +145,10 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und koenn
 | `UpdateBackups:Directory`, `UpdateBackups:RetentionCount` | Zielverzeichnis und Aufbewahrungsanzahl fuer automatische Backups vor Programmupdates. |
 | `UpdateBackups:IncludeImages`, `UpdateBackups:IncludePdf`, `UpdateBackups:SystemInitiatorUserId` | Umfang und technischer Initiator der Update-Backups. |
 | `ApplicationUpdates:*` | Steuerung der eingebundenen `msTools.Updater`-Programmupdates, inklusive Quelle, Downloadpfad, automatischem Download und automatischer Installation. |
+| `ApplicationUpdates:ServiceName` | Windows: Name des Dienstes, der während der Installation gestoppt und neu gestartet wird. |
+| `ApplicationUpdates:ExecutablePath` | Windows: Pfad zur Executable, falls kein Dienst verwendet wird. |
+| `ApplicationUpdates:UpdateUnitName` | Linux: Name der systemd-Unit, über die das Installationsskript ausgeführt wird. |
+| `ApplicationUpdates:StopHostAfterScriptStart` | Linux: Muss `true` sein, damit der Hostprozess stoppt und das Skript Dateien ersetzen kann. |
 | `LoadingBar:Enabled` | Aktiviert oder deaktiviert den Ladebalken bei Navigation global (Standard: `true`). |
 | `LoadingBar:Height` | Hoehe des Ladebalkens als CSS-Laenge, z. B. `"3px"` oder `"0.25rem"` (Standard: `"3px"`). |
 | `LoadingBar:AnimationDuration` | Dauer eines vollstaendigen Sweeps von rechts nach links als CSS-Zeit, z. B. `"2s"` (Standard: `"2s"`). |

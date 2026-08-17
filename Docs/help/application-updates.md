@@ -42,15 +42,45 @@ Die Programmupdate-Funktion selbst wird über `ApplicationUpdates` gesteuert:
 }
 ```
 
+Für Windows muss zusätzlich `ServiceName` oder `ExecutablePath` gesetzt werden, damit `msTools.Updater` weiß, welcher Dienst bzw. Prozess gestoppt und neu gestartet werden soll:
+
+```json
+"ApplicationUpdates": {
+  "ServiceName": "RezepteWeb"
+}
+```
+
+```json
+"ApplicationUpdates": {
+  "ExecutablePath": "C:\\Services\\Rezepte\\Rezepte.Web.exe"
+}
+```
+
 - `Enabled`: aktiviert automatische Update-Läufe in `msTools.Updater`. Eine manuell gestartete Prüfung über "Jetzt prüfen" bleibt auch bei `false` möglich.
 - `EnableAutomaticDownload`: lädt gefundene neue Versionen automatisch herunter.
 - `EnableAutomaticInstallation`: installiert heruntergeladene Updates automatisch. Bei `false` kann die Installation über die `msTools.Updater`-Kommandos manuell ausgelöst werden.
 - `DownloadPath`: lokaler Arbeitsordner für Updatepakete, Statusdateien und Locks.
 - `HostedServicesEnabled`: aktiviert die Hintergrunddienste von `msTools.Updater`.
-- `StopHostAfterScriptStart`: beendet den Host, nachdem das Installationsskript gestartet wurde.
+- `StopHostAfterScriptStart`: beendet den Host, nachdem das Installationsskript gestartet wurde. Auf Linux muss dieser Wert `true` sein, damit der Hostprozess das Update-Paket nicht weiter blockiert.
 - `HealthTimeoutSeconds`: Timeout für Health-/Lock-Bewertungen des Updaters.
-- `UpdateUnitName`: eindeutiger Name für die systemd-Update-Unit auf Linux.
+- `UpdateUnitName`: eindeutiger Name für die systemd-Update-Unit auf Linux. Die Unit muss existieren und im Systemd-Ziel aktiviert sein, sonst startet das Skript nicht.
+- `ServiceName`: Windows: Name des Dienstes, der gestoppt und neu gestartet wird.
+- `ExecutablePath`: Windows: Pfad zur ausführbaren Datei, falls kein Dienst verwendet wird.
 - `RepositoryOwner`, `RepositoryName`, `ManifestAssetName`: GitHub-Release-Quelle für `update.json` und Updatepakete. Sind keine GitHub-Werte gesetzt, kann `LocalSourceDirectory` für eine lokale Quelle verwendet werden.
+
+## Plattform-spezifische Voraussetzungen
+
+### Windows
+
+- Entweder `ServiceName` oder `ExecutablePath` konfigurieren.
+- Beispiel: `"ServiceName": "RezepteWeb"`.
+- Ohne diese Angabe bricht `msTools.Updater` mit dem Fehler `Installation: Configure a service name or executable path before starting installation.` ab.
+
+### Linux
+
+- `UpdateUnitName` muss dem Namen einer echten, aktivierten systemd-Unit entsprechen (z. B. `RezepteWebAutoUpdate.service`).
+- `StopHostAfterScriptStart` muss `true` sein, damit der Host stoppt, bevor das Skript die Binärdateien ersetzt.
+- Der Service-Account benötigt Rechte, um die Unit zu starten und die Anwendungsdateien zu überschreiben.
 
 ## Pre-Install-Backup
 
