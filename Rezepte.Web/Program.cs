@@ -45,6 +45,11 @@ builder.UseAutoUpdate(autoUpdate =>
     {
         autoUpdate.WithIisApplicationPool(updateOptions.AppPoolName, updateOptions.SiteName ?? string.Empty);
     }
+
+    if (!string.IsNullOrWhiteSpace(updateOptions.UpdateUnitName))
+    {
+        autoUpdate.WithUpdateUnitName(updateOptions.UpdateUnitName);
+    }
 });
 
 // Register all application services via project extension (DbContext, auth, DI, controllers, etc.)
