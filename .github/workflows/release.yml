@@ -185,11 +185,11 @@ jobs:
 
           ./scripts/Export-ImportContract.ps1 @exportArgs
 
-      - name: Create release.zip (Linux)
+      - name: Create release-linux-x64.zip (Linux)
         shell: bash
         run: |
           cd artifacts/publish
-          zip -r ../release.zip .
+          zip -r ../release-linux-x64.zip .
 
       - name: Create release-win-x64.zip (Windows)
         shell: bash
@@ -206,9 +206,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          linux_sha="$(sha256sum artifacts/release.zip | awk '{print $1}')"
-          linux_size="$(stat -c%s artifacts/release.zip)"
-          linux_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release.zip"
+          linux_sha="$(sha256sum artifacts/release-linux-x64.zip | awk '{print $1}')"
+          linux_size="$(stat -c%s artifacts/release-linux-x64.zip)"
+          linux_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release-linux-x64.zip"
 
           windows_sha="$(sha256sum artifacts/release-win-x64.zip | awk '{print $1}')"
           windows_size="$(stat -c%s artifacts/release-win-x64.zip)"
@@ -232,7 +232,7 @@ jobs:
                 {
                   platform: "linux",
                   runtimeIdentifier: "linux-x64",
-                  assetName: "release.zip",
+                  assetName: "release-linux-x64.zip",
                   assetUrl: $linuxAssetUrl,
                   sha256: $linuxSha256,
                   sizeBytes: $linuxSizeBytes
@@ -253,7 +253,7 @@ jobs:
         with:
           name: release-${{ steps.version.outputs.version }}-${{ github.event.pull_request.merge_commit_sha }}
           path: |
-            artifacts/release.zip
+            artifacts/release-linux-x64.zip
             artifacts/release-win-x64.zip
             artifacts/update.json
           if-no-files-found: error
@@ -289,7 +289,7 @@ jobs:
           notes="$(printf 'Automated release for %s\n\nImport contract:\n- contractVersion: %s\n- sourceCommit: %s\n- zipSha256: %s\n- asset: %s\n- assetUrl: %s' \
             "$MERGE_SHA" "$contract_version" "$MERGE_SHA" "$contract_sha" "$contract_asset" "$contract_asset_url")"
 
-          gh release create "$TAG" artifacts/release.zip artifacts/release-win-x64.zip artifacts/update.json "$contract_zip" artifacts/contract-export/contract-export.metadata.json \
+          gh release create "$TAG" artifacts/release-linux-x64.zip artifacts/release-win-x64.zip artifacts/update.json "$contract_zip" artifacts/contract-export/contract-export.metadata.json \
             --title "$TAG" \
             --target "$MERGE_SHA" \
             --notes "$notes"
