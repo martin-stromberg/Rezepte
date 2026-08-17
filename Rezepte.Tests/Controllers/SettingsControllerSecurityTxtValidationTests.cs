@@ -155,7 +155,7 @@ public class SettingsControllerSecurityTxtValidationTests
     }
 
     [Fact]
-    public async Task SetGlobalSecurityTxt_IgnoresCanonicalFromRequest()
+    public async Task SetGlobalSecurityTxt_PreservesCanonicalFromRequest()
     {
         var settingsMock = new Mock<ISettingsService>();
         settingsMock.Setup(s => s.SetSecurityTxtSettingsAsync(It.IsAny<SecurityTxtSettings>(), It.IsAny<CancellationToken>()))
@@ -167,7 +167,7 @@ public class SettingsControllerSecurityTxtValidationTests
 
         result.Should().BeOfType<NoContentResult>();
         settingsMock.Verify(s => s.SetSecurityTxtSettingsAsync(
-                It.Is<SecurityTxtSettings>(x => x.Canonical == null),
+                It.Is<SecurityTxtSettings>(x => x.Canonical == "https://example.com/admin-value"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
