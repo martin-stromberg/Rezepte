@@ -265,10 +265,10 @@ jobs:
       - name: Build browser tests
         run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
 
-      - name: Restore publish runtime
+      - name: Restore publish runtime (Linux)
         run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime linux-x64
 
-      - name: Publish application
+      - name: Publish application (Linux)
         run: >
           dotnet publish Rezepte.Web/Rezepte.Web.csproj
           --configuration Release
@@ -277,6 +277,19 @@ jobs:
           --self-contained false
           --no-restore
           --output artifacts/publish
+
+      - name: Restore publish runtime (Windows)
+        run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime win-x64
+
+      - name: Publish application (Windows)
+        run: >
+          dotnet publish Rezepte.Web/Rezepte.Web.csproj
+          --configuration Release
+          --framework net10.0
+          --runtime win-x64
+          --self-contained false
+          --no-restore
+          --output artifacts/publish-win-x64
 
       - name: Write release metadata
         shell: bash
@@ -315,11 +328,17 @@ jobs:
 
           ./scripts/Export-ImportContract.ps1 @exportArgs
 
-      - name: Create release.zip
+      - name: Create release-linux-x64.zip (Linux)
         shell: bash
         run: |
           cd artifacts/publish
-          zip -r ../release.zip .
+          zip -r ../release-linux-x64.zip .
+
+      - name: Create release-win-x64.zip (Windows)
+        shell: bash
+        run: |
+          cd artifacts/publish-win-x64
+          zip -r ../release-win-x64.zip .
 
       - name: Create update manifest
         shell: bash
@@ -329,17 +348,24 @@ jobs:
         run: |
           set -euo pipefail
 
-          release_sha="$(sha256sum artifacts/release.zip | awk '{print $1}')"
-          release_size="$(stat -c%s artifacts/release.zip)"
-          release_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release.zip"
+          linux_sha="$(sha256sum artifacts/release-linux-x64.zip | awk '{print $1}')"
+          linux_size="$(stat -c%s artifacts/release-linux-x64.zip)"
+          linux_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release-linux-x64.zip"
+
+          windows_sha="$(sha256sum artifacts/release-win-x64.zip | awk '{print $1}')"
+          windows_size="$(stat -c%s artifacts/release-win-x64.zip)"
+          windows_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release-win-x64.zip"
 
           jq -n \
             --arg version "$VERSION" \
             --arg releaseNotes "Release candidate for ${GITHUB_SHA}" \
             --arg publishedAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-            --arg assetUrl "$release_asset_url" \
-            --arg sha256 "$release_sha" \
-            --argjson sizeBytes "$release_size" \
+            --arg linuxAssetUrl "$linux_asset_url" \
+            --arg linuxSha256 "$linux_sha" \
+            --argjson linuxSizeBytes "$linux_size" \
+            --arg windowsAssetUrl "$windows_asset_url" \
+            --arg windowsSha256 "$windows_sha" \
+            --argjson windowsSizeBytes "$windows_size" \
             '{
               version: $version,
               releaseNotes: $releaseNotes,
@@ -348,10 +374,18 @@ jobs:
                 {
                   platform: "linux",
                   runtimeIdentifier: "linux-x64",
-                  assetName: "release.zip",
-                  assetUrl: $assetUrl,
-                  sha256: $sha256,
-                  sizeBytes: $sizeBytes
+                  assetName: "release-linux-x64.zip",
+                  assetUrl: $linuxAssetUrl,
+                  sha256: $linuxSha256,
+                  sizeBytes: $linuxSizeBytes
+                },
+                {
+                  platform: "windows",
+                  runtimeIdentifier: "win-x64",
+                  assetName: "release-win-x64.zip",
+                  assetUrl: $windowsAssetUrl,
+                  sha256: $windowsSha256,
+                  sizeBytes: $windowsSizeBytes
                 }
               ]
             }' > artifacts/update.json
@@ -365,7 +399,8 @@ jobs:
           draft: false
           prerelease: true
           files: |
-            artifacts/release.zip
+            artifacts/release-linux-x64.zip
+            artifacts/release-win-x64.zip
             artifacts/update.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
