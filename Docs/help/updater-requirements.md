@@ -121,29 +121,7 @@ Das heruntergeladene Package-Deskriptor (`AutoUpdatePackageDescriptor`) muss per
 
 ---
 
-## 5. `ApplicationDirectory` muss für den Host sinnvoll ermittelt werden
-
-**Befund**
-
-`HostAutoUpdateEnvironment` verwendet `IHostEnvironment.ContentRootPath`. Bei einem Test-Host oder Self-Contained-App führt das dazu, dass `msTools.Updater` versucht, Dateien im laufenden Host-Verzeichnis zu überschreiben. Dabei werden geladene DLLs blockiert (z. B. `msTools.Updater.dll`):
-
-```text
-Copy-Item : Der Prozess kann nicht auf die Datei ...\msTools.Updater.dll zugreifen, da sie von einem anderen Prozess verwendet wird.
-```
-
-**Aufgabe**
-
-`msTools.Updater` sollte `ApplicationDirectory` konfigurierbar machen (z. B. `AutoUpdateOptions.ApplicationDirectory` oder `IAutoUpdateEnvironment` kann injiziert/überschrieben werden), damit Update-Ziel und Host-Prozess getrennt werden können.
-
-**Akzeptanzkriterien**
-
-- `ApplicationDirectory` ist über `AutoUpdateOptions` konfigurierbar.
-- Standardwert bleibt `ContentRootPath`, kann aber überschrieben werden.
-- Alle Pfade (`DownloadPath`, `pending/`, etc.) werden relativ zum konfigurierten `ApplicationDirectory` aufgelöst.
-
----
-
-## 6. Fehlende/nicht erreichbare Update-Quellen klar kommunizieren
+## 5. Fehlende/nicht erreichbare Update-Quellen klar kommunizieren
 
 **Befund**
 
@@ -163,7 +141,7 @@ Wenn keine Quelle explizit konfiguriert ist und der Fallback leer ist, soll `msT
 
 ---
 
-## 7. `update.lock` und hängende Installationen sauber behandeln
+## 6. `update.lock` und hängende Installationen sauber behandeln
 
 **Befund**
 
