@@ -33,6 +33,19 @@ public sealed class LoggingAutoUpdateProcessRunner : IAutoUpdateProcessRunner
 
         using var process = new Process { StartInfo = startInfo };
 
+        Console.WriteLine($"[install] Running {fileName} {startInfo.Arguments}");
+        Console.WriteLine("[install] --- script content ---");
+        try
+        {
+            Console.WriteLine(File.ReadAllText(scriptPath));
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"[install] Could not read script content: {ex.Message}");
+        }
+
+        Console.WriteLine("[install] --- end of script content ---");
+
         process.Start();
 
         var outputTask = Task.Run(() => process.StandardOutput.ReadToEnd());
