@@ -83,7 +83,37 @@ The package file is still present in `pending/`, but `msTools.Updater` does not 
 - Alternatively, use `dotnet run -- check` and `dotnet run -- download` and `dotnet run -- install` in the same long-running host session, which is not possible with the console test host.
 - For `Rezepte.Updater.TestHost`, prefer `run` over `install`.
 
-## 4. Open — template for next finding
+## 4. `Stop-IISApplicationPool` / `Start-IISApplicationPool` wird nicht als Cmdlet erkannt
+
+**Date:** 2026-08-18
+
+**Observed symptom**
+
+The generated PowerShell script fails with:
+
+```text
+Stop-IISApplicationPool : Die Benennung "Stop-IISApplicationPool" wurde nicht als Name eines Cmdlet, einer Funktion, ...
+```
+
+**Root cause**
+
+`msTools.Updater` generates a script that uses cmdlets from the `IISAdministration` PowerShell module. This module is not loaded or not installed on the machine that executes the script. The `IISAdministration` cmdlets are not part of Windows by default; they require the IIS Management Tools / the `IISAdministration` module.
+
+**Fix / Checklist**
+
+- Check if the module is available: `Get-Module -ListAvailable -Name IISAdministration`.
+- If missing, install it, e.g.:
+  ```powershell
+  Install-Module -Name IISAdministration -Force -AllowClobber
+  ```
+- Ensure the module is loaded before the cmdlets run:
+  ```powershell
+  Import-Module IISAdministration
+  ```
+- Verify the script is executed in Windows PowerShell 5.1 or PowerShell 7, depending on which version supports the installed `IISAdministration` module.
+- The IIS application pool user (or the admin account running the update) must have permission to import the module and manage the app pool.
+
+## 5. Open — template for next finding
 
 **Date:**
 
