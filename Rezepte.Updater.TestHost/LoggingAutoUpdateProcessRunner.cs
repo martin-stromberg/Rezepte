@@ -17,59 +17,99 @@ public sealed class LoggingAutoUpdateProcessRunner : IAutoUpdateProcessRunner
 
     public void StartScript(string scriptPath)
     {
-        var fileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? "powershell"
-            : "pwsh";
+        var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        var fileName = isWindows ? "powershell" : "pwsh";
 
-        var startInfo = new ProcessStartInfo
+        string actualScriptPath = scriptPath;
+        string? wrapperPath = null;
+
+        if (isWindows)
         {
-            FileName = fileName,
-            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\"",
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
+            // Workaround: msTools.Updater generates scripts that use the IISAdministration
+            // cmdlets Stop-IISApplicationPool / Start-IISApplicationPool. The in-box
+            // IISAdministration module (1.1.0.0) does not export these cmdlets, but the
+            // WebAdministration module does (Stop-WebAppPool / Start-WebAppPool). We
+            // wrap the original script with a small helper script that defines the
+            // missing functions before invoking the generated one.
+            wrapperPath = Path.Combine(Path.GetTempPath(), $"RezepteUpdaterWrapper-{Guid.NewGuid():N}.ps1");
 
-        using var process = new Process { StartInfo = startInfo };
+            var wrapperContent = string.Format(
+                "Import-Module WebAdministration{0}" +
+                "function Stop-IISApplicationPool {{{0}" +
+                "    param([string]$Name){0}" +
+                "    Stop-WebAppPool -Name $Name{0}" +
+                "}}{0}" +
+                "function Start-IISApplicationPool {{{0}" +
+                "    param([string]$Name){0}" +
+                "    Start-WebAppPool -Name $Name{0}" +
+                "}}{0}" +
+                "& \"{1}\"",
+                Environment.NewLine,
+                scriptPath);
 
-        Console.WriteLine($"[install] Running {fileName} {startInfo.Arguments}");
-        Console.WriteLine("[install] --- script content ---");
+            File.WriteAllText(wrapperPath, wrapperContent);
+            actualScriptPath = wrapperPath;
+        }
+
         try
         {
-            Console.WriteLine(File.ReadAllText(scriptPath));
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{actualScriptPath}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var process = new Process { StartInfo = startInfo };
+
+            Console.WriteLine($"[install] Running {fileName} {startInfo.Arguments}");
+            Console.WriteLine("[install] --- script content ---");
+            try
+            {
+                Console.WriteLine(File.ReadAllText(scriptPath));
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"[install] Could not read script content: {ex.Message}");
+            }
+
+            Console.WriteLine("[install] --- end of script content ---");
+
+            process.Start();
+
+            var outputTask = Task.Run(() => process.StandardOutput.ReadToEnd());
+            var errorTask = Task.Run(() => process.StandardError.ReadToEnd());
+
+            process.WaitForExit();
+
+            var output = outputTask.GetAwaiter().GetResult();
+            var error = errorTask.GetAwaiter().GetResult();
+
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                Console.WriteLine(output);
+            }
+
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                Console.Error.WriteLine(error);
+            }
+
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Installation script exited with code {process.ExitCode}: {scriptPath}\n\n{error}");
+            }
         }
-        catch (IOException ex)
+        finally
         {
-            Console.WriteLine($"[install] Could not read script content: {ex.Message}");
-        }
-
-        Console.WriteLine("[install] --- end of script content ---");
-
-        process.Start();
-
-        var outputTask = Task.Run(() => process.StandardOutput.ReadToEnd());
-        var errorTask = Task.Run(() => process.StandardError.ReadToEnd());
-
-        process.WaitForExit();
-
-        var output = outputTask.GetAwaiter().GetResult();
-        var error = errorTask.GetAwaiter().GetResult();
-
-        if (!string.IsNullOrWhiteSpace(output))
-        {
-            Console.WriteLine(output);
-        }
-
-        if (!string.IsNullOrWhiteSpace(error))
-        {
-            Console.Error.WriteLine(error);
-        }
-
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException(
-                $"Installation script exited with code {process.ExitCode}: {scriptPath}\n\n{error}");
+            if (!string.IsNullOrEmpty(wrapperPath) && File.Exists(wrapperPath))
+            {
+                File.Delete(wrapperPath);
+            }
         }
     }
 }

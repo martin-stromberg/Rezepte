@@ -97,16 +97,14 @@ Wird `AppPoolName` gesetzt, verwendet `msTools.Updater` diesen und das optionale
 
 #### IIS-Application-Pools
 
-Für `AppPoolName` muss das **`IISAdministration`**-PowerShell-Modul auf dem ausführenden Rechner installiert sein, weil `msTools.Updater` die Cmdlets `Stop-IISApplicationPool` und `Start-IISApplicationPool` verwendet. Installation in einer administrativen PowerShell:
+Für `AppPoolName` muss das **`WebAdministration`**-PowerShell-Modul auf dem ausführenden Rechner installiert sein, weil `Rezepte.Web` den `IAutoUpdateProcessRunner` von `msTools.Updater` mit einer Wrapper-Komponente ersetzt, die `WebAdministration`-Cmdlets (`Stop-WebAppPool` / `Start-WebAppPool`) nutzt.
+
+Hintergrund: `msTools.Updater` generiert Scripts mit `Stop-IISApplicationPool` / `Start-IISApplicationPool`. Diese Cmdlets sind im in-box `IISAdministration`-Modul (Version 1.1.0.0) nicht vorhanden, wohl aber im `WebAdministration`-Modul.
+
+Prüfen:
 
 ```powershell
-Install-Module -Name IISAdministration -Force -AllowClobber -Scope AllUsers
-```
-
-Anschließend prüfen:
-
-```powershell
-Get-Module -ListAvailable -Name IISAdministration
+Get-Module -ListAvailable -Name WebAdministration
 ```
 
 Der Service-Account benötigt ausreichende Berechtigungen (Administratoren bzw. Rechte zum Stoppen/Starten des App Pools oder Dienstes).

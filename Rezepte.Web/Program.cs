@@ -8,6 +8,9 @@ using Rezepte.Web.Configuration;
 using Rezepte.Web.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
+using System.Linq;
+using System.Runtime.InteropServices;
 using msTools.Updater;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -51,6 +54,20 @@ builder.UseAutoUpdate(autoUpdate =>
         autoUpdate.WithUpdateUnitName(updateOptions.UpdateUnitName);
     }
 });
+
+if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+{
+    var processRunnerDescriptors = builder.Services
+        .Where(d => d.ServiceType == typeof(IAutoUpdateProcessRunner))
+        .ToList();
+
+    foreach (var descriptor in processRunnerDescriptors)
+    {
+        builder.Services.Remove(descriptor);
+    }
+
+    builder.Services.AddSingleton<IAutoUpdateProcessRunner, WindowsIisUpdateProcessRunner>();
+}
 
 // Register all application services via project extension (DbContext, auth, DI, controllers, etc.)
 builder.Services.AddRezepteServices(builder.Configuration, builder.Environment);
