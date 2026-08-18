@@ -97,17 +97,9 @@ Wird `AppPoolName` gesetzt, verwendet `msTools.Updater` diesen und das optionale
 
 #### IIS-Application-Pools
 
-Für `AppPoolName` muss das **`IISAdministration`**-PowerShell-Modul auf dem ausführenden Rechner installiert sein, weil `msTools.Updater` die Cmdlets `Stop-IISApplicationPool` und `Start-IISApplicationPool` verwendet. Installation in einer administrativen PowerShell:
+`msTools.Updater 0.7.0-rc.10` versucht, den IIS-App-Pool über `Stop-IISApplicationPool` und `Start-IISApplicationPool` zu stoppen/starten. Diese Cmdlets sind im verfügbaren `IISAdministration`-Modul (in-box und PSGallery, Version 1.1.0.0) nicht enthalten.
 
-```powershell
-Install-Module -Name IISAdministration -Force -AllowClobber -Scope AllUsers
-```
-
-Anschließend prüfen:
-
-```powershell
-Get-Module -ListAvailable -Name IISAdministration
-```
+> **Bekanntes Problem:** Bis `msTools.Updater` korrigiert wird, funktioniert die IIS-App-Pool-Installation nicht out-of-the-box. Siehe `Docs/help/updater-requirements.md` für die offenen Anforderungen an den Updater.
 
 Der Service-Account benötigt ausreichende Berechtigungen (Administratoren bzw. Rechte zum Stoppen/Starten des App Pools oder Dienstes).
 

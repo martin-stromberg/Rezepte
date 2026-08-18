@@ -97,21 +97,14 @@ Stop-IISApplicationPool : Die Benennung "Stop-IISApplicationPool" wurde nicht al
 
 **Root cause**
 
-`msTools.Updater` generates a script that uses cmdlets from the `IISAdministration` PowerShell module. This module is not loaded or not installed on the machine that executes the script. The `IISAdministration` cmdlets are not part of Windows by default; they require the IIS Management Tools / the `IISAdministration` module.
+`msTools.Updater` generates a script that uses `Stop-IISApplicationPool` and `Start-IISApplicationPool`. These cmdlets are not exported by the in-box `IISAdministration` module (version 1.1.0.0) or the PSGallery version 1.1.0.0. `Get-Command -Module IISAdministration` only shows `Get-IISAppPool`, `Start-IISSite`, `Stop-IISSite`, etc. The generated script therefore references cmdlets that do not exist in the only available module.
 
 **Fix / Checklist**
 
-- Check if the module is available: `Get-Module -ListAvailable -Name IISAdministration`.
-- If missing, install it, e.g.:
-  ```powershell
-  Install-Module -Name IISAdministration -Force -AllowClobber
-  ```
-- Ensure the module is loaded before the cmdlets run:
-  ```powershell
-  Import-Module IISAdministration
-  ```
-- Verify the script is executed in Windows PowerShell 5.1 or PowerShell 7, depending on which version supports the installed `IISAdministration` module.
-- The IIS application pool user (or the admin account running the update) must have permission to import the module and manage the app pool.
+- This is an upstream bug in `msTools.Updater`; see `Docs/help/updater-requirements.md` for the full requirement.
+- Do not attempt to install a different `IISAdministration` version to fix this — the PSGallery version is also 1.1.0.0 and does not contain the cmdlets.
+- Wait for an `msTools.Updater` update that either uses `WebAdministration` (`Stop-WebAppPool` / `Start-WebAppPool`) or validates that the used `IISAdministration` cmdlets actually exist before writing them into the script.
+- The IIS application pool user or the admin account running the update must have permission to import the IIS module and manage the app pool.
 
 ## 5. Open — template for next finding
 
