@@ -58,6 +58,25 @@ foreach (var descriptor in processRunnerDescriptors)
 
 builder.Services.AddSingleton<IAutoUpdateProcessRunner, LoggingAutoUpdateProcessRunner>();
 
+var applicationDirectory = builder.Configuration["ApplicationUpdates:ApplicationDirectory"];
+if (string.IsNullOrWhiteSpace(applicationDirectory))
+{
+    applicationDirectory = Path.Combine(Path.GetTempPath(), "RezepteUpdaterTest");
+    Directory.CreateDirectory(applicationDirectory);
+    Console.WriteLine($"[testhost] No ApplicationUpdates:ApplicationDirectory configured. Using temporary directory: {applicationDirectory}");
+}
+
+var environmentDescriptors = builder.Services
+    .Where(d => d.ServiceType == typeof(IAutoUpdateEnvironment))
+    .ToList();
+
+foreach (var descriptor in environmentDescriptors)
+{
+    builder.Services.Remove(descriptor);
+}
+
+builder.Services.AddSingleton<IAutoUpdateEnvironment>(new ConfigurableAutoUpdateEnvironment(applicationDirectory));
+
 using var host = builder.Build();
 
 var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "preflight";
