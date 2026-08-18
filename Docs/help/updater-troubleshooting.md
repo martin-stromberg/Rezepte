@@ -101,13 +101,17 @@ Stop-IISApplicationPool : Die Benennung "Stop-IISApplicationPool" wurde nicht al
 
 **Fix / Checklist**
 
-- `Rezepte.Web` and `Rezepte.Updater.TestHost` now use a custom `IAutoUpdateProcessRunner` that wraps the generated script and uses `WebAdministration` (`Stop-WebAppPool` / `Start-WebAppPool`) instead of the missing `IISAdministration` cmdlets. This is the current workaround.
-- Verify the `WebAdministration` module is available:
+- Check if the module is available: `Get-Module -ListAvailable -Name IISAdministration`.
+- If missing, install it, e.g.:
   ```powershell
-  Get-Module -ListAvailable -Name WebAdministration
+  Install-Module -Name IISAdministration -Force -AllowClobber
   ```
-- The IIS application pool user or the admin account running the update must have permission to import `WebAdministration` and manage the app pool.
-- Long term: `msTools.Updater` should either generate `WebAdministration`-compatible scripts or ensure the used `IISAdministration` cmdlets actually exist. See `Docs/help/updater-requirements.md`.
+- Ensure the module is loaded before the cmdlets run:
+  ```powershell
+  Import-Module IISAdministration
+  ```
+- Verify the script is executed in Windows PowerShell 5.1 or PowerShell 7, depending on which version supports the installed `IISAdministration` module.
+- The IIS application pool user (or the admin account running the update) must have permission to import the module and manage the app pool.
 
 ## 5. Open — template for next finding
 
