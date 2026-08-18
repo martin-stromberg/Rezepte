@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rezepte.Updater.TestHost;
 using msTools.Updater;
+using System.Linq;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -44,6 +46,17 @@ builder.UseAutoUpdate(autoUpdate =>
         autoUpdate.WithIisApplicationPool(appPoolName, siteName ?? string.Empty);
     }
 });
+
+var processRunnerDescriptors = builder.Services
+    .Where(d => d.ServiceType == typeof(IAutoUpdateProcessRunner))
+    .ToList();
+
+foreach (var descriptor in processRunnerDescriptors)
+{
+    builder.Services.Remove(descriptor);
+}
+
+builder.Services.AddSingleton<IAutoUpdateProcessRunner, LoggingAutoUpdateProcessRunner>();
 
 using var host = builder.Build();
 

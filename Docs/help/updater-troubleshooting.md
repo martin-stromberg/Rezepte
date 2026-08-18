@@ -28,7 +28,37 @@ Neither `ApplicationUpdates:RepositoryOwner` / `ApplicationUpdates:RepositoryNam
 - If using a local folder: set `LocalSourceDirectory` to a directory that contains a valid `update.json` manifest and the update package.
 - Do not leave both options empty.
 
-## 2. Open — template for next finding
+## 2. `InstallationStarted` but nothing happens and `update.lock` stays
+
+**Date:** 2026-08-18
+
+**Observed symptom**
+
+`Rezepte.Updater.TestHost` (or `Rezepte.Web`) starts the installation and logs:
+
+```text
+Outcome = Success
+State = Installing
+Code = InstallationStarted
+Message = Installation started.
+Error =
+```
+
+A `update.lock` file is created, the package is downloaded to `pending/` and a PowerShell script is generated, but the application files are not copied. The lock file persists and no further output appears.
+
+**Root cause**
+
+`msTools.Updater`’s default `IAutoUpdateProcessRunner` starts the generated PowerShell script as a detached process. It does not capture stdout/stderr. If the script hangs (missing IIS permissions, missing `WebAdministration`/`IISAdministration` module, app pool cannot be stopped, etc.) or fails, the error is not reported by `msTools.Updater`. The lock is also not released because the installation is still considered in progress.
+
+**Fix / Checklist**
+
+- Run the generated `.ps1` script manually in an **administrative** PowerShell to see the actual error.
+- Alternatively, use `Rezepte.Updater.TestHost` with the included `LoggingAutoUpdateProcessRunner`. It starts `powershell -File <script>` synchronously and prints the script output.
+- Ensure the account can stop and start the configured IIS app pool (or Windows service / executable).
+- Ensure the `WebAdministration` or `IISAdministration` PowerShell module is installed.
+- For IIS, `StopHostAfterScriptStart` is not relevant. The PowerShell script must stop/start the app pool itself.
+
+## 3. Open — template for next finding
 
 **Date:**
 
