@@ -95,6 +95,20 @@ Einer der folgenden Installationstypen muss konfiguriert sein:
 
 Wird `AppPoolName` gesetzt, verwendet `msTools.Updater` diesen und das optionale `SiteName` nur für Logging. Ansonsten wird `ServiceName` oder `ExecutablePath` verwendet.
 
+#### IIS-Application-Pools
+
+Für `AppPoolName` muss das **`IISAdministration`**-PowerShell-Modul auf dem ausführenden Rechner installiert sein, weil `msTools.Updater` die Cmdlets `Stop-IISApplicationPool` und `Start-IISApplicationPool` verwendet. Installation in einer administrativen PowerShell:
+
+```powershell
+Install-Module -Name IISAdministration -Force -AllowClobber -Scope AllUsers
+```
+
+Anschließend prüfen:
+
+```powershell
+Get-Module -ListAvailable -Name IISAdministration
+```
+
 Der Service-Account benötigt ausreichende Berechtigungen (Administratoren bzw. Rechte zum Stoppen/Starten des App Pools oder Dienstes).
 
 ### Linux
