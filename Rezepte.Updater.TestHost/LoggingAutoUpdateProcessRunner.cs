@@ -33,30 +33,30 @@ public sealed class LoggingAutoUpdateProcessRunner : IAutoUpdateProcessRunner
 
         using var process = new Process { StartInfo = startInfo };
 
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (!string.IsNullOrEmpty(e.Data))
-            {
-                Console.WriteLine($"[install] {e.Data}");
-            }
-        };
-
-        process.ErrorDataReceived += (sender, e) =>
-        {
-            if (!string.IsNullOrEmpty(e.Data))
-            {
-                Console.WriteLine($"[install-error] {e.Data}");
-            }
-        };
-
         process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+
+        var outputTask = Task.Run(() => process.StandardOutput.ReadToEnd());
+        var errorTask = Task.Run(() => process.StandardError.ReadToEnd());
+
         process.WaitForExit();
+
+        var output = outputTask.GetAwaiter().GetResult();
+        var error = errorTask.GetAwaiter().GetResult();
+
+        if (!string.IsNullOrWhiteSpace(output))
+        {
+            Console.WriteLine(output);
+        }
+
+        if (!string.IsNullOrWhiteSpace(error))
+        {
+            Console.Error.WriteLine(error);
+        }
 
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException($"Installation script exited with code {process.ExitCode}: {scriptPath}");
+            throw new InvalidOperationException(
+                $"Installation script exited with code {process.ExitCode}: {scriptPath}\n\n{error}");
         }
     }
 }
