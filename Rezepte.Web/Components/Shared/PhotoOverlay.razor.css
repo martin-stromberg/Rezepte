@@ -36,7 +36,7 @@
 .overlay-photo .thumb-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1; /* erzwingt quadratisches Verhältnis */
+  aspect-ratio: 1 / 1; /* erzwingt quadratisches VerhÃ¤ltnis */
   overflow: hidden;
   border-radius: 0.25rem;
   background-color: #f6f6f6;
@@ -45,7 +45,7 @@
 .overlay-photo img.thumb {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* füllt Quadrat, zuschneiden bei Bedarf */
+  object-fit: cover; /* fÃ¼llt Quadrat, zuschneiden bei Bedarf */
   display: block;
   cursor: pointer;
   user-select: none;
@@ -65,18 +65,18 @@
 
 /* large image specific styles */
 .large-backdrop {
-  /* gleiche wie .overlay-backdrop, sofern keine Änderung gewünscht */
+  /* gleiche wie .overlay-backdrop, sofern keine Ã„nderung gewÃ¼nscht */
 }
 
 .large-content {
-  /* spezifische Stile für den großen Bildinhalt, wenn nötig */
+  /* spezifische Stile fÃ¼r den groÃŸen Bildinhalt, wenn nÃ¶tig */
 }
 
 .large-photo-wrap {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 80vh; /* Beispielsweise 80% der Viewport-Höhe */
+  height: 80vh; /* Beispielsweise 80% der Viewport-HÃ¶he */
 }
 
 .large-photo {

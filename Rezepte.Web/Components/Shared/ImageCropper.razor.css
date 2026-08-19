@@ -1,4 +1,4 @@
-/* Fullscreen fixed backdrop (sitzt über allen Overlays) */
+/* Fullscreen fixed backdrop (sitzt Ã¼ber allen Overlays) */
 .image-cropper-backdrop {
   position: fixed;
   inset: 0;                    /* top:0; right:0; bottom:0; left:0 */
@@ -12,7 +12,7 @@
   pointer-events: auto;
 }
 
-/* Content-Box: zentriert, max. Größe, eigene Scrollzone */
+/* Content-Box: zentriert, max. GrÃ¶ÃŸe, eigene Scrollzone */
 .image-cropper-content {
   position: relative;
   width: min(92vw, 1100px);
@@ -26,7 +26,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  transform: translateZ(0);   /* GPU compositing zur flüssigen Darstellung */
+  transform: translateZ(0);   /* GPU compositing zur flÃ¼ssigen Darstellung */
 }
 
 /* Body area for cropper canvas/preview: skaliert innerhalb der Box */
@@ -38,7 +38,7 @@
   min-height: 240px;
 }
 
-/* Close/Action buttons über dem Content sichtbar */
+/* Close/Action buttons Ã¼ber dem Content sichtbar */
 .image-cropper-content .overlay-close {
   position: absolute;
   top: 0.5rem;

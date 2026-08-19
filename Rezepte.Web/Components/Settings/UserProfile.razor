@@ -8,7 +8,7 @@
         <Authorized Context="authState">
             @if (Vm.IsLoading)
             {
-                <div class="text-muted">Lade Profil…</div>
+                <div class="text-muted">Lade Profilâ€¦</div>
             }
             else
             {
@@ -48,7 +48,7 @@
                                         <button class="btn btn-primary" type="submit" disabled="@Vm.IsBusy">Speichern</button>
                                     </div>
                                     <div class="form-text mt-2">
-                                        Hinweis: Nach Änderung des Benutzernamens kann eine erneute Anmeldung nötig sein, damit der Name in der Navigation aktualisiert wird.
+                                        Hinweis: Nach Ã„nderung des Benutzernamens kann eine erneute Anmeldung nÃ¶tig sein, damit der Name in der Navigation aktualisiert wird.
                                     </div>
                                 </EditForm>
                             </div>
@@ -58,7 +58,7 @@
                     <div class="col-12 col-lg-6">
                         <div class="card h-100">
                             <div class="card-header">
-                                <h6 class="mb-0">Passwort ändern</h6>
+                                <h6 class="mb-0">Passwort Ã¤ndern</h6>
                             </div>
                             <div class="card-body">
                                 <EditForm Model="@Vm.Password" OnValidSubmit="@(() => Vm.ChangePasswordAsync())" FormName="changePassword">
@@ -76,13 +76,13 @@
                                         <ValidationMessage For="@(() => Vm.Password.NewPassword)" />
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Neues Passwort bestätigen</label>
+                                        <label class="form-label">Neues Passwort bestÃ¤tigen</label>
                                         <InputText class="form-control" type="password" @bind-Value="Vm.Password.ConfirmPassword" />
                                         <ValidationMessage For="@(() => Vm.Password.ConfirmPassword)" />
                                     </div>
 
                                     <div class="d-grid">
-                                        <button class="btn btn-outline-primary" type="submit" disabled="@Vm.IsBusy">Passwort ändern</button>
+                                        <button class="btn btn-outline-primary" type="submit" disabled="@Vm.IsBusy">Passwort Ã¤ndern</button>
                                     </div>
                                 </EditForm>
                             </div>

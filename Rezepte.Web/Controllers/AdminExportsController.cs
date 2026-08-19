@@ -30,7 +30,7 @@ public class AdminExportsController : ControllerBase
     /// <summary>
     /// Admin-Export: Exportiert alle Daten (inkl. Benutzer).
     /// POST /api/admin/exports?includePdf=true
-    /// Startet einen Hintergrundjob und liefert dessen Job-ID zurueck.
+    /// Startet einen Hintergrundjob und liefert dessen Job-ID zurück.
     /// </summary>
     [HttpPost]
     public async Task<IActionResult> ExportAll([FromQuery] bool includeImages = false, [FromQuery] bool includePdf = false, CancellationToken ct = default)

@@ -33,7 +33,7 @@ public class UserStatsController : ControllerBase
         var since = reg.HasValue ? (DateTime.UtcNow - reg.Value) : TimeSpan.Zero;
         var cookbooks = await _cookbooks.GetAllAsync(userId, ct);
         var cookbookCount = cookbooks?.Count ?? 0;
-        var recipes = await _recipes.GetByCookbookAsync(userId, "", ct); // ct hinzugefügt
+        var recipes = await _recipes.GetByCookbookAsync(userId, "", ct); // ct hinzugefÃ¼gt
         var ownRecipeCount = recipes?.Count ?? 0;
         var aiCount = await _aiUsage.GetCountAsync(userId, ct);
 

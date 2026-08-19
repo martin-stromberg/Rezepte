@@ -149,7 +149,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             for (var i = 0; i < steps.Count; i++)
             {
                 var s = steps[i];
-                if (string.IsNullOrWhiteSpace(s.Description)) return (false, "Jeder Zubereitungsschritt benoetigt eine Beschreibung.", null);
+                if (string.IsNullOrWhiteSpace(s.Description)) return (false, "Jeder Zubereitungsschritt benötigt eine Beschreibung.", null);
                 if (s.DurationMinutes < 0) return (false, "Zubereitungsdauer darf nicht negativ sein.", null);
                 var step = new RecipeStep
                 {
@@ -166,7 +166,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
                 {
                     foreach (var ing in s.Ingredients)
                     {
-                        if (string.IsNullOrWhiteSpace(ing.Name)) return (false, "Zutaten benoetigen eine Bezeichnung.", null);
+                        if (string.IsNullOrWhiteSpace(ing.Name)) return (false, "Zutaten benötigen eine Bezeichnung.", null);
                         _db.RecipeIngredients.Add(new RecipeIngredient
                         {
                             StepId = step.Id,
@@ -199,7 +199,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct);
         if (recipe is null) return (false, "Rezept nicht gefunden.");
         if (recipe.UserId != userId)
-            return (false, "Ein Wechsel der Benutzerzugehoerigkeit ist nicht zulaessig.");
+            return (false, "Ein Wechsel der Benutzerzugehörigkeit ist nicht zulässig.");
         if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3) return (false, "Der Titel muss mindestens 3 Zeichen haben.");
 
         var sideDishIds = NormalizeRecipeIds(sideDishRecipeIds);
@@ -224,7 +224,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             for (var i = 0; i < steps.Count; i++)
             {
                 var s = steps[i];
-                if (string.IsNullOrWhiteSpace(s.Description)) return (false, "Jeder Zubereitungsschritt benoetigt eine Beschreibung.");
+                if (string.IsNullOrWhiteSpace(s.Description)) return (false, "Jeder Zubereitungsschritt benötigt eine Beschreibung.");
                 if (s.DurationMinutes < 0) return (false, "Zubereitungsdauer darf nicht negativ sein.");
                 var step = new RecipeStep
                 {
@@ -241,7 +241,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
                 {
                     foreach (var ing in s.Ingredients)
                     {
-                        if (string.IsNullOrWhiteSpace(ing.Name)) return (false, "Zutaten benoetigen eine Bezeichnung.");
+                        if (string.IsNullOrWhiteSpace(ing.Name)) return (false, "Zutaten benötigen eine Bezeichnung.");
                         _db.RecipeIngredients.Add(new RecipeIngredient
                         {
                             StepId = step.Id,

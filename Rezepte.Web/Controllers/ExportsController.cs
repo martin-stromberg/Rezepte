@@ -26,7 +26,7 @@ public class ExportsController : ControllerBase
     /// <summary>
     /// Exportiert die Rezeptesammlung des angemeldeten Benutzers.
     /// Query: ?format=csv|json (default zip), ?includePdf=true|false, ?includeImages=true|false
-    /// Startet einen Hintergrundjob und liefert dessen Job-ID zurueck.
+    /// Startet einen Hintergrundjob und liefert dessen Job-ID zurück.
     /// </summary>
     [HttpGet("recipes")]
     public async Task<IActionResult> ExportMyRecipes([FromQuery] string format = "json", [FromQuery] bool includeImages = false, [FromQuery] bool includePdf = false, CancellationToken ct = default)
