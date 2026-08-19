@@ -6,22 +6,27 @@
 {
     <div>Lade...</div>
 }
-else if (!string.IsNullOrWhiteSpace(errorMessage))
+else if (!string.IsNullOrWhiteSpace(loadErrorMessage))
 {
-    <div class="alert alert-danger py-2">@errorMessage</div>
+    <div class="alert alert-danger py-2">@loadErrorMessage</div>
 }
 else
 {
     <section>
         <h3 class="h6">security.txt (RFC 9116)</h3>
         <p class="text-muted small mb-3">
-            Hinterlegen Sie hier die oeffentlichen Kontakt- und Policy-Angaben fuer Sicherheitsmeldungen.
-            Canonical-URLs werden automatisch je Ausgabeformat gesetzt und muessen nicht manuell gepflegt werden.
+            Hinterlegen Sie hier die öffentlichen Kontakt- und Policy-Angaben für Sicherheitsmeldungen.
+            Canonical-URLs können optional manuell angegeben werden. Wenn das Feld leer bleibt, wird die URL automatisch aus der Anfrage bestimmt.
         </p>
 
         @if (!string.IsNullOrWhiteSpace(successMessage))
         {
             <div class="alert alert-success py-2">@successMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(saveErrorMessage))
+        {
+            <div class="alert alert-danger py-2">@saveErrorMessage</div>
         }
 
         <div class="form-check form-switch mb-3">
@@ -50,6 +55,10 @@ else
             <input id="securitytxt-preferred-languages" class="form-control form-control-sm" type="text" @bind="PreferredLanguages" disabled="@isSaving" />
         </div>
         <div class="mb-2">
+            <label class="form-label small" for="securitytxt-canonical">Canonical (optional; wenn leer, wird die URL automatisch bestimmt)</label>
+            <input id="securitytxt-canonical" class="form-control form-control-sm" type="text" @bind="Canonical" disabled="@isSaving" />
+        </div>
+        <div class="mb-2">
             <label class="form-label small" for="securitytxt-policy">Policy</label>
             <input id="securitytxt-policy" class="form-control form-control-sm" type="text" @bind="Policy" disabled="@isSaving" />
         </div>
@@ -66,7 +75,8 @@ else
     private Rezepte.Web.Dtos.SecurityTxtSettings form = EmptySettings;
     private bool isLoading = true;
     private bool isSaving;
-    private string? errorMessage;
+    private string? loadErrorMessage;
+    private string? saveErrorMessage;
     private string? successMessage;
 
     private static Rezepte.Web.Dtos.SecurityTxtSettings EmptySettings => new(
@@ -114,6 +124,12 @@ else
         set => form = form with { PreferredLanguages = value };
     }
 
+    private string? Canonical
+    {
+        get => form.Canonical;
+        set => form = form with { Canonical = value };
+    }
+
     private string? Policy
     {
         get => form.Policy;
@@ -134,7 +150,7 @@ else
     private async Task LoadAsync()
     {
         isLoading = true;
-        errorMessage = null;
+        loadErrorMessage = null;
         try
         {
             var settings = await Client.GetAsync<Rezepte.Web.Dtos.SecurityTxtSettings>("api/settings/global/securitytxt");
@@ -145,16 +161,16 @@ else
         }
         catch (HttpRequestException)
         {
-            errorMessage = "Einstellungen konnten nicht geladen werden.";
+            loadErrorMessage = "Einstellungen konnten nicht geladen werden.";
         }
         catch (TaskCanceledException)
         {
-            errorMessage = "Laden dauert zu lange. Bitte erneut versuchen.";
+            loadErrorMessage = "Laden dauert zu lange. Bitte erneut versuchen.";
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Unerwarteter Fehler beim Laden der security.txt-Einstellungen.");
-            errorMessage = "Ein unerwarteter Fehler ist aufgetreten.";
+            loadErrorMessage = "Ein unerwarteter Fehler ist aufgetreten.";
         }
         finally
         {
@@ -166,7 +182,7 @@ else
     {
         isSaving = true;
         successMessage = null;
-        errorMessage = null;
+        saveErrorMessage = null;
         try
         {
             var response = await Client.PutAsJsonAsync("api/settings/global/securitytxt", form);
@@ -177,21 +193,21 @@ else
             else
             {
                 var body = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Fehler: {body}";
+                saveErrorMessage = $"Fehler: {body}";
             }
         }
         catch (HttpRequestException)
         {
-            errorMessage = "Einstellungen konnten nicht gespeichert werden.";
+            saveErrorMessage = "Einstellungen konnten nicht gespeichert werden.";
         }
         catch (TaskCanceledException)
         {
-            errorMessage = "Speichern dauert zu lange. Bitte erneut versuchen.";
+            saveErrorMessage = "Speichern dauert zu lange. Bitte erneut versuchen.";
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Unerwarteter Fehler beim Speichern der security.txt-Einstellungen.");
-            errorMessage = "Ein unerwarteter Fehler ist aufgetreten.";
+            saveErrorMessage = "Ein unerwarteter Fehler ist aufgetreten.";
         }
         finally
         {

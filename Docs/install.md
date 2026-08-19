@@ -1,25 +1,25 @@
 # Installationsanweisungen
 
-Diese Anleitung beschreibt das manuelle Deployment der Anwendung auf einem Linux-Server mit systemd. Die Anwendung zielt auf `net10.0` und wird typischerweise fuer `linux-x64` veroeffentlicht.
+Diese Anleitung beschreibt das manuelle Deployment der Anwendung auf einem Linux-Server mit systemd. Die Anwendung zielt auf `net10.0` und wird typischerweise für `linux-x64` veröffentlicht.
 
-## Runtime auf dem Server pruefen
+## Runtime auf dem Server prüfen
 
-Bei einem framework-abhaengigen Publish (`--self-contained false`) muessen die passenden .NET-10-Shared-Frameworks auf dem Zielserver installiert sein. Pruefe die installierte Runtime vor dem Ausrollen:
+Bei einem framework-abhängigen Publish (`--self-contained false`) müssen die passenden .NET-10-Shared-Frameworks auf dem Zielserver installiert sein. Prüfe die installierte Runtime vor dem Ausrollen:
 
 ```bash
 dotnet --info
 ```
 
-In der Ausgabe muessen beide Shared Frameworks in einer passenden .NET-10-Version vorhanden sein:
+In der Ausgabe müssen beide Shared Frameworks in einer passenden .NET-10-Version vorhanden sein:
 
 - `Microsoft.NETCore.App`
 - `Microsoft.AspNetCore.App`
 
-Framework-Assemblies wie `System.Runtime.Serialization.Primitives.dll` muessen bei einem framework-abhaengigen Publish nicht im Publish-Verzeichnis liegen. Sie werden aus dem installierten .NET-Shared-Framework des Servers geladen. Fehlt dort eine passende .NET-10-Runtime, kann die Anwendung beim Rendern von Blazor-Komponenten mit `System.IO.FileNotFoundException` abbrechen.
+Framework-Assemblies wie `System.Runtime.Serialization.Primitives.dll` müssen bei einem framework-abhängigen Publish nicht im Publish-Verzeichnis liegen. Sie werden aus dem installierten .NET-Shared-Framework des Servers geladen. Fehlt dort eine passende .NET-10-Runtime, kann die Anwendung beim Rendern von Blazor-Komponenten mit `System.IO.FileNotFoundException` abbrechen.
 
 ## Publish erzeugen
 
-Verwende framework-abhaengiges Deployment, wenn der Server die passenden .NET-10-Shared-Frameworks verlaesslich bereitstellt:
+Verwende framework-abhängiges Deployment, wenn der Server die passenden .NET-10-Shared-Frameworks verlaesslich bereitstellt:
 
 ```powershell
 dotnet publish Rezepte.Web -c Release -f net10.0 -r linux-x64 --self-contained false
@@ -35,7 +35,7 @@ Kopiere den Inhalt des Publish-Verzeichnisses auf den Linux-Server, zum Beispiel
 
 ## systemd-Service einrichten
 
-Erstelle `/etc/systemd/system/rezepte.service` fuer ein framework-abhaengiges Deployment:
+Erstelle `/etc/systemd/system/rezepte.service` für ein framework-abhängiges Deployment:
 
 ```ini
 [Unit]
@@ -65,7 +65,7 @@ sudo chmod +x /var/www/rezepte/Rezepte.Web
 ExecStart=/var/www/rezepte/Rezepte.Web
 ```
 
-`WorkingDirectory=/var/www/rezepte` muss dabei erhalten bleiben, damit relative Pfade fuer Datenbank, Logs und statische Dateien zum Deployment-Verzeichnis passen.
+`WorkingDirectory=/var/www/rezepte` muss dabei erhalten bleiben, damit relative Pfade für Datenbank, Logs und statische Dateien zum Deployment-Verzeichnis passen.
 
 ## Dienst installieren und starten
 

@@ -8,7 +8,7 @@ public class Cookbook
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; }
 
-    // Reihenfolge-Index für Drag&Drop / Sortierung
+    // Reihenfolge-Index fÃ¼r Drag&Drop / Sortierung
     public int OrderIndex { get; set; } = 0;
 
     public ICollection<RecipeCookbook> RecipeCookbooks { get; set; } = new List<RecipeCookbook>();

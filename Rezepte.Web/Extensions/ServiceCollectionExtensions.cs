@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.IdentityModel.Tokens;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Data;
@@ -114,13 +115,27 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IGoogleCredentialsProvider, GoogleCredentialsProvider>();
         services.AddHttpContextAccessor();
-        services.AddTransient<ApiAuthHandler>();
         services.AddTransient<AntiForgeryHandler>();
+        services.AddScoped<CircuitAuthHandler>();
 
-        // Typed API client with handlers
-        services.AddHttpClient<ApiClient>()
-            .AddHttpMessageHandler<ApiAuthHandler>()
+        // Named client for the pooled base handler pipeline (AntiForgery only)
+        services.AddHttpClient("ApiClient")
             .AddHttpMessageHandler<AntiForgeryHandler>();
+
+        // Scoped ApiClient with a per-circuit/request auth handler
+        services.AddScoped<ApiClient>(sp =>
+        {
+            var nav = sp.GetRequiredService<NavigationManager>();
+            var handlerFactory = sp.GetRequiredService<IHttpMessageHandlerFactory>();
+            var inner = handlerFactory.CreateHandler("ApiClient");
+            var authHandler = sp.GetRequiredService<CircuitAuthHandler>();
+            authHandler.InnerHandler = inner;
+            var http = new HttpClient(authHandler, disposeHandler: true)
+            {
+                BaseAddress = new Uri(nav.BaseUri)
+            };
+            return new ApiClient(http, nav);
+        });
 
         // Default HttpClient (no auth header) for static/public calls
         services.AddScoped(sp =>

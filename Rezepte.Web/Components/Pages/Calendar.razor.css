@@ -92,7 +92,7 @@
   .recipe-thumb { width: 56px; height: 56px; }
   .btn-icon { width: 32px; height: 32px; }
 }
-/* Stelle sicher, dass Aktionstasten über dem stretched-link liegen (global) */
+/* Stelle sicher, dass Aktionstasten Ã¼ber dem stretched-link liegen (global) */
 .recipe-item {
     position: relative;
 }

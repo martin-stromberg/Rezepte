@@ -352,7 +352,7 @@ public sealed class ApplicationUpdateSettingsServiceTests
                 "Download abgeschlossen.",
                 null));
 
-        public Task<AutoUpdateResult> InstallAsync(bool confirmDowntime, CancellationToken ct = default)
+        public Task<AutoUpdateResult> InstallAsync(bool confirmDowntime, bool force, CancellationToken ct = default)
         {
             InstallCalled = true;
             InstallConfirmDowntime = confirmDowntime;

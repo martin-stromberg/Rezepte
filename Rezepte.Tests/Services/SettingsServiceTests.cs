@@ -176,7 +176,7 @@ public class SettingsServiceTests
             Encryption: "https://example.com/pgp.txt",
             Acknowledgments: "https://example.com/thanks",
             PreferredLanguages: "de, en",
-            Canonical: "https://example.com/will-be-ignored",
+            Canonical: "https://example.com/security.txt",
             Policy: "https://example.com/policy",
             Hiring: "https://example.com/jobs");
 
@@ -189,7 +189,7 @@ public class SettingsServiceTests
         read.Encryption.Should().Be("https://example.com/pgp.txt");
         read.Acknowledgments.Should().Be("https://example.com/thanks");
         read.PreferredLanguages.Should().Be("de, en");
-        read.Canonical.Should().BeNull();
+        read.Canonical.Should().Be("https://example.com/security.txt");
         read.Policy.Should().Be("https://example.com/policy");
         read.Hiring.Should().Be("https://example.com/jobs");
     }
@@ -247,7 +247,7 @@ public class SettingsServiceTests
             Encryption: "https://example.com/pgp.txt",
             Acknowledgments: "https://example.com/thanks",
             PreferredLanguages: "de",
-            Canonical: "https://example.com/will-be-ignored",
+            Canonical: "https://example.com/ignored",
             Policy: "https://example.com/policy",
             Hiring: "https://example.com/jobs");
         await sut.SetSecurityTxtSettingsAsync(withValues, CancellationToken.None);
@@ -275,7 +275,7 @@ public class SettingsServiceTests
     }
 
     [Fact]
-    public async Task SetSecurityTxtSettingsAsync_ShouldNotPersistCanonical_WhenProvided()
+    public async Task SetSecurityTxtSettingsAsync_ShouldPersistCanonical_WhenProvided()
     {
         using var db = CreateDb();
         var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
@@ -288,12 +288,12 @@ public class SettingsServiceTests
             Encryption: null,
             Acknowledgments: null,
             PreferredLanguages: null,
-            Canonical: "https://example.com/should-not-be-stored",
+            Canonical: "https://example.com/should-be-stored",
             Policy: null,
             Hiring: null), CancellationToken.None);
 
-        (await db.Set<AppSetting>().FindAsync("SecurityTxt.Canonical")).Should().BeNull();
-        (await sut.GetSecurityTxtSettingsAsync(CancellationToken.None)).Canonical.Should().BeNull();
+        (await db.Set<AppSetting>().FindAsync("SecurityTxt.Canonical"))!.Value.Should().Be("https://example.com/should-be-stored");
+        (await sut.GetSecurityTxtSettingsAsync(CancellationToken.None)).Canonical.Should().Be("https://example.com/should-be-stored");
     }
 
     [Fact]

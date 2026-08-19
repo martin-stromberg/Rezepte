@@ -11,8 +11,8 @@
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 id="shoppingListDialogTitle" class="modal-title">Zutaten uebernehmen</h5>
-                    <button type="button" class="btn-close" aria-label="Schliessen" @onclick="CloseAsync"></button>
+                    <h5 id="shoppingListDialogTitle" class="modal-title">Zutaten übernehmen</h5>
+                    <button type="button" class="btn-close" aria-label="Schließen" @onclick="CloseAsync"></button>
                 </div>
                 <div class="modal-body">
                     @if (!string.IsNullOrWhiteSpace(message))
@@ -68,7 +68,7 @@
                         }
                         @if (ingredientGroups.Any(g => !g.IsMainRecipe))
                         {
-                            <div class="form-text mt-2">Zutaten der Beilagen sind nicht vorausgewaehlt.</div>
+                            <div class="form-text mt-2">Zutaten der Beilagen sind nicht vorausgewählt.</div>
                         }
                     }
                 </div>
@@ -76,7 +76,7 @@
                     <button type="button" class="btn btn-outline-secondary" @onclick="CloseAsync">Abbrechen</button>
                     <button type="button" class="btn btn-success" disabled="@(isLoading || selectedIngredientIds.Count == 0)" @onclick="AddAsync">
                         <span class="bi bi-cart-plus" aria-hidden="true"></span>
-                        <span class="ms-1">Uebernehmen</span>
+                        <span class="ms-1">Übernehmen</span>
                     </button>
                 </div>
             </div>

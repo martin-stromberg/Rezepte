@@ -125,7 +125,7 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
         => ApplicationUpdateCommandResult.FromResult(await _commandHandler.DownloadAsync(ct).ConfigureAwait(false));
 
     public async Task<ApplicationUpdateCommandResult> InstallAsync(CancellationToken ct = default)
-        => ApplicationUpdateCommandResult.FromResult(await _commandHandler.InstallAsync(confirmDowntime: true, ct).ConfigureAwait(false));
+        => ApplicationUpdateCommandResult.FromResult(await _commandHandler.InstallAsync(confirmDowntime: true, force: false, ct).ConfigureAwait(false));
 }
 
 public sealed record ApplicationUpdateSettingsItem(bool AllowPrereleaseUpdates);

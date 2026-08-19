@@ -19,7 +19,7 @@
         @if (selectedFileName != null)
         {
             <div class="mt-2">
-                <small class="text-muted">Ausgewaehlt: @selectedFileName</small>
+                <small class="text-muted">Ausgewählt: @selectedFileName</small>
             </div>
         }
     </div>
@@ -35,7 +35,7 @@
         <div class="progress mt-3" role="progressbar" aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100">
             <div class="progress-bar" style="width: @progress%">@progress%</div>
         </div>
-        <div class="mt-2 text-muted">Vorgang laeuft...</div>
+        <div class="mt-2 text-muted">Vorgang läuft...</div>
     }
     @if (!string.IsNullOrEmpty(message))
     {
@@ -157,11 +157,11 @@
     {
         if (selectedFile == null)
         {
-            message = "Keine Datei ausgewaehlt.";
+            message = "Keine Datei ausgewählt.";
             return;
         }
 
-        var okConfirm = await JS.InvokeAsync<bool>("confirm", "Wirklich wiederherstellen? Bestehende Daten werden ueberschrieben.");
+        var okConfirm = await JS.InvokeAsync<bool>("confirm", "Wirklich wiederherstellen? Bestehende Daten werden überschrieben.");
         if (!okConfirm) return;
 
         isBusy = true;

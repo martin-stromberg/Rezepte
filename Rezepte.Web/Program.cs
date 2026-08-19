@@ -9,6 +9,7 @@ using Rezepte.Web.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using msTools.Updater;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,12 +41,24 @@ builder.UseAutoUpdate(autoUpdate =>
     {
         autoUpdate.UseLocalFolderSource(updateOptions.LocalSourceDirectory);
     }
+
+    if (!string.IsNullOrWhiteSpace(updateOptions.AppPoolName))
+    {
+        autoUpdate.WithIisApplicationPool(updateOptions.AppPoolName, updateOptions.SiteName ?? string.Empty);
+    }
+
+    if (!string.IsNullOrWhiteSpace(updateOptions.UpdateUnitName))
+    {
+        autoUpdate.WithUpdateUnitName(updateOptions.UpdateUnitName);
+    }
 });
 
 // Register all application services via project extension (DbContext, auth, DI, controllers, etc.)
 builder.Services.AddRezepteServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
+
+Log.Information("Application starting. Version: {Version}", ApplicationVersion.Current);
 
 // Apply migrations / ensure database (extension handles logging/errors)
 await app.ApplyDatabaseMigrationsAsync();
@@ -60,6 +73,9 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+
+// Request logging
+app.UseRequestLogging();
 
 // Static files (wwwroot)
 app.UseStaticFiles();

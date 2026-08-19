@@ -43,11 +43,11 @@ namespace Rezepte.Web.Controllers
         {
             if (req is null || string.IsNullOrWhiteSpace(req.Url)) return BadRequest("Url required");
 
-            // Best effort UserId-Ermittlung (Controller läuft üblicherweise mit Auth)
+            // Best effort UserId-Ermittlung (Controller lÃ¤uft Ã¼blicherweise mit Auth)
             var userId = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User?.Identity?.Name;
             if (string.IsNullOrWhiteSpace(userId))
             {
-                _logger.LogWarning("Löschen per Testlauf angefragt, aber kein User kontext vorhanden.");
+                _logger.LogWarning("LÃ¶schen per Testlauf angefragt, aber kein User kontext vorhanden.");
                 return Unauthorized("No user context available");
             }
 

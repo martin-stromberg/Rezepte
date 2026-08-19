@@ -26,4 +26,8 @@
   <ItemGroup>
     <Compile Include="..\Rezepte.Tests\TestHelpers\RepositoryPaths.cs" Link="TestHelpers\RepositoryPaths.cs" />
   </ItemGroup>
+
+  <Target Name="PublishRezepteWebForBrowserTests" AfterTargets="ResolveProjectReferences" Inputs="..\Rezepte.Web\bin\$(Configuration)\$(TargetFramework)\Rezepte.Web.dll" Outputs="..\Rezepte.Web\bin\$(Configuration)\$(TargetFramework)\publish\Rezepte.Web.dll">
+    <MSBuild Projects="..\Rezepte.Web\Rezepte.Web.csproj" Targets="Publish" Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)" BuildInParallel="false" />
+  </Target>
 </Project>
