@@ -27,6 +27,8 @@ else {
 
 $invalid = @()
 $replacement = @()
+$mojibake = @()
+$mojibakePattern = "`u{00C3}(?:`u{00A4}|`u{00B6}|`u{00BC}|`u{201E}|`u{2013}|`u{0153}|`u{0178})"
 $root = git rev-parse --show-toplevel
 
 foreach ($relative in $files) {
@@ -39,6 +41,9 @@ foreach ($relative in $files) {
         $text = $utf8.GetString($bytes)
         if ($text.Contains("`u{FFFD}")) {
             $replacement += $relative
+        }
+        if ($text -match $mojibakePattern) {
+            $mojibake += $relative
         }
     }
     catch {
@@ -57,6 +62,12 @@ if ($invalid.Count -gt 0) {
 if ($replacement.Count -gt 0) {
     Write-Host "The following files contain U+FFFD replacement characters (encoding corruption):" -ForegroundColor Red
     $replacement | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+    $hasErrors = $true
+}
+
+if ($mojibake.Count -gt 0) {
+    Write-Host "The following files contain double-encoded umlauts (Mojibake like 'AbhÃ¤ngigkeit'):" -ForegroundColor Red
+    $mojibake | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
     $hasErrors = $true
 }
 
