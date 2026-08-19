@@ -161,7 +161,7 @@ static async Task RunDownloadAsync(IHost host)
 static async Task RunInstallAsync(IHost host)
 {
     var orchestrator = host.Services.GetRequiredService<IAutoUpdateOrchestrator>();
-    var result = await orchestrator.InstallAsync(confirmDowntime: true, CancellationToken.None);
+    var result = await orchestrator.InstallAsync(confirmDowntime: true, force: false, CancellationToken.None);
     PrintResult(result);
 }
 
