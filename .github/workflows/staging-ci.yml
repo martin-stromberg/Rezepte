@@ -257,7 +257,7 @@ jobs:
         run: dotnet restore Rezepte.sln
 
       - name: Build application and plugins
-        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore -p:Version=${{ needs.version.outputs.rc_version }}
 
       - name: Build tests
         run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
@@ -270,7 +270,7 @@ jobs:
 
       - name: Publish application (Linux)
         run: >
-          dotnet publish Rezepte.Web/Rezepte.Web.csproj
+          dotnet publish Rezepte.Web/Rezepte.Web.csproj -p:Version=${{ needs.version.outputs.rc_version }}
           --configuration Release
           --framework net10.0
           --runtime linux-x64
@@ -283,7 +283,7 @@ jobs:
 
       - name: Publish application (Windows)
         run: >
-          dotnet publish Rezepte.Web/Rezepte.Web.csproj
+          dotnet publish Rezepte.Web/Rezepte.Web.csproj -p:Version=${{ needs.version.outputs.rc_version }}
           --configuration Release
           --framework net10.0
           --runtime win-x64
@@ -302,6 +302,7 @@ jobs:
             "createdAt": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           }
           EOF
+          cp artifacts/publish/release-metadata.json artifacts/publish-win-x64/release-metadata.json
 
       - name: Export import plugin contract
         shell: pwsh

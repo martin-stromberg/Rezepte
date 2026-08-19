@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 
 namespace Rezepte.Web;
 
@@ -10,6 +11,12 @@ public static class ApplicationVersion
 
     private static string Resolve()
     {
+        var metadataVersion = GetReleaseMetadataVersion();
+        if (!string.IsNullOrWhiteSpace(metadataVersion))
+        {
+            return metadataVersion;
+        }
+
         var assembly = Assembly.GetEntryAssembly() ?? typeof(ApplicationVersion).Assembly;
         var version = assembly.GetName().Version;
 
@@ -27,5 +34,30 @@ public static class ApplicationVersion
         }
 
         return version?.ToString(3) ?? "unknown";
+    }
+
+    private static string? GetReleaseMetadataVersion()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "release-metadata.json");
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            using var stream = File.OpenRead(path);
+            using var document = JsonDocument.Parse(stream);
+            if (document.RootElement.TryGetProperty("version", out var versionElement))
+            {
+                return versionElement.GetString();
+            }
+        }
+        catch
+        {
+            // Ignore invalid or missing metadata and fall back to assembly version.
+        }
+
+        return null;
     }
 }
