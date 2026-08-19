@@ -9,6 +9,7 @@ using Rezepte.Web.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using msTools.Updater;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,6 +57,8 @@ builder.UseAutoUpdate(autoUpdate =>
 builder.Services.AddRezepteServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
+
+Log.Information("Application starting. Version: {Version}", ApplicationVersion.Current);
 
 // Apply migrations / ensure database (extension handles logging/errors)
 await app.ApplyDatabaseMigrationsAsync();

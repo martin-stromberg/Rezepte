@@ -100,7 +100,7 @@ jobs:
         run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime linux-x64
 
       - name: Build application and plugins
-        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
 
       - name: Build tests
         run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
@@ -118,7 +118,7 @@ jobs:
           pwsh "$PLAYWRIGHT_SCRIPT" install --with-deps chromium
 
       - name: Publish application for browser tests
-        run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+        run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
 
       - name: Test
         run: |
@@ -127,7 +127,7 @@ jobs:
 
       - name: Publish (Linux)
         run: >
-          dotnet publish Rezepte.Web/Rezepte.Web.csproj
+          dotnet publish Rezepte.Web/Rezepte.Web.csproj -p:Version=${{ steps.version.outputs.version }}
           --configuration Release
           --framework net10.0
           --runtime linux-x64
@@ -140,7 +140,7 @@ jobs:
 
       - name: Publish (Windows)
         run: >
-          dotnet publish Rezepte.Web/Rezepte.Web.csproj
+          dotnet publish Rezepte.Web/Rezepte.Web.csproj -p:Version=${{ steps.version.outputs.version }}
           --configuration Release
           --framework net10.0
           --runtime win-x64
