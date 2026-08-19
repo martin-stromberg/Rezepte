@@ -26,7 +26,7 @@ internal static class ImportExceptionHelper
         }
 
         string Shorten(string s, int max = 300) =>
-            string.IsNullOrEmpty(s) ? s : (s.Length <= max ? s : s.Substring(0, max).TrimEnd() + "…");
+            string.IsNullOrEmpty(s) ? s : (s.Length <= max ? s : s.Substring(0, max).TrimEnd() + "â€¦");
 
         if (!string.IsNullOrEmpty(detail))
         {
