@@ -72,7 +72,7 @@ public sealed class PluginSettingsService(
         var isNew = string.IsNullOrWhiteSpace(request.Id);
         if (isNew && !request.TrustConfirmed)
         {
-            throw new InvalidOperationException("Neue Pluginquellen muessen als vertrauenswuerdig bestaetigt werden.");
+            throw new InvalidOperationException("Neue Pluginquellen mÃ¼ssen als vertrauenswÃ¼rdig bestÃ¤tigt werden.");
         }
 
         var duplicate = await db.PluginSources
@@ -107,7 +107,7 @@ public sealed class PluginSettingsService(
         {
             if (secretStore is null)
             {
-                throw new InvalidOperationException("Secret-Storage ist nicht verfuegbar.");
+                throw new InvalidOperationException("Secret-Storage ist nicht verfÃ¼gbar.");
             }
 
             source.SecretName ??= $"plugin-source-{source.Id}-pat";
@@ -192,12 +192,12 @@ public sealed class PluginSettingsService(
         var user = httpContextAccessor?.HttpContext?.User;
         if (user?.Identity?.IsAuthenticated != true)
         {
-            throw new UnauthorizedAccessException("Nur Administratoren duerfen Pluginquellen verwalten.");
+            throw new UnauthorizedAccessException("Nur Administratoren dÃ¼rfen Pluginquellen verwalten.");
         }
 
         if (!(user.IsInRole("Admin") || user.HasClaim("IsAdmin", "true")))
         {
-            throw new UnauthorizedAccessException("Nur Administratoren duerfen Pluginquellen verwalten.");
+            throw new UnauthorizedAccessException("Nur Administratoren dÃ¼rfen Pluginquellen verwalten.");
         }
     }
 }

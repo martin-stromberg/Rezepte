@@ -15,7 +15,7 @@ public static class UrlHelpers
     public static string NormalizeHttpUrl(string value)
     {
         if (!TryCreateHttpUri(value, out var uri))
-            throw new FormatException($"Ungueltige HTTP-URL: {value}");
+            throw new FormatException($"UngÃ¼ltige HTTP-URL: {value}");
 
         var builder = new UriBuilder(uri)
         {

@@ -24,8 +24,8 @@ public interface IExportService
 
     /// <summary>
     /// Stellt Daten aus einem Export-ZIP wieder her.
-    /// Achtung: Implementierung ist vorsichtig - legt fehlende Entitaeten an, ueberschreibt
-    /// bestehende nicht. Pruefe und erweitere nach Bedarf (Transaktionen, Validierung, BackgroundJob).
+    /// Achtung: Implementierung ist vorsichtig - legt fehlende Entitaeten an, Ã¼berschreibt
+    /// bestehende nicht. PrÃ¼fe und erweitere nach Bedarf (Transaktionen, Validierung, BackgroundJob).
     /// </summary>
     Task RestoreFromZipAsync(Stream zipStream, string adminUserId, CancellationToken ct = default);
 }
@@ -37,7 +37,7 @@ public interface IExportService
 public interface IPdfGenerator
 {
     /// <summary>
-    /// Erzeugt ein PDF fuer das gegebene Rezept (z.B. HTML-to-PDF) und liefert die Binaerdaten zurueck.
+    /// Erzeugt ein PDF fÃ¼r das gegebene Rezept (z.B. HTML-to-PDF) und liefert die Binaerdaten zurÃ¼ck.
     /// </summary>
     Task<byte[]?> GenerateRecipePdfAsync(ExportRecipeDto recipe, CancellationToken ct = default);
 }
@@ -503,7 +503,7 @@ public class ExportService : BaseService, IExportService
             if (exportRoot == null)
                 throw new InvalidDataException("Invalid export archive: recipes.json could not be parsed.");
 
-            // Beginne DB-Transaktion fuer atomare Wiederherstellung
+            // Beginne DB-Transaktion fÃ¼r atomare Wiederherstellung
             await using var tx = await _db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
             try
             {
@@ -513,9 +513,9 @@ public class ExportService : BaseService, IExportService
 
                 _logger.LogInformation("Destructive restore: deleting existing data except user {AdminUserId}", adminUserId);
 
-                // Loesche Dependents zuerst, dann uebergeordnete Entitaeten.
-                // Verwende ExecuteDeleteAsync fuer performante Batch-Loeschungen (EF Core 7+).
-                // Falls ExecuteDeleteAsync in eurer Umgebung nicht verfuegbar ist, ersetzt durch RemoveRange()-Pattern.
+                // LÃ¶sche Dependents zuerst, dann Ã¼bergeordnete Entitaeten.
+                // Verwende ExecuteDeleteAsync fÃ¼r performante Batch-LÃ¶schungen (EF Core 7+).
+                // Falls ExecuteDeleteAsync in eurer Umgebung nicht verfÃ¼gbar ist, ersetzt durch RemoveRange()-Pattern.
                 await _db.ShoppingListItems.ExecuteDeleteAsync(ct).ConfigureAwait(false);
                 await _db.ShoppingListGroups.ExecuteDeleteAsync(ct).ConfigureAwait(false);
                 await _db.CalendarEvents.ExecuteDeleteAsync(ct).ConfigureAwait(false);
@@ -534,7 +534,7 @@ public class ExportService : BaseService, IExportService
                 await _db.Recipes.ExecuteDeleteAsync(ct).ConfigureAwait(false);
                 await _db.Cookbooks.ExecuteDeleteAsync(ct).ConfigureAwait(false);
 
-                // Benutzer: alle loeschen ausser adminUserId (das Konto bleibt erhalten)
+                // Benutzer: alle lÃ¶schen ausser adminUserId (das Konto bleibt erhalten)
                 await _db.Users.Where(u => u.Id != adminUserId).ExecuteDeleteAsync(ct).ConfigureAwait(false);
 
                 // Stelle sicher, dass DB in konsistentem Zustand ist bevor wir neue Daten anlegen
@@ -634,7 +634,7 @@ public class ExportService : BaseService, IExportService
 
                             foreach (var cb in r.Cookbooks ?? Enumerable.Empty<ExportRecipeCookbookDto>())
                             {
-                                // Pruefe, ob Cookbook existiert
+                                // PrÃ¼fe, ob Cookbook existiert
                                 var cbExists = await _db.Cookbooks.AnyAsync(x => x.Id == cb.CookbookId, ct).ConfigureAwait(false);
                                 if (!cbExists) continue;
                                 var rc = new Rezepte.Web.Entities.RecipeCookbook
@@ -702,7 +702,7 @@ public class ExportService : BaseService, IExportService
                                 var entry = archive.GetEntry(normalized);
                                 if (entry == null) continue;
 
-                                // Pruefe, ob Bild bereits existiert (Vergleich auf FileName + RecipeId)
+                                // PrÃ¼fe, ob Bild bereits existiert (Vergleich auf FileName + RecipeId)
                                 var fileName = Path.GetFileName(normalized);
                                 var imgExists = await _db.RecipeImages.AnyAsync(x => x.RecipeId == r.Id && x.FileName == fileName, ct).ConfigureAwait(false);
                                 if (imgExists) continue;

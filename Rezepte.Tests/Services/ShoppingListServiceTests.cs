@@ -207,7 +207,7 @@ public class ShoppingListServiceTests
             CancellationToken.None);
 
         result.ok.Should().BeFalse();
-        result.error.Should().Be("Mindestens eine ausgewaehlte Zutat passt nicht zum Rezept.");
+        result.error.Should().Be("Mindestens eine ausgewÃ¤hlte Zutat passt nicht zum Rezept.");
     }
 
     [Fact]
@@ -241,7 +241,7 @@ public class ShoppingListServiceTests
             CancellationToken.None);
 
         result.ok.Should().BeFalse();
-        result.error.Should().Be("Mindestens eine ausgewaehlte Zutat passt nicht zum Rezept.");
+        result.error.Should().Be("Mindestens eine ausgewÃ¤hlte Zutat passt nicht zum Rezept.");
         (await db.ShoppingListGroups.CountAsync()).Should().Be(0);
     }
 

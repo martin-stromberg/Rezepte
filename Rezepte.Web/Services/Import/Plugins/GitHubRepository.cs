@@ -6,7 +6,7 @@ public sealed record GitHubRepository(string Owner, string Repository, string Ca
     {
         if (!TryParse(repositoryUrl, out var repository))
         {
-            throw new ArgumentException("Nur GitHub-Repository-URLs sind zulaessig.", nameof(repositoryUrl));
+            throw new ArgumentException("Nur GitHub-Repository-URLs sind zulÃ¤ssig.", nameof(repositoryUrl));
         }
 
         return repository;

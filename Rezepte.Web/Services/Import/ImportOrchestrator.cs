@@ -222,19 +222,19 @@ public sealed class ImportOrchestrator
 
             if (selection.Items.Count == 0)
             {
-                return SelectionSubmitResult.Invalid("Es muss mindestens ein Rezept ausgewaehlt werden.");
+                return SelectionSubmitResult.Invalid("Es muss mindestens ein Rezept ausgewÃ¤hlt werden.");
             }
 
             if (!TryCreatePreviewLookup(session.CollectionPreview, out var previewItems))
             {
-                return SelectionSubmitResult.Invalid("Die Sammlung enthaelt doppelte Rezept-IDs und kann nicht importiert werden.");
+                return SelectionSubmitResult.Invalid("Die Sammlung enthÃ¤lt doppelte Rezept-IDs und kann nicht importiert werden.");
             }
 
             foreach (var item in selection.Items)
             {
                 if (string.IsNullOrWhiteSpace(item.TargetCookbookId))
                 {
-                    return SelectionSubmitResult.Invalid("Fuer jedes ausgewaehlte Rezept muss ein Zielkochbuch gesetzt sein.");
+                    return SelectionSubmitResult.Invalid("FÃ¼r jedes ausgewÃ¤hlte Rezept muss ein Zielkochbuch gesetzt sein.");
                 }
 
                 if (!previewItems.TryGetValue(item.ItemId, out var previewItem))
@@ -244,7 +244,7 @@ public sealed class ImportOrchestrator
 
                 if (!string.Equals(previewItem.Url, item.Url, StringComparison.OrdinalIgnoreCase))
                 {
-                    return SelectionSubmitResult.Invalid($"Die URL fuer Rezept {item.ItemId} passt nicht zur Vorschau.");
+                    return SelectionSubmitResult.Invalid($"Die URL fÃ¼r Rezept {item.ItemId} passt nicht zur Vorschau.");
                 }
             }
 
@@ -255,7 +255,7 @@ public sealed class ImportOrchestrator
 
             session.ReadOnly = true;
             session.State = "Importing";
-            session.Status = "Importiere ausgewaehlte Rezepte";
+            session.Status = "Importiere ausgewÃ¤hlte Rezepte";
             return SelectionSubmitResult.Accepted();
         }
     }
@@ -311,9 +311,9 @@ public sealed class ImportOrchestrator
         if (!TryCreatePreviewLookup(preview, out var initialPreviewById))
         {
             session.ReadOnly = true;
-            session.Status = "Failed: Die Sammlung enthaelt doppelte Rezept-IDs.";
+            session.Status = "Failed: Die Sammlung enthÃ¤lt doppelte Rezept-IDs.";
             session.State = "Failed";
-            session.Result = new ImportResult(false, "Die Sammlung enthaelt doppelte Rezept-IDs.", []);
+            session.Result = new ImportResult(false, "Die Sammlung enthÃ¤lt doppelte Rezept-IDs.", []);
             return;
         }
 
@@ -333,7 +333,7 @@ public sealed class ImportOrchestrator
         var selection = await session.SelectionTcs.Task.ConfigureAwait(false);
         session.ReadOnly = true;
         session.State = "Importing";
-        session.Status = "Importiere ausgewaehlte Rezepte";
+        session.Status = "Importiere ausgewÃ¤hlte Rezepte";
 
         session.CollectionItems = selection.Items
             .Select(selected =>
@@ -401,8 +401,8 @@ public sealed class ImportOrchestrator
         var succeeded = session.CollectionItems.Count(i => i.State == ImportCollectionItemState.Succeeded);
         session.Result = succeeded > 0
             ? new ImportResult(true, failed > 0 ? $"{failed} Rezept(e) konnten nicht importiert werden." : null, createdIds)
-            : new ImportResult(false, "Keines der ausgewaehlten Rezepte konnte importiert werden.", createdIds);
-        session.Status = succeeded > 0 ? "Completed" : "Failed: Keines der ausgewaehlten Rezepte konnte importiert werden.";
+            : new ImportResult(false, "Keines der ausgewÃ¤hlten Rezepte konnte importiert werden.", createdIds);
+        session.Status = succeeded > 0 ? "Completed" : "Failed: Keines der ausgewÃ¤hlten Rezepte konnte importiert werden.";
         session.State = succeeded > 0 ? "Completed" : "Failed";
     }
 

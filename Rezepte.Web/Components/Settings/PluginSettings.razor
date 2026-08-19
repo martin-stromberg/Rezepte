@@ -84,7 +84,7 @@ else
                                 <td>
                                     <div class="fw-semibold">@source.Owner/@source.Repository</div>
                                     <div class="small text-muted">@source.RepositoryUrl</div>
-                                    <div class="small">@(source.IsPrivate ? "Privat" : "Oeffentlich") · Secret: @(source.HasSecret ? "hinterlegt" : "nicht hinterlegt")</div>
+                                    <div class="small">@(source.IsPrivate ? "Privat" : "Ã–ffentlich") · Secret: @(source.HasSecret ? "hinterlegt" : "nicht hinterlegt")</div>
                                 </td>
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(source.LastSuccessfulReleaseTag))
@@ -97,12 +97,12 @@ else
                                     }
                                     @if (source.LastCheckedAt is not null)
                                     {
-                                        <div class="small text-muted">Geprueft: @source.LastCheckedAt.Value.ToLocalTime().ToString("g")</div>
+                                        <div class="small text-muted">GeprÃ¼ft: @source.LastCheckedAt.Value.ToLocalTime().ToString("g")</div>
                                     }
                                 </td>
                                 <td class="text-end">
                                     <button class="btn btn-outline-secondary btn-sm" disabled="@isSaving" @onclick="() => EditSource(source)">Bearbeiten</button>
-                                    <button class="btn btn-outline-danger btn-sm ms-1" disabled="@isSaving" @onclick="() => DeleteSourceAsync(source.Id)">Loeschen</button>
+                                    <button class="btn btn-outline-danger btn-sm ms-1" disabled="@isSaving" @onclick="() => DeleteSourceAsync(source.Id)">LÃ¶schen</button>
                                 </td>
                             </tr>
                         }
@@ -282,7 +282,7 @@ else
         }
         catch (Exception ex)
         {
-            message = $"Quelle konnte nicht geloescht werden: {ex.Message}";
+            message = $"Quelle konnte nicht gelÃ¶scht werden: {ex.Message}";
         }
         finally
         {

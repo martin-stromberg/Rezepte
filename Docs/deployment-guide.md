@@ -1,12 +1,12 @@
 # Deployment-Leitfaden: Google-Credentials
 
-Diese Anleitung beschreibt, wie Google-Credentials fuer den Produktionsbetrieb von `Rezepte.Web` bereitgestellt werden.
+Diese Anleitung beschreibt, wie Google-Credentials fÃ¼r den Produktionsbetrieb von `Rezepte.Web` bereitgestellt werden.
 
 ## Grundsatz
 
 Google-Credentials werden **nicht** als Datei im Deployment-Artefakt mitgeliefert. `Rezepte.Web.csproj` kopiert keine Credential-Dateien mehr in die Build- oder Publish-Ausgabe. Stattdessen liest `GoogleCredentialsProvider` die Credentials zur Laufzeit aus Umgebungsvariablen (bevorzugt) oder aus der Konfigurationssektion `GoogleCredentials` (Fallback).
 
-Secrets muessen ueber den Secret Store bzw. die Deployment-Konfiguration des Zielsystems eingespeist werden, zum Beispiel:
+Secrets mÃ¼ssen Ã¼ber den Secret Store bzw. die Deployment-Konfiguration des Zielsystems eingespeist werden, zum Beispiel:
 
 - Kubernetes Secrets (als Umgebungsvariablen in den Pod gemountet)
 - HashiCorp Vault (mit Injektion als Umgebungsvariable)
@@ -15,7 +15,7 @@ Secrets muessen ueber den Secret Store bzw. die Deployment-Konfiguration des Zie
 
 ## Unterstuetzte Gemini-Authentifizierungswege
 
-Beide Wege werden von `GoogleCredentialsProvider` und `GeminiClient` unterstuetzt und koennen in Production frei gewaehlt werden:
+Beide Wege werden von `GoogleCredentialsProvider` und `GeminiClient` unterstuetzt und kÃ¶nnen in Production frei gewÃ¤hlt werden:
 
 ### Option 1: API-Key
 
@@ -31,13 +31,13 @@ export GOOGLE_GEMINI_API_KEY=AIza...
 export GOOGLE_APPLICATION_CREDENTIALS=/etc/rezepte/secrets/google.application-credentials.json
 ```
 
-Der Pfad muss auf eine Service-Account-JSON-Datei zeigen, die vom Deployment-System bereitgestellt wird (z. B. per Secret-Mount), aber ausserhalb des Anwendungsverzeichnisses liegt. `GeminiClient` erzeugt daraus ein Bearer-Token fuer die Gemini API.
+Der Pfad muss auf eine Service-Account-JSON-Datei zeigen, die vom Deployment-System bereitgestellt wird (z. B. per Secret-Mount), aber ausserhalb des Anwendungsverzeichnisses liegt. `GeminiClient` erzeugt daraus ein Bearer-Token fÃ¼r die Gemini API.
 
 **Vorrang:** Ist ein API-Key vorhanden, hat er Vorrang vor dem Service Account. Der Service Account wird nur verwendet, wenn kein API-Key konfiguriert ist.
 
 ## systemd-Beispiel
 
-Ergaenzend zur Service-Definition in `Docs/install.md` koennen die Umgebungsvariablen in der systemd-Unit gesetzt werden:
+Ergaenzend zur Service-Definition in `Docs/install.md` kÃ¶nnen die Umgebungsvariablen in der systemd-Unit gesetzt werden:
 
 ```ini
 [Service]
@@ -45,9 +45,9 @@ Environment=GOOGLE_GEMINI_API_KEY=AIza...
 Environment=GOOGLE_APPLICATION_CREDENTIALS=/etc/rezepte/secrets/google.application-credentials.json
 ```
 
-Fuer URL-basierte KI-Importe reicht ein gueltiger `GOOGLE_GEMINI_API_KEY`, sofern KI und Gemini in der Anwendung fuer den Benutzer aktiviert sind. Fotoimporte benoetigen zusaetzlich eine lesbare Service-Account-Datei fuer Google Vision. Setzen Sie deshalb fuer produktive Fotoimporte beide Variablen, wenn Gemini per API-Key betrieben wird.
+FÃ¼r URL-basierte KI-Importe reicht ein gÃ¼ltiger `GOOGLE_GEMINI_API_KEY`, sofern KI und Gemini in der Anwendung fÃ¼r den Benutzer aktiviert sind. Fotoimporte benÃ¶tigen zusÃ¤tzlich eine lesbare Service-Account-Datei fÃ¼r Google Vision. Setzen Sie deshalb fÃ¼r produktive Fotoimporte beide Variablen, wenn Gemini per API-Key betrieben wird.
 
-Alternativ ueber eine separate, nicht eingecheckte EnvironmentFile:
+Alternativ Ã¼ber eine separate, nicht eingecheckte EnvironmentFile:
 
 ```ini
 [Service]
@@ -61,7 +61,7 @@ GOOGLE_GEMINI_API_KEY=...
 GOOGLE_APPLICATION_CREDENTIALS=/etc/rezepte/secrets/google.application-credentials.json
 ```
 
-Der Pfad aus `GOOGLE_APPLICATION_CREDENTIALS` muss fuer den systemd-User lesbar sein, zum Beispiel fuer `User=www-data` aus `Docs/install.md`.
+Der Pfad aus `GOOGLE_APPLICATION_CREDENTIALS` muss fÃ¼r den systemd-User lesbar sein, zum Beispiel fÃ¼r `User=www-data` aus `Docs/install.md`.
 
 ## Verhalten ohne Credentials
 
@@ -71,8 +71,8 @@ Sind weder Umgebungsvariable noch Konfiguration gesetzt, meldet der Settings-End
 
 Beim Start und bei der Nutzung der KI-Plugins protokolliert die Anwendung secret-freie Diagnosen:
 
-- ob Gemini ueber API-Key oder Service Account initialisiert wird
-- ob `GOOGLE_APPLICATION_CREDENTIALS` oder der Options-Fallback fuer den Service-Account-Pfad verwendet wird
+- ob Gemini Ã¼ber API-Key oder Service Account initialisiert wird
+- ob `GOOGLE_APPLICATION_CREDENTIALS` oder der Options-Fallback fÃ¼r den Service-Account-Pfad verwendet wird
 - ob die Service-Account-Datei existiert
 - warum ein KI-Handler inaktiv bleibt, zum Beispiel durch deaktivierte KI-/Gemini-/Vision-Schalter oder fehlende Credentials
 
