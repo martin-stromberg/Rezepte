@@ -37,7 +37,7 @@
         </div>
         @if (isEditMode)
         {
-            <button type="button" class="btn btn-sm btn-primary" @onclick="AddGroupAsync" title="Gruppe hinzufÃ¼gen">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="AddGroupAsync" title="Gruppe hinzufügen">
                 <span class="bi bi-folder-plus" aria-hidden="true"></span>
                 <span class="ms-1">Gruppe</span>
             </button>
@@ -70,8 +70,8 @@ else
                                aria-label="Gruppenname" />
                         <button type="button"
                                 class="btn btn-sm btn-outline-danger"
-                                title="Gruppe lÃ¶schen"
-                                aria-label="Gruppe lÃ¶schen"
+                                title="Gruppe löschen"
+                                aria-label="Gruppe löschen"
                                 @onclick="async () => await DeleteGroupAsync(group.Id)">
                             <span class="bi bi-trash" aria-hidden="true"></span>
                         </button>
@@ -84,7 +84,7 @@ else
 
                 @if (!string.IsNullOrWhiteSpace(group.RecipeId))
                 {
-                    <div class="small text-muted mb-2">Aus Rezept Ã¼bernommen</div>
+                    <div class="small text-muted mb-2">Aus Rezept übernommen</div>
                 }
 
                 @if (group.Items.Count == 0)
@@ -109,8 +109,8 @@ else
                                            @onchange="async e => await UpdateItemNameAsync(item, e.Value?.ToString() ?? string.Empty)" />
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"
-                                            title="Zutat lÃ¶schen"
-                                            aria-label="Zutat lÃ¶schen"
+                                            title="Zutat löschen"
+                                            aria-label="Zutat löschen"
                                             @onclick="async () => await DeleteItemAsync(item.Id)">
                                         <span class="bi bi-x-lg" aria-hidden="true"></span>
                                     </button>
@@ -145,10 +145,10 @@ else
                                aria-label="Einheit"
                                @bind="draft.Unit" />
                         <input class="form-control form-control-sm"
-                               placeholder="Zutat hinzufÃ¼gen"
-                               aria-label="Zutat hinzufÃ¼gen"
+                               placeholder="Zutat hinzufügen"
+                               aria-label="Zutat hinzufügen"
                                @bind="draft.Name" />
-                        <button type="submit" class="btn btn-sm btn-success" title="Zutat hinzufÃ¼gen" aria-label="Zutat hinzufÃ¼gen">
+                        <button type="submit" class="btn btn-sm btn-success" title="Zutat hinzufügen" aria-label="Zutat hinzufügen">
                             <span class="bi bi-plus-lg" aria-hidden="true"></span>
                         </button>
                     </form>

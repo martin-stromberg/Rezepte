@@ -228,7 +228,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
 
     public async Task<(bool ok, string? error, ShoppingListGroup? group)> AddRecipeIngredientsAsync(string userId, string recipeId, IReadOnlyCollection<string> ingredientIds, CancellationToken ct)
     {
-        if (ingredientIds.Count == 0) return (false, "Bitte mindestens eine Zutat auswÃ¤hlen.", null);
+        if (ingredientIds.Count == 0) return (false, "Bitte mindestens eine Zutat auswählen.", null);
 
         var recipe = await _db.Recipes
             .Include(r => r.Steps)
@@ -269,7 +269,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
 
     public async Task<(bool ok, string? error, List<ShoppingListGroup> groups)> AddRecipeIngredientGroupsAsync(string userId, string recipeId, IReadOnlyCollection<ShoppingListRecipeIngredientSelection> selections, CancellationToken ct)
     {
-        if (selections.Count == 0) return (false, "Bitte mindestens eine Zutat auswÃ¤hlen.", new List<ShoppingListGroup>());
+        if (selections.Count == 0) return (false, "Bitte mindestens eine Zutat auswählen.", new List<ShoppingListGroup>());
 
         var recipe = await _db.Recipes
             .Include(r => r.Steps)
@@ -298,7 +298,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
         var allowedRecipeIds = allowedRecipes.Select(r => r.Id).ToHashSet();
         if (selectionsByRecipe.Keys.Any(recipeIdInSelection => !allowedRecipeIds.Contains(recipeIdInSelection)))
         {
-            return (false, "Mindestens eine ausgewÃ¤hlte Zutat passt nicht zum Rezept.", new List<ShoppingListGroup>());
+            return (false, "Mindestens eine ausgewählte Zutat passt nicht zum Rezept.", new List<ShoppingListGroup>());
         }
 
         var createdGroups = new List<ShoppingListGroup>();
@@ -317,7 +317,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
                 .ToList();
             if (selected.Count != selectedIds.Count)
             {
-                return (false, "Mindestens eine ausgewÃ¤hlte Zutat passt nicht zum Rezept.", new List<ShoppingListGroup>());
+                return (false, "Mindestens eine ausgewählte Zutat passt nicht zum Rezept.", new List<ShoppingListGroup>());
             }
 
             var group = new ShoppingListGroup
@@ -344,7 +344,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
             createdGroups.Add(group);
         }
 
-        if (createdGroups.Count == 0) return (false, "Bitte mindestens eine Zutat auswÃ¤hlen.", new List<ShoppingListGroup>());
+        if (createdGroups.Count == 0) return (false, "Bitte mindestens eine Zutat auswählen.", new List<ShoppingListGroup>());
 
         await _db.SaveChangesAsync(ct);
         return (true, null, createdGroups);

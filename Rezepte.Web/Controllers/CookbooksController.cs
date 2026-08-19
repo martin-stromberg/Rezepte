@@ -641,14 +641,14 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     {
         if (req.Items.Count == 0)
         {
-            return BadRequest(new { message = "Es muss mindestens ein Rezept ausgewÃ¤hlt werden." });
+            return BadRequest(new { message = "Es muss mindestens ein Rezept ausgewählt werden." });
         }
 
         foreach (var item in req.Items)
         {
             if (string.IsNullOrWhiteSpace(item.TargetCookbookId))
             {
-                return BadRequest(new { message = "FÃ¼r jedes ausgewÃ¤hlte Rezept muss ein Zielkochbuch gesetzt sein." });
+                return BadRequest(new { message = "Für jedes ausgewählte Rezept muss ein Zielkochbuch gesetzt sein." });
             }
 
             if (await _cookbooks.GetByIdAsync(userId, item.TargetCookbookId, ct) is null)

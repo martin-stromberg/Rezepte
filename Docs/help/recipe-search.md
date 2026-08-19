@@ -1,10 +1,10 @@
 # Rezeptsuche
 
-Die Rezeptsuche ist fÃ¼r angemeldete Benutzer in der Hauptnavigation verfÃ¼gbar. Sie durchsucht die eigenen Rezepte und zeigt passende Treffer in der Ergebnisliste an.
+Die Rezeptsuche ist für angemeldete Benutzer in der Hauptnavigation verfügbar. Sie durchsucht die eigenen Rezepte und zeigt passende Treffer in der Ergebnisliste an.
 
 ## Suchen
 
-Geben Sie einen Suchbegriff in das Suchfeld ein und starten Sie die Suche. Die Ergebnisliste enthÃ¤lt Rezepte, deren Titel, Beschreibung, Zubereitungsschritte oder Zutaten zum Suchbegriff passen.
+Geben Sie einen Suchbegriff in das Suchfeld ein und starten Sie die Suche. Die Ergebnisliste enthält Rezepte, deren Titel, Beschreibung, Zubereitungsschritte oder Zutaten zum Suchbegriff passen.
 
 Beispiel: Die Suche nach `Honig` findet ein vorhandenes Rezept wie `Honig - Senf - Sojamarinade`, wenn dieses Rezept zu Ihrem Benutzerkonto gehoert.
 
@@ -14,8 +14,8 @@ Die Suche ist auf die Rezepte des angemeldeten Benutzers beschraenkt. Rezepte an
 
 ## Kochbuchfilter
 
-Wenn ein Kochbuchfilter verwendet wird, werden nur passende Rezepte aus dem ausgewÃ¤hlten Kochbuch angezeigt. Ohne Kochbuchfilter sucht die Anwendung in allen eigenen Rezepten.
+Wenn ein Kochbuchfilter verwendet wird, werden nur passende Rezepte aus dem ausgewählten Kochbuch angezeigt. Ohne Kochbuchfilter sucht die Anwendung in allen eigenen Rezepten.
 
 ## Keine Treffer
 
-Wenn keine Ergebnisse angezeigt werden, prÃ¼fen Sie den Suchbegriff und einen eventuell gesetzten Kochbuchfilter. Ein Rezept erscheint nur, wenn es zum angemeldeten Benutzer gehoert und der Suchbegriff in einem durchsuchten Rezeptfeld vorkommt.
+Wenn keine Ergebnisse angezeigt werden, prüfen Sie den Suchbegriff und einen eventuell gesetzten Kochbuchfilter. Ein Rezept erscheint nur, wenn es zum angemeldeten Benutzer gehoert und der Suchbegriff in einem durchsuchten Rezeptfeld vorkommt.

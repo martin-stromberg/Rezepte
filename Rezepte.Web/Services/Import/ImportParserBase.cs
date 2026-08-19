@@ -12,7 +12,7 @@ public abstract class ImportParserBase
 
         var match = Regex.Match(isoDuration, @"^PT((\d+)H)?((\d+)M)?((\d+)S)?$");
         if (!match.Success)
-            throw new FormatException($"UngÃ¼ltiges ISO 8601 Zeitformat: {isoDuration}");
+            throw new FormatException($"Ungültiges ISO 8601 Zeitformat: {isoDuration}");
 
         var hours = match.Groups[2].Success ? int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture) : 0;
         var minutes = match.Groups[4].Success ? int.Parse(match.Groups[4].Value, CultureInfo.InvariantCulture) : 0;
@@ -127,8 +127,8 @@ public abstract class ImportParserBase
 
         var knownUnits = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "g", "gr", "gramm", "kg", "ml", "l", "cl", "tsp", "teelÃ¶ffel", "tl", "el",
-            "esslÃ¶ffel", "essl", "st", "stÃ¼ck", "stÃ¼cke", "stk", "prise", "dose",
+            "g", "gr", "gramm", "kg", "ml", "l", "cl", "tsp", "teelöffel", "tl", "el",
+            "esslöffel", "essl", "st", "stück", "stücke", "stk", "prise", "dose",
             "dosen", "becher", "bund", "paket", "packung", "pkg", "glas", "pz", "pkt", "spritzer"
         };
 

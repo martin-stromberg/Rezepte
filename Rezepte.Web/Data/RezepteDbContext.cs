@@ -54,7 +54,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             // Real CLR-Eigenschaft OrderIndex konfigurieren (nicht als Shadow-Property)
             b.Property(c => c.OrderIndex).HasDefaultValue(0);
 
-            // Index auf UserId + OrderIndex fÃ¼r schnelle Sortierung
+            // Index auf UserId + OrderIndex für schnelle Sortierung
             b.HasIndex(c => new { c.UserId, c.OrderIndex });
 
             b.HasIndex(c => c.Name).IsUnique(false);
@@ -225,7 +225,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.HasIndex(j => j.InitiatorUserId);
         });
 
-        // Konfiguration fÃ¼r UserSetting
+        // Konfiguration für UserSetting
         modelBuilder.Entity<UserSetting>(b =>
         {
             b.HasKey(u => u.UserId);
@@ -234,7 +234,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.HasIndex(u => u.UserId).IsUnique();
         });
 
-        // Konfiguration fÃ¼r AppSetting
+        // Konfiguration für AppSetting
         modelBuilder.Entity<AppSetting>(b =>
         {
             b.HasKey(a => a.Key);
