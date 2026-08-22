@@ -46,16 +46,42 @@ public class ExportAllJobHandler : IBackgroundJobHandler
         var fileName = fileStore.CreateSafeFileName("export-all", adminId, job.Id);
         var filePath = fileStore.GetPathForFileName(fileName);
 
+        logger.LogInformation(
+            "Saving admin export {JobId} to file {FileName}",
+            job.Id,
+            fileName);
+
+        long fileSize;
         await using (var fs = File.Create(filePath))
         {
             zipStream.Seek(0, SeekOrigin.Begin);
             await zipStream.CopyToAsync(fs, ct).ConfigureAwait(false);
+            fileSize = fs.Length;
         }
+
+        logger.LogInformation(
+            "Admin export {JobId} written to {FileName} ({FileSize} bytes)",
+            job.Id,
+            fileName,
+            fileSize);
+
+        db.UserExportFiles.Add(new Rezepte.Web.Entities.UserExportFile
+        {
+            UserId = adminId,
+            IsAdminExport = true,
+            FileName = fileName,
+            Size = fileSize,
+            JobId = job.Id
+        });
 
         job.Progress = 90;
         job.ResultMessage = fileName;
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        logger.LogInformation("Admin export job {JobId} finished, file saved to {FilePath}", job.Id, filePath);
+        logger.LogInformation(
+            "Admin export job {JobId} finished, file {FileName} ({FileSize} bytes) registered",
+            job.Id,
+            fileName,
+            fileSize);
     }
 }
