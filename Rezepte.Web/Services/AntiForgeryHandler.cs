@@ -14,7 +14,7 @@ public class AntiForgeryHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        // Nur für mutierende Methoden (nicht GET/HEAD)
+        // Nur fÃ¼r mutierende Methoden (nicht GET/HEAD)
         if (request.Method != HttpMethod.Get && request.Method != HttpMethod.Head)
         {
             var ctx = _httpContextAccessor.HttpContext;

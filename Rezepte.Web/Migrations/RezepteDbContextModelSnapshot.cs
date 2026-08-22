@@ -313,11 +313,11 @@ namespace Rezepte.Web.Migrations
                     b.Property<string>("ReloadError")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("ReloadedAt")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("ReloadStatus")
                         .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ReloadedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
@@ -647,6 +647,44 @@ namespace Rezepte.Web.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Rezepte.Web.Entities.UserExportFile", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAdminExport")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("JobId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("UserExportFiles");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.UserSetting", b =>

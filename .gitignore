@@ -194,6 +194,7 @@ PublishScripts/
 
 # NuGet Packages
 *.nupkg
+!lib/nuget/*.nupkg
 # NuGet Symbol Packages
 *.snupkg
 # The packages folder can be ignored because of Package Restore
@@ -406,3 +407,5 @@ FodyWeavers.xsd
 issue.md
 Rezepte.Web/google.application-credentials.json
 Rezepte.Web/google.gemini.api-key.json
+/Rezepte.Web/updates/
+/.external/

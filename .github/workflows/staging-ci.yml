@@ -1,0 +1,395 @@
+name: Staging Branch CI
+
+"on":
+  push:
+    branches: [staging]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: staging-ci
+  cancel-in-progress: true
+
+jobs:
+  detect-backmerge:
+    runs-on: ubuntu-latest
+    outputs:
+      is_backmerge: ${{ steps.check.outputs.is_backmerge }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check whether push is a pure back-merge from main
+        id: check
+        run: |
+          git fetch origin main:refs/remotes/origin/main --no-tags
+
+          main_sha="$(git rev-parse origin/main)"
+          is_main_merge_parent=false
+          for parent in $(git show -s --format=%P HEAD); do
+            if [[ "$parent" == "$main_sha" ]]; then
+              is_main_merge_parent=true
+              break
+            fi
+          done
+
+          if [[ "$is_main_merge_parent" == "true" ]]; then
+            echo "is_backmerge=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Back-merge from main detected - CI checks will be skipped."
+          elif git diff --quiet origin/main HEAD; then
+            echo "is_backmerge=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Pure back-merge from main detected (tree identical) - CI checks will be skipped."
+          else
+            echo "is_backmerge=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  version:
+    runs-on: ubuntu-latest
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+    outputs:
+      next_version: ${{ steps.semver.outputs.next_version }}
+      rc_version: ${{ steps.semver.outputs.rc_version }}
+      bump: ${{ steps.semver.outputs.bump }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next semantic version and release candidate
+        id: semver
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin main:refs/remotes/origin/main --tags --force
+
+          last_tag="$(
+            git tag --merged origin/main --list 'v*' |
+              grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
+              sort -V |
+              tail -n 1 || true
+          )"
+
+          if [[ -z "$last_tag" ]]; then
+            last_tag="$(
+              git tag --list 'v*' |
+                grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
+                sort -V |
+                tail -n 1 || true
+            )"
+          fi
+
+          if [[ -z "$last_tag" ]]; then
+            base_version="0.0.0"
+            bump="minor"
+            next_version="1.0.0"
+          else
+            base_version="${last_tag#v}"
+            comparison_base="origin/main"
+            range="origin/main..HEAD"
+            if ! git merge-base --is-ancestor origin/main HEAD; then
+              comparison_base="$(git merge-base origin/main HEAD)"
+            fi
+
+            range="${comparison_base}..HEAD"
+            messages="$(git log --format=%B "$range")"
+
+            if [[ -z "$(git rev-list --max-count=1 "$range")" ]]; then
+              bump="none"
+            elif printf '%s\n' "$messages" | grep -Eq '(^[A-Za-z]+(\([^)]+\))?!:|^BREAKING CHANGE:)'; then
+              bump="major"
+            elif printf '%s\n' "$messages" | grep -Eq '^feat(\([^)]+\))?:'; then
+              bump="minor"
+            elif printf '%s\n' "$messages" | grep -Eq '^fix(\([^)]+\))?:'; then
+              bump="patch"
+            elif ! git diff --quiet "$comparison_base" HEAD -- . ':!*.md' ':!docs/**' ':!.github/**'; then
+              bump="patch"
+            else
+              bump="none"
+            fi
+
+            IFS='.' read -r major minor patch <<< "$base_version"
+
+            case "$bump" in
+              major)
+                next_version="$((major + 1)).0.0"
+                ;;
+              minor)
+                next_version="${major}.$((minor + 1)).0"
+                ;;
+              patch)
+                next_version="${major}.${minor}.$((patch + 1))"
+                ;;
+              none)
+                next_version="$base_version"
+                ;;
+            esac
+          fi
+
+          escaped_next_version="${next_version//./\\.}"
+          last_rc="$(
+            git tag --merged HEAD --list "v${next_version}-rc.*" |
+              grep -E "^v${escaped_next_version}-rc\.[0-9]+$" |
+              sed -E "s/^v${escaped_next_version}-rc\.([0-9]+)$/\1/" |
+              grep -E '^[0-9]+$' |
+              sort -n |
+              tail -n 1 || true
+          )"
+
+          if [[ -z "$last_rc" ]]; then
+            rc_number=1
+          else
+            rc_number=$((last_rc + 1))
+          fi
+
+          rc_version="${next_version}-rc.${rc_number}"
+
+          echo "next_version=$next_version" >> "$GITHUB_OUTPUT"
+          echo "rc_version=$rc_version" >> "$GITHUB_OUTPUT"
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+
+  verify:
+    name: Restore, build, test, and format
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Rezepte.sln
+
+      - name: Build application and plugins
+        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
+
+      - name: Build browser tests
+        run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
+
+      - name: Install Playwright browsers
+        run: |
+          PLAYWRIGHT_SCRIPT=$(find Rezepte.Tests.Browser/bin/Release -name "playwright.ps1" | head -n 1)
+          if [ -z "$PLAYWRIGHT_SCRIPT" ]; then
+            echo "playwright.ps1 not found under Rezepte.Tests.Browser/bin/Release - did the browser test build succeed?" >&2
+            exit 1
+          fi
+          pwsh "$PLAYWRIGHT_SCRIPT" install --with-deps chromium
+
+      - name: Publish application for browser tests
+        run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test Rezepte.sln --configuration Release --no-build
+
+      - name: Export import plugin contract
+        shell: pwsh
+        run: |
+          $exportArgs = @{
+            OutputDirectory = "artifacts/contract-export"
+            SourceCommit = "${{ github.sha }}"
+          }
+
+          $baselineDirectory = "contract-baselines/import-contract"
+          if (Test-Path -LiteralPath $baselineDirectory -PathType Container) {
+            dotnet tool install Microsoft.DotNet.ApiCompat.Tool --tool-path ./.tools
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to install Microsoft.DotNet.ApiCompat.Tool."
+            }
+
+            $apiCompatTool = if ($IsWindows) { ".\\.tools\\apicompat.exe" } else { "./.tools/apicompat" }
+            $exportArgs["ApiCompatBaselineDirectory"] = $baselineDirectory
+            $exportArgs["ApiCompatToolPath"] = $apiCompatTool
+          }
+          else {
+            Write-Host "No stored ApiCompat baselines found; contract export will skip historical API comparison."
+          }
+
+          ./scripts/Export-ImportContract.ps1 @exportArgs
+
+      - name: Check formatting
+        run: dotnet format Rezepte.sln --verify-no-changes --no-restore
+
+  prerelease:
+    name: Create release candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [detect-backmerge, version, verify]
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Rezepte.sln
+
+      - name: Build application and plugins
+        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore -p:Version=${{ needs.version.outputs.rc_version }}
+
+      - name: Build tests
+        run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
+
+      - name: Build browser tests
+        run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
+
+      - name: Restore publish runtime (Linux)
+        run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime linux-x64
+
+      - name: Publish application (Linux)
+        run: >
+          dotnet publish Rezepte.Web/Rezepte.Web.csproj -p:Version=${{ needs.version.outputs.rc_version }}
+          --configuration Release
+          --framework net10.0
+          --runtime linux-x64
+          --self-contained false
+          --no-restore
+          --output artifacts/publish
+
+      - name: Restore publish runtime (Windows)
+        run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime win-x64
+
+      - name: Publish application (Windows)
+        run: >
+          dotnet publish Rezepte.Web/Rezepte.Web.csproj -p:Version=${{ needs.version.outputs.rc_version }}
+          --configuration Release
+          --framework net10.0
+          --runtime win-x64
+          --self-contained false
+          --no-restore
+          --output artifacts/publish-win-x64
+
+      - name: Write release metadata
+        shell: bash
+        run: |
+          cat > artifacts/publish/release-metadata.json <<EOF
+          {
+            "version": "${{ needs.version.outputs.rc_version }}",
+            "commit": "${{ github.sha }}",
+            "runId": "${{ github.run_id }}",
+            "createdAt": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          }
+          EOF
+          cp artifacts/publish/release-metadata.json artifacts/publish-win-x64/release-metadata.json
+
+      - name: Export import plugin contract
+        shell: pwsh
+        run: |
+          $exportArgs = @{
+            OutputDirectory = "artifacts/contract-export"
+            SourceCommit = "${{ github.sha }}"
+          }
+
+          $baselineDirectory = "contract-baselines/import-contract"
+          if (Test-Path -LiteralPath $baselineDirectory -PathType Container) {
+            dotnet tool install Microsoft.DotNet.ApiCompat.Tool --tool-path ./.tools
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to install Microsoft.DotNet.ApiCompat.Tool."
+            }
+
+            $apiCompatTool = if ($IsWindows) { ".\\.tools\\apicompat.exe" } else { "./.tools/apicompat" }
+            $exportArgs["ApiCompatBaselineDirectory"] = $baselineDirectory
+            $exportArgs["ApiCompatToolPath"] = $apiCompatTool
+          }
+          else {
+            Write-Host "No stored ApiCompat baselines found; contract export will skip historical API comparison."
+          }
+
+          ./scripts/Export-ImportContract.ps1 @exportArgs
+
+      - name: Create release-linux-x64.zip (Linux)
+        shell: bash
+        run: |
+          cd artifacts/publish
+          zip -r ../release-linux-x64.zip .
+
+      - name: Create release-win-x64.zip (Windows)
+        shell: bash
+        run: |
+          cd artifacts/publish-win-x64
+          zip -r ../release-win-x64.zip .
+
+      - name: Create update manifest
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.rc_version }}
+          TAG: v${{ needs.version.outputs.rc_version }}
+        run: |
+          set -euo pipefail
+
+          linux_sha="$(sha256sum artifacts/release-linux-x64.zip | awk '{print $1}')"
+          linux_size="$(stat -c%s artifacts/release-linux-x64.zip)"
+          linux_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release-linux-x64.zip"
+
+          windows_sha="$(sha256sum artifacts/release-win-x64.zip | awk '{print $1}')"
+          windows_size="$(stat -c%s artifacts/release-win-x64.zip)"
+          windows_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release-win-x64.zip"
+
+          jq -n \
+            --arg version "$VERSION" \
+            --arg releaseNotes "Release candidate for ${GITHUB_SHA}" \
+            --arg publishedAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --arg linuxAssetUrl "$linux_asset_url" \
+            --arg linuxSha256 "$linux_sha" \
+            --argjson linuxSizeBytes "$linux_size" \
+            --arg windowsAssetUrl "$windows_asset_url" \
+            --arg windowsSha256 "$windows_sha" \
+            --argjson windowsSizeBytes "$windows_size" \
+            '{
+              version: $version,
+              releaseNotes: $releaseNotes,
+              publishedAt: $publishedAt,
+              assets: [
+                {
+                  platform: "linux",
+                  runtimeIdentifier: "linux-x64",
+                  assetName: "release-linux-x64.zip",
+                  assetUrl: $linuxAssetUrl,
+                  sha256: $linuxSha256,
+                  sizeBytes: $linuxSizeBytes
+                },
+                {
+                  platform: "windows",
+                  runtimeIdentifier: "win-x64",
+                  assetName: "release-win-x64.zip",
+                  assetUrl: $windowsAssetUrl,
+                  sha256: $windowsSha256,
+                  sizeBytes: $windowsSizeBytes
+                }
+              ]
+            }' > artifacts/update.json
+
+      - name: Create release candidate
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.rc_version }}
+          name: Pre-release v${{ needs.version.outputs.rc_version }}
+          target_commitish: ${{ github.sha }}
+          draft: false
+          prerelease: true
+          files: |
+            artifacts/release-linux-x64.zip
+            artifacts/release-win-x64.zip
+            artifacts/update.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

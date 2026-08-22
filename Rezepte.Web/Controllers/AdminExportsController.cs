@@ -1,8 +1,8 @@
+using System.IO;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Rezepte.Web.Extensions;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.BackgroundJobs;
 
@@ -27,7 +27,7 @@ public class AdminExportsController : ApiControllerBase
     /// <summary>
     /// Admin-Export: Exportiert alle Daten (inkl. Benutzer).
     /// POST /api/admin/exports?includePdf=true
-    /// Startet einen Hintergrundjob und liefert dessen Job-ID zurueck.
+    /// Startet einen Hintergrundjob und liefert dessen Job-ID zurück.
     /// </summary>
     [HttpPost]
     public async Task<IActionResult> ExportAll([FromQuery] bool includeImages = false, [FromQuery] bool includePdf = false, CancellationToken ct = default)
@@ -66,8 +66,8 @@ public class AdminExportsController : ApiControllerBase
     /// </summary>
     [HttpPost("restore")]
     [Authorize(Roles = "Admin")]
-    [RequestSizeLimit(524288000)] // 500 MB limit, anpassen nach Bedarf
-    [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+    [RequestSizeLimit(1_500_000_000)] // 1.5 GB limit
+    [RequestFormLimits(MultipartBodyLengthLimit = 1_500_000_000)]
     public async Task<IActionResult> Restore([FromForm(Name = "file")] IFormFile? file, CancellationToken ct = default)
     {
         if (file is null || file.Length == 0)
@@ -80,15 +80,32 @@ public class AdminExportsController : ApiControllerBase
 
         try
         {
-            await using var ms = await file.ReadToMemoryStreamAsync(ct);
+            var tempPath = Path.Combine(Path.GetTempPath(), $"rezepte-restore-{Guid.NewGuid()}.zip");
+            try
+            {
+                using (var uploadStream = file.OpenReadStream())
+                {
+                    await using var tempFile = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+                    await uploadStream.CopyToAsync(tempFile, ct).ConfigureAwait(false);
+                }
 
-            // Delegiere die eigentliche Wiederherstellungslogik an den Service.
-            // Implementierung ist vorsichtig: legt nur fehlende Entitaeten an, ueberschreibt nichts.
-            await _exportService.RestoreFromZipAsync(ms, adminId, ct).ConfigureAwait(false);
+                await using (var zipFileStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true))
+                {
+                    await _exportService.RestoreFromZipAsync(zipFileStream, adminId, ct).ConfigureAwait(false);
+                }
 
-            _logger.LogInformation("Admin {AdminId} uploaded restore file ({Size} bytes) and restore was started.", adminId, file.Length);
-            // Rueckgabe 200 OK oder 202 Accepted je nach Implementationsentscheid (hier: synchron ausgefuehrt -> OK)
-            return Ok("Restore completed.");
+                _logger.LogInformation("Admin {AdminId} uploaded restore file ({Size} bytes) and restore completed.", adminId, file.Length);
+                return Ok("Restore completed.");
+            }
+            finally
+            {
+                if (System.IO.File.Exists(tempPath)) System.IO.File.Delete(tempPath);
+            }
+        }
+        catch (InvalidDataException ex)
+        {
+            _logger.LogWarning(ex, "Restore validation failed (admin={AdminId})", adminId);
+            return BadRequest(new ProblemDetails { Title = "Invalid restore archive", Detail = ex.Message });
         }
         catch (OperationCanceledException)
         {

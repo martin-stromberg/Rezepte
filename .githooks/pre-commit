@@ -1,0 +1,14 @@
+#!/bin/sh
+# Pre-commit hook: ensure the solution is formatted and UTF-8 clean before committing.
+# To use: git config core.hooksPath .githooks
+
+dotnet format Rezepte.sln --verify-no-changes --no-restore
+if [ $? -ne 0 ]; then
+    echo "Code formatting check failed. Run 'dotnet format Rezepte.sln' to fix."
+    exit 1
+fi
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .githooks/check-encoding.ps1 -Staged
+if [ $? -ne 0 ]; then
+    exit 1
+fi

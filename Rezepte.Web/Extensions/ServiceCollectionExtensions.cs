@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.IdentityModel.Tokens;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Data;
@@ -13,6 +14,7 @@ using Rezepte.Web.Services.BackgroundJobs.Handlers;
 using Rezepte.Web.Services.Http;
 using Rezepte.Web.Services.Import;
 using Rezepte.Web.Services.Import.Plugins;
+using Rezepte.Web.Services.Updates;
 using Rezepte.Web.Services.Validation;
 using Rezepte.Web.ViewModels;
 using System.Net;
@@ -29,6 +31,8 @@ public static class ServiceCollectionExtensions
         services.Configure<ImageOptions>(configuration.GetSection("Images"));
         services.Configure<AIOptions>(configuration.GetSection("AI"));
         services.Configure<PluginUpdateOptions>(configuration.GetSection("PluginUpdates"));
+        services.Configure<UpdateBackupOptions>(configuration.GetSection("UpdateBackups"));
+        services.Configure<ApplicationUpdateOptions>(configuration.GetSection("ApplicationUpdates"));
         services.Configure<GoogleCredentialsOptions>(configuration.GetSection("GoogleCredentials"));
         services.Configure<LoadingBarOptions>(configuration.GetSection("LoadingBar"));
         // Razor Components
@@ -112,13 +116,27 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IGoogleCredentialsProvider, GoogleCredentialsProvider>();
         services.AddHttpContextAccessor();
-        services.AddTransient<ApiAuthHandler>();
         services.AddTransient<AntiForgeryHandler>();
+        services.AddScoped<CircuitAuthHandler>();
 
-        // Typed API client with handlers
-        services.AddHttpClient<ApiClient>()
-            .AddHttpMessageHandler<ApiAuthHandler>()
+        // Named client for the pooled base handler pipeline (AntiForgery only)
+        services.AddHttpClient("ApiClient")
             .AddHttpMessageHandler<AntiForgeryHandler>();
+
+        // Scoped ApiClient with a per-circuit/request auth handler
+        services.AddScoped<ApiClient>(sp =>
+        {
+            var nav = sp.GetRequiredService<NavigationManager>();
+            var handlerFactory = sp.GetRequiredService<IHttpMessageHandlerFactory>();
+            var inner = handlerFactory.CreateHandler("ApiClient");
+            var authHandler = sp.GetRequiredService<CircuitAuthHandler>();
+            authHandler.InnerHandler = inner;
+            var http = new HttpClient(authHandler, disposeHandler: true)
+            {
+                BaseAddress = new Uri(nav.BaseUri)
+            };
+            return new ApiClient(http, nav);
+        });
 
         // Default HttpClient (no auth header) for static/public calls
         services.AddScoped(sp =>
@@ -139,6 +157,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICookbookService, CookbookService>();
         services.AddScoped<IRecipeService, RecipeService>();
         services.AddScoped<IExportService, ExportService>();
+        services.AddScoped<IUpdateBackupService, UpdateBackupService>();
+        services.AddScoped<IApplicationUpdateSettingsService, ApplicationUpdateSettingsService>();
         services.AddScoped<ExportJobFileStore>();
         services.AddScoped<IBackgroundJobHandler, ExportUserJobHandler>();
         services.AddScoped<IBackgroundJobHandler, ExportAllJobHandler>();
@@ -149,6 +169,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPluginManager, PluginManager>();
         services.AddHostedService<PluginStartupService>();
         services.AddHostedService<PluginUpdateHostedService>();
+        services.AddSingleton<IApplicationUpdatePreInstallHandler, ApplicationUpdatePreInstallHandler>();
+        services.AddHostedService<ApplicationUpdateHostedService>();
         services.AddHttpClient<IGitHubReleaseClient, GitHubReleaseClient>((sp, client) =>
         {
             var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PluginUpdateOptions>>().Value;

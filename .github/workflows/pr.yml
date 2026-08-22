@@ -2,18 +2,40 @@ name: Pull Request
 
 "on":
   pull_request:
-    branches: [main]
+    branches: [staging]
     types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
 
 concurrency:
   group: pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
+  detect-backmerge:
+    runs-on: ubuntu-latest
+    outputs:
+      is_backmerge: ${{ steps.check.outputs.is_backmerge }}
+    steps:
+      - name: Check whether PR is a back-merge from main
+        id: check
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [ "$HEAD_REF" = "main" ]; then
+            echo "is_backmerge=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Back-Merge-PR from main detected - CI checks will be skipped."
+          else
+            echo "is_backmerge=false" >> "$GITHUB_OUTPUT"
+          fi
+
   verify:
     name: Restore, build, test, and format
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
 
     steps:
       - name: Checkout
