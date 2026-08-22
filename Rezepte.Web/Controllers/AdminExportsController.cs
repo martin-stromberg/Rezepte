@@ -69,8 +69,8 @@ public class AdminExportsController : ControllerBase
     /// </summary>
     [HttpPost("restore")]
     [Authorize(Roles = "Admin")]
-    [RequestSizeLimit(524288000)] // 500 MB limit, anpassen nach Bedarf
-    [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+    [RequestSizeLimit(1_500_000_000)] // 1.5 GB limit
+    [RequestFormLimits(MultipartBodyLengthLimit = 1_500_000_000)]
     public async Task<IActionResult> Restore([FromForm(Name = "file")] IFormFile? file, CancellationToken ct = default)
     {
         if (file is null || file.Length == 0)

@@ -172,7 +172,7 @@
         try
         {
             using var content = new MultipartFormDataContent();
-            var fileStream = selectedFile.OpenReadStream(524288000L);
+            var fileStream = selectedFile.OpenReadStream(1_500_000_000L);
             content.Add(new StreamContent(fileStream), "file", selectedFile.Name);
 
             var response = await Api.Http.PostAsync("api/admin/exports/restore", content);

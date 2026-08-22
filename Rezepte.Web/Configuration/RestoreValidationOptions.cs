@@ -5,7 +5,7 @@ public sealed class RestoreValidationOptions
     /// <summary>
     /// Maximum total upload size in bytes for a restore ZIP archive.
     /// </summary>
-    public long MaxUploadFileSizeBytes { get; set; } = 524_288_000; // 500 MB
+    public long MaxUploadFileSizeBytes { get; set; } = 1_500_000_000; // 1.5 GB
 
     /// <summary>
     /// Maximum number of archive entries allowed in the restore ZIP.
@@ -15,7 +15,7 @@ public sealed class RestoreValidationOptions
     /// <summary>
     /// Maximum total uncompressed size of all archive entries combined.
     /// </summary>
-    public long MaxTotalUncompressedBytes { get; set; } = 1_073_741_824; // 1 GB
+    public long MaxTotalUncompressedBytes { get; set; } = 2_000_000_000; // 2 GB
 
     /// <summary>
     /// Maximum uncompressed size of the recipes.json entry.
@@ -30,7 +30,7 @@ public sealed class RestoreValidationOptions
     /// <summary>
     /// Maximum total size of all image entries combined.
     /// </summary>
-    public long MaxTotalImageBytes { get; set; } = 524_288_000; // 500 MB
+    public long MaxTotalImageBytes { get; set; } = 1_500_000_000; // 1.5 GB
 
     /// <summary>
     /// Maximum allowed compression ratio for any single archive entry.

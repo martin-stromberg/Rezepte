@@ -32,12 +32,12 @@ Bevor Daten in die Datenbank uebernommen werden, prueft die Anwendung das hochge
 
 Folgende Limits werden durchgesetzt:
 
-- Maximale Uploadgroesse: 500 MB
+- Maximale Uploadgroesse: 1,5 GB
 - Maximal 10.000 Eintraege im Archiv
-- Maximal 1 GB ungepackte Gesamtgroesse aller Eintraege
+- Maximal 2 GB ungepackte Gesamtgroesse aller Eintraege
 - Maximal 50 MB fuer `recipes.json`
 - Maximal 50 MB pro Bild
-- Maximal 500 MB Bilddaten insgesamt
+- Maximal 1,5 GB Bilddaten insgesamt
 - Maximal erlaubtes Kompressionsverhaeltnis von 100:1 pro Eintrag, um ZIP-Bomben zu vermeiden
 
 Zusaetzlich werden ungueltige Pfade oder Pfade mit Verzeichniswechseln (`..`) abgelehnt. Waehrend der Wiederherstellung wird der Vorgang serverseitig seriell ausgefuehrt, sodass nur ein Restore gleichzeitig laeuft. Fehlerhafte oder nicht unterstuetzte Archive fuehren zu einer HTTP-400-Fehlermeldung mit Hinweis auf den Abbruchgrund.
