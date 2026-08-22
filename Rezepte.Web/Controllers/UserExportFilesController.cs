@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +12,7 @@ namespace Rezepte.Web.Controllers;
 [ApiController]
 [Route("api/exports")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)]
-public class UserExportFilesController : ControllerBase
+public class UserExportFilesController : ApiControllerBase
 {
     private readonly RezepteDbContext _db;
     private readonly ExportJobFileStore _fileStore;
@@ -25,8 +24,6 @@ public class UserExportFilesController : ControllerBase
         _fileStore = fileStore;
         _logger = logger;
     }
-
-    private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     /// <summary>
     /// List export files for the current user (admins can see all).

@@ -11,7 +11,7 @@ namespace Rezepte.Web.Controllers;
 [ApiController]
 [Route("api/jobs")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class JobsController : ControllerBase
+public class JobsController : ApiControllerBase
 {
     private readonly IBackgroundJobQueue _queue;
     private readonly ExportJobFileStore _fileStore;
@@ -21,8 +21,6 @@ public class JobsController : ControllerBase
         _queue = queue;
         _fileStore = fileStore;
     }
-
-    private string? GetUserId() => User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
     /// <summary>
     /// Enqueue a user export job. Returns job id.

@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Rezepte.Web.ViewModels;
 using Xunit;
 
@@ -17,7 +18,7 @@ public class UserProfileViewModelTests
         Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
     {
         var factory = new ApiClientTestFactory(responseFactory);
-        var sut = new UserProfileViewModel(factory.Create());
+        var sut = new UserProfileViewModel(factory.Create(), NullLogger<UserProfileViewModel>.Instance);
         var notifications = new List<string>();
         sut.OnChange += () => notifications.Add(sut.Message ?? string.Empty);
         return (sut, factory, notifications);

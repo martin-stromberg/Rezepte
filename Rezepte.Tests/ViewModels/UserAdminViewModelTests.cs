@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Rezepte.Web.ViewModels;
 using Xunit;
 
@@ -22,13 +23,13 @@ public class UserAdminViewModelTests
         Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
     {
         var factory = new ApiClientTestFactory(responseFactory);
-        return (new UserAdminViewModel(factory.Create()), factory);
+        return (new UserAdminViewModel(factory.Create(), NullLogger<UserAdminViewModel>.Instance), factory);
     }
 
     [Fact]
     public void Constructor_ShouldRejectMissingApiClient()
     {
-        Assert.Throws<ArgumentNullException>(() => new UserAdminViewModel(null!));
+        Assert.Throws<ArgumentNullException>(() => new UserAdminViewModel(null!, NullLogger<UserAdminViewModel>.Instance));
     }
 
     [Fact]

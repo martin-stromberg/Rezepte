@@ -3,14 +3,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rezepte.Web.Dtos;
 using Rezepte.Web.Services;
-using System.Security.Claims;
 
 namespace Rezepte.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class SettingsController : ControllerBase
+public class SettingsController : ApiControllerBase
 {
     private readonly ISettingsService _settings;
     private readonly IGoogleCredentialsProvider _googleCredentialsProvider;
@@ -19,13 +18,6 @@ public class SettingsController : ControllerBase
     {
         _settings = settings;
         this._googleCredentialsProvider = googleCredentialsProvider;
-    }
-
-    private bool TryGetUserId(out string userId)
-    {
-        var value = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        userId = value ?? string.Empty;
-        return !string.IsNullOrEmpty(value);
     }
 
     // GET api/settings/me

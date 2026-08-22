@@ -1,5 +1,4 @@
 using System.IO;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +11,7 @@ namespace Rezepte.Web.Controllers;
 [ApiController]
 [Route("api/admin/exports")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
-public class AdminExportsController : ControllerBase
+public class AdminExportsController : ApiControllerBase
 {
     private readonly IExportService _exportService;
     private readonly IBackgroundJobQueue _jobQueue;
@@ -24,8 +23,6 @@ public class AdminExportsController : ControllerBase
         _jobQueue = jobQueue;
         _logger = logger;
     }
-
-    private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     /// <summary>
     /// Admin-Export: Exportiert alle Daten (inkl. Benutzer).
