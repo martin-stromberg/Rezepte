@@ -2,6 +2,7 @@
 @using System.Text.Json
 @inject ApiClient Client
 @inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<Rezepte.Web.Components.Settings.AiSettings> Logger
 
 <div>
     <h6>Nutzung von KI</h6>
@@ -292,8 +293,9 @@
             var auth = await AuthStateProvider.GetAuthenticationStateAsync();
             isAdmin = auth.User.IsInRole("Admin");
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Loading the AI settings failed");
             message = "Fehler beim Laden.";
         }
         finally

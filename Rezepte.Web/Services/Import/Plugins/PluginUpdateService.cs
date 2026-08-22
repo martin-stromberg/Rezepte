@@ -228,17 +228,15 @@ public sealed class PluginUpdateService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    private static void TryDeleteDirectory(string directory)
+    private void TryDeleteDirectory(string directory)
     {
         try
         {
             Directory.Delete(directory, recursive: true);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-        }
-        catch (UnauthorizedAccessException)
-        {
+            logger.LogWarning(ex, "Could not delete temporary plugin directory {PluginDirectory}", directory);
         }
     }
 }

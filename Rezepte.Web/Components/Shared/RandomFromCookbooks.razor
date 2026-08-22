@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components
 @inject ApiClient Api
 @inject IJSRuntime JS
+@inject ILogger<Rezepte.Web.Components.Shared.RandomFromCookbooks> Logger
 
 <div class="random-recipes" id="@containerId">
 
@@ -113,8 +114,9 @@ else if (!isLoading && items is not null && items.Count > 0)
         {
             deferredLoad = true;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Could not initialize the random recipes list");
             deferredLoad = true;
         }
     }
@@ -132,8 +134,9 @@ else if (!isLoading && items is not null && items.Count > 0)
             var cols = await JS.InvokeAsync<int>("randomFromCookbooks.getVisibleColumns", containerId, MinItemWidth);
             return Math.Max(1, cols);
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogDebug(ex, "Could not determine the visible column count; falling back to a single column");
             return 1;
         }
     }
@@ -171,14 +174,16 @@ else if (!isLoading && items is not null && items.Count > 0)
                     }
                     items.Add((cb, pick));
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.LogWarning(ex, "Could not load the recipes of cookbook {CookbookId}", cb.Id);
                     items.Add((cb, null));
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Loading random recipes from the cookbooks failed");
             items = null;
         }
         finally
@@ -194,7 +199,14 @@ else if (!isLoading && items is not null && items.Count > 0)
         {
             await JS.InvokeVoidAsync("randomFromCookbooks.unregisterResizeHandler", containerId);
         }
-        catch { }
+        catch (JSDisconnectedException)
+        {
+            // circuit is already gone; the resize handler died with it
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not unregister the resize handler of the random recipes list");
+        }
         dotNetRef?.Dispose();
     }
 

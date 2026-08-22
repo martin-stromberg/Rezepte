@@ -236,6 +236,21 @@ public sealed class ImportOrchestratorTests
         collection.ImportedItemIds.Should().Equal("item-1");
     }
 
+    [Fact]
+    public async Task StartImportAsync_ShouldReportCancellationWhenTokenIsCancelledBeforeProcessingStarts()
+    {
+        var sut = CreateOrchestrator(new RecordingHandler("handler", canHandle: true));
+        using var cts = new CancellationTokenSource();
+        using var source = new CancellingStream([1], cts);
+
+        var sessionId = await sut.StartImportAsync(source, "recipe.fixture", null, "cookbook-1", OwnerUserId, cts.Token);
+
+        var session = await WaitForResultAsync(sut, sessionId);
+        session.Result!.Success.Should().BeFalse();
+        session.State.Should().Be("Failed");
+        session.Status.Should().Be("Cancelled");
+    }
+
     private static ImportOrchestrator CreateOrchestrator(params IImportHandler[] handlers)
     {
         return CreateOrchestrator(new PassthroughPersister(), handlers);
@@ -250,6 +265,19 @@ public sealed class ImportOrchestratorTests
             services.GetRequiredService<IServiceScopeFactory>(),
             new FakePluginManager(handlers),
             NullLogger<ImportOrchestrator>.Instance);
+    }
+
+    /// <summary>
+    /// Stream that cancels the token once its content has been copied, so the background
+    /// processing of the orchestrator starts with an already cancelled token.
+    /// </summary>
+    private sealed class CancellingStream(byte[] content, CancellationTokenSource cts) : MemoryStream(content)
+    {
+        public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+        {
+            await base.CopyToAsync(destination, bufferSize, cancellationToken);
+            await cts.CancelAsync();
+        }
     }
 
     private sealed class PassthroughPersister : IImportedRecipePersister
