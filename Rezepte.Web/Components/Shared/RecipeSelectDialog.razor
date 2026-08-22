@@ -6,16 +6,16 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Vorhandene Rezepte hinzufügen</h5>
+                <h5 class="modal-title">Vorhandene Rezepte hinzufÃ¼gen</h5>
                 <button type="button" class="btn-close" aria-label="Close" @onclick="OnCancel"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <input class="form-control" placeholder="Suchen…" @bind="search" @bind:event="oninput" @onkeydown="OnSearchKeyDown" />
+                    <input class="form-control" placeholder="Suchenâ€¦" @bind="search" @bind:event="oninput" @onkeydown="OnSearchKeyDown" />
                 </div>
                 @if (isLoading)
                 {
-                    <div class="text-muted">Lade…</div>
+                    <div class="text-muted">Ladeâ€¦</div>
                 }
                 else if (loadError)
                 {
@@ -23,7 +23,7 @@
                 }
                 else if (items.Count == 0 && !isLoading)
                 {
-                    <div class="alert alert-info">Keine weiteren Rezepte verfügbar.</div>
+                    <div class="alert alert-info">Keine weiteren Rezepte verfÃ¼gbar.</div>
                 }
                 else
                 {
@@ -44,19 +44,19 @@
                         @if (hasMore && !isLoadingMore)
                         {
                             <div class="text-center my-2">
-                                <button class="btn btn-outline-secondary btn-sm" @onclick="LoadMore">Mehr laden…</button>
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="LoadMore">Mehr ladenâ€¦</button>
                             </div>
                         }
                         @if (isLoadingMore)
                         {
-                            <div class="text-center my-2 text-muted">Lade weitere…</div>
+                            <div class="text-center my-2 text-muted">Lade weitereâ€¦</div>
                         }
                     </div>
                 }
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" @onclick="OnCancel">Abbrechen</button>
-                <button type="button" class="btn btn-primary" @onclick="Confirm" disabled="@(!items.Any(a => a.Selected))">Hinzufügen</button>
+                <button type="button" class="btn btn-primary" @onclick="Confirm" disabled="@(!items.Any(a => a.Selected))">HinzufÃ¼gen</button>
             </div>
         </div>
     </div>

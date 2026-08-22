@@ -4,6 +4,7 @@
 
 ## Funktionsbereiche
 
+- [Autorisierung im interaktiven Server-Modus](auth-windows.md) — Autorisierung im Blazor-Circuit unter Windows/IIS
 - [Beilagen](side-dishes.md) — Funktionalität für Beilagen-Management
 - [Benutzerkonten](user-accounts.md) — Verwaltung von Benutzerkonten und Authentifizierung
 - [Einkaufszettel](shopping-list.md) — Funktionen für die Verwaltung von Einkaufslisten

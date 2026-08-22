@@ -16,7 +16,7 @@ namespace Rezepte.Web.Controllers
             _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
         }
 
-        // Liefert ein kurzlebiges JWT für clientseitige Uploads; geschützt über Cookie-Auth
+        // Liefert ein kurzlebiges JWT fÃ¼r clientseitige Uploads; geschÃ¼tzt Ã¼ber Cookie-Auth
         [HttpGet("token")]
         [Authorize]
         public IActionResult GetToken()

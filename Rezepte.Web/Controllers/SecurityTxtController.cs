@@ -38,7 +38,9 @@ public class SecurityTxtController : ControllerBase
         var settings = await _settings.GetSecurityTxtSettingsAsync(ct);
         if (!settings.Enabled) return NotFound();
 
-        var canonicalUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{canonicalPath}";
+        var canonicalUrl = !string.IsNullOrWhiteSpace(settings.Canonical)
+            ? settings.Canonical
+            : $"{Request.Scheme}://{Request.Host}{Request.PathBase}{canonicalPath}";
         var effectiveSettings = settings with { Canonical = canonicalUrl };
 
         return Content(render(effectiveSettings), contentType);

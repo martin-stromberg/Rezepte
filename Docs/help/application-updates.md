@@ -1,12 +1,12 @@
 # Automatische Programmupdates
 
-Die Anwendung bindet `msTools.Updater` als externe Projektkomponente ein. Der Updater prueft konfigurierte Quellen auf neue Versionen, kann Updates herunterladen und installiert sie nach den Einstellungen unter `ApplicationUpdates`.
+Die Anwendung bindet `msTools.Updater` als externe Projektkomponente ein. Der Updater prüft konfigurierte Quellen auf neue Versionen, kann Updates herunterladen und installiert sie nach den Einstellungen unter `ApplicationUpdates`.
 
-Vor jeder Installation abonniert die Anwendung das `BeforeInstall`-Event von `msTools.Updater`. In diesem Schritt wird ein Update-Backup erstellt. Schlaegt das Backup fehl, setzt der Event-Handler die Installation auf abgebrochen.
+Vor jeder Installation abonniert die Anwendung das `BeforeInstall`-Event von `msTools.Updater`. In diesem Schritt wird ein Update-Backup erstellt. Schlägt das Backup fehl, setzt der Event-Handler die Installation auf abgebrochen.
 
 ## Konfiguration
 
-Die Update-Sicherung wird ueber `UpdateBackups` konfiguriert:
+Die Update-Sicherung wird über `UpdateBackups` konfiguriert:
 
 ```json
 "UpdateBackups": {
@@ -18,13 +18,13 @@ Die Update-Sicherung wird ueber `UpdateBackups` konfiguriert:
 }
 ```
 
-- `Directory`: Zielverzeichnis fuer automatische Update-Backups. Relative Pfade werden gegen das Content-Root der Anwendung aufgeloest; absolute Pfade sind erlaubt.
+- `Directory`: Zielverzeichnis für automatische Update-Backups. Relative Pfade werden gegen das Content-Root der Anwendung aufgelöst; absolute Pfade sind erlaubt.
 - `RetentionCount`: Anzahl der aufzubewahrenden Update-Backups. Der Wert muss mindestens `1` sein.
 - `IncludeImages`: legt fest, ob Bilder in das Update-Backup aufgenommen werden.
 - `IncludePdf`: legt fest, ob Rezept-PDFs in das Update-Backup aufgenommen werden.
-- `SystemInitiatorUserId`: technischer Initiator fuer Protokollierung und Export-Metadaten.
+- `SystemInitiatorUserId`: technischer Initiator für Protokollierung und Export-Metadaten.
 
-Die Programmupdate-Funktion selbst wird ueber `ApplicationUpdates` gesteuert:
+Die Programmupdate-Funktion selbst wird über `ApplicationUpdates` gesteuert:
 
 ```json
 "ApplicationUpdates": {
@@ -42,42 +42,99 @@ Die Programmupdate-Funktion selbst wird ueber `ApplicationUpdates` gesteuert:
 }
 ```
 
-- `Enabled`: aktiviert die Update-Pruefung in `msTools.Updater`.
-- `EnableAutomaticDownload`: laedt gefundene neue Versionen automatisch herunter.
-- `EnableAutomaticInstallation`: installiert heruntergeladene Updates automatisch. Bei `false` kann die Installation ueber die `msTools.Updater`-Kommandos manuell ausgeloest werden.
-- `DownloadPath`: lokaler Arbeitsordner fuer Updatepakete, Statusdateien und Locks.
+Für Windows muss zusätzlich ein Installationstyp konfiguriert werden. Ab Version `0.7.0-rc.10` wird auch IIS unterstützt:
+
+### Windows-Dienst
+
+```json
+"ApplicationUpdates": {
+  "ServiceName": "RezepteWeb"
+}
+```
+
+### Ausführbare Datei
+
+```json
+"ApplicationUpdates": {
+  "ExecutablePath": "C:\\Services\\Rezepte\\Rezepte.Web.exe"
+}
+```
+
+### IIS-Application-Pool
+
+```json
+"ApplicationUpdates": {
+  "AppPoolName": "RezepteWebAppPool",
+  "SiteName": "Rezepte"
+}
+```
+
+- `Enabled`: aktiviert automatische Update-Läufe in `msTools.Updater`. Eine manuell gestartete Prüfung über "Jetzt prüfen" bleibt auch bei `false` möglich.
+- `EnableAutomaticDownload`: lädt gefundene neue Versionen automatisch herunter.
+- `EnableAutomaticInstallation`: installiert heruntergeladene Updates automatisch. Bei `false` kann die Installation über die `msTools.Updater`-Kommandos manuell ausgelöst werden.
+- `DownloadPath`: lokaler Arbeitsordner für Updatepakete, Statusdateien und Locks.
 - `HostedServicesEnabled`: aktiviert die Hintergrunddienste von `msTools.Updater`.
-- `StopHostAfterScriptStart`: beendet den Host, nachdem das Installationsskript gestartet wurde.
-- `HealthTimeoutSeconds`: Timeout fuer Health-/Lock-Bewertungen des Updaters.
-- `UpdateUnitName`: eindeutiger Name fuer die systemd-Update-Unit auf Linux.
-- `RepositoryOwner`, `RepositoryName`, `ManifestAssetName`: GitHub-Release-Quelle fuer `update.json` und Updatepakete. Sind keine GitHub-Werte gesetzt, kann `LocalSourceDirectory` fuer eine lokale Quelle verwendet werden.
+- `StopHostAfterScriptStart`: beendet den Host, nachdem das Installationsskript gestartet wurde. Auf Linux muss dieser Wert `true` sein, damit der Hostprozess das Update-Paket nicht weiter blockiert.
+- `HealthTimeoutSeconds`: Timeout für Health-/Lock-Bewertungen des Updaters.
+- `UpdateUnitName`: eindeutiger Name für die systemd-Update-Unit auf Linux. Die Unit muss existieren und im Systemd-Ziel aktiviert sein, sonst startet das Skript nicht.
+- `ServiceName`: Windows: Name des Dienstes, der gestoppt und neu gestartet wird.
+- `ExecutablePath`: Windows: Pfad zur ausführbaren Datei, falls kein Dienst verwendet wird.
+- `AppPoolName`: Windows (ab `0.7.0-rc.10`): Name des IIS-Application-Pools, der gestoppt und neu gestartet wird.
+- `SiteName`: Windows (ab `0.7.0-rc.10`): Optionale IIS-Site, ausschließlich für Logging, wenn `AppPoolName` verwendet wird.
+- `RepositoryOwner`, `RepositoryName`, `ManifestAssetName`: GitHub-Release-Quelle für `update.json` und Updatepakete. Sind keine GitHub-Werte gesetzt, kann `LocalSourceDirectory` für eine lokale Quelle verwendet werden.
+
+## Plattform-spezifische Voraussetzungen
+
+### Windows
+
+Einer der folgenden Installationstypen muss konfiguriert sein:
+
+- `ServiceName` – Windows-Dienst.
+- `ExecutablePath` – Ausführbare Datei.
+- `AppPoolName` – IIS-Application-Pool (ab `0.7.0-rc.10`).
+
+Wird `AppPoolName` gesetzt, verwendet `msTools.Updater` diesen und das optionale `SiteName` nur für Logging. Ansonsten wird `ServiceName` oder `ExecutablePath` verwendet.
+
+#### IIS-Application-Pools
+
+`msTools.Updater 0.7.0-rc.10` versucht, den IIS-App-Pool über `Stop-IISApplicationPool` und `Start-IISApplicationPool` zu stoppen/starten. Diese Cmdlets sind im verfügbaren `IISAdministration`-Modul (in-box und PSGallery, Version 1.1.0.0) nicht enthalten.
+
+> **Bekanntes Problem:** Bis `msTools.Updater` korrigiert wird, funktioniert die IIS-App-Pool-Installation nicht out-of-the-box. Siehe `Docs/help/updater-requirements.md` für die offenen Anforderungen an den Updater.
+
+Der Service-Account benötigt ausreichende Berechtigungen (Administratoren bzw. Rechte zum Stoppen/Starten des App Pools oder Dienstes).
+
+### Linux
+
+- `UpdateUnitName` muss dem Namen einer echten, aktivierten systemd-Unit entsprechen (z. B. `RezepteWebAutoUpdate.service`).
+- `StopHostAfterScriptStart` muss `true` sein, damit der Host stoppt, bevor das Skript die Binärdateien ersetzt.
+- Der Service-Account benötigt Rechte, um die Unit zu starten und die Anwendungsdateien zu überschreiben.
 
 ## Pre-Install-Backup
 
-Vor der Installation einer neuen Version loest `msTools.Updater` das `BeforeInstall`-Event aus. Der Event-Handler erstellt ueber `IUpdateBackupService` einen vollstaendigen Systemexport und wartet synchron auf dessen Abschluss, weil das Updater-Event cancellable ist.
+Vor der Installation einer neuen Version löst `msTools.Updater` das `BeforeInstall`-Event aus. Der Event-Handler erstellt über `IUpdateBackupService` einen vollständigen Systemexport und wartet synchron auf dessen Abschluss, weil das Updater-Event cancellable ist.
 
 Das Backup-Verhalten:
 
 - Die Konfiguration wird vor dem Backup validiert.
 - Das Zielverzeichnis wird bei Bedarf erstellt.
-- Der Export wird zunaechst in eine temporaere Datei im Backup-Verzeichnis geschrieben.
-- Erst nach erfolgreichem Schreiben wird die Datei unter einem finalen Namen wie `update-backup-20260730-1530000000000Z.zip` veroeffentlicht.
-- Erfolg und Fehler werden protokolliert, inklusive Zielpfad und Dateigroesse bei erfolgreichen Backups.
-- Schlaegt Export, Schreiben, Konfiguration oder Retention fehl, wird `BeforeInstall` abgebrochen und die Installation wird nicht fortgesetzt.
+- Der Export wird zunächst in eine temporäre Datei im Backup-Verzeichnis geschrieben.
+- Erst nach erfolgreichem Schreiben wird die Datei unter einem finalen Namen wie `update-backup-20260730-1530000000000Z.zip` veröffentlicht.
+- Erfolg und Fehler werden protokolliert, inklusive Zielpfad und Dateigröße bei erfolgreichen Backups.
+- Schlägt Export, Schreiben, Konfiguration oder Retention fehl, wird `BeforeInstall` abgebrochen und die Installation wird nicht fortgesetzt.
 
 ## Retention
 
-Nach einem erfolgreichen Backup wird die Aufbewahrung angewendet. Beruecksichtigt werden nur Dateien im konfigurierten Backup-Verzeichnis, deren Namen dem Muster `update-backup-*.zip` entsprechen.
+Nach einem erfolgreichen Backup wird die Aufbewahrung angewendet. Berücksichtigt werden nur Dateien im konfigurierten Backup-Verzeichnis, deren Namen dem Muster `update-backup-*.zip` entsprechen.
 
-Die neuesten `UpdateBackups:RetentionCount` Backups bleiben erhalten. Aeltere passende Dateien werden geloescht und die Loeschungen werden protokolliert. Dateien mit anderen Namen im selben Verzeichnis bleiben unberuehrt. Wenn die Retention nicht verlaesslich angewendet werden kann, gilt das Pre-Install-Backup als fehlgeschlagen und die Installation darf nicht weiterlaufen.
+Die neuesten `UpdateBackups:RetentionCount` Backups bleiben erhalten. Ältere passende Dateien werden gelöscht und die Löschungen werden protokolliert. Dateien mit anderen Namen im selben Verzeichnis bleiben unberührt. Wenn die Retention nicht verlässlich angewendet werden kann, gilt das Pre-Install-Backup als fehlgeschlagen und die Installation darf nicht weiterlaufen.
 
 ## Bedienung in den Einstellungen
 
-Administratoren sehen unter "Einstellungen" den Bereich "Updates". Dort werden der aktuelle Updater-Zustand, die installierte Version, eine gefundene verfuegbare Version, die letzte Pruefung, der Lock-Status sowie die letzten Ergebnisse fuer Pruefung, Download und Installation angezeigt.
+Administratoren sehen unter "Einstellungen" den Bereich "Updates". Dort werden der aktuelle Updater-Zustand, die installierte Version, eine gefundene verfügbare Version, die letzte Prüfung, der Lock-Status sowie die letzten Ergebnisse für Prüfung, Download und Installation angezeigt.
 
 Die Aktionen im Bereich:
 
-- "Jetzt pruefen": fragt die konfigurierte Update-Quelle nach einer neuen Version ab.
-- "Herunterladen": laedt ein gefundenes Updatepaket herunter.
-- "Installieren": startet die Installation mit Downtime-Bestaetigung. Vor der Installation wird automatisch das Pre-Install-Backup erstellt; bei Backupfehlern bricht die Installation ab.
+- "Jetzt prüfen": fragt die konfigurierte Update-Quelle nach einer neuen Version ab.
+- "Herunterladen": lädt ein gefundenes Updatepaket herunter.
+- "Installieren": startet die Installation mit Downtime-Bestätigung. Vor der Installation wird automatisch das Pre-Install-Backup erstellt; bei Backupfehlern bricht die Installation ab.
 - "Aktualisieren": liest den aktuellen Updater-Status neu ein.

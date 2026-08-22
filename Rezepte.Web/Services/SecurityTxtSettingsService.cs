@@ -53,7 +53,7 @@ public class SecurityTxtSettingsService : ISecurityTxtSettingsService
             Encryption: Get(SecurityTxtEncryptionKey),
             Acknowledgments: Get(SecurityTxtAcknowledgmentsKey),
             PreferredLanguages: Get(SecurityTxtPreferredLanguagesKey),
-            Canonical: null,
+            Canonical: Get(SecurityTxtCanonicalKey),
             Policy: Get(SecurityTxtPolicyKey),
             Hiring: Get(SecurityTxtHiringKey));
     }
@@ -84,7 +84,7 @@ public class SecurityTxtSettingsService : ISecurityTxtSettingsService
         Upsert(SecurityTxtEncryptionKey, settings.Encryption);
         Upsert(SecurityTxtAcknowledgmentsKey, settings.Acknowledgments);
         Upsert(SecurityTxtPreferredLanguagesKey, settings.PreferredLanguages);
-        Upsert(SecurityTxtCanonicalKey, null);
+        Upsert(SecurityTxtCanonicalKey, settings.Canonical);
         Upsert(SecurityTxtPolicyKey, settings.Policy);
         Upsert(SecurityTxtHiringKey, settings.Hiring);
 

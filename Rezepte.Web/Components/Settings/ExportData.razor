@@ -27,7 +27,7 @@
         <div class="progress mt-3" role="progressbar" aria-valuenow="@progress" aria-valuemin="0" aria-valuemax="100">
             <div class="progress-bar" style="width: @progress%">@progress%</div>
         </div>
-        <div class="mt-2 text-muted">Export laeuft...</div>
+        <div class="mt-2 text-muted">Export läuft...</div>
     }
     @if (!string.IsNullOrEmpty(message))
     {
@@ -125,7 +125,7 @@
 
             if (status.Status == 2)
             {
-                message = "Export abgeschlossen. Die Datei ist in der Tabelle unten verfuegbar.";
+                message = "Export abgeschlossen. Die Datei ist in der Tabelle unten verfügbar.";
                 if (exportFilesList is not null)
                 {
                     await exportFilesList.RefreshFilesAsync().ConfigureAwait(false);

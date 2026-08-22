@@ -4,10 +4,10 @@
 {
     <div class="overlay-backdrop" @onclick="OnClose">
         <div class="overlay-content overlay-photo" @onclick:stopPropagation>
-            <button class="btn btn-sm btn-danger overlay-close" @onclick="OnClose">×</button>
+            <button class="btn btn-sm btn-danger overlay-close" @onclick="OnClose">Ã—</button>
             @if (isLoading)
             {
-                <div>Lade Bilder…</div>
+                <div>Lade Bilderâ€¦</div>
             }
             else if (images is null || images.Count == 0)
             {
@@ -26,7 +26,7 @@
                             @if (Mode == "edit")
                             {
                                 <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
-                                        title="Bild löschen"
+                                        title="Bild lÃ¶schen"
                                         @onclick:stopPropagation
                                         @onclick="async e => await DeleteImageAsync(img.Id)">
                                     <i class="bi bi-trash"></i>
@@ -44,9 +44,9 @@
     {
         <div class="overlay-backdrop large-backdrop" @onclick="CloseLarge">
             <div class="overlay-content large-content" @onclick:stopPropagation>
-                <button class="btn btn-sm btn-danger overlay-close" @onclick="CloseLarge">×</button>
+                <button class="btn btn-sm btn-danger overlay-close" @onclick="CloseLarge">Ã—</button>
                 <div class="large-photo-wrap">
-                    <img src="@selectedImageUrl" alt="Großansicht" class="large-photo" />
+                    <img src="@selectedImageUrl" alt="GroÃŸansicht" class="large-photo" />
                 </div>
             </div>
         </div>

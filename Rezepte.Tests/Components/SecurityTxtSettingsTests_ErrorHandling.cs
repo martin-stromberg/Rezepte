@@ -70,7 +70,7 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
     }
 
     [Fact]
-    public void RenderedForm_DoesNotContainCanonicalInput()
+    public void RenderedForm_ContainsCanonicalInput()
     {
         var settings = new SecurityTxtSettings(
             Enabled: true,
@@ -79,7 +79,7 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
             Encryption: null,
             Acknowledgments: null,
             PreferredLanguages: null,
-            Canonical: "https://example.com/ignored",
+            Canonical: "https://example.com/security.txt",
             Policy: null,
             Hiring: null);
 
@@ -92,7 +92,7 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
         var cut = _context.RenderComponent<Rezepte.Web.Components.Settings.SecurityTxtSettings>();
 
         cut.WaitForAssertion(() => cut.Find("#securitytxt-enabled"));
-        cut.FindAll("#securitytxt-canonical").Should().BeEmpty();
+        cut.FindAll("#securitytxt-canonical").Should().ContainSingle();
     }
 
     public void Dispose()

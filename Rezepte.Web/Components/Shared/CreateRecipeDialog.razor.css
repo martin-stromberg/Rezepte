@@ -54,7 +54,7 @@
     align-items: center;
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.45);
-    z-index: 12000; /* ueber normalen Dialogen */
+    z-index: 12000; /* über normalen Dialogen */
     pointer-events: auto;
 }
 

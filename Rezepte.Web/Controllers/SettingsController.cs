@@ -211,7 +211,7 @@ public class SettingsController : ControllerBase
                 return BadRequest("Expires muss in der Zukunft liegen.");
         }
 
-        await _settings.SetSecurityTxtSettingsAsync(settings with { Canonical = null }, ct);
+        await _settings.SetSecurityTxtSettingsAsync(settings, ct);
         return NoContent();
     }
 }

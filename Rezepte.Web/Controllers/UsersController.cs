@@ -52,7 +52,7 @@ public class UsersController(IUserService users) : ControllerBase
             return Unauthorized();
 
         if (!ModelState.IsValid)
-            return BadRequest(new { message = "Ungültige Eingaben." });
+            return BadRequest(new { message = "UngÃ¼ltige Eingaben." });
 
         var (ok, error, updated) = await _users.UpdateProfileAsync(userId, dto.Username, dto.Email, ct);
         if (!ok || updated is null)
@@ -76,11 +76,11 @@ public class UsersController(IUserService users) : ControllerBase
             return Unauthorized();
 
         if (!ModelState.IsValid)
-            return BadRequest(new { message = "Ungültige Eingaben." });
+            return BadRequest(new { message = "UngÃ¼ltige Eingaben." });
 
         var (ok, error) = await _users.ChangePasswordAsync(userId, dto.CurrentPassword, dto.NewPassword, ct);
         if (!ok)
-            return BadRequest(new { message = error ?? "Passwort konnte nicht geändert werden." });
+            return BadRequest(new { message = error ?? "Passwort konnte nicht geÃ¤ndert werden." });
 
         return Ok();
     }

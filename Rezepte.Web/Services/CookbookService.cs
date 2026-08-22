@@ -12,7 +12,7 @@ public interface ICookbookService
     Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string name, string? description, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct);
 
-    // Neue Methode: Reihenfolge persistieren (Liste von Cookbook-Ids in gewünschter Reihenfolge)
+    // Neue Methode: Reihenfolge persistieren (Liste von Cookbook-Ids in gewÃ¼nschter Reihenfolge)
     Task<(bool ok, string? error)> ReorderAsync(string userId, List<string> orderedIds, CancellationToken ct);
 }
 
@@ -42,7 +42,7 @@ public class CookbookService(RezepteDbContext db) : ICookbookService
             return (false, "Der Name muss mindestens 3 Zeichen haben.", null);
         }
 
-        // bestimme maximalen OrderIndex des Benutzers und hänge neu an
+        // bestimme maximalen OrderIndex des Benutzers und hÃ¤nge neu an
         var maxIndex = await _db.Cookbooks
             .Where(c => c.UserId == userId)
             .Select(c => (int?)c.OrderIndex)
@@ -93,17 +93,17 @@ public class CookbookService(RezepteDbContext db) : ICookbookService
     public async Task<(bool ok, string? error)> ReorderAsync(string userId, List<string> orderedIds, CancellationToken ct)
     {
         if (orderedIds == null || orderedIds.Count == 0)
-            return (false, "Keine Reihenfolge übergeben.");
+            return (false, "Keine Reihenfolge Ã¼bergeben.");
 
-        // Lade alle Kochbücher des Benutzers
+        // Lade alle KochbÃ¼cher des Benutzers
         var userCookbooks = await _db.Cookbooks.Where(c => c.UserId == userId).ToListAsync(ct);
 
-        // Prüfe, ob alle angegebenen IDs zum Benutzer gehören
+        // PrÃ¼fe, ob alle angegebenen IDs zum Benutzer gehÃ¶ren
         var unknown = orderedIds.Except(userCookbooks.Select(c => c.Id)).ToList();
         if (unknown.Count > 0)
-            return (false, "Ungültige Kochbuch-Ids in der Reihenfolge.");
+            return (false, "UngÃ¼ltige Kochbuch-Ids in der Reihenfolge.");
 
-        // Setze OrderIndex entsprechend der übergebenen Reihenfolge
+        // Setze OrderIndex entsprechend der Ã¼bergebenen Reihenfolge
         for (int i = 0; i < orderedIds.Count; i++)
         {
             var id = orderedIds[i];
@@ -114,7 +114,7 @@ public class CookbookService(RezepteDbContext db) : ICookbookService
             }
         }
 
-        // Für Kochbücher des Users, die nicht in orderedIds sind, setze fortlaufende Indizes danach
+        // FÃ¼r KochbÃ¼cher des Users, die nicht in orderedIds sind, setze fortlaufende Indizes danach
         var missing = userCookbooks.Where(c => !orderedIds.Contains(c.Id)).OrderBy(c => c.Name).ToList();
         var start = orderedIds.Count;
         foreach (var cb in missing)

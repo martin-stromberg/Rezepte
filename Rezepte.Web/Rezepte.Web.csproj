@@ -19,6 +19,7 @@
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="msTools.Updater" Version="0.7.0-rc.11" />
   </ItemGroup>
 
   <!-- Verhindere, dass die JSON beim Publish mit kopiert wird (gilt für alle Konfigurationen) -->
@@ -37,10 +38,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
-    <Reference Include="msTools.Updater">
-      <HintPath>..\lib\msTools.Updater\net10.0\msTools.Updater.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -56,48 +53,31 @@
   </ItemGroup>
 
   <Target Name="BuildImportPlugins" BeforeTargets="CopyImportPluginsToOutput;CopyImportPluginsToPublish">
-    <MSBuild
-      Projects="@(ImportPluginProject)"
-      Targets="Build"
-      Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);RuntimeIdentifier=;SelfContained=false;RezepteWebReferencePath=$(TargetDir)Rezepte.Web.dll" />
+    <MSBuild Projects="@(ImportPluginProject)" Targets="Build" Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);RuntimeIdentifier=;SelfContained=false;RezepteWebReferencePath=$(TargetDir)Rezepte.Web.dll" />
   </Target>
 
   <Target Name="CopyImportPluginsToOutput" AfterTargets="Build">
     <RemoveDir Directories="$(OutputPath)plugins" />
     <ItemGroup>
-      <ImportPluginOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*"
-                          Exclude="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\plugins\**\*.*;%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\publish\**\*.*">
+      <ImportPluginOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*" Exclude="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\plugins\**\*.*;%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\publish\**\*.*">
         <PluginName>%(ImportPluginProject.PluginName)</PluginName>
       </ImportPluginOutput>
       <ExternalImportPluginOutput Include="$(ExternalImportPluginsPath)\**\*.*" Condition="Exists('$(ExternalImportPluginsPath)')" />
     </ItemGroup>
-    <Copy
-      SourceFiles="@(ImportPluginOutput)"
-      DestinationFiles="@(ImportPluginOutput->'$(OutputPath)plugins\%(PluginName)\%(RecursiveDir)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true" />
-    <Copy
-      SourceFiles="@(ExternalImportPluginOutput)"
-      DestinationFiles="@(ExternalImportPluginOutput->'$(OutputPath)plugins\%(RecursiveDir)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ImportPluginOutput)" DestinationFiles="@(ImportPluginOutput->'$(OutputPath)plugins\%(PluginName)\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ExternalImportPluginOutput)" DestinationFiles="@(ExternalImportPluginOutput->'$(OutputPath)plugins\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
   <Target Name="CopyImportPluginsToPublish" AfterTargets="Publish">
     <RemoveDir Directories="$(PublishDir)plugins" />
     <ItemGroup>
-      <ImportPluginPublishOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*"
-                                 Exclude="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\plugins\**\*.*;%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\publish\**\*.*">
+      <ImportPluginPublishOutput Include="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\**\*.*" Exclude="%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\plugins\**\*.*;%(ImportPluginProject.RootDir)%(ImportPluginProject.Directory)bin\$(Configuration)\$(TargetFramework)\publish\**\*.*">
         <PluginName>%(ImportPluginProject.PluginName)</PluginName>
       </ImportPluginPublishOutput>
       <ExternalImportPluginPublishOutput Include="$(ExternalImportPluginsPath)\**\*.*" Condition="Exists('$(ExternalImportPluginsPath)')" />
     </ItemGroup>
-    <Copy
-      SourceFiles="@(ImportPluginPublishOutput)"
-      DestinationFiles="@(ImportPluginPublishOutput->'$(PublishDir)plugins\%(PluginName)\%(RecursiveDir)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true" />
-    <Copy
-      SourceFiles="@(ExternalImportPluginPublishOutput)"
-      DestinationFiles="@(ExternalImportPluginPublishOutput->'$(PublishDir)plugins\%(RecursiveDir)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ImportPluginPublishOutput)" DestinationFiles="@(ImportPluginPublishOutput->'$(PublishDir)plugins\%(PluginName)\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ExternalImportPluginPublishOutput)" DestinationFiles="@(ExternalImportPluginPublishOutput->'$(PublishDir)plugins\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
