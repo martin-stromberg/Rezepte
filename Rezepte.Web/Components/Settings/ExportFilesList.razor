@@ -1,0 +1,189 @@
+@using Microsoft.JSInterop
+@inject ApiClient Api
+@inject IJSRuntime JS
+
+<div class="mt-4">
+    <h6>Gespeicherte Exporte</h6>
+
+    @if (isLoading)
+    {
+        <p class="text-muted">Lade...</p>
+    }
+    else if (files is null || files.Count == 0)
+    {
+        <p class="text-muted">Keine Exportdateien vorhanden.</p>
+    }
+    else
+    {
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>
+                    <th>Erstellt</th>
+                    <th>Typ</th>
+                    <th>Größe</th>
+                    <th class="text-end">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in files)
+                {
+                    <tr>
+                        <td>@f.CreatedAt.ToLocalTime().ToString("g")</td>
+                        <td>@(f.IsAdminExport ? "Gesamtexport" : "Eigene Daten")</td>
+                        <td>@FormatBytes(f.Size)</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => DownloadAsync(f)">Herunterladen</button>
+                            <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => DeleteAsync(f)">Löschen</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="mt-2 text-muted">@message</div>
+    }
+</div>
+
+@code {
+    private List<ExportFileItem>? files;
+    private bool isLoading = true;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFilesAsync().ConfigureAwait(false);
+    }
+
+    public async Task RefreshFilesAsync()
+    {
+        await LoadFilesAsync().ConfigureAwait(false);
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    private async Task LoadFilesAsync()
+    {
+        isLoading = true;
+        message = null;
+        try
+        {
+            var result = await Api.Http.GetFromJsonAsync<List<ExportFileItem>>("api/exports").ConfigureAwait(false);
+            files = result ?? new List<ExportFileItem>();
+        }
+        catch (Exception ex)
+        {
+            message = $"Fehler beim Laden der Exporte: {ex.Message}";
+            files = new List<ExportFileItem>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task DownloadAsync(ExportFileItem f)
+    {
+        await InvokeAsync(() => { message = null; StateHasChanged(); });
+        try
+        {
+            var fileName = f.FileName ?? (f.IsAdminExport ? "export-all.zip" : "recipes.zip");
+            var downloadUrl = $"api/exports/{f.Id}/download";
+            await JS.InvokeVoidAsync("downloadFileFromUrl", fileName, downloadUrl);
+            await InvokeAsync(() =>
+            {
+                message = "Download gestartet.";
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() =>
+            {
+                message = $"Download fehlgeschlagen: {ex.Message}";
+                StateHasChanged();
+            });
+        }
+    }
+
+    private async Task DeleteAsync(ExportFileItem f)
+    {
+        await InvokeAsync(() => { message = null; StateHasChanged(); });
+        try
+        {
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "Soll die Exportdatei wirklich gelöscht werden?");
+            if (!confirmed)
+                return;
+
+            var response = await Api.Http.DeleteAsync($"api/exports/{f.Id}").ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                await InvokeAsync(() =>
+                {
+                    message = $"Löschen fehlgeschlagen: {response.StatusCode}";
+                    StateHasChanged();
+                });
+                return;
+            }
+
+            await LoadFilesAsync().ConfigureAwait(false);
+            await InvokeAsync(() =>
+            {
+                message = "Exportdatei gelöscht.";
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() =>
+            {
+                message = $"Löschen fehlgeschlagen: {ex.Message}";
+                StateHasChanged();
+            });
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        const long mb = 1024 * 1024;
+        if (bytes >= mb)
+            return $"{bytes / (double)mb:F2} MB";
+
+        return $"{bytes / 1024.0:F2} KB";
+    }
+
+    private static string? GetFileNameFromResponse(HttpResponseMessage response)
+    {
+        if (response.Content?.Headers?.ContentDisposition?.FileNameStar is string fnStar && !string.IsNullOrWhiteSpace(fnStar))
+            return fnStar.Trim('"');
+
+        if (response.Content?.Headers?.ContentDisposition?.FileName is string fn && !string.IsNullOrWhiteSpace(fn))
+            return fn.Trim('"');
+
+        if (response.Content?.Headers?.Contains("Content-Disposition") ?? false)
+        {
+            var cd = response.Content.Headers.GetValues("Content-Disposition").FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(cd))
+            {
+                var idx = cd.IndexOf("filename=");
+                if (idx >= 0)
+                {
+                    var filename = cd.Substring(idx + "filename=".Length).Trim().Trim('"');
+                    if (!string.IsNullOrWhiteSpace(filename)) return filename;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private sealed class ExportFileItem
+    {
+        public string? Id { get; set; }
+        public string? FileName { get; set; }
+        public long Size { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public bool IsAdminExport { get; set; }
+    }
+}

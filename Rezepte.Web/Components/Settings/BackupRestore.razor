@@ -41,6 +41,8 @@
     {
         <div class="mt-2 text-muted">@message</div>
     }
+
+    <ExportFilesList @ref="exportFilesList" />
 </div>
 
 @code {
@@ -49,6 +51,7 @@
     private bool isBusy;
     private int progress;
     private string? message;
+    private ExportFilesList? exportFilesList;
 
     private async Task ExportAllAsync()
     {
@@ -82,7 +85,7 @@
             }
 
             message = "Export gestartet.";
-            await PollAndDownloadAsync(started.JobId.Value);
+            await PollAsync(started.JobId.Value);
         }
         catch (Exception ex)
         {
@@ -94,55 +97,55 @@
         }
     }
 
-    private async Task PollAndDownloadAsync(Guid jobId)
+    private async Task PollAsync(Guid jobId)
     {
         while (true)
         {
             var status = await Api.Http.GetFromJsonAsync<JobStatusResponse>($"api/jobs/{jobId}");
             if (status is null)
             {
-                message = "Exportstatus konnte nicht gelesen werden.";
+                await InvokeAsync(() =>
+                {
+                    message = "Exportstatus konnte nicht gelesen werden.";
+                    StateHasChanged();
+                });
                 return;
             }
 
-            progress = Math.Clamp(status.Progress, 0, 100);
-            StateHasChanged();
+            await InvokeAsync(() =>
+            {
+                progress = Math.Clamp(status.Progress, 0, 100);
+                StateHasChanged();
+            });
 
             if (status.Status == 2)
             {
-                if (await DownloadAsync(status.DownloadUrl ?? $"api/jobs/{jobId}/download"))
+                await InvokeAsync(() =>
                 {
-                    message = "Download gestartet.";
+                    message = "Export abgeschlossen. Die Datei ist in der Tabelle unten verfügbar.";
+                    StateHasChanged();
+                });
+                if (exportFilesList is not null)
+                {
+                    await exportFilesList.RefreshFilesAsync().ConfigureAwait(false);
                 }
                 return;
             }
 
             if (status.Status == 3 || status.Status == 4)
             {
-                message = string.IsNullOrWhiteSpace(status.Error)
-                    ? "Export fehlgeschlagen."
-                    : $"Export fehlgeschlagen: {status.Error}";
+                await InvokeAsync(() =>
+                {
+                    message = string.IsNullOrWhiteSpace(status.Error)
+                        ? "Export fehlgeschlagen."
+                        : $"Export fehlgeschlagen: {status.Error}";
+                    StateHasChanged();
+                });
                 return;
             }
 
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
-    }
-
-    private async Task<bool> DownloadAsync(string url)
-    {
-        var response = await Api.Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-        if (!response.IsSuccessStatusCode)
-        {
-            message = $"Download fehlgeschlagen: {response.StatusCode}";
-            return false;
-        }
-
-        var fileName = GetFileNameFromResponse(response) ?? $"export-all-{DateTime.UtcNow:yyyyMMddHHmm}.zip";
-        var stream = await response.Content.ReadAsStreamAsync();
-        using var streamRef = new DotNetStreamReference(stream: stream);
-        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
-        return true;
     }
 
     private Task OnFileSelected(InputFileChangeEventArgs e)
@@ -168,13 +171,15 @@
         message = null;
         try
         {
-            // Use absolute (root-based) API path so fetch resolves correctly from any route
-            var uploadUrl = "/api/admin/exports/restore";
-            var success = await JS.InvokeAsync<bool>("backupRestore.uploadFileToApi", "restoreFile", uploadUrl);
+            using var content = new MultipartFormDataContent();
+            var fileStream = selectedFile.OpenReadStream(1_500_000_000L);
+            content.Add(new StreamContent(fileStream), "file", selectedFile.Name);
 
-            if (!success)
+            var response = await Api.Http.PostAsync("api/admin/exports/restore", content);
+            if (!response.IsSuccessStatusCode)
             {
-                message = "Wiederherstellung fehlgeschlagen: Upload vom Browser an API nicht erfolgreich.";
+                var error = await response.Content.ReadAsStringAsync();
+                message = $"Wiederherstellung fehlgeschlagen: {response.StatusCode} {error}";
                 return;
             }
 
@@ -188,17 +193,6 @@
         {
             isBusy = false;
         }
-    }
-
-    private static string? GetFileNameFromResponse(HttpResponseMessage response)
-    {
-        if (response.Content?.Headers?.ContentDisposition?.FileNameStar is string fnStar && !string.IsNullOrWhiteSpace(fnStar))
-            return fnStar.Trim('"');
-
-        if (response.Content?.Headers?.ContentDisposition?.FileName is string fn && !string.IsNullOrWhiteSpace(fn))
-            return fn.Trim('"');
-
-        return null;
     }
 
     private sealed class JobStartResponse

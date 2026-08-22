@@ -219,104 +219,119 @@ public class ExportService : BaseService, IExportService
         // Serialize recipes.json
         var recipesJson = JsonSerializer.Serialize(exportRoot, _jsonOptions);
 
-        // Create ZIP on disk (caller should dispose, temp file is deleted on close)
+        // Create ZIP on disk (temp file is deleted when the returned read stream is disposed)
         var tempPath = Path.Combine(Path.GetTempPath(), $"rezepte-export-{Guid.NewGuid()}.zip");
-        var zipFs = new FileStream(
+
+        // Write the archive to a temp file first, then close the write stream and open a fresh read stream.
+        // This avoids FileStream write/read buffering issues that can corrupt ZIPs on Linux.
+        await using (var zipFsWrite = new FileStream(
             tempPath,
             FileMode.Create,
-            FileAccess.ReadWrite,
+            FileAccess.Write,
             FileShare.None,
+            81920,
+            FileOptions.Asynchronous))
+        {
+            using (var archive = new ZipArchive(zipFsWrite, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                // recipes.json
+                var jsonEntry = archive.CreateEntry("recipes.json", CompressionLevel.Optimal);
+                await using (var entryStream = jsonEntry.Open())
+                using (var sw = new StreamWriter(entryStream, Encoding.UTF8, -1, true))
+                {
+                    await sw.WriteAsync(recipesJson).ConfigureAwait(false);
+                }
+
+                // images
+                foreach (var r in recipes)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (includeImages)
+                    {
+                        var imgs = (r.Images ?? Enumerable.Empty<RecipeImage>()).OrderBy(img => img.CreatedAt).ToList();
+                        for (var i = 0; i < imgs.Count; i++)
+                        {
+                            var img = imgs[i];
+                            var ext = Path.GetExtension(img.FileName) ?? ".bin";
+                            var imageFileName = $"image{(i + 1):D2}{ext}";
+                            var entryPath = $"images/{r.Id}/{imageFileName}";
+
+                            // Images are already compressed; store them uncompressed for speed and compatibility.
+                            var imageEntry = archive.CreateEntry(entryPath, CompressionLevel.NoCompression);
+                            await using (var entryStream = imageEntry.Open())
+                            {
+                                // img.Data may be large; stream it
+                                await entryStream.WriteAsync(img.Data, 0, img.Data?.Length ?? 0, ct).ConfigureAwait(false);
+                            }
+                        }
+                    }
+
+                    // Optional PDF
+                    if (includePdf && _pdfGenerator != null)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        var exportDto = recipeDtos.FirstOrDefault(x => x.Id == r.Id);
+                        if (exportDto != null)
+                        {
+                            try
+                            {
+                                var pdfBytes = await _pdfGenerator.GenerateRecipePdfAsync(exportDto, ct).ConfigureAwait(false);
+                                if (pdfBytes != null && pdfBytes.Length > 0)
+                                {
+                                    // sanitize file name
+                                    var safeAuthor = SanitizeFileName(r.UserId ?? "Unknown");
+                                    var safeTitle = SanitizeFileName(r.Title ?? "Recipe");
+                                    var pdfName = $"{safeAuthor} - {safeTitle}.pdf";
+                                    var pdfEntry = archive.CreateEntry($"pdf/{pdfName}", CompressionLevel.NoCompression);
+                                    await using (var entryStream = pdfEntry.Open())
+                                    {
+                                        await entryStream.WriteAsync(pdfBytes, 0, pdfBytes.Length, ct).ConfigureAwait(false);
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "PDF generation failed for recipe {RecipeId}", r.Id);
+                                // Continue without failing entire export
+                            }
+                        }
+                    }
+                }
+
+                // metadata for admin exports (optional)
+                if (includeUsers && users != null)
+                {
+                    var meta = new
+                    {
+                        exportedAt = DateTime.UtcNow,
+                        recipeCount = recipes.Count,
+                        cookbookCount = cookbooks.Count,
+                        userCount = users.Count
+                    };
+                    var metaEntry = archive.CreateEntry("metadata.json", CompressionLevel.Optimal);
+                    await using (var entryStream = metaEntry.Open())
+                    using (var sw = new StreamWriter(entryStream, Encoding.UTF8, -1, true))
+                    {
+                        await sw.WriteAsync(JsonSerializer.Serialize(meta, _jsonOptions)).ConfigureAwait(false);
+                    }
+                }
+            }
+
+            await zipFsWrite.FlushAsync(ct).ConfigureAwait(false);
+        }
+
+        var zipFs = new FileStream(
+            tempPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
             81920,
             FileOptions.Asynchronous | FileOptions.DeleteOnClose);
 
-        using (var archive = new ZipArchive(zipFs, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            // recipes.json
-            var jsonEntry = archive.CreateEntry("recipes.json", CompressionLevel.Optimal);
-            await using (var entryStream = jsonEntry.Open())
-            using (var sw = new StreamWriter(entryStream, Encoding.UTF8, -1, true))
-            {
-                await sw.WriteAsync(recipesJson).ConfigureAwait(false);
-            }
-
-            // images
-            foreach (var r in recipes)
-            {
-                ct.ThrowIfCancellationRequested();
-                if (includeImages)
-                {
-                    var imgs = (r.Images ?? Enumerable.Empty<RecipeImage>()).OrderBy(img => img.CreatedAt).ToList();
-                    for (var i = 0; i < imgs.Count; i++)
-                    {
-                        var img = imgs[i];
-                        var ext = Path.GetExtension(img.FileName) ?? ".bin";
-                        var imageFileName = $"image{(i + 1):D2}{ext}";
-                        var entryPath = $"images/{r.Id}/{imageFileName}";
-
-                        // Images are already compressed; store them uncompressed for speed and compatibility.
-                        var imageEntry = archive.CreateEntry(entryPath, CompressionLevel.NoCompression);
-                        await using (var entryStream = imageEntry.Open())
-                        {
-                            // img.Data may be large; stream it
-                            await entryStream.WriteAsync(img.Data, 0, img.Data?.Length ?? 0, ct).ConfigureAwait(false);
-                        }
-                    }
-                }
-
-                // Optional PDF
-                if (includePdf && _pdfGenerator != null)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    var exportDto = recipeDtos.FirstOrDefault(x => x.Id == r.Id);
-                    if (exportDto != null)
-                    {
-                        try
-                        {
-                            var pdfBytes = await _pdfGenerator.GenerateRecipePdfAsync(exportDto, ct).ConfigureAwait(false);
-                            if (pdfBytes != null && pdfBytes.Length > 0)
-                            {
-                                // sanitize file name
-                                var safeAuthor = SanitizeFileName(r.UserId ?? "Unknown");
-                                var safeTitle = SanitizeFileName(r.Title ?? "Recipe");
-                                var pdfName = $"{safeAuthor} - {safeTitle}.pdf";
-                                var pdfEntry = archive.CreateEntry($"pdf/{pdfName}", CompressionLevel.NoCompression);
-                                await using (var entryStream = pdfEntry.Open())
-                                {
-                                    await entryStream.WriteAsync(pdfBytes, 0, pdfBytes.Length, ct).ConfigureAwait(false);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "PDF generation failed for recipe {RecipeId}", r.Id);
-                            // Continue without failing entire export
-                        }
-                    }
-                }
-            }
-
-            // metadata for admin exports (optional)
-            if (includeUsers && users != null)
-            {
-                var meta = new
-                {
-                    exportedAt = DateTime.UtcNow,
-                    recipeCount = recipes.Count,
-                    cookbookCount = cookbooks.Count,
-                    userCount = users.Count
-                };
-                var metaEntry = archive.CreateEntry("metadata.json", CompressionLevel.Optimal);
-                await using (var entryStream = metaEntry.Open())
-                using (var sw = new StreamWriter(entryStream, Encoding.UTF8, -1, true))
-                {
-                    await sw.WriteAsync(JsonSerializer.Serialize(meta, _jsonOptions)).ConfigureAwait(false);
-                }
-            }
-        }
-
-        await zipFs.FlushAsync(ct).ConfigureAwait(false);
-
-        _logger.LogInformation("Export ZIP prepared (initiator={Initiator})", initiatorUserId);
+        _logger.LogInformation(
+            "Export ZIP created with {RecipeCount} recipes, total size {TotalSize} bytes",
+            recipes.Count,
+            zipFs.Length);
         return zipFs;
     }
 

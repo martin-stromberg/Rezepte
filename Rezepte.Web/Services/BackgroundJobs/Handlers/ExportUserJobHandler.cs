@@ -61,18 +61,44 @@ public class ExportUserJobHandler : IBackgroundJobHandler
         var fileName = fileStore.CreateSafeFileName("export", userId, job.Id);
         var filePath = fileStore.GetPathForFileName(fileName);
 
+        logger.LogInformation(
+            "Saving user export {JobId} to file {FileName}",
+            job.Id,
+            fileName);
+
         // Persist to disk (could be replaced by blob storage)
+        long fileSize;
         await using (var fs = File.Create(filePath))
         {
             zipStream.Seek(0, SeekOrigin.Begin);
             await zipStream.CopyToAsync(fs, ct).ConfigureAwait(false);
+            fileSize = fs.Length;
         }
+
+        logger.LogInformation(
+            "User export {JobId} written to {FileName} ({FileSize} bytes)",
+            job.Id,
+            fileName,
+            fileSize);
+
+        db.UserExportFiles.Add(new Rezepte.Web.Entities.UserExportFile
+        {
+            UserId = userId,
+            IsAdminExport = false,
+            FileName = fileName,
+            Size = fileSize,
+            JobId = job.Id
+        });
 
         job.Progress = 90;
         job.ResultMessage = fileName;
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        logger.LogInformation("Export job {JobId} finished, file saved to {FilePath}", job.Id, filePath);
+        logger.LogInformation(
+            "Export job {JobId} finished, file {FileName} ({FileSize} bytes) registered",
+            job.Id,
+            fileName,
+            fileSize);
         // Final state will be set in hosted service (Succeeded + Progress=100)
     }
 
