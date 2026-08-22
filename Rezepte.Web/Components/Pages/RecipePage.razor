@@ -14,6 +14,7 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IOptionsMonitor<ImageOptions> ImageOptionsMonitor
+@inject ILogger<Rezepte.Web.Components.Pages.RecipePage> Logger
 
 <PageTitle>@(recipe?.Title ?? "Rezept")</PageTitle>
 
@@ -282,7 +283,10 @@ else
         {
             recipe = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Id}");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Reloading recipe {RecipeId} after saving a calendar entry failed", Id);
+        }
         StateHasChanged();
     }
 
@@ -330,7 +334,7 @@ else
             showCropper = false;
             cropDataUrl = null;
             errorMessage = "Fehler beim Laden der Bilddatei.";
-            Console.Error.WriteLine("OnImageSelected conversion error: " + ex.Message);
+            Logger.LogError(ex, "Could not read the selected image file for recipe {RecipeId}", Id);
         }
     }
 
@@ -391,7 +395,11 @@ else
             recipe = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Id}");
             await CheckIfInAnyCookbook();
         }
-        catch { recipe = null; }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Loading recipe {RecipeId} failed", Id);
+            recipe = null;
+        }
         finally { isLoading = false; }
     }
 
@@ -454,8 +462,9 @@ else
             var list = await Api.Http.GetFromJsonAsync<List<string>>($"api/recipes/{Id}/cookbooks");
             isInAnyCookbook = list != null && list.Count > 0;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Could not determine the cookbooks of recipe {RecipeId}", Id);
             isInAnyCookbook = false;
         }
     }

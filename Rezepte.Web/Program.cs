@@ -84,6 +84,9 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Rate limiting (policies are applied per endpoint)
+app.UseRateLimiter();
+
 // Antiforgery only for non-API routes
 app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/api"), branch =>
 {

@@ -6,6 +6,7 @@
 @inject ApiClient Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject ILogger<Rezepte.Web.Components.Pages.CookbookPage> Logger
 @using Rezepte.Web.Components.Shared
 
 <PageTitle>@(book?.Name ?? "Kochbuch")</PageTitle>
@@ -202,7 +203,11 @@ else
         {
             book = await Api.Http.GetFromJsonAsync<CookbookDto>($"api/cookbooks/{Id}");
         }
-        catch { book = null; }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Loading cookbook {CookbookId} failed", Id);
+            book = null;
+        }
     }
 
     private async Task LoadRecipesAsync()
@@ -211,7 +216,11 @@ else
         {
             recipes = await Api.Http.GetFromJsonAsync<List<RecipeListItemDto>>($"api/recipes/by-cookbook/{Id}") ?? new();
         }
-        catch { recipes = new(); }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Loading the recipes of cookbook {CookbookId} failed", Id);
+            recipes = new();
+        }
     }
 
     private void OpenCreateDialog()

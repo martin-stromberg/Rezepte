@@ -285,6 +285,7 @@ Html-Code:
             }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Could not download recipe image from {ImageUri}", extractedRecipe.ImageUri);
                 extractedRecipe.ImageData = null;
             }
         }

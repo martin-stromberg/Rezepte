@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components
 @inject ApiClient Client
 @inject NavigationManager Nav
+@inject ILogger<Rezepte.Web.Components.Pages.RecipeSearch> Logger
 
 <PageTitle>Rezepte – Suche</PageTitle>
 
@@ -20,6 +21,10 @@
         <div class="spinner-border" role="status" aria-hidden="true"></div>
         <div class="mt-2">Suche läuft…</div>
     </div>
+}
+else if (searchFailed)
+{
+    <div class="alert alert-danger">Die Suche ist fehlgeschlagen. Bitte versuche es erneut.</div>
 }
 else if (results?.Any() != true)
 {
@@ -82,6 +87,7 @@ else
 
     private string searchQuery = string.Empty;
     private bool isLoading;
+    private bool searchFailed;
     private CancellationTokenSource? cts;
     private RecipeResult[] results = Array.Empty<RecipeResult>();
     private int totalItems;
@@ -113,6 +119,7 @@ else
         try
         {
             isLoading = true;
+            searchFailed = false;
             results = Array.Empty<RecipeResult>();
             totalItems = 0;
 
@@ -126,10 +133,14 @@ else
                 totalItems = resp.Total;
             }
         }
-        catch (OperationCanceledException) { /* timeout/cancelled -> show empty or previous state */ }
-        catch (Exception)
+        catch (OperationCanceledException ex)
         {
-            // For simplicity: swallow and show no results; production: log via ILogger and show friendly message
+            Logger.LogInformation(ex, "Recipe search for query {Query} was cancelled or timed out", q);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Recipe search for query {Query} failed", q);
+            searchFailed = true;
             results = Array.Empty<RecipeResult>();
             totalItems = 0;
         }

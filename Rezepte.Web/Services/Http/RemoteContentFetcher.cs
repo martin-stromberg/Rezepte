@@ -34,22 +34,6 @@ public sealed class RemoteContentFetcher(IHttpClientFactory httpClientFactory) :
 
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
-    /// <summary>
-    /// Parses an absolute http(s) URL. Other schemes and relative URLs are rejected.
-    /// </summary>
-    public static bool TryCreateHttpUri(string? url, out Uri uri)
-    {
-        if (Uri.TryCreate(url, UriKind.Absolute, out var parsed)
-            && (parsed.Scheme == Uri.UriSchemeHttp || parsed.Scheme == Uri.UriSchemeHttps))
-        {
-            uri = parsed;
-            return true;
-        }
-
-        uri = null!;
-        return false;
-    }
-
     public async Task<RemoteContentResult> FetchAsync(Uri uri, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(uri);

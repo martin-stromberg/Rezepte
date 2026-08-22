@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rezepte.Web.Entities;
 using Rezepte.Web.Extensions;
+using Rezepte.Web.Security;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.Http;
 using Rezepte.Web.Services.Import;
@@ -391,8 +392,9 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     // private helper that centralizes importing the content behind a remote URL
     private async Task<IActionResult> ImportFromUrlAsync(string url, string? cookbookId, IImportService importService, string userId, CancellationToken ct)
     {
-        if (!RemoteContentFetcher.TryCreateHttpUri(url, out var uri))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
+        var (urlAllowed, urlError, uri) = await RemoteUrlGuard.TryValidateAsync(url, ct);
+        if (!urlAllowed || uri is null)
+            return BadRequest(new { message = urlError });
 
         try
         {
@@ -420,8 +422,9 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     // private helper that centralizes starting an import session from a remote URL
     private async Task<IActionResult> StartImportSessionFromUrlAsync(string url, string? cookbookId, ImportOrchestrator orchestrator, string userId, CancellationToken ct)
     {
-        if (!RemoteContentFetcher.TryCreateHttpUri(url, out var uri))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
+        var (urlAllowed, urlError, uri) = await RemoteUrlGuard.TryValidateAsync(url, ct);
+        if (!urlAllowed || uri is null)
+            return BadRequest(new { message = urlError });
 
         var fetched = await _remoteContent.FetchAsync(uri, ct);
         if (!fetched.Success)

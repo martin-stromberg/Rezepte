@@ -12,17 +12,6 @@ namespace Rezepte.Tests.Services.Http;
 
 public class RemoteContentFetcherTests
 {
-    [Theory]
-    [InlineData("https://example.com/recipe.html", true)]
-    [InlineData("http://example.com/recipe.html", true)]
-    [InlineData("ftp://example.com/recipe.html", false)]
-    [InlineData("/relative/path", false)]
-    [InlineData(null, false)]
-    public void TryCreateHttpUri_ShouldAcceptOnlyAbsoluteHttpUrls(string? url, bool expected)
-    {
-        RemoteContentFetcher.TryCreateHttpUri(url, out _).Should().Be(expected);
-    }
-
     [Fact]
     public async Task FetchAsync_ShouldReturnSeekableContentAndFileNameFromUrl()
     {
