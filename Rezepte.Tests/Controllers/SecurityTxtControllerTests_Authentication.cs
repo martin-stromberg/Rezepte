@@ -33,11 +33,13 @@ public sealed class SecurityTxtControllerTests_Authentication
         protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
         {
             builder.UseSetting(WebHostDefaults.EnvironmentKey, "Production");
+            builder.UseSetting("Jwt:Key", "integration-test-signing-key-0123456789");
             builder.ConfigureAppConfiguration((_, configurationBuilder) =>
             {
                 configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["ConnectionStrings:Default"] = $"Data Source={databasePath}"
+                    ["ConnectionStrings:Default"] = $"Data Source={databasePath}",
+                    ["Jwt:Key"] = "integration-test-signing-key-0123456789"
                 });
             });
         }

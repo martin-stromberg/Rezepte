@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rezepte.Web.Entities;
+using Rezepte.Web.Security;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.Import;
 using System.Security.Claims;
@@ -148,8 +149,9 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var cookbook = await _cookbooks.GetByIdAsync(userId, cookbookId, ct);
         if (cookbook is null) return NotFound(new { message = "Cookbook not found." });
 
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
+        var (urlAllowed, urlError, uri) = await RemoteUrlGuard.TryValidateAsync(request.Url, ct);
+        if (!urlAllowed || uri is null)
+            return BadRequest(new { message = urlError });
 
         var client = httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(30);
@@ -232,8 +234,9 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         if (userId is null) return Unauthorized();
         if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
 
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
+        var (urlAllowed, urlError, uri) = await RemoteUrlGuard.TryValidateAsync(request.Url, ct);
+        if (!urlAllowed || uri is null)
+            return BadRequest(new { message = urlError });
 
         var client = httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(30);
@@ -307,8 +310,9 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         if (userId is null) return Unauthorized();
         if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
 
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
+        var (urlAllowed, urlError, uri) = await RemoteUrlGuard.TryValidateAsync(request.Url, ct);
+        if (!urlAllowed || uri is null)
+            return BadRequest(new { message = urlError });
 
         var client = httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(30);
@@ -397,8 +401,9 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         if (userId is null) return Unauthorized();
         if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
 
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
+        var (urlAllowed, urlError, uri) = await RemoteUrlGuard.TryValidateAsync(request.Url, ct);
+        if (!urlAllowed || uri is null)
+            return BadRequest(new { message = urlError });
 
         var client = httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(30);

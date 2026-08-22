@@ -135,8 +135,9 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und könn
 | Einstellung | Bedeutung |
 |-------------|-----------|
 | `ConnectionStrings:Default` | SQLite-Connection-String. Fallback: `Data Source=rezepte.db`. |
-| `Jwt:Key` | Signaturschlüssel für API-Tokens. In Produktion ersetzen. |
-| `Jwt:Issuer`, `Jwt:Audience`, `Jwt:LifetimeMinutes` | JWT-Basiskonfiguration. Hinweis: Die Validierung verwendet im aktuellen Code feste Issuer-/Audience-Werte. |
+| `Jwt:Key` | Signaturschlüssel für API-Tokens. Außerhalb der Entwicklungsumgebung zwingend erforderlich (mindestens 32 Zeichen); ohne gültigen Wert startet die Anwendung nicht. In der Entwicklungsumgebung wird ohne Konfiguration ein Zufallsschlüssel pro Prozess erzeugt. |
+| `Jwt:Issuer`, `Jwt:Audience`, `Jwt:LifetimeMinutes` | JWT-Basiskonfiguration. Issuer und Audience werden zum Ausstellen und Validieren der Tokens verwendet (Standard: `rezepte` bzw. `rezepte.api`). |
+| `RateLimiting:Authentication:PermitLimit`, `RateLimiting:Authentication:WindowSeconds` | Grenzwerte der Ratenbegrenzung für Login und Registrierung pro Client-IP (Standard: 10 Anfragen pro 60 Sekunden). |
 | `Images:MaxSizeBytes` | Maximale Upload-Groesse für Bilder. |
 | `Images:AllowedContentTypes` | Erlaubte Bildformate. |
 | `AI:Simulate`, `AI:EnableCache`, `AI:CacheDurationHours` | Optionale Einstellungen für KI-Importe und Caching. |
@@ -183,6 +184,10 @@ Die Anwendung bindet `msTools.Updater` als externe Update-Komponente ein. Admini
 - Passwoerter werden serverseitig gehasht gespeichert.
 - Benutzernamen werden zentral serverseitig auf Laenge, erlaubte Zeichen, reservierte Namen sowie IP-/Domain- und offiziell wirkende Muster geprüft.
 - Website-Zugriffe verwenden ein HTTP-only Auth-Cookie.
+- Login und Registrierung sind pro Client-IP auf 10 Anfragen pro Minute begrenzt (HTTP 429 bei Überschreitung).
+- Das Passwort bei der Registrierung muss mindestens 6 Zeichen lang sein.
+- Rezeptbilder werden nur an den Eigentümer des Rezepts ausgeliefert und mit `Cache-Control: private` gekennzeichnet.
+- Serverseitige Abrufe benutzergelieferter URLs (URL-Import) sind auf öffentliche http(s)-Adressen und die Standardports beschränkt; Loopback-, Link-Local- und private Netzbereiche werden abgelehnt.
 - API-Controller sind über JWT abgesichert; Admin-Endpunkte verlangen die Rolle `Admin`.
 - Die Registrierung ist nur offen, solange noch kein Benutzer existiert.
 - Rezept-, Kochbuch-, Kalender- und Einstellungsdaten sind benutzerbezogen modelliert.
@@ -206,7 +211,7 @@ Bei framework-abhängigem Publish müssen auf dem Server passende .NET-10-Shared
 
 In Produktion sollten mindestens diese Punkte gesetzt bzw. geprüft werden:
 
-- eigener `Jwt:Key`
+- eigener `Jwt:Key` mit mindestens 32 Zeichen (z. B. per Umgebungsvariable `Jwt__Key`)
 - passende .NET-10-Shared-Frameworks oder self-contained Publish
 - persistenter Speicherort für SQLite-Datenbank und Logs
 - HTTPS/TLS vor der Anwendung

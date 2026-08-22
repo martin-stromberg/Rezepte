@@ -2,6 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Rezepte.Web.Security;
 using Rezepte.Web.Services;
 
 namespace Rezepte.Web.Controllers;
@@ -23,6 +25,7 @@ public class SessionController : ControllerBase
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Redirects to the specified return URL or to '/login?error=1' on failure.</returns>
     [IgnoreAntiforgeryToken]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     [HttpPost("login")] // issues auth cookie + api token
     public async Task<IActionResult> Login([FromServices] IUserService users, [FromServices] ITokenService tokens, [FromForm] LoginDto dto, [FromQuery] string? returnUrl, CancellationToken ct)
     {
