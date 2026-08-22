@@ -12,7 +12,7 @@ namespace Rezepte.Web.Controllers;
 
 [ApiController]
 [Route("api/exports")]
-[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)]
 public class UserExportFilesController : ControllerBase
 {
     private readonly RezepteDbContext _db;
