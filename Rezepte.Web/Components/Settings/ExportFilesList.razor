@@ -60,7 +60,7 @@
     public async Task RefreshFilesAsync()
     {
         await LoadFilesAsync().ConfigureAwait(false);
-        StateHasChanged();
+        await InvokeAsync(() => StateHasChanged());
     }
 
     private async Task LoadFilesAsync()
@@ -85,50 +85,74 @@
 
     private async Task DownloadAsync(ExportFileItem f)
     {
-        message = null;
+        await InvokeAsync(() => { message = null; StateHasChanged(); });
         try
         {
             var response = await Api.Http.GetAsync($"api/exports/{f.Id}/download", HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                message = $"Download fehlgeschlagen: {response.StatusCode}";
+                await InvokeAsync(() =>
+                {
+                    message = $"Download fehlgeschlagen: {response.StatusCode}";
+                    StateHasChanged();
+                });
                 return;
             }
 
             var fileName = GetFileNameFromResponse(response) ?? (f.IsAdminExport ? "export-all.zip" : "recipes.zip");
             var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            using var streamRef = new DotNetStreamReference(stream: stream);
-            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef).ConfigureAwait(false);
-            message = "Download gestartet.";
+            await InvokeAsync(async () =>
+            {
+                using var streamRef = new DotNetStreamReference(stream: stream);
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+                message = "Download gestartet.";
+                StateHasChanged();
+            });
         }
         catch (Exception ex)
         {
-            message = $"Download fehlgeschlagen: {ex.Message}";
+            await InvokeAsync(() =>
+            {
+                message = $"Download fehlgeschlagen: {ex.Message}";
+                StateHasChanged();
+            });
         }
     }
 
     private async Task DeleteAsync(ExportFileItem f)
     {
-        message = null;
+        await InvokeAsync(() => { message = null; StateHasChanged(); });
         try
         {
-            var confirmed = await JS.InvokeAsync<bool>("confirm", "Soll die Exportdatei wirklich gelöscht werden?").ConfigureAwait(false);
+            var confirmed = await JS.InvokeAsync<bool>("confirm", "Soll die Exportdatei wirklich gelöscht werden?");
             if (!confirmed)
                 return;
 
             var response = await Api.Http.DeleteAsync($"api/exports/{f.Id}").ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                message = $"Löschen fehlgeschlagen: {response.StatusCode}";
+                await InvokeAsync(() =>
+                {
+                    message = $"Löschen fehlgeschlagen: {response.StatusCode}";
+                    StateHasChanged();
+                });
                 return;
             }
 
             await LoadFilesAsync().ConfigureAwait(false);
-            message = "Exportdatei gelöscht.";
+            await InvokeAsync(() =>
+            {
+                message = "Exportdatei gelöscht.";
+                StateHasChanged();
+            });
         }
         catch (Exception ex)
         {
-            message = $"Löschen fehlgeschlagen: {ex.Message}";
+            await InvokeAsync(() =>
+            {
+                message = $"Löschen fehlgeschlagen: {ex.Message}";
+                StateHasChanged();
+            });
         }
     }
 

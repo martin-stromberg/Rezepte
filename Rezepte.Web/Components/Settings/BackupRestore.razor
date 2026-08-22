@@ -104,16 +104,27 @@
             var status = await Api.Http.GetFromJsonAsync<JobStatusResponse>($"api/jobs/{jobId}");
             if (status is null)
             {
-                message = "Exportstatus konnte nicht gelesen werden.";
+                await InvokeAsync(() =>
+                {
+                    message = "Exportstatus konnte nicht gelesen werden.";
+                    StateHasChanged();
+                });
                 return;
             }
 
-            progress = Math.Clamp(status.Progress, 0, 100);
-            StateHasChanged();
+            await InvokeAsync(() =>
+            {
+                progress = Math.Clamp(status.Progress, 0, 100);
+                StateHasChanged();
+            });
 
             if (status.Status == 2)
             {
-                message = "Export abgeschlossen. Die Datei ist in der Tabelle unten verfügbar.";
+                await InvokeAsync(() =>
+                {
+                    message = "Export abgeschlossen. Die Datei ist in der Tabelle unten verfügbar.";
+                    StateHasChanged();
+                });
                 if (exportFilesList is not null)
                 {
                     await exportFilesList.RefreshFilesAsync().ConfigureAwait(false);
@@ -123,9 +134,13 @@
 
             if (status.Status == 3 || status.Status == 4)
             {
-                message = string.IsNullOrWhiteSpace(status.Error)
-                    ? "Export fehlgeschlagen."
-                    : $"Export fehlgeschlagen: {status.Error}";
+                await InvokeAsync(() =>
+                {
+                    message = string.IsNullOrWhiteSpace(status.Error)
+                        ? "Export fehlgeschlagen."
+                        : $"Export fehlgeschlagen: {status.Error}";
+                    StateHasChanged();
+                });
                 return;
             }
 
