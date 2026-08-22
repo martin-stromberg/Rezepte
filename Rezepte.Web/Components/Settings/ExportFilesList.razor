@@ -88,23 +88,11 @@
         await InvokeAsync(() => { message = null; StateHasChanged(); });
         try
         {
-            var response = await Api.Http.GetAsync($"api/exports/{f.Id}/download", HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            var fileName = f.FileName ?? (f.IsAdminExport ? "export-all.zip" : "recipes.zip");
+            var downloadUrl = $"api/exports/{f.Id}/download";
+            await JS.InvokeVoidAsync("downloadFileFromUrl", fileName, downloadUrl);
+            await InvokeAsync(() =>
             {
-                await InvokeAsync(() =>
-                {
-                    message = $"Download fehlgeschlagen: {response.StatusCode}";
-                    StateHasChanged();
-                });
-                return;
-            }
-
-            var fileName = GetFileNameFromResponse(response) ?? (f.IsAdminExport ? "export-all.zip" : "recipes.zip");
-            var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            await InvokeAsync(async () =>
-            {
-                using var streamRef = new DotNetStreamReference(stream: stream);
-                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
                 message = "Download gestartet.";
                 StateHasChanged();
             });
