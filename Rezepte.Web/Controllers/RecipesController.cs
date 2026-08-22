@@ -232,10 +232,17 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
         return Ok(new { imageId = image!.Id });
     }
 
+    // Images are rendered by the browser, so cookie authentication is accepted in addition to bearer tokens.
     [HttpGet("{recipeId}/image/{imageId}")]
-    [AllowAnonymous]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetImage(string recipeId, string imageId, CancellationToken ct)
     {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var recipe = await _recipes.GetByIdAsync(userId, recipeId, ct);
+        if (recipe is null) return NotFound();
+
         var image = await _recipes.GetImageAsync(recipeId, imageId, ct);
         if (image == null) return NotFound();
 
@@ -253,12 +260,12 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
         if (Request.Headers.TryGetValue("If-None-Match", out var inm) && inm.Any(h => h == etag))
         {
             Response.Headers["ETag"] = etag;
-            Response.Headers["Cache-Control"] = $"public, max-age={_imageOptions.CacheMaxAgeSeconds}";
+            Response.Headers["Cache-Control"] = $"private, max-age={_imageOptions.CacheMaxAgeSeconds}";
             return StatusCode(StatusCodes.Status304NotModified);
         }
 
         // Cache Header setzen
-        Response.Headers["Cache-Control"] = $"public, max-age={_imageOptions.CacheMaxAgeSeconds}";
+        Response.Headers["Cache-Control"] = $"private, max-age={_imageOptions.CacheMaxAgeSeconds}";
         Response.Headers["ETag"] = etag;
 
         return File(image.Data, contentType, image.FileName);

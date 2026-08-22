@@ -1,9 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
-using System.Security.Cryptography;
+using Rezepte.Web.Security;
 
 namespace Rezepte.Web.Services;
 
@@ -16,21 +15,18 @@ public interface ITokenService
 public class TokenService : ITokenService
 {
     private readonly IMemoryCache _cache;
-    private readonly byte[] _key;
+    private readonly IJwtSigningKeyProvider _signingKeyProvider;
 
-    public TokenService(IMemoryCache cache, IConfiguration config)
+    public TokenService(IMemoryCache cache, IJwtSigningKeyProvider signingKeyProvider)
     {
         _cache = cache;
-        var key = config["Jwt:Key"] ?? "dev-super-secret-key-change";
-        // Ensure 256-bit key: derive fixed-size key via SHA256 of provided secret
-        var raw = Encoding.UTF8.GetBytes(key);
-        _key = SHA256.HashData(raw);
+        _signingKeyProvider = signingKeyProvider;
     }
 
     public string CreateToken(string userId, string username, bool isAdmin = false)
     {
         var handler = new JwtSecurityTokenHandler();
-        var creds = new SigningCredentials(new SymmetricSecurityKey(_key), SecurityAlgorithms.HmacSha256);
+        var creds = new SigningCredentials(new SymmetricSecurityKey(_signingKeyProvider.Key), SecurityAlgorithms.HmacSha256);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, userId),
@@ -41,8 +37,8 @@ public class TokenService : ITokenService
             claims.Add(new Claim(ClaimTypes.Role, "Admin"));
         }
         var token = handler.CreateJwtSecurityToken(
-            issuer: "rezepte",
-            audience: "rezepte.api",
+            issuer: _signingKeyProvider.Issuer,
+            audience: _signingKeyProvider.Audience,
             subject: new ClaimsIdentity(claims),
             notBefore: DateTime.UtcNow,
             expires: DateTime.UtcNow.AddHours(8),

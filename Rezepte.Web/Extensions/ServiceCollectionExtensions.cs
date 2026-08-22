@@ -8,6 +8,7 @@ using Microsoft.Extensions.Http;
 using Microsoft.IdentityModel.Tokens;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Data;
+using Rezepte.Web.Security;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.BackgroundJobs.Handlers;
@@ -17,8 +18,7 @@ using Rezepte.Web.Services.Updates;
 using Rezepte.Web.Services.Validation;
 using Rezepte.Web.ViewModels;
 using System.Net;
-using System.Security.Cryptography;
-using System.Text;
+using System.Threading.RateLimiting;
 
 namespace Rezepte.Web.Extensions;
 
@@ -53,6 +53,24 @@ public static class ServiceCollectionExtensions
         // EF Core Sqlite
         var connectionString = configuration.GetConnectionString("Default") ?? "Data Source=rezepte.db";
         services.AddDbContext<RezepteDbContext>(options => options.UseSqlite(connectionString));
+
+        // JWT signing material (fails fast outside development when no secret is configured)
+        var jwtSigningKeyProvider = new JwtSigningKeyProvider(configuration, env);
+        services.AddSingleton<IJwtSigningKeyProvider>(jwtSigningKeyProvider);
+
+        // Rate limiting for authentication endpoints
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(RateLimitPolicies.Authentication, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                }));
+        });
 
         // Authentication (Cookie + JWT)
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -93,17 +111,14 @@ public static class ServiceCollectionExtensions
             })
             .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
             {
-                var secret = configuration["Jwt:Key"] ?? "dev-super-secret-key-change";
-                var raw = Encoding.UTF8.GetBytes(secret);
-                var keyBytes = SHA256.HashData(raw);
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
-                    ValidIssuer = "rezepte",
+                    ValidIssuer = jwtSigningKeyProvider.Issuer,
                     ValidateAudience = true,
-                    ValidAudience = "rezepte.api",
+                    ValidAudience = jwtSigningKeyProvider.Audience,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
+                    IssuerSigningKey = new SymmetricSecurityKey(jwtSigningKeyProvider.Key)
                 };
             });
 
