@@ -1,12 +1,11 @@
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Rezepte.Web.Security;
 using Rezepte.Web.Services;
 using Xunit;
 
@@ -14,23 +13,12 @@ namespace Rezepte.Tests.Services;
 
 public class TokenServiceTests
 {
-    private const string ConfiguredKey = "unit-test-signing-secret";
+    private const string ConfiguredKey = "unit-test-signing-secret-0123456789";
 
-    private static IConfiguration CreateConfiguration(string? key)
-    {
-        var values = new Dictionary<string, string?>();
-        if (key is not null)
-        {
-            values["Jwt:Key"] = key;
-        }
-
-        return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
-    }
-
-    private static TokenService CreateSut(out IMemoryCache cache, string? key = ConfiguredKey)
+    private static TokenService CreateSut(out IMemoryCache cache, string key = ConfiguredKey)
     {
         cache = new MemoryCache(new MemoryCacheOptions());
-        return new TokenService(cache, CreateConfiguration(key));
+        return new TokenService(cache, new StubJwtSigningKeyProvider(key));
     }
 
     private static JwtSecurityToken ReadValidatedToken(string jwt, string signingKey)
@@ -85,16 +73,6 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateToken_ShouldUseFallbackKeyWhenConfigurationIsMissing()
-    {
-        var sut = CreateSut(out _, key: null);
-
-        var jwt = sut.CreateToken("user-1", "alice");
-
-        ReadValidatedToken(jwt, "dev-super-secret-key-change").Should().NotBeNull();
-    }
-
-    [Fact]
     public void CreateToken_ShouldCacheTokenPerUser()
     {
         var sut = CreateSut(out var cache);
@@ -135,5 +113,14 @@ public class TokenServiceTests
 
         var act = () => ReadValidatedToken(jwt, "another-secret");
         act.Should().Throw<SecurityTokenException>();
+    }
+
+    private sealed class StubJwtSigningKeyProvider(string secret) : IJwtSigningKeyProvider
+    {
+        public byte[] Key { get; } = SHA256.HashData(Encoding.UTF8.GetBytes(secret));
+
+        public string Issuer => "rezepte";
+
+        public string Audience => "rezepte.api";
     }
 }
