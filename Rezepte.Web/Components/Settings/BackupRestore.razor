@@ -41,6 +41,8 @@
     {
         <div class="mt-2 text-muted">@message</div>
     }
+
+    <ExportFilesList @ref="exportFilesList" />
 </div>
 
 @code {
@@ -49,6 +51,7 @@
     private bool isBusy;
     private int progress;
     private string? message;
+    private ExportFilesList? exportFilesList;
 
     private async Task ExportAllAsync()
     {
@@ -82,7 +85,7 @@
             }
 
             message = "Export gestartet.";
-            await PollAndDownloadAsync(started.JobId.Value);
+            await PollAsync(started.JobId.Value);
         }
         catch (Exception ex)
         {
@@ -94,7 +97,7 @@
         }
     }
 
-    private async Task PollAndDownloadAsync(Guid jobId)
+    private async Task PollAsync(Guid jobId)
     {
         while (true)
         {
@@ -110,9 +113,10 @@
 
             if (status.Status == 2)
             {
-                if (await DownloadAsync(status.DownloadUrl ?? $"api/jobs/{jobId}/download"))
+                message = "Export abgeschlossen. Die Datei ist in der Tabelle unten verfuegbar.";
+                if (exportFilesList is not null)
                 {
-                    message = "Download gestartet.";
+                    await exportFilesList.RefreshFilesAsync().ConfigureAwait(false);
                 }
                 return;
             }
@@ -127,22 +131,6 @@
 
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
-    }
-
-    private async Task<bool> DownloadAsync(string url)
-    {
-        var response = await Api.Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-        if (!response.IsSuccessStatusCode)
-        {
-            message = $"Download fehlgeschlagen: {response.StatusCode}";
-            return false;
-        }
-
-        var fileName = GetFileNameFromResponse(response) ?? $"export-all-{DateTime.UtcNow:yyyyMMddHHmm}.zip";
-        var stream = await response.Content.ReadAsStreamAsync();
-        using var streamRef = new DotNetStreamReference(stream: stream);
-        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
-        return true;
     }
 
     private Task OnFileSelected(InputFileChangeEventArgs e)
@@ -188,17 +176,6 @@
         {
             isBusy = false;
         }
-    }
-
-    private static string? GetFileNameFromResponse(HttpResponseMessage response)
-    {
-        if (response.Content?.Headers?.ContentDisposition?.FileNameStar is string fnStar && !string.IsNullOrWhiteSpace(fnStar))
-            return fnStar.Trim('"');
-
-        if (response.Content?.Headers?.ContentDisposition?.FileName is string fn && !string.IsNullOrWhiteSpace(fn))
-            return fn.Trim('"');
-
-        return null;
     }
 
     private sealed class JobStartResponse

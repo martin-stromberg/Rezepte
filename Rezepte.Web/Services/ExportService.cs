@@ -328,7 +328,10 @@ public class ExportService : BaseService, IExportService
             81920,
             FileOptions.Asynchronous | FileOptions.DeleteOnClose);
 
-        _logger.LogInformation("Export ZIP prepared (initiator={Initiator})", initiatorUserId);
+        _logger.LogInformation(
+            "Export ZIP created with {RecipeCount} recipes, total size {TotalSize} bytes",
+            recipes.Count,
+            zipFs.Length);
         return zipFs;
     }
 

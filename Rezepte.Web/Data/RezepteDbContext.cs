@@ -28,6 +28,7 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     public DbSet<ShoppingListGroup> ShoppingListGroups => Set<ShoppingListGroup>();
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
     public DbSet<BackgroundJob> BackgroundJobs => Set<BackgroundJob>();
+    public DbSet<UserExportFile> UserExportFiles => Set<UserExportFile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -293,6 +294,17 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
                 .WithMany(p => p.Releases)
                 .HasForeignKey(p => p.PluginSourceId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserExportFile>(b =>
+        {
+            b.HasKey(f => f.Id);
+            b.Property(f => f.UserId).IsRequired().HasMaxLength(64);
+            b.Property(f => f.FileName).IsRequired().HasMaxLength(256);
+            b.Property(f => f.Size).IsRequired();
+            b.Property(f => f.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasIndex(f => f.UserId);
+            b.HasIndex(f => new { f.UserId, f.CreatedAt });
         });
     }
 }
