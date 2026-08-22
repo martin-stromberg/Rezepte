@@ -59,6 +59,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IJwtSigningKeyProvider>(jwtSigningKeyProvider);
 
         // Rate limiting for authentication endpoints
+        var authenticationPermitLimit =
+            configuration.GetValue<int?>("RateLimiting:Authentication:PermitLimit") ?? 10;
+        var authenticationWindowSeconds =
+            configuration.GetValue<int?>("RateLimiting:Authentication:WindowSeconds") ?? 60;
+
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -66,8 +71,8 @@ public static class ServiceCollectionExtensions
                 context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = 10,
-                    Window = TimeSpan.FromMinutes(1),
+                    PermitLimit = authenticationPermitLimit,
+                    Window = TimeSpan.FromSeconds(authenticationWindowSeconds),
                     QueueLimit = 0
                 }));
         });

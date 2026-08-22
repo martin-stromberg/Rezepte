@@ -137,6 +137,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und könn
 | `ConnectionStrings:Default` | SQLite-Connection-String. Fallback: `Data Source=rezepte.db`. |
 | `Jwt:Key` | Signaturschlüssel für API-Tokens. Außerhalb der Entwicklungsumgebung zwingend erforderlich (mindestens 32 Zeichen); ohne gültigen Wert startet die Anwendung nicht. In der Entwicklungsumgebung wird ohne Konfiguration ein Zufallsschlüssel pro Prozess erzeugt. |
 | `Jwt:Issuer`, `Jwt:Audience`, `Jwt:LifetimeMinutes` | JWT-Basiskonfiguration. Issuer und Audience werden zum Ausstellen und Validieren der Tokens verwendet (Standard: `rezepte` bzw. `rezepte.api`). |
+| `RateLimiting:Authentication:PermitLimit`, `RateLimiting:Authentication:WindowSeconds` | Grenzwerte der Ratenbegrenzung für Login und Registrierung pro Client-IP (Standard: 10 Anfragen pro 60 Sekunden). |
 | `Images:MaxSizeBytes` | Maximale Upload-Groesse für Bilder. |
 | `Images:AllowedContentTypes` | Erlaubte Bildformate. |
 | `AI:Simulate`, `AI:EnableCache`, `AI:CacheDurationHours` | Optionale Einstellungen für KI-Importe und Caching. |
