@@ -171,13 +171,15 @@
         message = null;
         try
         {
-            // Use absolute (root-based) API path so fetch resolves correctly from any route
-            var uploadUrl = "/api/admin/exports/restore";
-            var success = await JS.InvokeAsync<bool>("backupRestore.uploadFileToApi", "restoreFile", uploadUrl);
+            using var content = new MultipartFormDataContent();
+            var fileStream = selectedFile.OpenReadStream(524288000L);
+            content.Add(new StreamContent(fileStream), "file", selectedFile.Name);
 
-            if (!success)
+            var response = await Api.Http.PostAsync("api/admin/exports/restore", content);
+            if (!response.IsSuccessStatusCode)
             {
-                message = "Wiederherstellung fehlgeschlagen: Upload vom Browser an API nicht erfolgreich.";
+                var error = await response.Content.ReadAsStringAsync();
+                message = $"Wiederherstellung fehlgeschlagen: {response.StatusCode} {error}";
                 return;
             }
 
