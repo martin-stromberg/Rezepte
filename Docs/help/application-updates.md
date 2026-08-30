@@ -42,7 +42,7 @@ Die Programmupdate-Funktion selbst wird über `ApplicationUpdates` gesteuert:
 }
 ```
 
-Für Windows muss zusätzlich ein Installationstyp konfiguriert werden. Ab Version `0.7.0-rc.10` wird auch IIS unterstützt:
+Für Windows muss zusätzlich ein Installationstyp konfiguriert werden. `msTools.Updater 0.10.0` unterstützt neben Windows-Diensten und ausführbaren Dateien auch IIS:
 
 ### Windows-Dienst
 
@@ -79,8 +79,8 @@ Für Windows muss zusätzlich ein Installationstyp konfiguriert werden. Ab Versi
 - `UpdateUnitName`: eindeutiger Name für die systemd-Update-Unit auf Linux. Die Unit muss existieren und im Systemd-Ziel aktiviert sein, sonst startet das Skript nicht.
 - `ServiceName`: Windows: Name des Dienstes, der gestoppt und neu gestartet wird.
 - `ExecutablePath`: Windows: Pfad zur ausführbaren Datei, falls kein Dienst verwendet wird.
-- `AppPoolName`: Windows (ab `0.7.0-rc.10`): Name des IIS-Application-Pools, der gestoppt und neu gestartet wird.
-- `SiteName`: Windows (ab `0.7.0-rc.10`): Optionale IIS-Site, ausschließlich für Logging, wenn `AppPoolName` verwendet wird.
+- `AppPoolName`: Windows: Name des IIS-Application-Pools, der gestoppt und neu gestartet wird.
+- `SiteName`: Windows: Optionale IIS-Site, ausschließlich für Logging, wenn `AppPoolName` verwendet wird.
 - `RepositoryOwner`, `RepositoryName`, `ManifestAssetName`: GitHub-Release-Quelle für `update.json` und Updatepakete. Sind keine GitHub-Werte gesetzt, kann `LocalSourceDirectory` für eine lokale Quelle verwendet werden.
 
 ## Plattform-spezifische Voraussetzungen
@@ -91,15 +91,13 @@ Einer der folgenden Installationstypen muss konfiguriert sein:
 
 - `ServiceName` – Windows-Dienst.
 - `ExecutablePath` – Ausführbare Datei.
-- `AppPoolName` – IIS-Application-Pool (ab `0.7.0-rc.10`).
+- `AppPoolName` – IIS-Application-Pool.
 
 Wird `AppPoolName` gesetzt, verwendet `msTools.Updater` diesen und das optionale `SiteName` nur für Logging. Ansonsten wird `ServiceName` oder `ExecutablePath` verwendet.
 
 #### IIS-Application-Pools
 
-`msTools.Updater 0.7.0-rc.10` versucht, den IIS-App-Pool über `Stop-IISApplicationPool` und `Start-IISApplicationPool` zu stoppen/starten. Diese Cmdlets sind im verfügbaren `IISAdministration`-Modul (in-box und PSGallery, Version 1.1.0.0) nicht enthalten.
-
-> **Bekanntes Problem:** Bis `msTools.Updater` korrigiert wird, funktioniert die IIS-App-Pool-Installation nicht out-of-the-box. Siehe `Docs/help/updater-requirements.md` für die offenen Anforderungen an den Updater.
+`msTools.Updater 0.10.0` verwendet für IIS das `WebAdministration`-Modul und die Cmdlets `Stop-WebAppPool` und `Start-WebAppPool`. Das Modul muss auf dem Windows-Server installiert sein. Die frühere Abhängigkeit von nicht verfügbaren `IISAdministration`-Cmdlets betrifft diese Version nicht.
 
 Der Service-Account benötigt ausreichende Berechtigungen (Administratoren bzw. Rechte zum Stoppen/Starten des App Pools oder Dienstes).
 

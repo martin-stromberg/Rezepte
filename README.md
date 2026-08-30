@@ -148,8 +148,8 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und könn
 | `ApplicationUpdates:*` | Steuerung der eingebundenen `msTools.Updater`-Programmupdates, inklusive Quelle, Downloadpfad, automatischem Download und automatischer Installation. |
 | `ApplicationUpdates:ServiceName` | Windows: Name des Dienstes, der während der Installation gestoppt und neu gestartet wird. |
 | `ApplicationUpdates:ExecutablePath` | Windows: Pfad zur Executable, falls kein Dienst verwendet wird. |
-| `ApplicationUpdates:AppPoolName` | Windows (ab `msTools.Updater` `0.7.0-rc.10`): Name des IIS-Application-Pools, der gestoppt und neu gestartet wird. |
-| `ApplicationUpdates:SiteName` | Windows (ab `msTools.Updater` `0.7.0-rc.10`): Optionale IIS-Site für das Logging bei `AppPoolName`. |
+| `ApplicationUpdates:AppPoolName` | Windows (ab `msTools.Updater` `0.10.0`): Name des IIS-Application-Pools, der gestoppt und neu gestartet wird. |
+| `ApplicationUpdates:SiteName` | Windows (ab `msTools.Updater` `0.10.0`): Optionale IIS-Site für das Logging bei `AppPoolName`. |
 | `ApplicationUpdates:UpdateUnitName` | Linux: Name der systemd-Unit, über die das Installationsskript ausgeführt wird. |
 | `ApplicationUpdates:StopHostAfterScriptStart` | Linux: Muss `true` sein, damit der Hostprozess stoppt und das Skript Dateien ersetzen kann. |
 | `LoadingBar:Enabled` | Aktiviert oder deaktiviert den Ladebalken bei Navigation global (Standard: `true`). |
