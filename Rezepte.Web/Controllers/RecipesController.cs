@@ -7,7 +7,6 @@ using Microsoft.Extensions.Options;
 using Rezepte.Web.Entities;
 using Rezepte.Web.Services;
 using Rezepte.Web.Configuration;
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -16,12 +15,11 @@ namespace Rezepte.Web.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> imageOptions) : ControllerBase
+public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> imageOptions) : ApiControllerBase
 {
     private readonly IRecipeService _recipes = recipes;
     private readonly ImageOptions _imageOptions = imageOptions.Value;
     private const int MaxPageSize = 100;
-    private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     [HttpGet("by-cookbook/{cookbookId}")]
     public async Task<IActionResult> GetByCookbook(string cookbookId, CancellationToken ct)
@@ -148,13 +146,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
-        var steps = dto.Steps?.Select(s => new RecipeCreateStep(
-            s.Title,
-            s.Description,
-            s.DurationMinutes,
-            s.RequiresOvernightRest,
-            (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
-        )).ToList() ?? new List<RecipeCreateStep>();
+        var steps = MapSteps(dto.Steps);
 
         var (ok, error, recipe) = await _recipes.CreateAsync(userId, dto.CookbookId, dto.Title, dto.Description, dto.Uri, dto.Portions, steps, dto.SideDishRecipeIds, ct);
         if (!ok || recipe is null)
@@ -165,18 +157,21 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
 
     public record UpdateRecipeRequest(string Title, string? Description, string? Uri, int? Portions, List<CreateRecipeStep> Steps, List<string>? SideDishRecipeIds);
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(string id, [FromBody] UpdateRecipeRequest dto, CancellationToken ct)
-    {
-        var userId = GetUserId();
-        if (userId is null) return Unauthorized();
-        var steps = dto.Steps?.Select(s => new RecipeCreateStep(
+    private static List<RecipeCreateStep> MapSteps(List<CreateRecipeStep>? steps) =>
+        steps?.Select(s => new RecipeCreateStep(
             s.Title,
             s.Description,
             s.DurationMinutes,
             s.RequiresOvernightRest,
             (s.Ingredients ?? new()).Select(i => new RecipeCreateIngredient(i.Amount, i.Unit, i.Name)).ToList()
         )).ToList() ?? new List<RecipeCreateStep>();
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateRecipeRequest dto, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+        var steps = MapSteps(dto.Steps);
 
         var (ok, error) = await _recipes.UpdateAsync(userId, id, dto.Title, dto.Description, dto.Uri, dto.Portions, steps, dto.SideDishRecipeIds, ct);
         if (!ok)
@@ -232,10 +227,17 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
         return Ok(new { imageId = image!.Id });
     }
 
+    // Images are rendered by the browser, so cookie authentication is accepted in addition to bearer tokens.
     [HttpGet("{recipeId}/image/{imageId}")]
-    [AllowAnonymous]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)]
     public async Task<IActionResult> GetImage(string recipeId, string imageId, CancellationToken ct)
     {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var recipe = await _recipes.GetByIdAsync(userId, recipeId, ct);
+        if (recipe is null) return NotFound();
+
         var image = await _recipes.GetImageAsync(recipeId, imageId, ct);
         if (image == null) return NotFound();
 
@@ -253,12 +255,12 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
         if (Request.Headers.TryGetValue("If-None-Match", out var inm) && inm.Any(h => h == etag))
         {
             Response.Headers["ETag"] = etag;
-            Response.Headers["Cache-Control"] = $"public, max-age={_imageOptions.CacheMaxAgeSeconds}";
+            Response.Headers["Cache-Control"] = $"private, max-age={_imageOptions.CacheMaxAgeSeconds}";
             return StatusCode(StatusCodes.Status304NotModified);
         }
 
         // Cache Header setzen
-        Response.Headers["Cache-Control"] = $"public, max-age={_imageOptions.CacheMaxAgeSeconds}";
+        Response.Headers["Cache-Control"] = $"private, max-age={_imageOptions.CacheMaxAgeSeconds}";
         Response.Headers["ETag"] = etag;
 
         return File(image.Data, contentType, image.FileName);

@@ -27,8 +27,9 @@ public sealed class BackupImportHandler : IImportHandler
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
             return Task.FromResult(archive.GetEntry("recipes.json") is not null);
         }
-        catch
+        catch (InvalidDataException)
         {
+            // not a readable zip archive, so this handler cannot process it
             return Task.FromResult(false);
         }
     }

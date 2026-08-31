@@ -58,7 +58,10 @@ public sealed class ImportOrchestrator
         var session = new ImportSession(sessionId, userId);
         _sessions[sessionId] = session;
 
-        // run background processing (fire-and-wait pattern but record session)
+        // Run background processing (fire and forget) without passing the request token to Task.Run:
+        // an already cancelled token would prevent the delegate from running at all, leaving the
+        // session stuck in its initial state and leaking the working stream. Cancellation is still
+        // observed by the operations inside the delegate.
         _ = Task.Run(async () =>
         {
             // ensure we dispose the private copy when work is done
@@ -173,8 +176,9 @@ public sealed class ImportOrchestrator
                         session.State = "Failed";
                     }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
+                _logger.LogInformation(ex, "Import session {Session} was cancelled", sessionId);
                 session.Status = "Cancelled";
                 session.State = "Failed";
                 session.Result = new ImportResult(false, "Cancelled", new List<string>());
@@ -189,9 +193,16 @@ public sealed class ImportOrchestrator
             finally
             {
                 // dispose the private copy of the stream
-                try { workStream.Dispose(); } catch { /* swallow */ }
+                try
+                {
+                    workStream.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not dispose the working stream of import session {Session}", sessionId);
+                }
             }
-        }, ct);
+        });
 
         return sessionId;
     }

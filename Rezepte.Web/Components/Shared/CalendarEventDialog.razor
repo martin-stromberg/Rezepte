@@ -3,6 +3,7 @@
 @using Rezepte.Web.Entities
 @using Microsoft.AspNetCore.Components.Forms
 @inject ApiClient Client
+@inject ILogger<Rezepte.Web.Components.Shared.CalendarEventDialog> Logger
 
 @* Render content: modal (zentriert) oder inline *@
 @if (Modal)
@@ -329,9 +330,9 @@ else
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignore preview load errors
+                    Logger.LogWarning(ex, "Could not load the preview of recipe {RecipeId}", form.RecipeId);
                 }
             }
         }
@@ -395,8 +396,9 @@ else
 
             await OnSaved.InvokeAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Saving the calendar entry for recipe {RecipeId} failed", form.RecipeId);
             submitError = mainCalendarEventCreated
                 ? "Der Haupttermin wurde gespeichert. Nicht alle Beilagen konnten hinzugefügt werden; erneutes Speichern versucht nur die fehlenden Beilagen."
                 : "Termin konnte nicht gespeichert werden.";
@@ -432,7 +434,14 @@ else
         _ = InvokeAsync(async () =>
         {
             await Task.Yield();
-            try { await recipeSearchInputRef.FocusAsync(); } catch { }
+            try
+            {
+                await recipeSearchInputRef.FocusAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDebug(ex, "Could not focus the recipe search field");
+            }
         });
 
         return Task.CompletedTask;
@@ -458,7 +467,14 @@ else
                 if (ct.IsCancellationRequested) return;
                 await TriggerRecipeSearchAsync();
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException)
+            {
+                // a newer keystroke replaced this debounced search
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "The debounced recipe search failed");
+            }
         });
     }
 
@@ -482,16 +498,18 @@ else
             {
                 resp = await Client.Http.GetFromJsonAsync<RecipeSearchResponseDto>(url);
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.LogDebug(ex, "Paged recipe search response could not be read; falling back to a plain list");
                 try
                 {
                     var list = await Client.Http.GetFromJsonAsync<List<RecipeSearchResultDto>>(url);
                     recipeResults = list ?? new List<RecipeSearchResultDto>();
                     return;
                 }
-                catch
+                catch (Exception fallbackEx)
                 {
+                    Logger.LogError(fallbackEx, "Recipe search for query {Query} failed", q);
                     recipeResults = new List<RecipeSearchResultDto>();
                     return;
                 }
@@ -499,8 +517,9 @@ else
 
             recipeResults = resp?.Items?.ToList() ?? new List<RecipeSearchResultDto>();
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Recipe search for query {Query} failed", q);
             recipeResults = new List<RecipeSearchResultDto>();
         }
         finally
@@ -552,8 +571,9 @@ else
             sideDishSuggestions = await Client.Http.GetFromJsonAsync<List<RecipeSideDishDto>>($"/api/recipes/{recipeId}/side-dishes") ?? new List<RecipeSideDishDto>();
             selectedSideDishIds = sideDishSuggestions.Select(sd => sd.Id).ToHashSet();
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Could not load the side dish suggestions of recipe {RecipeId}", recipeId);
             sideDishSuggestions = new List<RecipeSideDishDto>();
             selectedSideDishIds.Clear();
         }

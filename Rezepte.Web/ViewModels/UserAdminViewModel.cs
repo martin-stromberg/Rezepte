@@ -1,11 +1,13 @@
 using System.Net.Http.Json;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace Rezepte.Web.ViewModels;
 
 public class UserAdminViewModel
 {
     private readonly ApiClient _api;
+    private readonly ILogger<UserAdminViewModel> _logger;
     public event Action? OnChange;
 
     public bool IsLoading { get; private set; } = true;
@@ -23,9 +25,10 @@ public class UserAdminViewModel
 
     public NewUserModel NewUser { get; } = new();
 
-    public UserAdminViewModel(ApiClient api)
+    public UserAdminViewModel(ApiClient api, ILogger<UserAdminViewModel> logger)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task LoadAsync(CancellationToken ct = default)
@@ -37,7 +40,12 @@ public class UserAdminViewModel
             Users = items;
             Ok();
         }
-        catch { Fail("Users could not be loaded."); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Loading the user list failed.");
+            Fail("Users could not be loaded.");
+        }
         finally { IsLoading = false; Notify(); }
     }
 
@@ -77,7 +85,12 @@ public class UserAdminViewModel
             NewUser.IsAdmin = false;
             Ok("User created.");
         }
-        catch { Fail("Create failed."); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Creating user {Username} failed.", username);
+            Fail("Create failed.");
+        }
         finally { IsBusy = false; Notify(); }
     }
 
@@ -90,7 +103,12 @@ public class UserAdminViewModel
             if (!res.IsSuccessStatusCode) { Fail(await ReadErrorAsync(res) ?? "Save failed."); return; }
             Ok("Saved.");
         }
-        catch { Fail("Save failed."); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Saving user {UserId} failed.", user.Id);
+            Fail("Save failed.");
+        }
         finally { IsBusy = false; Notify(); }
     }
 
@@ -103,11 +121,16 @@ public class UserAdminViewModel
             if (!res.IsSuccessStatusCode) { Fail("Delete failed."); return; }
             Users.Remove(user); Ok("Deleted.");
         }
-        catch { Fail("Delete failed."); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Deleting user {UserId} failed.", user.Id);
+            Fail("Delete failed.");
+        }
         finally { IsBusy = false; Notify(); }
     }
 
-    private static async Task<string?> ReadErrorAsync(HttpResponseMessage res)
+    private async Task<string?> ReadErrorAsync(HttpResponseMessage res)
     {
         try
         {
@@ -115,7 +138,10 @@ public class UserAdminViewModel
             if (obj is not null && obj.TryGetValue("message", out var value) && value is string message)
                 return message;
         }
-        catch { }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException or HttpRequestException)
+        {
+            _logger.LogDebug(ex, "Error response with status {StatusCode} did not contain a readable message.", (int)res.StatusCode);
+        }
 
         return null;
     }

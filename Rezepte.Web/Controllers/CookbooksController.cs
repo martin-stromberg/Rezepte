@@ -2,9 +2,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rezepte.Web.Entities;
+using Rezepte.Web.Extensions;
+using Rezepte.Web.Security;
 using Rezepte.Web.Services;
+using Rezepte.Web.Services.Http;
 using Rezepte.Web.Services.Import;
-using System.Security.Claims;
 using static Rezepte.Web.Controllers.RecipesController;
 
 namespace Rezepte.Web.Controllers;
@@ -13,12 +15,11 @@ namespace Rezepte.Web.Controllers;
 [Route("api/[controller]")]
 // allow either Bearer *or* cookie auth for browser uploads (so fetch with cookies or short-lived JWT works)
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)]
-public class CookbooksController(ICookbookService cookbooks, IRecipeService recipes) : ControllerBase
+public class CookbooksController(ICookbookService cookbooks, IRecipeService recipes, IRemoteContentFetcher remoteContent) : ApiControllerBase
 {
     private readonly ICookbookService _cookbooks = cookbooks;
     private readonly IRecipeService _recipes = recipes;
-
-    private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    private readonly IRemoteContentFetcher _remoteContent = remoteContent;
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -116,9 +117,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
 
         try
         {
-            using var ms = new MemoryStream();
-            await file.CopyToAsync(ms, ct).ConfigureAwait(false);
-            ms.Seek(0, SeekOrigin.Begin);
+            await using var ms = await file.ReadToMemoryStreamAsync(ct);
 
             var result = await importService.ImportAsync(ms, file.FileName, cookbookId, userId, ct).ConfigureAwait(false);
             if (!result.Success)
@@ -138,7 +137,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     [HttpPost("{cookbookId}/import-url")]
-    public async Task<IActionResult> ImportFromUrl(string cookbookId, [FromBody] ImportUrlRequest request, [FromServices] IImportService importService, [FromServices] IHttpClientFactory httpClientFactory, CancellationToken ct)
+    public async Task<IActionResult> ImportFromUrl(string cookbookId, [FromBody] ImportUrlRequest request, [FromServices] IImportService importService, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
@@ -148,50 +147,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var cookbook = await _cookbooks.GetByIdAsync(userId, cookbookId, ct);
         if (cookbook is null) return NotFound(new { message = "Cookbook not found." });
 
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
-
-        var client = httpClientFactory.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
-
-        try
-        {
-            using var resp = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
-            if (!resp.IsSuccessStatusCode)
-                return BadRequest(new { message = $"Remote request failed: {resp.StatusCode}" });
-
-            // Copy to MemoryStream because handlers may need seekable stream
-            await using var ms = new MemoryStream();
-            await using var remoteStream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            await remoteStream.CopyToAsync(ms, ct).ConfigureAwait(false);
-            ms.Seek(0, SeekOrigin.Begin);
-
-            // Try to infer filename from URL or content-disposition
-            var fileName = Path.GetFileName(uri.LocalPath);
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                if (resp.Content?.Headers?.ContentDisposition?.FileNameStar is string fnStar && !string.IsNullOrWhiteSpace(fnStar))
-                    fileName = fnStar.Trim('"');
-                else if (resp.Content?.Headers?.ContentDisposition?.FileName is string fn && !string.IsNullOrWhiteSpace(fn))
-                    fileName = fn.Trim('"');
-                else
-                    fileName = "import-from-url";
-            }
-
-            var result = await importService.ImportAsync(ms, fileName, cookbookId, userId, ct).ConfigureAwait(false);
-            if (!result.Success)
-                return BadRequest(new { message = result.Error });
-
-            return Ok(new { created = result.CreatedRecipeIds });
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(499);
-        }
-        catch (Exception ex)
-        {
-            return Problem(title: "Import failed", detail: ex.Message, statusCode: 500);
-        }
+        return await ImportFromUrlAsync(request.Url, cookbookId, importService, userId, ct);
     }
 
     [HttpPost("import")]
@@ -205,9 +161,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
 
         try
         {
-            using var ms = new MemoryStream();
-            await file.CopyToAsync(ms, ct).ConfigureAwait(false);
-            ms.Seek(0, SeekOrigin.Begin);
+            await using var ms = await file.ReadToMemoryStreamAsync(ct);
 
             var result = await importService.ImportAsync(ms, file.FileName, null, userId, ct).ConfigureAwait(false);
             if (!result.Success)
@@ -225,63 +179,15 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
             return Problem(title: "Import failed", detail: ex.Message, statusCode: 500);
         }
     }
+
     [HttpPost("import-url")]
-    public async Task<IActionResult> ImportFromUrl([FromBody] ImportUrlRequest request, [FromServices] IImportService importService, [FromServices] IHttpClientFactory httpClientFactory, CancellationToken ct)
+    public async Task<IActionResult> ImportFromUrl([FromBody] ImportUrlRequest request, [FromServices] IImportService importService, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
         if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
 
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
-
-        var client = httpClientFactory.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
-
-        try
-        {
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0");
-            client.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
-            client.DefaultRequestHeaders.Referrer = new Uri("https://www.bing.com/");
-            using var resp = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
-            if (!resp.IsSuccessStatusCode)
-            {
-                var errorContent = await resp.Content.ReadAsStringAsync();
-                return BadRequest(new { message = $"Remote request failed: {resp.StatusCode}" });
-            }
-
-            // Copy to MemoryStream because handlers may need seekable stream
-            await using var ms = new MemoryStream();
-            await using var remoteStream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            await remoteStream.CopyToAsync(ms, ct).ConfigureAwait(false);
-            ms.Seek(0, SeekOrigin.Begin);
-
-            // Try to infer filename from URL or content-disposition
-            var fileName = Path.GetFileName(uri.LocalPath);
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                if (resp.Content?.Headers?.ContentDisposition?.FileNameStar is string fnStar && !string.IsNullOrWhiteSpace(fnStar))
-                    fileName = fnStar.Trim('"');
-                else if (resp.Content?.Headers?.ContentDisposition?.FileName is string fn && !string.IsNullOrWhiteSpace(fn))
-                    fileName = fn.Trim('"');
-                else
-                    fileName = "import-from-url";
-            }
-
-            var result = await importService.ImportAsync(ms, fileName, null, userId, ct).ConfigureAwait(false);
-            if (!result.Success)
-                return BadRequest(new { message = result.Error });
-
-            return Ok(new { created = result.CreatedRecipeIds });
-        }
-        catch (OperationCanceledException)
-        {
-            return StatusCode(499);
-        }
-        catch (Exception ex)
-        {
-            return Problem(title: "Import failed", detail: ex.Message, statusCode: 500);
-        }
+        return await ImportFromUrlAsync(request.Url, null, importService, userId, ct);
     }
 
     [HttpPost("reorder")]
@@ -301,39 +207,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     // --- Ergänzungen innerhalb existing controller (neue Endpoints) ---
     // POST api/cookbooks/{cookbookId}/import-session/start
     [HttpPost("{cookbookId}/import-session/start")]
-    public async Task<IActionResult> StartImportSession(string cookbookId, [FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, [FromServices] IHttpClientFactory httpClientFactory, CancellationToken ct)
+    public async Task<IActionResult> StartImportSession(string cookbookId, [FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
         if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
 
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
-
-        var client = httpClientFactory.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
-
-        // Set common browser-like headers to reduce chance of 403 from remote hosts
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0");
-        client.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
-        client.DefaultRequestHeaders.Referrer = new Uri("https://www.bing.com/");
-
-        using var resp = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
-        if (!resp.IsSuccessStatusCode)
-        {
-            var errorBody = await resp.Content.ReadAsStringAsync();
-            return BadRequest(new { message = $"Remote request failed: {resp.StatusCode}", detail = errorBody });
-        }
-
-        await using var ms = new MemoryStream();
-        await using var remoteStream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        await remoteStream.CopyToAsync(ms, ct).ConfigureAwait(false);
-        ms.Seek(0, SeekOrigin.Begin);
-
-        var fileName = Path.GetFileName(uri.LocalPath);
-        if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-url";
-
-        return await StartImportSessionFromStreamAsync(ms, fileName, uri.ToString(), cookbookId, orchestrator, userId, ct);
+        return await StartImportSessionFromUrlAsync(request.Url, cookbookId, orchestrator, userId, ct);
     }
 
     // GET api/cookbooks/{cookbookId}/import-session/{sessionId}/status
@@ -391,74 +271,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     // --- Neue Endpoints ohne cookbookId, damit der Blazor-Client die session-basierten Aufrufe auch ohne Cookbook nutzt ---
     // POST api/cookbooks/import-session/start
     [HttpPost("import-session/start")]
-    public async Task<IActionResult> StartImportSessionNoCookbook([FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, [FromServices] IHttpClientFactory httpClientFactory, CancellationToken ct)
+    public async Task<IActionResult> StartImportSessionNoCookbook([FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
         if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
 
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            return BadRequest(new { message = "Invalid URL. Only http(s) URLs are supported." });
-
-        var client = httpClientFactory.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
-
-        // Set browser-like headers here as well
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0");
-        client.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
-        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("de,de-DE;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
-        client.DefaultRequestHeaders.Referrer = new Uri("https://www.bing.com/");
-
-        using var resp = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
-        if (!resp.IsSuccessStatusCode)
-        {
-            var errorBody = await resp.Content.ReadAsStringAsync();
-            return BadRequest(new { message = $"Remote request failed: {resp.StatusCode}", detail = errorBody });
-        }
-
-        await using var ms = new MemoryStream();
-
-        // Read raw response stream (may be compressed). If server sent Content-Encoding headers,
-        // wrap the stream with the appropriate decompressor(s) before copying into memory.
-        await using var remoteStream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        var encodings = resp.Content.Headers.ContentEncoding.Select(e => e?.Trim().ToLowerInvariant()).Where(e => !string.IsNullOrEmpty(e)).ToArray();
-        Stream source = remoteStream;
-        if (encodings.Length > 0)
-        {
-            // If multiple encodings are present, they are applied in the listed order;
-            // to decompress, we must reverse that order.
-            for (int i = encodings.Length - 1; i >= 0; i--)
-            {
-                var enc = encodings[i];
-                if (enc == "br" || enc == "brotli")
-                {
-                    source = new System.IO.Compression.BrotliStream(source, System.IO.Compression.CompressionMode.Decompress, leaveOpen: true);
-                }
-                else if (enc == "gzip")
-                {
-                    source = new System.IO.Compression.GZipStream(source, System.IO.Compression.CompressionMode.Decompress, leaveOpen: true);
-                }
-                else if (enc == "deflate")
-                {
-                    source = new System.IO.Compression.DeflateStream(source, System.IO.Compression.CompressionMode.Decompress, leaveOpen: true);
-                }
-                else
-                {
-                    // Unknown encoding: fallback to raw stream (cannot decompress)
-                    source = remoteStream;
-                    break;
-                }
-            }
-        }
-
-        // Copy (decompressed) bytes into memory stream
-        await source.CopyToAsync(ms, ct).ConfigureAwait(false);
-        ms.Seek(0, SeekOrigin.Begin);
-
-        var fileName = Path.GetFileName(uri.LocalPath);
-        if (string.IsNullOrWhiteSpace(fileName)) fileName = "import-from-url";
-
-        return await StartImportSessionFromStreamAsync(ms, fileName, uri.ToString(), null, orchestrator, userId, ct);
+        return await StartImportSessionFromUrlAsync(request.Url, null, orchestrator, userId, ct);
     }
 
     // GET api/cookbooks/import-session/{sessionId}/status
@@ -530,9 +349,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
 
         try
         {
-            await using var ms = new MemoryStream();
-            await file.CopyToAsync(ms, ct).ConfigureAwait(false);
-            ms.Seek(0, SeekOrigin.Begin);
+            await using var ms = await file.ReadToMemoryStreamAsync(ct);
 
             return await StartImportSessionFromStreamAsync(ms, file.FileName, null, cookbookId, orchestrator, userId, ct);
         }
@@ -558,9 +375,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
 
         try
         {
-            await using var ms = new MemoryStream();
-            await file.CopyToAsync(ms, ct).ConfigureAwait(false);
-            ms.Seek(0, SeekOrigin.Begin);
+            await using var ms = await file.ReadToMemoryStreamAsync(ct);
 
             return await StartImportSessionFromStreamAsync(ms, file.FileName, null, null, orchestrator, userId, ct);
         }
@@ -572,6 +387,51 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         {
             return Problem(title: "Start import session failed", detail: ex.Message, statusCode: 500);
         }
+    }
+
+    // private helper that centralizes importing the content behind a remote URL
+    private async Task<IActionResult> ImportFromUrlAsync(string url, string? cookbookId, IImportService importService, string userId, CancellationToken ct)
+    {
+        var (urlAllowed, urlError, uri) = await RemoteUrlGuard.TryValidateAsync(url, ct);
+        if (!urlAllowed || uri is null)
+            return BadRequest(new { message = urlError });
+
+        try
+        {
+            var fetched = await _remoteContent.FetchAsync(uri, ct);
+            if (!fetched.Success)
+                return BadRequest(new { message = $"Remote request failed: {fetched.StatusCode}" });
+
+            await using var ms = fetched.Content!;
+            var result = await importService.ImportAsync(ms, fetched.FileName, cookbookId, userId, ct).ConfigureAwait(false);
+            if (!result.Success)
+                return BadRequest(new { message = result.Error });
+
+            return Ok(new { created = result.CreatedRecipeIds });
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Problem(title: "Import failed", detail: ex.Message, statusCode: 500);
+        }
+    }
+
+    // private helper that centralizes starting an import session from a remote URL
+    private async Task<IActionResult> StartImportSessionFromUrlAsync(string url, string? cookbookId, ImportOrchestrator orchestrator, string userId, CancellationToken ct)
+    {
+        var (urlAllowed, urlError, uri) = await RemoteUrlGuard.TryValidateAsync(url, ct);
+        if (!urlAllowed || uri is null)
+            return BadRequest(new { message = urlError });
+
+        var fetched = await _remoteContent.FetchAsync(uri, ct);
+        if (!fetched.Success)
+            return BadRequest(new { message = $"Remote request failed: {fetched.StatusCode}", detail = fetched.ErrorBody });
+
+        await using var ms = fetched.Content!;
+        return await StartImportSessionFromStreamAsync(ms, fetched.FileName, uri.ToString(), cookbookId, orchestrator, userId, ct);
     }
 
     // private helper that centralizes starting an import session from an already-read stream

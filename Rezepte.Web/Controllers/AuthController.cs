@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Rezepte.Web.Contracts;
+using Rezepte.Web.Security;
 using Rezepte.Web.Services;
 
 namespace Rezepte.Web.Controllers;
@@ -11,6 +13,8 @@ namespace Rezepte.Web.Controllers;
 [Route("api/[controller]")]
 public class AuthController(IUserService userService) : ControllerBase
 {
+    private const int MinimumPasswordLength = 6;
+
     private readonly IUserService _userService = userService;
 
     /// <summary>
@@ -19,6 +23,7 @@ public class AuthController(IUserService userService) : ControllerBase
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Redirect to /login on form posts or 200 OK with <see cref="AuthResponse"/> for JSON.</returns>
     [IgnoreAntiforgeryToken]
+    [EnableRateLimiting(RateLimitPolicies.Authentication)]
     [HttpPost("register")]
     public async Task<IActionResult> Register(CancellationToken ct)
     {
@@ -51,6 +56,16 @@ public class AuthController(IUserService userService) : ControllerBase
                 return RedirectToRegisterError("Username and password are required.");
             }
             return BadRequest(new { message = "Username and password are required." });
+        }
+
+        if (password.Length < MinimumPasswordLength)
+        {
+            var passwordError = $"The password must be at least {MinimumPasswordLength} characters long.";
+            if (Request.HasFormContentType)
+            {
+                return RedirectToRegisterError(passwordError);
+            }
+            return BadRequest(new { message = passwordError });
         }
 
         var (ok, error, user) = await _userService.RegisterAsync(username, password, ct);

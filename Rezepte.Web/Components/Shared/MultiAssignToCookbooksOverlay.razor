@@ -1,5 +1,6 @@
 @using System.Net.Http.Json
 @inject ApiClient Api
+@inject ILogger<Rezepte.Web.Components.Shared.MultiAssignToCookbooksOverlay> Logger
 
 @if (!Show)
 {
@@ -96,9 +97,9 @@ else
                         else assignedCounts[cb] = 1;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignore per-recipe failures
+                    Logger.LogWarning(ex, "Could not load the cookbooks of recipe {RecipeId}", rid);
                 }
             }
 

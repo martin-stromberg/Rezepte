@@ -15,8 +15,22 @@ public sealed class LoggingAutoUpdateProcessRunner : IAutoUpdateProcessRunner
         // No systemd unit on Windows; the orchestrator already manages the update lock.
     }
 
-    public void StartScript(string scriptPath)
+    public void StartScript(string scriptPath, string? zipPath)
     {
+        if (!string.IsNullOrWhiteSpace(zipPath))
+        {
+            var package = new FileInfo(zipPath);
+            if (!package.Exists)
+            {
+                throw new FileNotFoundException("Update package was not found.", zipPath);
+            }
+
+            if (package.Length == 0)
+            {
+                throw new InvalidOperationException($"Update package is empty: {zipPath}");
+            }
+        }
+
         var fileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? "powershell"
             : "pwsh";

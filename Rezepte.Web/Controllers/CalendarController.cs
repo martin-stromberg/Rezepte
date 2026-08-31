@@ -5,7 +5,6 @@ using Rezepte.Web.Entities;
 using Rezepte.Web.Services;
 using System;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,12 +13,10 @@ namespace Rezepte.Web.Controllers
     [ApiController]
     [Route("api/calendar")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public sealed class CalendarController : ControllerBase
+    public sealed class CalendarController : ApiControllerBase
     {
         private readonly ICalendarService _calendar;
         public CalendarController(ICalendarService calendar) => _calendar = calendar;
-
-        private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
 
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)

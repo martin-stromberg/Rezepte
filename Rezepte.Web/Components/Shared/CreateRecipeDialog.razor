@@ -5,6 +5,7 @@
 @inject ApiClient Api
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject ILogger<Rezepte.Web.Components.Shared.CreateRecipeDialog> Logger
 
 @if (isOpen)
 {
@@ -612,8 +613,9 @@
             testRunAvailable = urls.Length > 0;
             StateHasChanged();
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Could not determine whether import test URLs are available");
             testRunAvailable = false;
         }
     }
@@ -629,8 +631,9 @@
             }
             StateHasChanged();
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Loading the cookbooks for the create recipe dialog failed");
             availableCookbooks = [];
         }
     }

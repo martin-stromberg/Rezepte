@@ -16,6 +16,7 @@ public class RezepteAppFixture : IAsyncLifetime
     public const string TestPassword = "BrowserTest!123";
 
     private const string PublishDirectoryEnvironmentVariable = "REZEPTE_PUBLISH_DIR";
+    private const string TestJwtSigningKey = "browser-test-signing-key-0123456789";
     private const string RegisterEndpoint = "api/auth/register";
     private const string TestEmail = "browsertest@example.invalid";
     private const int StartupTimeoutSeconds = 60;
@@ -118,6 +119,10 @@ public class RezepteAppFixture : IAsyncLifetime
         startInfo.EnvironmentVariables["ASPNETCORE_URLS"] = BaseAddress;
         startInfo.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = "Production";
         startInfo.EnvironmentVariables["ConnectionStrings__Default"] = $"Data Source={databasePath}";
+        startInfo.EnvironmentVariables["Jwt__Key"] = TestJwtSigningKey;
+        // The browser suite logs in far more often than a real client, so the authentication
+        // rate limit is raised instead of letting tests fail with HTTP 429.
+        startInfo.EnvironmentVariables["RateLimiting__Authentication__PermitLimit"] = "1000";
 
         foreach (var (key, value) in GetEnvironmentOverrides())
         {

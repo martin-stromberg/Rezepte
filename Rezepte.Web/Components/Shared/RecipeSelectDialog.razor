@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
 @inject ApiClient Api
+@inject ILogger<Rezepte.Web.Components.Shared.RecipeSelectDialog> Logger
 
 <div class="modal fade show" style="display:block; background: rgba(0,0,0,.5);" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
@@ -107,7 +108,11 @@
             hasMore = result.Count == PageSize;
             page++;
         }
-        catch { loadError = true; }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Loading the selectable recipes of cookbook {CookbookId} failed", CookbookId);
+            loadError = true;
+        }
         finally { isLoading = false; isLoadingMore = false; StateHasChanged(); }
     }
 
