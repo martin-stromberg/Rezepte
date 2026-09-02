@@ -1,114 +1,111 @@
 name: Release
 
+# Biggest structural change in this migration (ci-target-schema.md section 10 step 9):
+# Rezepte previously released via `pull_request_target: closed` (reacting to the promotion
+# PR being merged). That is replaced here by `push` on main + `tags: v*.*.*`, matching the
+# asset-repair-capable design in section 4.10: a branch push to main is classified as an
+# automatic release (version via semantic-release --dry-run), a pushed vX.Y.Z tag is a manual
+# release (version taken directly from the tag). See scripts/resolve-release-version.mjs.
+
 "on":
-  pull_request_target:
+  push:
     branches: [main]
-    types: [closed]
+    tags: ['v*.*.*']
 
 permissions:
   contents: write
 
+# Prevents parallel release runs (e.g. a fast merge to main followed shortly after by a
+# manually pushed tag): resolve-release-version.mjs decides on a single target tag/version by
+# querying the GitHub API and existing tags - without serialization, two concurrent runs could
+# race for the same version or fail to create the release.
 concurrency:
-  group: release-main
+  group: release
   cancel-in-progress: false
 
 jobs:
   release:
-    name: Publish release artifact
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event.pull_request.merged == true
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
-          persist-credentials: false
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: '10.0.x'
 
-      - name: Determine version
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve release version
+        # Generalized asset-repair mechanism (ci-target-schema.md section 4.10): classifies
+        # this run as automatic (branch push to main, version via semantic-release --dry-run)
+        # or manual (a pushed vX.Y.Z tag), then checks whether a GitHub release for the
+        # resolved tag already exists and whether it already has all expected assets. Missing
+        # assets are repaired in place instead of duplicating the release. See
+        # scripts/resolve-release-version.mjs.
         id: version
-        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/resolve-release-version.mjs
+
+      - name: Check out release tag for asset repair
+        # Only relevant for the repair path: a previous run created the tag/release but was
+        # interrupted before all assets were uploaded. This checks out the exact tagged
+        # commit so the rebuilt assets match the already-published release, instead of
+        # rebuilding from whatever commit triggered this run.
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'upload-existing'
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
+          git checkout --detach "$RELEASE_TAG"
 
-          last_tag="$(
-            git tag --list 'v*' |
-              grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
-              sort -V |
-              tail -n 1 || true
-          )"
-
-          if [[ -z "$last_tag" ]]; then
-            version="1.0.0"
-            create_tag="true"
-            range="HEAD"
-          else
-            base_version="${last_tag#v}"
-            range="${last_tag}..HEAD"
-            messages="$(git log --format=%B "$range")"
-
-            if [[ -z "$(git rev-list --max-count=1 "$range")" ]]; then
-              bump="none"
-            elif printf '%s\n' "$messages" | grep -Eq '(^[A-Za-z]+(\([^)]+\))?!:|^BREAKING CHANGE:)'; then
-              bump="major"
-            elif printf '%s\n' "$messages" | grep -Eq '^feat(\([^)]+\))?:'; then
-              bump="minor"
-            elif printf '%s\n' "$messages" | grep -Eq '^fix(\([^)]+\))?:'; then
-              bump="patch"
-            else
-              bump="none"
-            fi
-
-            IFS='.' read -r major minor patch <<< "$base_version"
-
-            case "$bump" in
-              major)
-                version="$((major + 1)).0.0"
-                create_tag="true"
-                ;;
-              minor)
-                version="${major}.$((minor + 1)).0"
-                create_tag="true"
-                ;;
-              patch)
-                version="${major}.${minor}.$((patch + 1))"
-                create_tag="true"
-                ;;
-              none)
-                version="$base_version"
-                create_tag="false"
-                ;;
-            esac
+          expected_commit="$(git rev-parse "$RELEASE_TAG^{commit}")"
+          checked_out_commit="$(git rev-parse HEAD)"
+          if [ "$checked_out_commit" != "$expected_commit" ]; then
+            echo "Release tag checkout did not resolve to the tagged commit." >&2
+            exit 1
           fi
 
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "create_tag=$create_tag" >> "$GITHUB_OUTPUT"
-          echo "tag=v$version" >> "$GITHUB_OUTPUT"
-          echo "range=$range" >> "$GITHUB_OUTPUT"
+      - name: Resolve release commit
+        # The commit this release's assets should be built from: the triggering commit for a
+        # "create" run, or the checked-out release tag's commit for an "upload-existing" repair
+        # run (see the step above). Used for the contract export's SourceCommit below, so a
+        # repaired release's contract metadata still points at the tagged commit rather than
+        # whatever commit happened to trigger the repair run.
+        id: commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Restore
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create'
         run: dotnet restore Rezepte.sln
 
-      - name: Restore publish runtime (Linux)
-        run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime linux-x64
-
       - name: Build application and plugins
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create'
         run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
 
       - name: Build tests
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create'
         run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
 
       - name: Build browser tests
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create'
         run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
 
       - name: Install Playwright browsers
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create'
         run: |
           PLAYWRIGHT_SCRIPT=$(find Rezepte.Tests.Browser/bin/Release -name "playwright.ps1" | head -n 1)
           if [ -z "$PLAYWRIGHT_SCRIPT" ]; then
@@ -118,54 +115,39 @@ jobs:
           pwsh "$PLAYWRIGHT_SCRIPT" install --with-deps chromium
 
       - name: Publish application for browser tests
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create'
         run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
 
-      - name: Test
+      - name: Release gate - tests
+        # Safety net now that PRs against main can only come from staging, which was already
+        # fully validated by pr-staging-ci.yml/staging-ci.yml (ci-target-schema.md section 11,
+        # item 2 - no separate PR-gate workflow against main). Runs for both automatic and
+        # manual-tag releases, but not for the asset-repair path, which only needs to rebuild
+        # an already-validated release.
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create'
         run: |
           dotnet test Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-build
           dotnet test Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-build
 
-      - name: Publish (Linux)
-        run: >
-          dotnet publish Rezepte.Web/Rezepte.Web.csproj -p:Version=${{ steps.version.outputs.version }}
-          --configuration Release
-          --framework net10.0
-          --runtime linux-x64
-          --self-contained false
-          --no-restore
-          --output artifacts/publish
-
-      - name: Restore publish runtime (Windows)
-        run: dotnet restore Rezepte.Web/Rezepte.Web.csproj --runtime win-x64
-
-      - name: Publish (Windows)
-        run: >
-          dotnet publish Rezepte.Web/Rezepte.Web.csproj -p:Version=${{ steps.version.outputs.version }}
-          --configuration Release
-          --framework net10.0
-          --runtime win-x64
-          --self-contained false
-          --no-restore
-          --output artifacts/publish-win-x64
-
-      - name: Write release metadata
-        shell: bash
-        run: |
-          cat > artifacts/publish/release-metadata.json <<EOF
-          {
-            "version": "${{ steps.version.outputs.version }}",
-            "commit": "${{ github.event.pull_request.merge_commit_sha }}",
-            "runId": "${{ github.run_id }}",
-            "createdAt": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          }
-          EOF
+      - name: Build and package
+        if: steps.version.outputs.released == 'true'
+        uses: ./.github/actions/build-and-package
+        with:
+          release-version: ${{ steps.version.outputs.version }}
+          release-tag: ${{ steps.version.outputs.tag }}
 
       - name: Export import plugin contract
+        # Rezepte-specific ApiCompat contract export (ci-target-schema.md section 7) - not
+        # part of the shared cross-project schema, kept as-is. Unlike staging-ci.yml's
+        # pre-release runs, real releases attach this export as a release asset (see the
+        # publish steps below).
+        if: steps.version.outputs.released == 'true'
+        id: contract
         shell: pwsh
         run: |
           $exportArgs = @{
             OutputDirectory = "artifacts/contract-export"
-            SourceCommit = "${{ github.event.pull_request.merge_commit_sha }}"
+            SourceCommit = "${{ steps.commit.outputs.sha }}"
           }
 
           $baselineDirectory = "contract-baselines/import-contract"
@@ -185,111 +167,68 @@ jobs:
 
           ./scripts/Export-ImportContract.ps1 @exportArgs
 
-      - name: Create release-linux-x64.zip (Linux)
-        shell: bash
-        run: |
-          cd artifacts/publish
-          zip -r ../release-linux-x64.zip .
+          $contractZip = Get-ChildItem -LiteralPath "artifacts/contract-export" -Filter "rezepte-import-contract-*.zip" |
+            Sort-Object Name | Select-Object -First 1
+          if (-not $contractZip) {
+            throw "No rezepte-import-contract-*.zip was produced under artifacts/contract-export."
+          }
 
-      - name: Create release-win-x64.zip (Windows)
-        shell: bash
-        run: |
-          cd artifacts/publish-win-x64
-          zip -r ../release-win-x64.zip .
+          $metadataPath = "artifacts/contract-export/contract-export.metadata.json"
+          $tag = "${{ steps.version.outputs.tag }}"
+          $assetUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$($contractZip.Name)"
+          $metadata = Get-Content -Raw -LiteralPath $metadataPath | ConvertFrom-Json
+          $metadata | Add-Member -NotePropertyName "artifactUrl" -NotePropertyValue $assetUrl -Force
+          $metadata | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $metadataPath -Encoding UTF8
 
-      - name: Create update manifest
-        shell: bash
+          "zip_path=$($contractZip.FullName)" | Add-Content -Path $env:GITHUB_OUTPUT
+          "metadata_path=$((Resolve-Path $metadataPath).Path)" | Add-Content -Path $env:GITHUB_OUTPUT
+
+      - name: Create automatic GitHub release
+        # Goes through semantic-release's own publish pipeline (release.config.js:
+        # commit-analyzer, release-notes-generator, then @semantic-release/github, which
+        # creates the tag, the GitHub release and uploads the assets listed via
+        # RELEASE_ASSET_PATHS/RELEASE_MANIFEST_PATH below). Manual-tag and asset-repair
+        # releases intentionally stay on gh CLI / softprops below, matching
+        # Softwareschmiede's reference release.yml: semantic-release only knows about
+        # conventional-commit-driven releases on configured branches, not about a tag someone
+        # pushed manually or a one-off missing-asset repair.
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create' && steps.version.outputs.release_kind == 'automatic'
         env:
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ steps.version.outputs.tag }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-        run: |
-          set -euo pipefail
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_ASSET_PATHS: |
+            artifacts/release-linux-x64.zip
+            artifacts/release-win-x64.zip
+            ${{ steps.contract.outputs.zip_path }}
+            ${{ steps.contract.outputs.metadata_path }}
+          RELEASE_MANIFEST_PATH: artifacts/update.json
+        run: npm run release
 
-          linux_sha="$(sha256sum artifacts/release-linux-x64.zip | awk '{print $1}')"
-          linux_size="$(stat -c%s artifacts/release-linux-x64.zip)"
-          linux_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release-linux-x64.zip"
-
-          windows_sha="$(sha256sum artifacts/release-win-x64.zip | awk '{print $1}')"
-          windows_size="$(stat -c%s artifacts/release-win-x64.zip)"
-          windows_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/release-win-x64.zip"
-
-          jq -n \
-            --arg version "$VERSION" \
-            --arg releaseNotes "Automated release for ${MERGE_SHA}" \
-            --arg publishedAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-            --arg linuxAssetUrl "$linux_asset_url" \
-            --arg linuxSha256 "$linux_sha" \
-            --argjson linuxSizeBytes "$linux_size" \
-            --arg windowsAssetUrl "$windows_asset_url" \
-            --arg windowsSha256 "$windows_sha" \
-            --argjson windowsSizeBytes "$windows_size" \
-            '{
-              version: $version,
-              releaseNotes: $releaseNotes,
-              publishedAt: $publishedAt,
-              assets: [
-                {
-                  platform: "linux",
-                  runtimeIdentifier: "linux-x64",
-                  assetName: "release-linux-x64.zip",
-                  assetUrl: $linuxAssetUrl,
-                  sha256: $linuxSha256,
-                  sizeBytes: $linuxSizeBytes
-                },
-                {
-                  platform: "windows",
-                  runtimeIdentifier: "win-x64",
-                  assetName: "release-win-x64.zip",
-                  assetUrl: $windowsAssetUrl,
-                  sha256: $windowsSha256,
-                  sizeBytes: $windowsSizeBytes
-                }
-              ]
-            }' > artifacts/update.json
-
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+      - name: Create manual-tag GitHub release
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create' && steps.version.outputs.release_kind == 'manual'
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
-          name: release-${{ steps.version.outputs.version }}-${{ github.event.pull_request.merge_commit_sha }}
-          path: |
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: |
             artifacts/release-linux-x64.zip
             artifacts/release-win-x64.zip
             artifacts/update.json
-          if-no-files-found: error
+            ${{ steps.contract.outputs.zip_path }}
+            ${{ steps.contract.outputs.metadata_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload import contract artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: import-contract-${{ github.event.pull_request.merge_commit_sha }}
-          path: |
-            artifacts/contract-export/rezepte-import-contract-*.zip
-            artifacts/contract-export/contract-export.metadata.json
-          if-no-files-found: error
-
-      - name: Create Git tag and GitHub Release
-        if: steps.version.outputs.create_tag == 'true'
+      - name: Upload missing assets to existing release
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'upload-existing'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG: ${{ steps.version.outputs.tag }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-        shell: bash
         run: |
-          contract_zip="$(find artifacts/contract-export -maxdepth 1 -name 'rezepte-import-contract-*.zip' | sort | head -n 1)"
-          contract_sha="$(jq -r '.artifactSha256' artifacts/contract-export/contract-export.metadata.json)"
-          contract_version="$(jq -r '.contractVersion' artifacts/contract-export/contract-export.metadata.json)"
-          contract_asset="$(basename "$contract_zip")"
-          contract_asset_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${contract_asset}"
-          metadata_tmp="$(mktemp)"
-          jq --arg artifactUrl "$contract_asset_url" '. + { artifactUrl: $artifactUrl }' \
-            artifacts/contract-export/contract-export.metadata.json > "$metadata_tmp"
-          mv "$metadata_tmp" artifacts/contract-export/contract-export.metadata.json
-
-          notes="$(printf 'Automated release for %s\n\nImport contract:\n- contractVersion: %s\n- sourceCommit: %s\n- zipSha256: %s\n- asset: %s\n- assetUrl: %s' \
-            "$MERGE_SHA" "$contract_version" "$MERGE_SHA" "$contract_sha" "$contract_asset" "$contract_asset_url")"
-
-          gh release create "$TAG" artifacts/release-linux-x64.zip artifacts/release-win-x64.zip artifacts/update.json "$contract_zip" artifacts/contract-export/contract-export.metadata.json \
-            --title "$TAG" \
-            --target "$MERGE_SHA" \
-            --notes "$notes"
+          tag="${{ steps.version.outputs.tag }}"
+          gh release upload "$tag" \
+            artifacts/release-linux-x64.zip \
+            artifacts/release-win-x64.zip \
+            artifacts/update.json \
+            "${{ steps.contract.outputs.zip_path }}" \
+            "${{ steps.contract.outputs.metadata_path }}" \
+            --clobber
