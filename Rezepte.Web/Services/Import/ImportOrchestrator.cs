@@ -37,7 +37,7 @@ public sealed class ImportOrchestrator
 
     public ImportSession? GetSessionForUser(string id, string userId) => TryGetSessionForUser(id, userId, out var session) ? session : null;
 
-    public async Task<string> StartImportAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
+    public async Task<string> StartImportAsync(Stream stream, string fileName, string? uri, string? targetCookbookId, string userId, CancellationToken ct = default)
     {
         // Make an independent in-memory copy of the provided stream so background processing
         // does not depend on the caller keeping the original stream open.
@@ -130,7 +130,11 @@ public sealed class ImportOrchestrator
                             var interaction = new SessionInteraction(session, _logger);
                             // note: pass fresh stream (seek to 0)
                             if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
-                            var res = await interactive.HandleInteractiveAsync(workStream, fileName, uri, targetCookbookId, userId, interaction, ct).ConfigureAwait(false);
+                            // The plugin contract (Rezepte.Import.Abstractions.IInteractiveImportHandler)
+                            // requires a non-nullable targetCookbookId; an absent target is
+                            // represented as "" there, matching RecipeService.CreateAsync's
+                            // treatment of blank cookbook ids as "no cookbook assigned".
+                            var res = await interactive.HandleInteractiveAsync(workStream, fileName, uri, targetCookbookId ?? string.Empty, userId, interaction, ct).ConfigureAwait(false);
                             res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
                                 .PersistAsync(res, targetCookbookId, userId, ct)
                                 .ConfigureAwait(false);
@@ -142,7 +146,9 @@ public sealed class ImportOrchestrator
                         else
                         {
                             if (workStream.CanSeek) workStream.Seek(0, SeekOrigin.Begin);
-                            var res = await handler.HandleAsync(workStream, fileName, uri, targetCookbookId, userId, ct).ConfigureAwait(false);
+                            // See the HandleInteractiveAsync call above: the plugin contract needs a
+                            // non-nullable targetCookbookId.
+                            var res = await handler.HandleAsync(workStream, fileName, uri, targetCookbookId ?? string.Empty, userId, ct).ConfigureAwait(false);
                             res = await scope.ServiceProvider.GetRequiredService<IImportedRecipePersister>()
                                 .PersistAsync(res, targetCookbookId, userId, ct)
                                 .ConfigureAwait(false);

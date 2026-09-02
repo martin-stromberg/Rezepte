@@ -128,7 +128,12 @@ public class AIFotoImportHandler(
             diagnostics.ServiceAccountSource,
             diagnostics.ServiceAccountFilePath);
 
-        var credential = GoogleCredential.FromFile(diagnostics.ServiceAccountFilePath)
+        // GoogleCredential.FromFile(string) is obsolete (potential security risk loading an
+        // unvalidated credential configuration); CredentialFactory.FromFile<T> loads a
+        // specifically-typed credential instead, converted back via ToGoogleCredential() for
+        // CreateScoped.
+        var credential = CredentialFactory.FromFile<ServiceAccountCredential>(diagnostics.ServiceAccountFilePath)
+            .ToGoogleCredential()
             .CreateScoped(ImageAnnotatorClient.DefaultScopes);
 
         return new ImageAnnotatorClientBuilder

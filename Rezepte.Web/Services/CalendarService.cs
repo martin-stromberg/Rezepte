@@ -34,7 +34,7 @@ namespace Rezepte.Web.Services
                 .ToListAsync(ct);
         }
 
-        public async Task<(bool ok, string? error, CalendarEvent? ev)> CreateEventAsync(string userId, string recipeId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct)
+        public async Task<(bool ok, string? error, CalendarEvent? ev)> CreateEventAsync(string userId, string? recipeId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(userId)) return (false, "Unauthorized", null);
             if (portions <= 0) return (false, "Portions must be > 0", null);

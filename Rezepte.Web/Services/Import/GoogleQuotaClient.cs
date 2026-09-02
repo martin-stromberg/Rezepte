@@ -23,8 +23,13 @@ public class GoogleQuotaClient
 
     public async Task<string> GetQuotaAsync(string serviceName, string projectId)
     {
-        var credential = GoogleCredential
-            .FromFile(_serviceAccountJsonPath)
+        // GoogleCredential.FromFile(string) is obsolete (potential security risk loading an
+        // unvalidated credential configuration); CredentialFactory.FromFile<T> loads a
+        // specifically-typed credential instead, which is then converted back to a
+        // GoogleCredential for CreateScoped.
+        var credential = CredentialFactory
+            .FromFile<ServiceAccountCredential>(_serviceAccountJsonPath)
+            .ToGoogleCredential()
             .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
 
         var token = await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
