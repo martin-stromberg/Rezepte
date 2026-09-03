@@ -13,7 +13,7 @@ public class ImportService(
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly ILogger<ImportService> _logger = logger;
 
-    public async Task<ImportResult> ImportAsync(Stream stream, string fileName, string targetCookbookId, string userId, CancellationToken ct = default)
+    public async Task<ImportResult> ImportAsync(Stream stream, string fileName, string? targetCookbookId, string userId, CancellationToken ct = default)
     {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentNullException(nameof(fileName));
@@ -42,7 +42,11 @@ public class ImportService(
             stream.Seek(0, SeekOrigin.Begin);
             try
             {
-                var res = await handler.HandleAsync(stream, fileName, null, targetCookbookId, userId, ct).ConfigureAwait(false);
+                // The plugin contract (Rezepte.Import.Abstractions.IImportHandler) requires a
+                // non-nullable targetCookbookId; an absent target is represented as "" there,
+                // matching how RecipeService.CreateAsync already treats blank cookbook ids as
+                // "no cookbook assigned".
+                var res = await handler.HandleAsync(stream, fileName, null, targetCookbookId ?? string.Empty, userId, ct).ConfigureAwait(false);
                 res = await recipePersister.PersistAsync(res, targetCookbookId, userId, ct).ConfigureAwait(false);
                 _logger.LogInformation("Import handled by plugin {PluginId} handler {Handler}, success={Success}", pluginHandler.Plugin.Id, handler.GetType().Name, res.Success);
                 return res;

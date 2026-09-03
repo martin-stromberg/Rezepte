@@ -24,7 +24,8 @@ public class ApiClient : IDisposable
     {
         var response = await Http.GetAsync(uri, ct);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<T>(ct);
+        var result = await response.Content.ReadFromJsonAsync<T>(ct);
+        return result ?? throw new InvalidOperationException($"The response body for '{uri}' deserialized to null.");
     }
     public Task<HttpResponseMessage> PostAsJsonAsync<T>(string uri, T value, CancellationToken ct = default) => Http.PostAsJsonAsync(uri, value, ct);
     public Task<HttpResponseMessage> PutAsJsonAsync<T>(string uri, T value, CancellationToken ct = default) => Http.PutAsJsonAsync(uri, value, ct);

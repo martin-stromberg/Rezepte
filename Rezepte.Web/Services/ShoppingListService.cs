@@ -207,7 +207,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
                 .ThenInclude(s => s.Ingredients)
             .Include(r => r.SideDishes)
                 .ThenInclude(sd => sd.SideDishRecipe)
-                    .ThenInclude(r => r.Steps)
+                    .ThenInclude(r => r!.Steps)
                         .ThenInclude(s => s.Ingredients)
             .FirstOrDefaultAsync(r => r.Id == recipeId && r.UserId == userId, ct);
         if (recipe is null) return new List<ShoppingListRecipeIngredientGroup>();
@@ -276,7 +276,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
                 .ThenInclude(s => s.Ingredients)
             .Include(r => r.SideDishes)
                 .ThenInclude(sd => sd.SideDishRecipe)
-                    .ThenInclude(r => r.Steps)
+                    .ThenInclude(r => r!.Steps)
                         .ThenInclude(s => s.Ingredients)
             .FirstOrDefaultAsync(r => r.Id == recipeId && r.UserId == userId, ct);
         if (recipe is null) return (false, "Rezept nicht gefunden.", new List<ShoppingListGroup>());

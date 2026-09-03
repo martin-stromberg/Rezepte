@@ -62,7 +62,15 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
 
     public async Task ClickNavigationLinkAsync(string href)
     {
+        // PageClickOptions.NoWaitAfter is marked obsolete by Playwright itself only because a
+        // future Playwright version will make this behavior the default - the option is not
+        // being removed and its current behavior (needed here so a client-side navigation link
+        // click doesn't block on Playwright's own post-click navigation wait) is unchanged.
+        // Genuinely bypassing it would require re-verifying loading-bar timing against a live
+        // browser run, which is out of scope for this CI migration.
+#pragma warning disable CS0612
         await Page.ClickAsync($"a[href='{href}']", new PageClickOptions { NoWaitAfter = true });
+#pragma warning restore CS0612
     }
 
     public async Task DelayRouteAsync(string urlGlobPattern, int delayMilliseconds)
@@ -82,7 +90,10 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     public async Task SubmitNavigationSearchAsync(string term)
     {
         await Page.FillAsync(SearchInputSelector, term);
+        // See ClickNavigationLinkAsync above for why NoWaitAfter is still used here.
+#pragma warning disable CS0612
         await Page.ClickAsync(SearchSubmitSelector, new PageClickOptions { NoWaitAfter = true });
+#pragma warning restore CS0612
     }
 
     public async Task SubmitInteractiveShoppingListItemAsync(string itemName)

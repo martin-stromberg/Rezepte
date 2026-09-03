@@ -109,25 +109,25 @@ public class PdfGenerator : IPdfGenerator
         {
             header.PaddingBottom(10).Row(row =>
             {
-                row.RelativeColumn().Stack(stack =>
+                row.RelativeItem().Column(column =>
                 {
-                    stack.Item().Text(_recipe.Title ?? "Rezept").FontSize(18).Bold();
+                    column.Item().Text(_recipe.Title ?? "Rezept").FontSize(18).Bold();
                     if (!string.IsNullOrWhiteSpace(_recipe.OwnerId))
                     {
-                        stack.Item().Text($"Autor: {_recipe.OwnerId}").FontSize(10).FontColor(Colors.Grey.Darken1);
+                        column.Item().Text($"Autor: {_recipe.OwnerId}").FontSize(10).FontColor(Colors.Grey.Darken1);
                     }
                     if (!string.IsNullOrWhiteSpace(_recipe.Description))
                     {
-                        stack.Item().PaddingTop(6).Text(_recipe.Description).FontSize(11).FontColor(Colors.Grey.Darken1);
+                        column.Item().PaddingTop(6).Text(_recipe.Description).FontSize(11).FontColor(Colors.Grey.Darken1);
                     }
                 });
 
                 if (_imageBytes != null)
                 {
-                    row.ConstantColumn(120).Height(90).AlignRight().Element(img =>
+                    row.ConstantItem(120).Height(90).AlignRight().Element(img =>
                     {
                         using var imgStream = new MemoryStream(_imageBytes);
-                        img.Image(imgStream, ImageScaling.FitArea);
+                        img.Image(imgStream).FitArea();
                     });
                 }
             });

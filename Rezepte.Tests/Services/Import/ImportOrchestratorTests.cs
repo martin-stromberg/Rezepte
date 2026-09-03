@@ -282,14 +282,14 @@ public sealed class ImportOrchestratorTests
 
     private sealed class PassthroughPersister : IImportedRecipePersister
     {
-        public List<string> TargetCookbookIds { get; } = [];
+        public List<string?> TargetCookbookIds { get; } = [];
 
-        public Task<ImportResult> PersistAsync(ImportResult result, string targetCookbookId, string userId, CancellationToken ct = default)
+        public Task<ImportResult> PersistAsync(ImportResult result, string? targetCookbookId, string userId, CancellationToken ct = default)
         {
             return Task.FromResult(result);
         }
 
-        public Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string targetCookbookId, string userId, CancellationToken ct = default)
+        public Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string? targetCookbookId, string userId, CancellationToken ct = default)
         {
             TargetCookbookIds.Add(targetCookbookId);
             return Task.FromResult<(bool Success, string? Error, string? RecipeId)>((true, null, $"{targetCookbookId}-recipe"));
@@ -339,6 +339,10 @@ public sealed class ImportOrchestratorTests
 
     private class RecordingHandler(string name, bool canHandle) : IImportHandler
     {
+        // Exposed so derived handlers (e.g. InteractiveRecordingHandler) can read the same name
+        // without capturing their own separate copy of it (see that class for why).
+        protected string Name => name;
+
         public int CanHandleCalls { get; private set; }
         public int HandleCalls { get; private set; }
         public string UserId { private get; set; } = string.Empty;
@@ -356,8 +360,16 @@ public sealed class ImportOrchestratorTests
         }
     }
 
-    private sealed class InteractiveRecordingHandler(string name, bool canHandle) : RecordingHandler(name, canHandle), IInteractiveImportHandler
+    private sealed class InteractiveRecordingHandler : RecordingHandler, IInteractiveImportHandler
     {
+        // Plain constructor (not a primary constructor): "name" only needs to reach the base
+        // constructor here - a primary constructor would additionally capture its own separate
+        // copy for this type's state (CS9107), when the inherited Name property (see
+        // RecordingHandler) already exposes the same value below.
+        public InteractiveRecordingHandler(string name, bool canHandle) : base(name, canHandle)
+        {
+        }
+
         public Task<ImportResult> HandleInteractiveAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, IImportInteraction interaction, CancellationToken ct = default)
         {
             return HandleAsync(interaction, ct);
@@ -367,7 +379,7 @@ public sealed class ImportOrchestratorTests
         {
             var accepted = await interaction.AskForConfirmationAsync("Import recipe?", ct);
             return accepted
-                ? new ImportResult(true, null, [$"{name}-confirmed"])
+                ? new ImportResult(true, null, [$"{Name}-confirmed"])
                 : new ImportResult(false, "Import cancelled.", []);
         }
     }

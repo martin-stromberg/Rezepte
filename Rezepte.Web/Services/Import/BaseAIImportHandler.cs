@@ -14,7 +14,7 @@ public abstract class BaseAIImportHandler(
     ILogger logger) : BaseImportHandler, IInteractiveImportHandler
 {
     private KeyValuePair<string, AIRecipe[]> _lastRecipes;
-    private StreamReader lastReader = null;
+    private StreamReader? lastReader = null;
     private string _responseContent = string.Empty;
     protected abstract bool IsTextMode();
     protected readonly IRecipeService recipeService = recipeService;

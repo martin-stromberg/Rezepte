@@ -11,7 +11,7 @@ namespace Rezepte.Web.Services
     {
         Task<CalendarEvent?> GetEventAsync(string userId, string eventId, CancellationToken ct);
         Task<IEnumerable<CalendarEvent>> GetEventsForUserAsync(string userId, DateTime from, DateTime to, CancellationToken ct);
-        Task<(bool ok, string? error, CalendarEvent? ev)> CreateEventAsync(string userId, string recipeId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct);
+        Task<(bool ok, string? error, CalendarEvent? ev)> CreateEventAsync(string userId, string? recipeId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct);
         Task<(bool ok, string? error)> UpdateEventAsync(string userId, string eventId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct);
         Task<(bool ok, string? error)> DeleteEventAsync(string userId, string eventId, CancellationToken ct);
 

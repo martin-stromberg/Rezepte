@@ -1,30 +1,29 @@
-name: Pre-Release
+name: PR CI for Staging
 
-# Filename stays staging-ci.yml (only the display name changes to "Pre-Release") - see
-# ci-target-schema.md section 3. staging-to-main-promotion.yml's workflow_run trigger
-# references this display name, not the filename; both were updated together in the same
-# commit so the promotion chain never briefly points at a name that no longer exists.
-#
-# Job structure changed to the cross-project hybrid model (section 4.2/4.3): static-checks
-# and build-and-test now run in parallel (no needs: between them), followed by version and
-# prerelease. detect-backmerge below is unchanged from before this migration - it is already
-# the most thorough backmerge check across all projects (merge-parent + tree-diff) and is the
-# template the other projects are copying (section 10 step 9), not something to touch here.
-# Versioning changed from the previous custom Bash conventional-commit parser to
-# semantic-release (section 4.8).
+# Filename change from pr.yml to pr-staging-ci.yml, and job structure changed to the
+# cross-project hybrid model (ci-target-schema.md section 4.2, 4.3): static-checks and
+# build-and-test now run in parallel with no needs: dependency between them, instead of the
+# previous single sequential "verify" job. detect-backmerge below keeps Rezepte's own
+# merge-parent + tree-diff check (already the most thorough variant across all projects,
+# see ci-target-schema.md section 10 step 9 / section 4.2) - it is the template the other
+# projects are copying, not something to weaken here.
 
 on:
-  push:
+  pull_request:
     branches:
       - staging
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 concurrency:
-  group: staging-ci
+  group: pr-staging-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  checks: write
 
 jobs:
   detect-backmerge:
@@ -32,12 +31,12 @@ jobs:
     outputs:
       is_backmerge: ${{ steps.check.outputs.is_backmerge }}
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Check whether push is a pure back-merge from main
+      - name: Check whether this PR is a pure back-merge from main
         id: check
         run: |
           git fetch origin main:refs/remotes/origin/main --no-tags
@@ -65,6 +64,9 @@ jobs:
     name: static checks
     needs: detect-backmerge
     if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+    # Hybrid job model (ci-target-schema.md section 4.2): runs in parallel with build-and-test,
+    # with no needs: between them, so a format/security/lint failure is visible within seconds
+    # instead of waiting for the multi-minute build+test run to finish.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -80,15 +82,21 @@ jobs:
         run: dotnet restore Rezepte.sln
 
       - name: Format check
+        # Gate 1. --severity error restricts this to whitespace/style plus genuine analyzer
+        # errors - analyzer-level WARNINGS are Gate 3's concern; without this flag, plain
+        # `dotnet format --verify-no-changes` also fails on any warning-level analyzer
+        # diagnostic, not just actual formatting differences.
         run: dotnet format Rezepte.sln --verify-no-changes --no-restore --severity error
 
       - name: Security scan
+        # Gate 2 - shared composite action, see .github/actions/security-scan.
         uses: ./.github/actions/security-scan
         with:
           solution-path: Rezepte.sln
-          artifact-name: vulnerable-packages-staging
+          artifact-name: vulnerable-packages-pr
 
       - name: Static analysis
+        # Gate 3
         run: dotnet build Rezepte.sln --configuration Release --no-restore -p:TreatWarningsAsErrors=true
 
   build-and-test:
@@ -131,6 +139,10 @@ jobs:
         run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
 
       - name: Test
+        # Gate 4: unit + browser tests, with coverage collection feeding the threshold check
+        # below (ci-target-schema.md section 4.5). Rezepte has no best-effort test category
+        # (unlike FinanceManager/Softwareschmiede's OsInterface split) - both test projects are
+        # blocking here, matching the previous "verify" job's behavior.
         run: >
           dotnet test Rezepte.sln --configuration Release --no-build
           --collect:"XPlat Code Coverage"
@@ -144,6 +156,8 @@ jobs:
         run: reportgenerator "-reports:**/TestResults/**/coverage.cobertura.xml" "-targetdir:coverage-report" "-reporttypes:TextSummary"
 
       - name: Enforce coverage threshold
+        # Gate 5: hard 70% line-coverage minimum (ci-target-schema.md section 4.5), adopted
+        # from FinanceManager's coverage mechanism.
         env:
           COVERAGE_THRESHOLD: '70'
         run: |
@@ -159,11 +173,13 @@ jobs:
           awk -v cov="$coverage" -v thr="$threshold" 'BEGIN { exit !(cov >= thr) }'
 
       - name: Export import plugin contract
+        # Rezepte-specific ApiCompat contract export (ci-target-schema.md section 7) - not
+        # part of the shared cross-project schema, kept as-is.
         shell: pwsh
         run: |
           $exportArgs = @{
             OutputDirectory = "artifacts/contract-export"
-            SourceCommit = "${{ github.sha }}"
+            SourceCommit = "${{ github.event.pull_request.head.sha }}"
           }
 
           $baselineDirectory = "contract-baselines/import-contract"
@@ -187,7 +203,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-report-staging
+          name: coverage-report-pr
           path: coverage-report/
           retention-days: 14
 
@@ -195,124 +211,16 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-staging
+          name: test-results-pr
           path: |
             Rezepte.Tests/TestResults/*.trx
             Rezepte.Tests.Browser/TestResults/*.trx
           retention-days: 14
 
-  version:
-    name: version
-    needs: [detect-backmerge, static-checks, build-and-test]
-    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+  back-merge-skip:
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    outputs:
-      changed: ${{ steps.semver.outputs.changed }}
-      version: ${{ steps.semver.outputs.version }}
-      rc_tag: ${{ steps.rc.outputs.rc_tag }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Determine next version
-        # release.config.js only lists "main" as a release branch; staging is deliberately not
-        # a configured prerelease branch there (ci-target-schema.md section 4.8). The
-        # --branches override below treats "staging" as a plain release branch for this
-        # dry-run only, so the resulting X.Y.Z carries no prerelease identifier - the RC suffix
-        # (lowercase, section 4.6) is appended manually in the next step instead.
-        id: semver
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -o pipefail
-          output="$(npx semantic-release --dry-run --no-ci --branches staging 2>&1 | tee /dev/stderr)"
-
-          version=""
-          changed="false"
-          if [[ "$output" =~ The\ next\ release\ version\ is\ ([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.+-]+)?) ]]; then
-            version="${BASH_REMATCH[1]}"
-            changed="true"
-            echo "Next release version: $version"
-          else
-            echo "No new release version determined."
-          fi
-
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
-
-      - name: Determine RC number
-        if: steps.semver.outputs.changed == 'true'
-        id: rc
-        run: |
-          version="${{ steps.semver.outputs.version }}"
-          existing_count="$(git tag --list "v${version}-rc.*" | wc -l | tr -d ' ')"
-          rc_number=$((existing_count + 1))
-          echo "rc_number=$rc_number" >> "$GITHUB_OUTPUT"
-          echo "rc_tag=v${version}-rc.${rc_number}" >> "$GITHUB_OUTPUT"
-
-  prerelease:
-    name: prerelease
-    needs: [detect-backmerge, version]
-    if: needs.detect-backmerge.outputs.is_backmerge != 'true' && needs.version.outputs.changed == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Build and package release candidate
-        uses: ./.github/actions/build-and-package
-        with:
-          release-version: ${{ needs.version.outputs.version }}
-          release-tag: ${{ needs.version.outputs.rc_tag }}
-
-      - name: Export import plugin contract
-        # Validation only for release candidates (not attached as a release asset) - matches
-        # Rezepte's pre-existing behavior; only real releases (release.yml) publish the
-        # contract export artifact.
-        shell: pwsh
-        run: |
-          $exportArgs = @{
-            OutputDirectory = "artifacts/contract-export"
-            SourceCommit = "${{ github.sha }}"
-          }
-
-          $baselineDirectory = "contract-baselines/import-contract"
-          if (Test-Path -LiteralPath $baselineDirectory -PathType Container) {
-            dotnet tool install Microsoft.DotNet.ApiCompat.Tool --tool-path ./.tools
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to install Microsoft.DotNet.ApiCompat.Tool."
-            }
-
-            $apiCompatTool = if ($IsWindows) { ".\\.tools\\apicompat.exe" } else { "./.tools/apicompat" }
-            $exportArgs["ApiCompatBaselineDirectory"] = $baselineDirectory
-            $exportArgs["ApiCompatToolPath"] = $apiCompatTool
-          }
-          else {
-            Write-Host "No stored ApiCompat baselines found; contract export will skip historical API comparison."
-          }
-
-          ./scripts/Export-ImportContract.ps1 @exportArgs
-
-      - name: Create GitHub pre-release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tag="${{ needs.version.outputs.rc_tag }}"
-          gh release create "$tag" artifacts/release-linux-x64.zip artifacts/release-win-x64.zip artifacts/update.json \
-            --target "$GITHUB_SHA" \
-            --title "Pre-release $tag" \
-            --prerelease \
-            --generate-notes
+      - name: Back-merge detected
+        run: echo "Back-merge PR from main detected. Redundant checks are skipped."

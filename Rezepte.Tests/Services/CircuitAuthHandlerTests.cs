@@ -58,7 +58,7 @@ public class CircuitAuthHandlerTests
         var response = await client.GetAsync("http://localhost/api/users/me");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var captured = ((TestHandler)handler.InnerHandler).LastRequest;
+        var captured = ((TestHandler)handler.InnerHandler!).LastRequest;
         captured!.Headers.Authorization.Should().Be(new AuthenticationHeaderValue("Bearer", "cached-token"));
     }
 
@@ -78,7 +78,7 @@ public class CircuitAuthHandlerTests
         var response = await client.GetAsync("http://localhost/api/users/me");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var captured = ((TestHandler)handler.InnerHandler).LastRequest;
+        var captured = ((TestHandler)handler.InnerHandler!).LastRequest;
         captured!.Headers.Authorization.Should().Be(new AuthenticationHeaderValue("Bearer", "new-token"));
     }
 
@@ -91,7 +91,7 @@ public class CircuitAuthHandlerTests
         var response = await client.GetAsync("http://localhost/api/users/me");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var captured = ((TestHandler)handler.InnerHandler).LastRequest;
+        var captured = ((TestHandler)handler.InnerHandler!).LastRequest;
         captured!.Headers.Authorization.Should().BeNull();
     }
 

@@ -16,8 +16,8 @@ public interface IRecipeService
     Task<List<RecipeSideDishInfo>> GetSideDishesAsync(string userId, string recipeId, CancellationToken ct);
     Task<List<Recipe>> GetByCookbookAsync(string userId, string cookbookId, CancellationToken ct);
     Task<List<Recipe>> GetAvailableForCookbookAsync(string userId, string cookbookId, CancellationToken ct);
-    Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
-    Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct);
+    Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string? cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
+    Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string? cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct);
     Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
     Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct);
@@ -31,7 +31,7 @@ public interface IRecipeService
     Task<int> GetImageCountAsync(string recipeId, CancellationToken ct);
     Task<(bool ok, string? error)> DeleteImageAsync(string userId, string recipeId, string imageId, CancellationToken ct);
     Task<List<Recipe>> GetLatestAsync(string userId, int count, CancellationToken ct);
-    Task<Recipe> FindByUri(string userId, string v, CancellationToken ct);
+    Task<Recipe?> FindByUri(string userId, string v, CancellationToken ct);
     Task<SearchResult> SearchAsync(string userId, string? q, string? tags, string? cookbookId, int page, int pageSize, string sort, CancellationToken ct);
 }
 
@@ -49,9 +49,11 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     {
         get
         {
-            var context = _httpContextAccessor.HttpContext;
+            var context = _httpContextAccessor.HttpContext
+                ?? throw new InvalidOperationException("No active HTTP context is available.");
             var currentUserId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            return currentUserId;
+            return currentUserId
+                ?? throw new InvalidOperationException("The current user has no NameIdentifier claim.");
         }
     }
 
@@ -82,7 +84,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             .AsNoTracking()
             .Include(r => r.SideDishes)
                 .ThenInclude(sd => sd.SideDishRecipe)
-                    .ThenInclude(r => r.Images)
+                    .ThenInclude(r => r!.Images)
             .FirstOrDefaultAsync(r => r.Id == recipeId && r.UserId == userId, ct);
         if (recipe is null) return new List<RecipeSideDishInfo>();
 
@@ -115,12 +117,12 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             .ToListAsync(ct);
     }
 
-    public Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
+    public Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string? cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
     {
         return CreateAsync(userId, cookbookId, title, description, uri, portions, steps, null, ct);
     }
 
-    public async Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct)
+    public async Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string? cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3) return (false, "Der Titel muss mindestens 3 Zeichen haben.", null);
         var cookbookExists = await _db.Cookbooks.AsNoTracking().AnyAsync(c => c.Id == cookbookId && c.UserId == userId, ct);
@@ -138,7 +140,9 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
         if (cookbookExists)
             entity.RecipeCookbooks.Add(new RecipeCookbook
             {
-                CookbookId = cookbookId,
+                // cookbookExists can only be true when cookbookId was non-null/non-empty (see the
+                // AnyAsync check above, which never matches a null id).
+                CookbookId = cookbookId!,
                 RecipeId = entity.Id
             });
         _db.Recipes.Add(entity);
@@ -419,7 +423,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
             .ToListAsync(ct);
     }
 
-    public async Task<Recipe> FindByUri(string userId, string uri, CancellationToken ct)
+    public async Task<Recipe?> FindByUri(string userId, string uri, CancellationToken ct)
     {
         return await _db.Recipes.AsNoTracking()
             .FirstOrDefaultAsync(r => r.UserId == userId && r.Uri == uri, ct);

@@ -1,4 +1,3 @@
-@using System.Net.Http.Json
 @inject ApiClient Api
 @inject ILogger<Rezepte.Web.Components.Shared.MultiAssignToCookbooksOverlay> Logger
 
@@ -21,7 +20,7 @@ else
             else
             {
                 <div class="mb-3" style="max-height:40vh; overflow:auto;">
-                    @if (cookbooks?.Count == 0)
+                    @if (cookbooks is null or { Count: 0 })
                     {
                         <div class="text-muted">Keine Kochbücher vorhanden.</div>
                     }
