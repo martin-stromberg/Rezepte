@@ -128,6 +128,19 @@ pwsh (Get-ChildItem Rezepte.Tests.Browser/bin/Release -Recurse -Filter playwrigh
 dotnet test Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj -c Release --no-build
 ```
 
+Vor Pull Requests mit Paketänderungen sollte der vollständige transitive
+NuGet-Sicherheitscheck ausgeführt werden:
+
+```powershell
+dotnet list Rezepte.sln package --vulnerable --include-transitive
+```
+
+Der Check ist in der CI ein blockierendes Gate. Die aktuelle Auflösung und
+der Sicherheitsnachweis für die Dependencies stehen in
+[`Docs/dependencies.md`](Docs/dependencies.md); CI-Ablauf und Fehlerbehebung
+sind in [`Docs/help/github-actions.md`](Docs/help/github-actions.md)
+dokumentiert.
+
 ## Konfiguration
 
 Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und können wie ueblich per User Secrets, Umgebungsvariablen oder Deployment-Konfiguration überschrieben werden.
