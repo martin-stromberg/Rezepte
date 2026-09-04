@@ -67,7 +67,12 @@ public class GeminiClient : IGeminiClient
             {
                 if (_credential == null)
                 {
-                    _credential = GoogleCredential.FromFile(serviceAccountPath)
+                    // GoogleCredential.FromFile(string) is obsolete (potential security risk
+                    // loading an unvalidated credential configuration); CredentialFactory.FromFile<T>
+                    // loads a specifically-typed credential instead, converted back via
+                    // ToGoogleCredential() for CreateScoped.
+                    _credential = CredentialFactory.FromFile<ServiceAccountCredential>(serviceAccountPath)
+                        .ToGoogleCredential()
                         .CreateScoped("https://www.googleapis.com/auth/generative-language");
                 }
             }
@@ -332,7 +337,7 @@ Html-Code:
 
     private int ParsePortion(string text)
     {
-        return text.Split(' ').FirstOrDefault().ToInt32(0);
+        return (text.Split(' ').FirstOrDefault() ?? string.Empty).ToInt32(0);
     }
 
     private string ParseInformation(string recipeContent, string sectionName)

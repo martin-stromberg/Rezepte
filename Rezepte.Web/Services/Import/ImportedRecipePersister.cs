@@ -5,7 +5,7 @@ namespace Rezepte.Web.Services.Import;
 
 public sealed class ImportedRecipePersister(IRecipeService recipes, ILogger<ImportedRecipePersister> logger) : IImportedRecipePersister
 {
-    public async Task<ImportResult> PersistAsync(ImportResult result, string targetCookbookId, string userId, CancellationToken ct = default)
+    public async Task<ImportResult> PersistAsync(ImportResult result, string? targetCookbookId, string userId, CancellationToken ct = default)
     {
         if (!result.Success || result.ImportedRecipes is null || result.ImportedRecipes.Count == 0)
         {
@@ -31,7 +31,7 @@ public sealed class ImportedRecipePersister(IRecipeService recipes, ILogger<Impo
         return result with { CreatedRecipeIds = created, ImportedRecipes = [] };
     }
 
-    public async Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string targetCookbookId, string userId, CancellationToken ct = default)
+    public async Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string? targetCookbookId, string userId, CancellationToken ct = default)
     {
         var steps = ToSteps(imported);
         var title = string.IsNullOrWhiteSpace(imported.Title) ? "Importiertes Rezept" : imported.Title;

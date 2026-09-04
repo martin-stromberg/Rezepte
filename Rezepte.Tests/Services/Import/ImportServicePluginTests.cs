@@ -47,12 +47,12 @@ public class ImportServicePluginTests
 
     private sealed class PassthroughPersister : IImportedRecipePersister
     {
-        public Task<ImportResult> PersistAsync(ImportResult result, string targetCookbookId, string userId, CancellationToken ct = default)
+        public Task<ImportResult> PersistAsync(ImportResult result, string? targetCookbookId, string userId, CancellationToken ct = default)
         {
             return Task.FromResult(result);
         }
 
-        public Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string targetCookbookId, string userId, CancellationToken ct = default)
+        public Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string? targetCookbookId, string userId, CancellationToken ct = default)
         {
             return Task.FromResult<(bool Success, string? Error, string? RecipeId)>((true, null, "created-recipe"));
         }

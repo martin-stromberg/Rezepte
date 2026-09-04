@@ -1,0 +1,226 @@
+name: PR CI for Staging
+
+# Filename change from pr.yml to pr-staging-ci.yml, and job structure changed to the
+# cross-project hybrid model (ci-target-schema.md section 4.2, 4.3): static-checks and
+# build-and-test now run in parallel with no needs: dependency between them, instead of the
+# previous single sequential "verify" job. detect-backmerge below keeps Rezepte's own
+# merge-parent + tree-diff check (already the most thorough variant across all projects,
+# see ci-target-schema.md section 10 step 9 / section 4.2) - it is the template the other
+# projects are copying, not something to weaken here.
+
+on:
+  pull_request:
+    branches:
+      - staging
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+concurrency:
+  group: pr-staging-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  detect-backmerge:
+    runs-on: ubuntu-latest
+    outputs:
+      is_backmerge: ${{ steps.check.outputs.is_backmerge }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check whether this PR is a pure back-merge from main
+        id: check
+        run: |
+          git fetch origin main:refs/remotes/origin/main --no-tags
+
+          main_sha="$(git rev-parse origin/main)"
+          is_main_merge_parent=false
+          for parent in $(git show -s --format=%P HEAD); do
+            if [[ "$parent" == "$main_sha" ]]; then
+              is_main_merge_parent=true
+              break
+            fi
+          done
+
+          if [[ "$is_main_merge_parent" == "true" ]]; then
+            echo "is_backmerge=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Back-merge from main detected - CI checks will be skipped."
+          elif git diff --quiet origin/main HEAD; then
+            echo "is_backmerge=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Pure back-merge from main detected (tree identical) - CI checks will be skipped."
+          else
+            echo "is_backmerge=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  static-checks:
+    name: static checks
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+    # Hybrid job model (ci-target-schema.md section 4.2): runs in parallel with build-and-test,
+    # with no needs: between them, so a format/security/lint failure is visible within seconds
+    # instead of waiting for the multi-minute build+test run to finish.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Rezepte.sln
+
+      - name: Format check
+        # Gate 1. --severity error restricts this to whitespace/style plus genuine analyzer
+        # errors - analyzer-level WARNINGS are Gate 3's concern; without this flag, plain
+        # `dotnet format --verify-no-changes` also fails on any warning-level analyzer
+        # diagnostic, not just actual formatting differences.
+        run: dotnet format Rezepte.sln --verify-no-changes --no-restore --severity error
+
+      - name: Security scan
+        # Gate 2 - shared composite action, see .github/actions/security-scan.
+        uses: ./.github/actions/security-scan
+        with:
+          solution-path: Rezepte.sln
+          artifact-name: vulnerable-packages-pr
+
+      - name: Static analysis
+        # Gate 3
+        run: dotnet build Rezepte.sln --configuration Release --no-restore -p:TreatWarningsAsErrors=true
+
+  build-and-test:
+    name: build & test
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Rezepte.sln
+
+      - name: Build application and plugins
+        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
+
+      - name: Build browser tests
+        run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
+
+      - name: Install Playwright browsers
+        run: |
+          PLAYWRIGHT_SCRIPT=$(find Rezepte.Tests.Browser/bin/Release -name "playwright.ps1" | head -n 1)
+          if [ -z "$PLAYWRIGHT_SCRIPT" ]; then
+            echo "playwright.ps1 not found under Rezepte.Tests.Browser/bin/Release - did the browser test build succeed?" >&2
+            exit 1
+          fi
+          pwsh "$PLAYWRIGHT_SCRIPT" install --with-deps chromium
+
+      - name: Publish application for browser tests
+        run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
+      - name: Test
+        # Gate 4: unit + browser tests, with coverage collection feeding the threshold check
+        # below (ci-target-schema.md section 4.5). Rezepte has no best-effort test category
+        # (unlike FinanceManager/Softwareschmiede's OsInterface split) - both test projects are
+        # blocking here, matching the previous "verify" job's behavior.
+        run: >
+          dotnet test Rezepte.sln --configuration Release --no-build
+          --collect:"XPlat Code Coverage"
+          --logger "trx;LogFileName=test-results.trx"
+          --logger "console;verbosity=normal"
+
+      - name: Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool --version 5.5.11
+
+      - name: Generate coverage report
+        run: reportgenerator "-reports:**/TestResults/**/coverage.cobertura.xml" "-targetdir:coverage-report" "-reporttypes:TextSummary"
+
+      - name: Enforce coverage threshold
+        # Gate 5: hard 70% line-coverage minimum (ci-target-schema.md section 4.5), adopted
+        # from FinanceManager's coverage mechanism.
+        env:
+          COVERAGE_THRESHOLD: '70'
+        run: |
+          set -euo pipefail
+          summary="coverage-report/Summary.txt"
+          if ! grep -q "Line coverage:" "$summary"; then
+            echo "Could not determine line coverage from the generated report." >&2
+            exit 1
+          fi
+          coverage="$(grep -m1 "Line coverage:" "$summary" | grep -oE '[0-9]+([.,][0-9]+)?' | head -n1 | tr ',' '.')"
+          threshold="$COVERAGE_THRESHOLD"
+          echo "Line coverage: ${coverage}% (threshold: ${threshold}%)"
+          awk -v cov="$coverage" -v thr="$threshold" 'BEGIN { exit !(cov >= thr) }'
+
+      - name: Export import plugin contract
+        # Rezepte-specific ApiCompat contract export (ci-target-schema.md section 7) - not
+        # part of the shared cross-project schema, kept as-is.
+        shell: pwsh
+        run: |
+          $exportArgs = @{
+            OutputDirectory = "artifacts/contract-export"
+            SourceCommit = "${{ github.event.pull_request.head.sha }}"
+          }
+
+          $baselineDirectory = "contract-baselines/import-contract"
+          if (Test-Path -LiteralPath $baselineDirectory -PathType Container) {
+            dotnet tool install Microsoft.DotNet.ApiCompat.Tool --tool-path ./.tools
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to install Microsoft.DotNet.ApiCompat.Tool."
+            }
+
+            $apiCompatTool = if ($IsWindows) { ".\\.tools\\apicompat.exe" } else { "./.tools/apicompat" }
+            $exportArgs["ApiCompatBaselineDirectory"] = $baselineDirectory
+            $exportArgs["ApiCompatToolPath"] = $apiCompatTool
+          }
+          else {
+            Write-Host "No stored ApiCompat baselines found; contract export will skip historical API comparison."
+          }
+
+          ./scripts/Export-ImportContract.ps1 @exportArgs
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report-pr
+          path: coverage-report/
+          retention-days: 14
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-pr
+          path: |
+            Rezepte.Tests/TestResults/*.trx
+            Rezepte.Tests.Browser/TestResults/*.trx
+          retention-days: 14
+
+  back-merge-skip:
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Back-merge detected
+        run: echo "Back-merge PR from main detected. Redundant checks are skipped."

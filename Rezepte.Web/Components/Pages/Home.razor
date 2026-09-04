@@ -10,15 +10,8 @@
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
     <span></span>
     <div class="btn-group">
-        <button class="btn btn-sm btn-outline-primary" @onclick="ToggleCreateMenu" disabled="@isCreating" title="Neues Rezept anlegen">
-            @if (isCreating)
-            {
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            }
-            else
-            {
-                <span>+ Neu</span>
-            }
+        <button class="btn btn-sm btn-outline-primary" @onclick="ToggleCreateMenu" title="Neues Rezept anlegen">
+            <span>+ Neu</span>
         </button>
     </div>
 </h5>
@@ -32,7 +25,6 @@
 <CreateRecipeDialog @ref="createDialog" OnClosed="HandleCreateDialogClosed" />
 
 @code {
-    private bool isCreating;
     private CreateRecipeDialog? createDialog;
     private LatestRecipes? latestRecipes;
 
