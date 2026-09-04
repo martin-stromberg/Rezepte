@@ -27,6 +27,12 @@ Für alle anderen PRs fuehrt der Workflow auf `ubuntu-latest` mit .NET `10.0.x` 
 - `dotnet test Rezepte.sln --configuration Release --no-build`
 - `./scripts/Export-ImportContract.ps1 -OutputDirectory artifacts/contract-export`
 - `dotnet format Rezepte.sln --verify-no-changes --no-restore`
+- `dotnet list Rezepte.sln package --vulnerable --include-transitive`
+
+Der Vulnerability-Scan ist im Job `static checks` ein blockierendes Gate.
+Transitive NuGet-Pakete werden dabei mitgeprüft; ein gemeldetes verwundbares
+Paket lässt den Pull-Request-Check fehlschlagen. Paketupdates müssen daher den
+Scan für die gesamte Solution ohne Befunde hinterlassen.
 
 Neue Commits in einem bestehenden Pull Request brechen veraltete PR-Läufe ab und starten die Prüfung für den aktuellen Stand neu.
 
