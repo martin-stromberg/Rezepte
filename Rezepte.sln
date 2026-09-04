@@ -14,8 +14,14 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.Plugins.Backup", "Rezepte.Import.Plugins.Backup\Rezepte.Import.Plugins.Backup.csproj", "{F9D78A52-F340-49C9-8606-9F629793953F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.Plugins.AIFoto", "Rezepte.Import.Plugins.AIFoto\Rezepte.Import.Plugins.AIFoto.csproj", "{7BCEF416-80E5-4AFC-93A2-95F2E87E423D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A54FCF4B-9AB5-46CF-BEC3-9EFBD24F901F} = {A54FCF4B-9AB5-46CF-BEC3-9EFBD24F901F}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.Plugins.AIUrl", "Rezepte.Import.Plugins.AIUrl\Rezepte.Import.Plugins.AIUrl.csproj", "{08A6DE10-910F-414C-8CE4-5F735215349A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A54FCF4B-9AB5-46CF-BEC3-9EFBD24F901F} = {A54FCF4B-9AB5-46CF-BEC3-9EFBD24F901F}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rezepte.Import.PluginSdk", "Rezepte.Import.PluginSdk\Rezepte.Import.PluginSdk.csproj", "{D66AE871-9F38-4E06-9BDE-EE8FB7491F1F}"
 EndProject
