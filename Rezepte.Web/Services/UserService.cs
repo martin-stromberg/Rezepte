@@ -149,9 +149,21 @@ public class UserService(RezepteDbContext db, IUsernameValidator usernameValidat
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Username == username, ct);
         if (entity is null) return null;
-        return PasswordHasher.Verify(password, entity.PasswordHash)
-            ? MatchUser(entity)
-            : null;
+        var result = PasswordHasher.Verify(password, entity.PasswordHash);
+        if (result == PasswordVerificationResult.Failed) return null;
+        if (result == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            entity.PasswordHash = PasswordHasher.Hash(password);
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (Exception) when (!ct.IsCancellationRequested)
+            {
+                // Rehash-on-login is opportunistic; a failed upgrade must not block a valid login.
+            }
+        }
+        return MatchUser(entity);
     }
 
     /// <inheritdoc />
@@ -212,7 +224,7 @@ public class UserService(RezepteDbContext db, IUsernameValidator usernameValidat
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
         if (entity is null) return (false, "User not found.");
 
-        if (!PasswordHasher.Verify(currentPassword, entity.PasswordHash))
+        if (PasswordHasher.Verify(currentPassword, entity.PasswordHash) == PasswordVerificationResult.Failed)
             return (false, "The current password is incorrect.");
 
         if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
