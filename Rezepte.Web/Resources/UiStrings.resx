@@ -178,4 +178,50 @@
   <data name="NewPassword" xml:space="preserve"><value>Neues Passwort</value></data>
   <data name="ConfirmNewPassword" xml:space="preserve"><value>Neues Passwort bestätigen</value></data>
   <data name="LoginToManageProfile" xml:space="preserve"><value>Bitte anmelden, um das Profil zu verwalten.</value></data>
+  <data name="TakeOverIngredients" xml:space="preserve"><value>Zutaten übernehmen</value></data>
+  <data name="Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="LoadingIngredients" xml:space="preserve"><value>Lade Zutaten...</value></data>
+  <data name="RecipeHasNoIngredients" xml:space="preserve"><value>Dieses Rezept hat keine Zutaten.</value></data>
+  <data name="SideDishIngredientsNotPreselected" xml:space="preserve"><value>Zutaten der Beilagen sind nicht vorausgewählt.</value></data>
+  <data name="AssignToCookbooksTitle" xml:space="preserve"><value>Zuweisung zu Kochbüchern</value></data>
+  <data name="AssignToCookbooksDescription" xml:space="preserve"><value>Wähle aus, in welchen Kochbüchern dieses Rezept erscheinen soll.</value></data>
+  <data name="AssignToCookbooksMultiTitle" xml:space="preserve"><value>Zuweisung zu Kochbüchern (Mehrfachauswahl)</value></data>
+  <data name="AssignToCookbooksMultiDescription" xml:space="preserve"><value>Wähle die Kochbücher, in denen die ausgewählten Rezepte erscheinen sollen.</value></data>
+  <data name="NoCookbooksAvailable" xml:space="preserve"><value>Keine Kochbücher vorhanden.</value></data>
+  <data name="LoadingImages" xml:space="preserve"><value>Lade Bilder…</value></data>
+  <data name="NoImagesAvailable" xml:space="preserve"><value>Keine Bilder vorhanden.</value></data>
+  <data name="Photo" xml:space="preserve"><value>Foto</value></data>
+  <data name="DeleteImage" xml:space="preserve"><value>Bild löschen</value></data>
+  <data name="LargeView" xml:space="preserve"><value>Großansicht</value></data>
+  <data name="AddExistingRecipes" xml:space="preserve"><value>Vorhandene Rezepte hinzufügen</value></data>
+  <data name="RecipesLoadFailed" xml:space="preserve"><value>Rezepte konnten nicht geladen werden.</value></data>
+  <data name="NoMoreRecipesAvailable" xml:space="preserve"><value>Keine weiteren Rezepte verfügbar.</value></data>
+  <data name="LoadMore" xml:space="preserve"><value>Mehr laden…</value></data>
+  <data name="LoadingMore" xml:space="preserve"><value>Lade weitere…</value></data>
+  <data name="LoadingPreview" xml:space="preserve"><value>Lade Vorschau…</value></data>
+  <data name="SavingImage" xml:space="preserve"><value>Speichere Bild…</value></data>
+  <data name="CropAndSave" xml:space="preserve"><value>Zuschneiden &amp; Speichern</value></data>
+  <data name="LatestRecipesTitle" xml:space="preserve"><value>📥 Zuletzt hinzugefügte Rezepte</value></data>
+  <data name="RandomRecipesTitle" xml:space="preserve"><value>🎲 Zufallsrezepte aus Ihren Kochbüchern</value></data>
+  <data name="NoRecipeInCookbook" xml:space="preserve"><value>Kein Rezept in diesem Kochbuch.</value></data>
+  <data name="NewEvent" xml:space="preserve"><value>Neuer Termin</value></data>
+  <data name="EditEvent" xml:space="preserve"><value>Termin bearbeiten</value></data>
+  <data name="RecipeOptional" xml:space="preserve"><value>Rezept (optional)</value></data>
+  <data name="NoRecipeSelected" xml:space="preserve"><value>Kein Rezept ausgewählt</value></data>
+  <data name="ClickToSelectRecipe" xml:space="preserve"><value>Klicken, um ein Rezept auszuwählen</value></data>
+  <data name="RecipeIdOrSelectPlaceholder" xml:space="preserve"><value>Rezept-Id oder per Auswahl wählen</value></data>
+  <data name="WeeklyOn" xml:space="preserve"><value>Wöchentlich an</value></data>
+  <data name="SearchRecipePlaceholder" xml:space="preserve"><value>Rezept suchen...</value></data>
+  <data name="Selected" xml:space="preserve"><value>Ausgewählt</value></data>
+  <data name="ChooseCreateMethod" xml:space="preserve"><value>Wähle, wie das neue Rezept angelegt werden soll:</value></data>
+  <data name="ImportRecipeFromFile" xml:space="preserve"><value>Rezept aus Datei importieren</value></data>
+  <data name="RecipeSelection" xml:space="preserve"><value>Rezeptauswahl</value></data>
+  <data name="SelectAll" xml:space="preserve"><value>Alle auswählen</value></data>
+  <data name="DeselectAll" xml:space="preserve"><value>Alle abwählen</value></data>
+  <data name="ChooseTargetCookbook" xml:space="preserve"><value>Zielkochbuch wählen</value></data>
+  <data name="SelectCookbook" xml:space="preserve"><value>Kochbuch auswählen</value></data>
+  <data name="RecipeCollection" xml:space="preserve"><value>Rezeptsammlung</value></data>
+  <data name="ApplyToSelection" xml:space="preserve"><value>Für Auswahl übernehmen</value></data>
+  <data name="ImportSelection" xml:space="preserve"><value>Auswahl importieren</value></data>
+  <data name="Confirmation" xml:space="preserve"><value>Bestätigung</value></data>
 </root>

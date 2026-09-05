@@ -1,18 +1,19 @@
-﻿@using System.Net.Http.Headers
+@using System.Net.Http.Headers
 @using System.Text.Json
 @using Microsoft.AspNetCore.Components.Web
 @inject ApiClient Api
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject ILogger<Rezepte.Web.Components.Shared.CreateRecipeDialog> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 @if (isOpen)
 {
     <div class="create-overlay" @onclick="OnBackdropClick">
         <div class="create-menu card" @onclick:stopPropagation>
             <div class="card-body">
-                <h5 class="card-title">Neues Rezept anlegen</h5>
-                <p class="card-text">Wähle, wie das neue Rezept angelegt werden soll:</p>
+                <h5 class="card-title">@Localizer["CreateNewRecipe"]</h5>
+                <p class="card-text">@Localizer["ChooseCreateMethod"]</p>
 
                 <div class="d-grid gap-2">
                     <button class="btn btn-outline-primary" @onclick="CreateEmptyAsync" disabled="@isBusy">
@@ -22,12 +23,12 @@
                         }
                         else
                         {
-                            <span>Neues Rezept anlegen</span>
+                            <span>@Localizer["CreateNewRecipe"]</span>
                         }
                     </button>
 
                     <label class="btn btn-outline-secondary" for="fileInput" role="button" style="cursor:pointer;" disabled="@isBusy">
-                        Rezept aus Datei importieren
+                        @Localizer["ImportRecipeFromFile"]
                     </label>
 
                     <button class="btn btn-outline-secondary" @onclick="ToggleUrlImport" disabled="@isBusy">
@@ -84,20 +85,20 @@
                 {
                     <div class="collection-import mt-3">
                         <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
-                            <h6 class="mb-0">@(!string.IsNullOrWhiteSpace(collectionPreview.Title) ? collectionPreview.Title : "Rezeptsammlung")</h6>
+                            <h6 class="mb-0">@(!string.IsNullOrWhiteSpace(collectionPreview.Title) ? collectionPreview.Title : Localizer["RecipeCollection"].Value)</h6>
                             <span class="badge text-bg-secondary">@collectionPreview.Items.Count Rezept(e)</span>
                         </div>
                         <div class="collection-toolbar mb-2">
-                            <div class="btn-group btn-group-sm" role="group" aria-label="Rezeptauswahl">
-                                <button class="btn btn-outline-secondary" @onclick="SelectAllCollectionItems" disabled="@collectionReadOnly">Alle auswählen</button>
-                                <button class="btn btn-outline-secondary" @onclick="ClearCollectionSelection" disabled="@collectionReadOnly">Alle abwählen</button>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="@Localizer["RecipeSelection"]">
+                                <button class="btn btn-outline-secondary" @onclick="SelectAllCollectionItems" disabled="@collectionReadOnly">@Localizer["SelectAll"]</button>
+                                <button class="btn btn-outline-secondary" @onclick="ClearCollectionSelection" disabled="@collectionReadOnly">@Localizer["DeselectAll"]</button>
                             </div>
                             <div class="collection-bulk-target">
                                 <select class="form-select form-select-sm"
                                         value="@collectionSelection.BulkTargetCookbookId"
                                         disabled="@collectionReadOnly"
                                         @onchange="SetBulkTargetCookbook">
-                                    <option value="">Zielkochbuch wählen</option>
+                                    <option value="">@Localizer["ChooseTargetCookbook"]</option>
                                     @foreach (var cookbook in availableCookbooks)
                                     {
                                         <option value="@cookbook.Id">@cookbook.Name</option>
@@ -106,7 +107,7 @@
                                 <button class="btn btn-sm btn-outline-primary"
                                         @onclick="ApplyBulkTargetCookbook"
                                         disabled="@(collectionReadOnly || collectionSelection.SelectedItemIds.Count == 0 || string.IsNullOrWhiteSpace(collectionSelection.BulkTargetCookbookId))">
-                                    Für Auswahl übernehmen
+                                    @Localizer["ApplyToSelection"]
                                 </button>
                             </div>
                         </div>
@@ -134,7 +135,7 @@
                                                 value="@GetTargetCookbook(item.Id)"
                                                 disabled="@(!isSelected || collectionReadOnly)"
                                                 @onchange="e => SetTargetCookbook(item.Id, e)">
-                                            <option value="">Kochbuch auswählen</option>
+                                            <option value="">@Localizer["SelectCookbook"]</option>
                                             @foreach (var cookbook in availableCookbooks)
                                             {
                                                 <option value="@cookbook.Id">@cookbook.Name</option>
@@ -154,7 +155,7 @@
                         <div class="d-flex justify-content-end gap-2 mt-3">
                             <button class="btn btn-outline-secondary" @onclick="CloseClicked">Schließen</button>
                             <button class="btn btn-primary" @onclick="SubmitCollectionSelectionAsync" disabled="@(!CanSubmitCollectionSelection)">
-                                Auswahl importieren
+                                @Localizer["ImportSelection"]
                             </button>
                         </div>
                     </div>
@@ -169,7 +170,7 @@
         <div class="confirm-overlay" @onclick="() => { /* block backdrop clicks */ }">
             <div class="confirm-box card" @onclick:stopPropagation>
                 <div class="card-body">
-                    <h5 class="card-title">Bestätigung</h5>
+                    <h5 class="card-title">@Localizer["Confirmation"]</h5>
                     <p class="card-text">@confirmPrompt</p>
                     <div class="d-flex justify-content-end gap-2">
                         <button class="btn btn-outline-secondary" @onclick="()=>Confirm(false)">Abbrechen</button>

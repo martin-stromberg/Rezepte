@@ -2,17 +2,18 @@
 @using Microsoft.AspNetCore.Components.Web
 @inject ApiClient Api
 @inject ILogger<Rezepte.Web.Components.Shared.RecipeSelectDialog> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 <div class="modal fade show" style="display:block; background: rgba(0,0,0,.5);" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Vorhandene Rezepte hinzufügen</h5>
-                <button type="button" class="btn-close" aria-label="Close" @onclick="OnCancel"></button>
+                <h5 class="modal-title">@Localizer["AddExistingRecipes"]</h5>
+                <button type="button" class="btn-close" aria-label="@Localizer["Close"]" @onclick="OnCancel"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <input class="form-control" placeholder="Suchen…" @bind="search" @bind:event="oninput" @onkeydown="OnSearchKeyDown" />
+                    <input class="form-control" placeholder="@Localizer["SearchPlaceholder"]" @bind="search" @bind:event="oninput" @onkeydown="OnSearchKeyDown" />
                 </div>
                 @if (isLoading)
                 {
@@ -20,11 +21,11 @@
                 }
                 else if (loadError)
                 {
-                    <div class="alert alert-danger">Rezepte konnten nicht geladen werden.</div>
+                    <div class="alert alert-danger">@Localizer["RecipesLoadFailed"]</div>
                 }
                 else if (items.Count == 0 && !isLoading)
                 {
-                    <div class="alert alert-info">Keine weiteren Rezepte verfügbar.</div>
+                    <div class="alert alert-info">@Localizer["NoMoreRecipesAvailable"]</div>
                 }
                 else
                 {
@@ -45,12 +46,12 @@
                         @if (hasMore && !isLoadingMore)
                         {
                             <div class="text-center my-2">
-                                <button class="btn btn-outline-secondary btn-sm" @onclick="LoadMore">Mehr laden…</button>
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="LoadMore">@Localizer["LoadMore"]</button>
                             </div>
                         }
                         @if (isLoadingMore)
                         {
-                            <div class="text-center my-2 text-muted">Lade weitere…</div>
+                            <div class="text-center my-2 text-muted">@Localizer["LoadingMore"]</div>
                         }
                     </div>
                 }

@@ -1,6 +1,7 @@
 @using Microsoft.JSInterop
 @inject ApiClient Api
 @inject IJSRuntime JS
+@inject IStringLocalizer<UiStrings> Localizer
 
 @* If Show param exists ? render overlay wrapper *@
 @if (Show)
@@ -8,8 +9,8 @@
     <div class="overlay-backdrop" @onclick="OnClose">
         <div class="overlay-content overlay-assign" @onclick:stopPropagation>
             <button class="btn btn-sm btn-danger overlay-close" @onclick="OnCancelClick">×</button>
-            <h5>Zuweisung zu Kochbüchern</h5>
-            <p class="text-muted">Wähle aus, in welchen Kochbüchern dieses Rezept erscheinen soll.</p>
+            <h5>@Localizer["AssignToCookbooksTitle"]</h5>
+            <p class="text-muted">@Localizer["AssignToCookbooksDescription"]</p>
 
             @if (isLoading)
             {
@@ -20,7 +21,7 @@
                 <div class="mb-3" style="max-height:40vh; overflow:auto;">
                     @if (cookbooks is null or { Count: 0 })
                     {
-                        <div class="text-muted">Keine Kochbücher vorhanden.</div>
+                        <div class="text-muted">@Localizer["NoCookbooksAvailable"]</div>
                     }
                     else
                     {

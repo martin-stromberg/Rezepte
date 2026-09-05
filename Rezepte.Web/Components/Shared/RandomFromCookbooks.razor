@@ -1,14 +1,15 @@
-﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components
 @inject ApiClient Api
 @inject IJSRuntime JS
 @inject ILogger<Rezepte.Web.Components.Shared.RandomFromCookbooks> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 <div class="random-recipes" id="@containerId">
 
 @if (isLoading || (items is not null && items.Count > 0))
 {
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="m-0">🎲 Zufallsrezepte aus Ihren Kochbüchern</h3>
+        <h3 class="m-0">@Localizer["RandomRecipesTitle"]</h3>
         <div>
             <button class="btn btn-sm btn-outline-secondary" @onclick="RefreshAsync" disabled="@isLoading">
                 @if (isLoading)
@@ -48,14 +49,14 @@ else if (!isLoading && items is not null && items.Count > 0)
                 <div class="cookbook-name">@it.Cookbook.Name</div>
                 @if (it.Recipe is null)
                 {
-                    <div class="text-muted small">Kein Rezept in diesem Kochbuch.</div>
+                    <div class="text-muted small">@Localizer["NoRecipeInCookbook"]</div>
                 }
                 else
                 {
                     <a class="recipe-card small-card" href="@($"/recipes/{it.Recipe.Id}")" title="@it.Recipe.Title">
                         @if (!string.IsNullOrWhiteSpace(it.Recipe.ImageUrl))
                         {
-                            <img src="@it.Recipe.ImageUrl" alt="Bild zu @it.Recipe.Title" />
+                            <img src="@it.Recipe.ImageUrl" alt="@($"{Localizer["ImageFor"]} {it.Recipe.Title}")" />
                         }
                         else
                         {

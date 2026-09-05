@@ -1,4 +1,5 @@
 @inject ApiClient Client
+@inject IStringLocalizer<UiStrings> Localizer
 
 @if (Show)
 {
@@ -7,11 +8,11 @@
             <button class="btn btn-sm btn-danger overlay-close" @onclick="OnClose">×</button>
             @if (isLoading)
             {
-                <div>Lade Bilder…</div>
+                <div>@Localizer["LoadingImages"]</div>
             }
             else if (images is null || images.Count == 0)
             {
-                <div>Keine Bilder vorhanden.</div>
+                <div>@Localizer["NoImagesAvailable"]</div>
             }
             else
             {
@@ -21,12 +22,12 @@
                         <div class="thumb-container position-relative">
                             <img src="@img.Url"
                                  class="thumb"
-                                 alt="Foto"
+                                 alt="@Localizer["Photo"]"
                                  @onclick="async () => await ShowLargeAsync(img.Url)" />
                             @if (Mode == "edit")
                             {
                                 <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
-                                        title="Bild löschen"
+                                        title="@Localizer["DeleteImage"]"
                                         @onclick:stopPropagation
                                         @onclick="async e => await DeleteImageAsync(img.Id)">
                                     <i class="bi bi-trash"></i>
@@ -46,7 +47,7 @@
             <div class="overlay-content large-content" @onclick:stopPropagation>
                 <button class="btn btn-sm btn-danger overlay-close" @onclick="CloseLarge">×</button>
                 <div class="large-photo-wrap">
-                    <img src="@selectedImageUrl" alt="Großansicht" class="large-photo" />
+                    <img src="@selectedImageUrl" alt="@Localizer["LargeView"]" class="large-photo" />
                 </div>
             </div>
         </div>

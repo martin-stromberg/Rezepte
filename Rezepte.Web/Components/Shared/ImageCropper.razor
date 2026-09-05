@@ -1,9 +1,10 @@
-﻿@using System.Security.Claims
+@using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
 @inject Rezepte.Web.Services.ITokenService TokenService
 @inject ILogger<Rezepte.Web.Components.Shared.ImageCropper> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 @rendermode InteractiveServer
 
 @if (Show)
@@ -19,7 +20,7 @@
                 {
                     <div class="overlay-loading d-flex align-items-center justify-content-center">
                         <div class="spinner-border" role="status" aria-hidden="true"></div>
-                        <div class="ms-2">Lade Vorschau…</div>
+                        <div class="ms-2">@Localizer["LoadingPreview"]</div>
                     </div>
                 }
 
@@ -27,14 +28,14 @@
                 {
                     <div class="overlay-loading d-flex align-items-center justify-content-center">
                         <div class="spinner-border" role="status" aria-hidden="true"></div>
-                        <div class="ms-2">Speichere Bild…</div>
+                        <div class="ms-2">@Localizer["SavingImage"]</div>
                     </div>
                 }
             </div>
 
             <div class="d-flex justify-content-end gap-2">
                 <button class="btn btn-secondary" @onclick="Cancel" disabled="@isUploading">Abbrechen</button>
-                <button class="btn btn-primary" @onclick="SaveAsync" disabled="@(!_initialized || isUploading)">Zuschneiden &amp; Speichern</button>
+                <button class="btn btn-primary" @onclick="SaveAsync" disabled="@(!_initialized || isUploading)">@Localizer["CropAndSave"]</button>
             </div>
         </div>
     </div>
