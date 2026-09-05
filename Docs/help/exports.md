@@ -14,6 +14,22 @@ Administratoren starten die Sicherung unter "Sicherung" ueber "Gesamtexport (Adm
 
 Der Download fertiger Exportdateien ist an den ausloesenden Benutzer gebunden. Administratoren koennen Admin-Exportjobs abrufen.
 
+## Automatische Bereinigung alter Exporte
+
+Erstellte Exportdateien bleiben nur begrenzt im `exports`-Ordner erhalten: Jede ZIP-Datei wird spaetestens einen Tag nach ihrer Erstellung automatisch geloescht. Das gilt sowohl fuer Benutzer- als auch fuer Admin-Exporte. Zusammen mit der Datei wird der zugehoerige Eintrag in der Tabelle "Gespeicherte Exporte" entfernt. Verwaiste ZIP-Dateien im Exportordner, zu denen kein Eintrag mehr existiert, werden ebenfalls nach einem Tag geloescht.
+
+Die Uhrzeit der taeglichen Bereinigung legt der Administrator unter "Sicherung" im Abschnitt "Automatische Bereinigung" fest (Standard: 03:00 Uhr, Serverzeit). Dort ist auch der Zeitpunkt der letzten Bereinigung sichtbar; ueber "Jetzt bereinigen" kann die Bereinigung sofort ausgefuehrt werden.
+
+War die Anwendung zur eingestellten Uhrzeit nicht gestartet, wird die Bereinigung nicht uebersprungen, sondern beim naechsten Start bzw. bei der naechsten Pruefung (im Minutentakt) nachgeholt. Dazu vergleicht die Anwendung den gespeicherten Zeitpunkt der letzten Bereinigung mit dem letzten faelligen Termin.
+
+Schnittstelle fuer Administratoren:
+
+- `GET /api/admin/exports/cleanup` liefert die eingestellte Uhrzeit (`HH:mm`) und den letzten Lauf.
+- `PUT /api/admin/exports/cleanup` mit `{ "cleanupTime": "HH:mm" }` speichert die Uhrzeit.
+- `POST /api/admin/exports/cleanup/run` fuehrt die Bereinigung sofort aus.
+
+Update-Backups (siehe unten) sind von dieser Bereinigung nicht betroffen; fuer sie gilt weiterhin `UpdateBackups:RetentionCount`.
+
 ## Update-Backups
 
 Vor automatischen Programmupdates erstellt die Anwendung einen systemischen Gesamtexport als Pre-Install-Backup. Dieser Export wird nicht ueber die Oberflaeche gestartet, sondern durch den Update-Pre-Install-Callback ausgeloest.
