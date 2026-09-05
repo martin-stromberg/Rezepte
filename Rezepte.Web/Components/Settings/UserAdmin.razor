@@ -1,12 +1,13 @@
-﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Admin")]
 @inject Rezepte.Web.ViewModels.UserAdminViewModel Vm
+@inject IStringLocalizer<UiStrings> Localizer
 
 <h6 class="mb-3">Benutzerverwaltung</h6>
 
 @if (Vm.IsLoading)
 {
-    <div class="text-muted">Lade Benutzer…</div>
+    <div class="text-muted">@Localizer["LoadingUsers"]</div>
 }
 else
 {
@@ -18,18 +19,18 @@ else
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div class="input-group w-auto">
             <span class="input-group-text">🔎</span>
-            <input class="form-control" placeholder="Suchen…" @bind="Vm.Query" />
+            <input class="form-control" placeholder="@Localizer["SearchPlaceholder"]" @bind="Vm.Query" />
         </div>
         <div class="card p-2">
             <div class="d-flex align-items-end gap-2">
-                <input class="form-control" style="width: 12rem" placeholder="Benutzername" @bind="Vm.NewUser.Username" />
-                <input class="form-control" style="width: 14rem" placeholder="E-Mail (optional)" @bind="Vm.NewUser.Email" />
-                <input class="form-control" style="width: 12rem" placeholder="Passwort" type="password" @bind="Vm.NewUser.Password" />
+                <input class="form-control" style="width: 12rem" placeholder="@Localizer["Username"]" @bind="Vm.NewUser.Username" />
+                <input class="form-control" style="width: 14rem" placeholder="@Localizer["EmailOptional"]" @bind="Vm.NewUser.Email" />
+                <input class="form-control" style="width: 12rem" placeholder="@Localizer["Password"]" type="password" @bind="Vm.NewUser.Password" />
                 <div class="form-check ms-2">
                     <input class="form-check-input" type="checkbox" id="nuAdmin" @bind="Vm.NewUser.IsAdmin" />
                     <label class="form-check-label" for="nuAdmin">Admin</label>
                 </div>
-                <button class="btn btn-sm btn-success" @onclick="(() => Vm.CreateAsync())" disabled="@Vm.IsBusy">+ Anlegen</button>
+                <button class="btn btn-sm btn-success" @onclick="(() => Vm.CreateAsync())" disabled="@Vm.IsBusy">@Localizer["Create"]</button>
             </div>
         </div>
     </div>

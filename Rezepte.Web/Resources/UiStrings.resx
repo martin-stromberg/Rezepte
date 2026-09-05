@@ -107,4 +107,75 @@
   <data name="DeleteIngredient" xml:space="preserve"><value>Zutat löschen</value></data>
   <data name="Amount" xml:space="preserve"><value>Menge</value></data>
   <data name="Unit" xml:space="preserve"><value>Einheit</value></data>
+  <data name="AiUsage" xml:space="preserve"><value>Nutzung von KI</value></data>
+  <data name="AiGlobalActiveAdmin" xml:space="preserve"><value>KI global aktiv (Admin)</value></data>
+  <data name="GoogleVisionGlobalActiveAdmin" xml:space="preserve"><value>Google Vision global aktiv (Admin)</value></data>
+  <data name="GeminiGlobalActiveAdmin" xml:space="preserve"><value>Gemini global aktiv (Admin)</value></data>
+  <data name="LimitSettings" xml:space="preserve"><value>Limit Einstellungen</value></data>
+  <data name="MaxRequestsPerHour" xml:space="preserve"><value>Max Anfragen pro Stunde</value></data>
+  <data name="MaxRequestsPerDay" xml:space="preserve"><value>Max Anfragen pro Tag</value></data>
+  <data name="DisableAiGloballyOnLimit" xml:space="preserve"><value>KI global deaktivieren, wenn Limit erreicht</value></data>
+  <data name="ZeroForUnlimitedRequests" xml:space="preserve"><value>Setzen Sie 0 für unbegrenzte Anfragen.</value></data>
+  <data name="EnableAiForMyAccount" xml:space="preserve"><value>KI für mein Konto aktivieren</value></data>
+  <data name="EnableGoogleVisionForMyAccount" xml:space="preserve"><value>Google Vision für mein Konto aktivieren</value></data>
+  <data name="Info" xml:space="preserve"><value>Info</value></data>
+  <data name="InfoGoogleVision" xml:space="preserve"><value>Info Google Vision</value></data>
+  <data name="EnableGeminiForMyAccount" xml:space="preserve"><value>Gemini für mein Konto aktivieren</value></data>
+  <data name="InfoGemini" xml:space="preserve"><value>Info Gemini</value></data>
+  <data name="RequestConfirmationBeforeAi" xml:space="preserve"><value>Bestätigung vor KI‑Nutzung anfordern</value></data>
+  <data name="InfoConfirmation" xml:space="preserve"><value>Info Bestätigung</value></data>
+  <data name="AiGloballyDisabledLocked" xml:space="preserve"><value>KI ist global deaktiviert — Ihre Einstellung ist gesperrt.</value></data>
+  <data name="GoogleVisionDisabledByAdminLocked" xml:space="preserve"><value>Google Vision ist vom Administrator deaktiviert — Ihre Einstellung ist gesperrt.</value></data>
+  <data name="GeminiDisabledByAdminLocked" xml:space="preserve"><value>Gemini ist vom Administrator deaktiviert — Ihre Einstellung ist gesperrt.</value></data>
+  <data name="GoogleVision" xml:space="preserve"><value>Google Vision</value></data>
+  <data name="AiConfirmationTitle" xml:space="preserve"><value>Bestätigung vor KI‑Nutzung</value></data>
+  <data name="GoogleVisionInfoText" xml:space="preserve"><value>Google Vision wird für die Erkennung von Text in Bilddateien verwendet. Bei Fotoerkennung werden GoogleVision und zusätzlich Gemini zur Extraktion von Rezeptinformationen eingesetzt.</value></data>
+  <data name="GeminiInfoText" xml:space="preserve"><value>Gemini wird für das Auslesen von Rezeptinformationen aus Texten benötigt. Beim Auslesen von Webseiten wird nur Gemini benötigt; bei Fotoerkennung wird Gemini zusammen mit Google Vision verwendet.</value></data>
+  <data name="AiConfirmationInfoText" xml:space="preserve"><value>Wenn diese Option aktiviert ist, erscheint vor jeder Aktion, die KI‑Dienste nutzt, eine kurze Bestätigungsabfrage. Das verhindert unbeabsichtigte KI‑Anfragen.</value></data>
+  <data name="LastChecked" xml:space="preserve"><value>Zuletzt geprüft</value></data>
+  <data name="CheckNow" xml:space="preserve"><value>Jetzt prüfen</value></data>
+  <data name="AcceptRcVersions" xml:space="preserve"><value>RC-Versionen akzeptieren</value></data>
+  <data name="LastResults" xml:space="preserve"><value>Letzte Ergebnisse</value></data>
+  <data name="BackupAdmin" xml:space="preserve"><value>Sicherung (Admin)</value></data>
+  <data name="BackupAdminDescription" xml:space="preserve"><value>Gesamtexport und Wiederherstellung der Anwendung (Admin).</value></data>
+  <data name="RestoreZipFile" xml:space="preserve"><value>Wiederherstellen (ZIP-Datei)</value></data>
+  <data name="OperationInProgress" xml:space="preserve"><value>Vorgang läuft...</value></data>
+  <data name="CleanupOldBackups" xml:space="preserve"><value>Bereinigung alter Sicherungen</value></data>
+  <data name="CleanupTimeLabel" xml:space="preserve"><value>Uhrzeit der Bereinigung</value></data>
+  <data name="CleanupNow" xml:space="preserve"><value>Jetzt bereinigen</value></data>
+  <data name="NoCleanupYet" xml:space="preserve"><value>Bisher wurde noch keine Bereinigung ausgeführt.</value></data>
+  <data name="ExportOwnRecipesInfo" xml:space="preserve"><value>Exportiere deine Rezepte. Der Export wird im Hintergrund vorbereitet.</value></data>
+  <data name="IncludeImages" xml:space="preserve"><value>Bilder einbeziehen</value></data>
+  <data name="PdfPerRecipe" xml:space="preserve"><value>PDF pro Rezept</value></data>
+  <data name="ExportInProgress" xml:space="preserve"><value>Export läuft...</value></data>
+  <data name="SavedExports" xml:space="preserve"><value>Gespeicherte Exporte</value></data>
+  <data name="NoExportFiles" xml:space="preserve"><value>Keine Exportdateien vorhanden.</value></data>
+  <data name="UpdatePat" xml:space="preserve"><value>PAT aktualisieren</value></data>
+  <data name="TrustThisSource" xml:space="preserve"><value>Ich vertraue dieser Quelle.</value></data>
+  <data name="NoGitHubPluginSources" xml:space="preserve"><value>Keine GitHub-Pluginquellen konfiguriert.</value></data>
+  <data name="NoImportPluginsFound" xml:space="preserve"><value>Keine Import-Plugins gefunden.</value></data>
+  <data name="LocalImportPlugins" xml:space="preserve"><value>Lokale Import-Plugins</value></data>
+  <data name="NotUsable" xml:space="preserve"><value>nicht nutzbar</value></data>
+  <data name="PluginOrder" xml:space="preserve"><value>Plugin-Reihenfolge</value></data>
+  <data name="MoveUp" xml:space="preserve"><value>Nach oben</value></data>
+  <data name="MoveDown" xml:space="preserve"><value>Nach unten</value></data>
+  <data name="SecurityTxtTitle" xml:space="preserve"><value>security.txt (RFC 9116)</value></data>
+  <data name="EnableSecurityTxt" xml:space="preserve"><value>security.txt aktivieren</value></data>
+  <data name="SecurityTxtContactLabel" xml:space="preserve"><value>Contact (ein URI oder E-Mail pro Zeile, Pflichtfeld)</value></data>
+  <data name="SecurityTxtExpiresLabel" xml:space="preserve"><value>Expires (Pflichtfeld)</value></data>
+  <data name="SecurityTxtAcknowledgmentsLabel" xml:space="preserve"><value>Acknowledgments (ein URI pro Zeile)</value></data>
+  <data name="SecurityTxtCanonicalLabel" xml:space="preserve"><value>Canonical (optional; wenn leer, wird die URL automatisch bestimmt)</value></data>
+  <data name="TimeSinceRegistration" xml:space="preserve"><value>Zeit seit Registrierung</value></data>
+  <data name="CookbookCount" xml:space="preserve"><value>Anzahl Kochbücher</value></data>
+  <data name="OwnRecipes" xml:space="preserve"><value>Eigene Rezepte</value></data>
+  <data name="LoadingUsers" xml:space="preserve"><value>Lade Benutzer…</value></data>
+  <data name="SearchPlaceholder" xml:space="preserve"><value>Suchen…</value></data>
+  <data name="Username" xml:space="preserve"><value>Benutzername</value></data>
+  <data name="Password" xml:space="preserve"><value>Passwort</value></data>
+  <data name="LoadingProfile" xml:space="preserve"><value>Lade Profil…</value></data>
+  <data name="ChangePassword" xml:space="preserve"><value>Passwort ändern</value></data>
+  <data name="CurrentPassword" xml:space="preserve"><value>Aktuelles Passwort</value></data>
+  <data name="NewPassword" xml:space="preserve"><value>Neues Passwort</value></data>
+  <data name="ConfirmNewPassword" xml:space="preserve"><value>Neues Passwort bestätigen</value></data>
+  <data name="LoginToManageProfile" xml:space="preserve"><value>Bitte anmelden, um das Profil zu verwalten.</value></data>
 </root>

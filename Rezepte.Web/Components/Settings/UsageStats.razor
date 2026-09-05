@@ -1,5 +1,6 @@
-﻿@using Rezepte.Web.Dto
+@using Rezepte.Web.Dto
 @inject ApiClient Client
+@inject IStringLocalizer<UiStrings> Localizer
 @code {
     private UserStatsDto? stats;
     protected override async Task OnInitializedAsync()
@@ -15,9 +16,9 @@
 else
 {
     <dl class="row">
-        <dt class="col-6">Zeit seit Registrierung</dt><dd class="col-6">@stats.TimeSinceRegistration</dd>
-        <dt class="col-6">Anzahl Kochbücher</dt><dd class="col-6">@stats.CookbookCount</dd>
-        <dt class="col-6">Eigene Rezepte</dt><dd class="col-6">@stats.OwnRecipeCount</dd>
+        <dt class="col-6">@Localizer["TimeSinceRegistration"]</dt><dd class="col-6">@stats.TimeSinceRegistration</dd>
+        <dt class="col-6">@Localizer["CookbookCount"]</dt><dd class="col-6">@stats.CookbookCount</dd>
+        <dt class="col-6">@Localizer["OwnRecipes"]</dt><dd class="col-6">@stats.OwnRecipeCount</dd>
         <dt class="col-6">KI‑Anfragen</dt><dd class="col-6">@stats.AiRequestCount</dd>
     </dl>
 }

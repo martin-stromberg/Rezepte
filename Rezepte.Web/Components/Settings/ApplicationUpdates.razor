@@ -1,5 +1,6 @@
 @using Rezepte.Web.Services.Updates
 @inject IApplicationUpdateSettingsService UpdateSettings
+@inject IStringLocalizer<UiStrings> Localizer
 
 @if (isLoading)
 {
@@ -26,7 +27,7 @@ else
                     <dt class="col-5">Verfügbar</dt>
                     <dd class="col-7">@Display(status?.AvailableVersion)</dd>
 
-                    <dt class="col-5">Zuletzt geprüft</dt>
+                    <dt class="col-5">@Localizer["LastChecked"]</dt>
                     <dd class="col-7">@FormatDate(status?.LastCheckedAt)</dd>
 
                     <dt class="col-5">Gesperrt</dt>
@@ -39,7 +40,7 @@ else
             <section>
                 <h3 class="h6">Aktionen</h3>
                 <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-primary btn-sm" disabled="@isBusy" @onclick="CheckAsync">Jetzt prüfen</button>
+                    <button type="button" class="btn btn-primary btn-sm" disabled="@isBusy" @onclick="CheckAsync">@Localizer["CheckNow"]</button>
                     <button type="button" class="btn btn-outline-primary btn-sm" disabled="@(isBusy || status?.HasAvailablePackage != true)" @onclick="DownloadAsync">Herunterladen</button>
                     <button type="button" class="btn btn-danger btn-sm" disabled="@isBusy" @onclick="InstallAsync">Installieren</button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@isBusy" @onclick="LoadAsync">Aktualisieren</button>
@@ -55,14 +56,14 @@ else
                            checked="@(settings?.AllowPrereleaseUpdates == true)"
                            disabled="@isBusy"
                            @onchange="SetAllowPrereleaseUpdatesAsync" />
-                    <label class="form-check-label" for="allowPrereleaseUpdates">RC-Versionen akzeptieren</label>
+                    <label class="form-check-label" for="allowPrereleaseUpdates">@Localizer["AcceptRcVersions"]</label>
                 </div>
             </section>
         </div>
     </div>
 
     <section class="mt-4">
-        <h3 class="h6">Letzte Ergebnisse</h3>
+        <h3 class="h6">@Localizer["LastResults"]</h3>
         <div class="table-responsive">
             <table class="table table-sm align-middle">
                 <tbody>
