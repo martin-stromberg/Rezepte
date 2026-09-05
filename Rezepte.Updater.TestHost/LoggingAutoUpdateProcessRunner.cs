@@ -10,11 +10,20 @@ namespace Rezepte.Updater.TestHost;
 /// </summary>
 public sealed class LoggingAutoUpdateProcessRunner : IAutoUpdateProcessRunner
 {
+    /// <summary>
+    /// Ensures that the update unit required by the installation script is available.
+    /// </summary>
+    /// <param name="scriptPath">Path to the installation script.</param>
     public void EnsureUpdateUnitAvailable(string scriptPath)
     {
         // No systemd unit on Windows; the orchestrator already manages the update lock.
     }
 
+    /// <summary>
+    /// Starts the installation script and prints its output to the console.
+    /// </summary>
+    /// <param name="scriptPath">Path to the installation script.</param>
+    /// <param name="zipPath">Optional path to the update package.</param>
     public void StartScript(string scriptPath, string? zipPath)
     {
         if (!string.IsNullOrWhiteSpace(zipPath))

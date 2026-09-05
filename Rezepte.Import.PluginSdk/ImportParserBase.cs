@@ -3,8 +3,16 @@ using System.Text.RegularExpressions;
 
 namespace Rezepte.Import.PluginSdk;
 
+/// <summary>
+/// Base class for import parsers that converts common text formats into ingredient data.
+/// </summary>
 public abstract class ImportParserBase
 {
+    /// <summary>
+    /// Parses an ISO 8601 duration string to a number of minutes.
+    /// </summary>
+    /// <param name="isoDuration">Duration string in ISO 8601 format, for example "PT1H30M".</param>
+    /// <returns>The total number of minutes represented by the duration.</returns>
     protected int ParseIsoDurationToMinutes(string? isoDuration)
     {
         if (string.IsNullOrWhiteSpace(isoDuration))
@@ -21,6 +29,11 @@ public abstract class ImportParserBase
         return hours * 60 + minutes + (seconds >= 30 ? 1 : 0);
     }
 
+    /// <summary>
+    /// Parses a free-text ingredient line into a structured ingredient.
+    /// </summary>
+    /// <param name="line">Ingredient line to parse, for example "200 g carrots".</param>
+    /// <returns>The parsed ingredient.</returns>
     protected ParsedIngredient ParseIngredientLine(string? line)
     {
         if (string.IsNullOrWhiteSpace(line))

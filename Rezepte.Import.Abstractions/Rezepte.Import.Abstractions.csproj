@@ -7,6 +7,8 @@
     <Version>$(ImportContractVersion)</Version>
     <AssemblyVersion>$(ImportContractVersion)</AssemblyVersion>
     <FileVersion>$(ImportContractVersion)</FileVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningsAsErrors>CS1591</WarningsAsErrors>
   </PropertyGroup>
 
 </Project>

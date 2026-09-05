@@ -12,21 +12,47 @@ using System.Text;
 
 namespace Rezepte.Import.Plugins.AIFoto;
 
-public class AIFotoImportHandler(
-    IRecipeService recipes,
-    IOptionsMonitor<AIOptions> aioptions,
-    IAiUsageService aiUsage,
-    IMemoryCache cache,
-    IGeminiClient geminiClient,
-    IGoogleCredentialsProvider credentialsProvider,
-    ILogger<AIFotoImportHandler> logger,
-    ISettingsService settings) : BaseAIImportHandler(aioptions, aiUsage, recipes, geminiClient, settings, logger), IImportHandler
+/// <summary>
+/// Import handler that extracts recipe text from photos using Google Vision and Gemini.
+/// </summary>
+public class AIFotoImportHandler : BaseAIImportHandler, IImportHandler
 {
     private static readonly TimeSpan DefaultParsedImageCacheDuration = TimeSpan.FromDays(7);
-    private readonly IOptionsMonitor<AIOptions> _aiOptions = aioptions;
-    private readonly IMemoryCache _cache = cache;
-    private readonly IGoogleCredentialsProvider _credentialsProvider = credentialsProvider;
+    private readonly IOptionsMonitor<AIOptions> _aiOptions;
+    private readonly IMemoryCache _cache;
+    private readonly IGoogleCredentialsProvider _credentialsProvider;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AIFotoImportHandler"/> class.
+    /// </summary>
+    /// <param name="recipes">Recipe service used to persist imported recipes.</param>
+    /// <param name="aioptions">AI options monitor.</param>
+    /// <param name="aiUsage">AI usage accounting service.</param>
+    /// <param name="cache">Memory cache for parsed image results.</param>
+    /// <param name="geminiClient">Gemini client for recipe extraction.</param>
+    /// <param name="credentialsProvider">Provider for Google Vision credentials.</param>
+    /// <param name="logger">Logger instance.</param>
+    /// <param name="settings">Settings service.</param>
+    public AIFotoImportHandler(
+        IRecipeService recipes,
+        IOptionsMonitor<AIOptions> aioptions,
+        IAiUsageService aiUsage,
+        IMemoryCache cache,
+        IGeminiClient geminiClient,
+        IGoogleCredentialsProvider credentialsProvider,
+        ILogger<AIFotoImportHandler> logger,
+        ISettingsService settings)
+        : base(aioptions, aiUsage, recipes, geminiClient, settings, logger)
+    {
+        _aiOptions = aioptions;
+        _cache = cache;
+        _credentialsProvider = credentialsProvider;
+    }
+
+    /// <summary>
+    /// Determines whether the handler is active for the current user and configuration.
+    /// </summary>
+    /// <returns><c>true</c> when the handler can be used; otherwise <c>false</c>.</returns>
     protected override async Task<bool> IsActiveAsync()
     {
         if (!await base.IsActiveAsync()) return false;
@@ -74,11 +100,28 @@ public class AIFotoImportHandler(
         return true;
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the handler works with text input.
+    /// </summary>
+    /// <returns><c>false</c> because this handler processes image data.</returns>
     protected override bool IsTextMode() => false;
 
+    /// <summary>
+    /// Asks the user to confirm the AI analysis of the provided image.
+    /// </summary>
+    /// <param name="interaction">Interaction surface used to ask for confirmation.</param>
+    /// <returns><c>true</c> when the user confirmed; otherwise <c>false</c>.</returns>
     protected override Task<bool> HandleConfirmation(IImportInteraction interaction) =>
         interaction.AskForConfirmationAsync("Die Texte der angegebenen Bilddatei werden mittels KI extrahiert und analysiert. Fortfahren?");
 
+    /// <summary>
+    /// Reads recipes from the provided image using Google Vision and Gemini.
+    /// </summary>
+    /// <param name="fileName">Name of the uploaded file.</param>
+    /// <param name="stream">Stream containing the image data.</param>
+    /// <param name="responseContent">Unused for image input.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An array of extracted recipes.</returns>
     protected override async Task<AIRecipe[]> ReadRecipeCollection(string fileName, Stream stream, string responseContent, CancellationToken ct)
     {
         var imageBytes = await ReadImage(stream, ct).ConfigureAwait(false);

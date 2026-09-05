@@ -4,19 +4,56 @@ using Rezepte.Import.Abstractions;
 
 namespace Rezepte.Import.Plugins.Backup;
 
+/// <summary>
+/// Import plugin that reads recipes exported by the application backup format.
+/// </summary>
 public sealed class BackupImportPlugin : IImportPlugin
 {
+    private static readonly Type _handlerType = typeof(BackupImportHandler);
+
+    /// <summary>
+    /// Unique identifier of the plugin.
+    /// </summary>
     public string Id => "backup";
+
+    /// <summary>
+    /// Display name shown in the user interface.
+    /// </summary>
     public string DisplayName => "Backup";
+
+    /// <summary>
+    /// Description of the plugin.
+    /// </summary>
     public string? Description => "Importiert Backup-ZIP-Dateien.";
+
+    /// <summary>
+    /// Version of the plugin.
+    /// </summary>
     public string Version => "1.0.0";
-    public Type HandlerType => typeof(BackupImportHandler);
+
+    /// <summary>
+    /// Type of the handler that performs the import.
+    /// </summary>
+    public Type HandlerType => _handlerType;
 }
 
+/// <summary>
+/// Imports recipes from a backup ZIP archive.
+/// </summary>
 public sealed class BackupImportHandler : IImportHandler
 {
+    /// <summary>
+    /// Gets or sets the identifier of the user that owns the import.
+    /// </summary>
     public string UserId { private get; set; } = string.Empty;
 
+    /// <summary>
+    /// Determines whether the provided stream is a backup ZIP archive.
+    /// </summary>
+    /// <param name="stream">Stream to inspect.</param>
+    /// <param name="fileName">Name of the uploaded file.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns><c>true</c> if the stream contains a backup archive; otherwise <c>false</c>.</returns>
     public Task<bool> CanHandleAsync(Stream stream, string fileName, CancellationToken ct = default)
     {
         if (!fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
@@ -34,6 +71,16 @@ public sealed class BackupImportHandler : IImportHandler
         }
     }
 
+    /// <summary>
+    /// Imports recipes from the backup ZIP archive.
+    /// </summary>
+    /// <param name="stream">Stream containing the ZIP archive.</param>
+    /// <param name="fileName">Name of the uploaded file.</param>
+    /// <param name="uri">Optional URI the archive was loaded from.</param>
+    /// <param name="targetCookbookId">Identifier of the cookbook to import into.</param>
+    /// <param name="userId">Identifier of the user performing the import.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The result of the import operation.</returns>
     public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
     {
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
