@@ -28,8 +28,17 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
         _baseAddress = baseAddress;
     }
 
+    /// <summary>
+    /// Gets the Playwright page used by this page object.
+    /// </summary>
     public IPage Page { get; }
 
+    /// <summary>
+    /// Creates a new browser context and page, starts tracing, and returns a configured page object.
+    /// </summary>
+    /// <param name="browser">The Playwright browser instance.</param>
+    /// <param name="baseAddress">The base URL of the application under test.</param>
+    /// <returns>A task that resolves to a new <see cref="SecurityTxtPageObject"/>.</returns>
     public static async Task<SecurityTxtPageObject> CreateAsync(IBrowser browser, string baseAddress)
     {
         var context = await browser.NewContextAsync();
@@ -43,6 +52,12 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
         return new SecurityTxtPageObject(context, page, baseAddress);
     }
 
+    /// <summary>
+    /// Logs in with the supplied credentials and waits for the URL to leave the login page.
+    /// </summary>
+    /// <param name="username">The user name.</param>
+    /// <param name="password">The password.</param>
+    /// <returns>A task that represents the asynchronous login operation.</returns>
     public async Task LoginAsync(string username, string password)
     {
         await Page.GotoAsync($"{_baseAddress}/login");
@@ -54,12 +69,22 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
             new PageWaitForURLOptions { Timeout = 10000 });
     }
 
+    /// <summary>
+    /// Navigates to the settings page and waits for the menu list to appear.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous navigation operation.</returns>
     public async Task NavigateToSettingsAsync()
     {
         await Page.GotoAsync($"{_baseAddress}{SettingsHref}");
         await Page.WaitForSelectorAsync(".list-group", new PageWaitForSelectorOptions { Timeout = 10000 });
     }
 
+    /// <summary>
+    /// Determines whether the settings menu contains the security.txt entry.
+    /// </summary>
+    /// <returns>
+    /// A task that resolves to <c>true</c> when the menu item is visible; otherwise <c>false</c>.
+    /// </returns>
     public async Task<bool> IsSecurityTxtMenuItemVisibleAsync()
     {
         var buttons = await Page.QuerySelectorAllAsync(".list-group-item");
@@ -72,12 +97,22 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
         return false;
     }
 
+    /// <summary>
+    /// Clicks the security.txt menu item and waits for the enabled checkbox.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous click operation.</returns>
     public async Task ClickSecurityTxtMenuItemAsync()
     {
         await Page.ClickAsync($".list-group-item:has-text('{SecurityTxtMenuItemText}')");
         await Page.WaitForSelectorAsync(EnabledCheckboxSelector, new PageWaitForSelectorOptions { Timeout = 10000 });
     }
 
+    /// <summary>
+    /// Enables security.txt, fills contact and expiration, and saves the settings.
+    /// </summary>
+    /// <param name="contact">The contact value to set.</param>
+    /// <param name="expires">The expiration timestamp to set.</param>
+    /// <returns>A task that represents the asynchronous save operation.</returns>
     public async Task EnableAndSaveSecurityTxtAsync(string contact, DateTimeOffset expires)
     {
         var enabledChecked = await Page.IsCheckedAsync(EnabledCheckboxSelector);
@@ -95,6 +130,10 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
         await Page.WaitForSelectorAsync(SuccessAlertSelector, new PageWaitForSelectorOptions { Timeout = 10000 });
     }
 
+    /// <summary>
+    /// Disables security.txt and saves the settings.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous save operation.</returns>
     public async Task DisableAndSaveSecurityTxtAsync()
     {
         var enabledChecked = await Page.IsCheckedAsync(EnabledCheckboxSelector);
@@ -107,6 +146,13 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
         await Page.WaitForSelectorAsync(SuccessAlertSelector, new PageWaitForSelectorOptions { Timeout = 10000 });
     }
 
+    /// <summary>
+    /// Registers a new user through the public authentication API.
+    /// </summary>
+    /// <param name="baseAddress">The base URL of the application under test.</param>
+    /// <param name="username">The user name for the new account.</param>
+    /// <param name="password">The password for the new account.</param>
+    /// <returns>A task that represents the asynchronous registration operation.</returns>
     public static async Task RegisterUserAsync(string baseAddress, string username, string password)
     {
         using var httpClient = new HttpClient { BaseAddress = new Uri(baseAddress) };
@@ -119,6 +165,13 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>
+    /// Requests the public <c>/security.txt</c> endpoint without authentication.
+    /// </summary>
+    /// <param name="baseAddress">The base URL of the application under test.</param>
+    /// <returns>
+    /// A task that resolves to the HTTP status code and the raw response body.
+    /// </returns>
     public static async Task<(int StatusCode, string Body)> GetPublicSecurityTxtAsync(string baseAddress)
     {
         using var httpClient = new HttpClient { BaseAddress = new Uri(baseAddress) };
@@ -127,6 +180,10 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
         return ((int)response.StatusCode, body);
     }
 
+    /// <summary>
+    /// Stops Playwright tracing, saves the trace file, and closes the browser context.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous dispose operation.</returns>
     public async ValueTask DisposeAsync()
     {
         Directory.CreateDirectory("playwright-traces");

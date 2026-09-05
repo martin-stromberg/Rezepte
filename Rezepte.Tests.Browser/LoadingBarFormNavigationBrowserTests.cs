@@ -4,13 +4,34 @@ using Xunit;
 
 namespace Rezepte.Tests.Browser;
 
+/// <summary>
+/// Browser tests that verify the loading bar behavior for navigation and interactive forms.
+/// </summary>
 [Collection(BrowserTestCollection.Name)]
-public class LoadingBarFormNavigationBrowserTests(PlaywrightBrowserFixture browserFixture, RezepteAppFixture appFixture)
+public class LoadingBarFormNavigationBrowserTests
 {
+    private readonly PlaywrightBrowserFixture _browserFixture;
+    private readonly RezepteAppFixture _appFixture;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoadingBarFormNavigationBrowserTests"/> class.
+    /// </summary>
+    /// <param name="browserFixture">The shared Playwright browser fixture.</param>
+    /// <param name="appFixture">The shared application fixture.</param>
+    public LoadingBarFormNavigationBrowserTests(PlaywrightBrowserFixture browserFixture, RezepteAppFixture appFixture)
+    {
+        _browserFixture = browserFixture;
+        _appFixture = appFixture;
+    }
+
+    /// <summary>
+    /// Verifies that submitting the navigation search shows the loading bar.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [SkippableFact]
     public async Task SearchSubmit_ShowsLoadingBar()
     {
-        await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(browserFixture, appFixture);
+        await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
 
         // Delay the search navigation so the old document stays alive long enough for the assertion
         // below to observe the loading bar while the request is still in flight.
@@ -30,10 +51,14 @@ public class LoadingBarFormNavigationBrowserTests(PlaywrightBrowserFixture brows
         await loadingBarActiveTask;
     }
 
+    /// <summary>
+    /// Verifies that an interactive form submit without navigation does not activate the loading bar.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [SkippableFact]
     public async Task InteractiveFormSubmitWithoutNavigation_DoesNotActivateLoadingBar()
     {
-        await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(browserFixture, appFixture);
+        await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
 
         // The shopping list's "add item" form uses @onsubmit:preventDefault on an
         // @rendermode InteractiveServer component: the submit is handled entirely over the

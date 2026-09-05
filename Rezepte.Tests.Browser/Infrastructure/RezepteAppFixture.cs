@@ -12,7 +12,14 @@ namespace Rezepte.Tests.Browser.Infrastructure;
 /// </summary>
 public class RezepteAppFixture : IAsyncLifetime
 {
+    /// <summary>
+    /// The default username used for the seeded browser test account.
+    /// </summary>
     public const string TestUsername = "browsertest";
+
+    /// <summary>
+    /// The default password used for the seeded browser test account.
+    /// </summary>
     public const string TestPassword = "BrowserTest!123";
 
     private const string PublishDirectoryEnvironmentVariable = "REZEPTE_PUBLISH_DIR";
@@ -26,12 +33,25 @@ public class RezepteAppFixture : IAsyncLifetime
     private Process? _process;
     private string? _tempDirectory;
 
+    /// <summary>
+    /// Gets the base URL of the started application.
+    /// </summary>
     public string BaseAddress { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Gets a value indicating whether the application process was started successfully.
+    /// </summary>
     public bool ApplicationAvailable { get; private set; }
 
+    /// <summary>
+    /// Gets the reason given to xUnit when <see cref="ApplicationAvailable"/> is <c>false</c>.
+    /// </summary>
     public string ApplicationUnavailableSkipReason { get; private set; } = "Rezepte.Web is not published.";
 
+    /// <summary>
+    /// Starts the published web application, waits until it is reachable, and registers the test user.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
     public async Task InitializeAsync()
     {
         var applicationDllPath = ResolveApplicationDllPath();
@@ -57,6 +77,10 @@ public class RezepteAppFixture : IAsyncLifetime
         }
     }
 
+    /// <summary>
+    /// Stops the application process and deletes the temporary database.
+    /// </summary>
+    /// <returns>A completed task.</returns>
     public Task DisposeAsync()
     {
         try
@@ -90,6 +114,10 @@ public class RezepteAppFixture : IAsyncLifetime
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Returns the environment variables that should be added to the application process.
+    /// </summary>
+    /// <returns>A read-only dictionary of environment variable names and values.</returns>
     protected virtual IReadOnlyDictionary<string, string?> GetEnvironmentOverrides()
     {
         return new Dictionary<string, string?>();
