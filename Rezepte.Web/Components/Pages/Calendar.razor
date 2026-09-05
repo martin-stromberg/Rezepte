@@ -1,4 +1,4 @@
-﻿@page "/calendar"
+@page "/calendar"
 @using Rezepte.Web.Entities
 @using Microsoft.AspNetCore.Components.Forms
 @using Rezepte.Web.Components.Shared
@@ -7,8 +7,9 @@
 @inject ApiClient Client
 @inject NavigationManager Nav
 @inject ILogger<Rezepte.Web.Components.Pages.Calendar> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
-<PageTitle>Mein Kalender</PageTitle>
+<PageTitle>@Localizer["MyCalendar"]</PageTitle>
 
 <div class="d-flex align-items-center justify-content-between mb-3">
     <h3 class="mb-0">Kalender</h3>
@@ -16,8 +17,8 @@
         <button class="btn btn-outline-secondary btn-sm" @onclick="PrevMonth">‹</button>
         <div class="fw-semibold">@currentMonthStart.ToString("MMMM yyyy", System.Globalization.CultureInfo.CurrentCulture)</div>
         <button class="btn btn-outline-secondary btn-sm" @onclick="NextMonth">›</button>
-        <button class="btn btn-sm btn-outline-secondary" @onclick="ToggleShowPast">@((showPastDays ? "Vergangene verbergen" : "Vergangene anzeigen"))</button>
-        <button type="button" class="btn btn-primary btn-sm" @onclick="ShowCreate">Termin erstellen</button>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="ToggleShowPast">@((showPastDays ? Localizer["HidePast"] : Localizer["ShowPast"]))</button>
+        <button type="button" class="btn btn-primary btn-sm" @onclick="ShowCreate">@Localizer["CreateEvent"]</button>
     </div>
 </div>
 
@@ -27,7 +28,7 @@
 }
 else if (loadError)
 {
-    <div class="alert alert-danger">Der Kalender konnte nicht geladen werden.</div>
+    <div class="alert alert-danger">@Localizer["CalendarLoadFailed"]</div>
 }
 else
 {
@@ -62,7 +63,7 @@ else
                     {
                         <div class="no-events text-muted d-flex align-items-center gap-2 p-3">
                             <span class="sleep-emoji">😴</span>
-                            <span>Keine Rezepte eingeplant</span>
+                            <span>@Localizer["NoRecipesScheduled"]</span>
                         </div>
                     }
                     else
@@ -84,7 +85,7 @@ else
                                         {
                                             <div class="recipe-item position-relative d-flex gap-3 align-items-start p-2 mb-2">
                                                 @* stretched link: whole card clickable, buttons still usable *@
-                                                <a class="stretched-link" href="@($"/recipes/{preview.Id}")" aria-label="Rezept ansehen"></a>
+                                                <a class="stretched-link" href="@($"/recipes/{preview.Id}")" aria-label="@Localizer["ViewRecipe"]"></a>
 
                                                 @if (!string.IsNullOrWhiteSpace(preview.ImageUrl))
                                                 {
@@ -103,10 +104,10 @@ else
                                                     <div class="text-muted small mt-1">@it.Occurrence.ToLocalTime():t · Portionen: @it.Portions</div>
                                                 </div>
                                                 <div class="action-buttons d-flex flex-column gap-1">
-                                                    <button type="button" class="btn btn-outline-secondary btn-icon" title="Bearbeiten" @onclick="() => Edit(it.EventId)" @onclick:stopPropagation aria-label="Bearbeiten">
+                                                    <button type="button" class="btn btn-outline-secondary btn-icon" title="@Localizer["Edit"]" @onclick="() => Edit(it.EventId)" @onclick:stopPropagation aria-label="@Localizer["Edit"]">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-outline-danger btn-icon" title="Löschen" @onclick="() => Delete(it.EventId)" @onclick:stopPropagation aria-label="Löschen">
+                                                    <button type="button" class="btn btn-outline-danger btn-icon" title="@Localizer["Delete"]" @onclick="() => Delete(it.EventId)" @onclick:stopPropagation aria-label="@Localizer["Delete"]">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </div>
@@ -120,10 +121,10 @@ else
                                                     <div class="text-muted small">@it.Occurrence.ToLocalTime():t · Portionen: @it.Portions</div>
                                                 </div>
                                                 <div class="action-buttons d-flex flex-column gap-1">
-                                                    <button type="button" class="btn btn-outline-secondary btn-icon" title="Bearbeiten" @onclick="() => Edit(it.EventId)" @onclick:stopPropagation aria-label="Bearbeiten">
+                                                    <button type="button" class="btn btn-outline-secondary btn-icon" title="@Localizer["Edit"]" @onclick="() => Edit(it.EventId)" @onclick:stopPropagation aria-label="@Localizer["Edit"]">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-outline-danger btn-icon" title="Löschen" @onclick="() => Delete(it.EventId)" @onclick:stopPropagation aria-label="Löschen">
+                                                    <button type="button" class="btn btn-outline-danger btn-icon" title="@Localizer["Delete"]" @onclick="() => Delete(it.EventId)" @onclick:stopPropagation aria-label="@Localizer["Delete"]">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </div>

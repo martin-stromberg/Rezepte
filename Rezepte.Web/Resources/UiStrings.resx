@@ -9,4 +9,63 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AppName" xml:space="preserve"><value>Rezepte</value></data>
+  <data name="ToggleNavigation" xml:space="preserve"><value>Navigation umschalten</value></data>
+  <data name="Cookbooks" xml:space="preserve"><value>Kochbücher</value></data>
+  <data name="Calendar" xml:space="preserve"><value>Kalender</value></data>
+  <data name="ShoppingList" xml:space="preserve"><value>Einkaufsliste</value></data>
+  <data name="SearchRecipesPlaceholder" xml:space="preserve"><value>Rezepte suchen...</value></data>
+  <data name="SearchRecipes" xml:space="preserve"><value>Suche Rezepte</value></data>
+  <data name="StartSearch" xml:space="preserve"><value>Suche starten</value></data>
+  <data name="Settings" xml:space="preserve"><value>Einrichtung</value></data>
+  <data name="OpenUserMenu" xml:space="preserve"><value>Benutzermenü öffnen</value></data>
+  <data name="MyCalendar" xml:space="preserve"><value>Mein Kalender</value></data>
+  <data name="HidePast" xml:space="preserve"><value>Vergangene verbergen</value></data>
+  <data name="ShowPast" xml:space="preserve"><value>Vergangene anzeigen</value></data>
+  <data name="CreateEvent" xml:space="preserve"><value>Termin erstellen</value></data>
+  <data name="CalendarLoadFailed" xml:space="preserve"><value>Der Kalender konnte nicht geladen werden.</value></data>
+  <data name="NoRecipesScheduled" xml:space="preserve"><value>Keine Rezepte eingeplant</value></data>
+  <data name="ViewRecipe" xml:space="preserve"><value>Rezept ansehen</value></data>
+  <data name="Edit" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="Delete" xml:space="preserve"><value>Löschen</value></data>
+  <data name="EditCookbook" xml:space="preserve"><value>Kochbuch bearbeiten</value></data>
+  <data name="Save" xml:space="preserve"><value>Speichern</value></data>
+  <data name="CookbookNotFound" xml:space="preserve"><value>Kochbuch nicht gefunden.</value></data>
+  <data name="AddRecipe" xml:space="preserve"><value>Rezept hinzufügen</value></data>
+  <data name="MultiSelect" xml:space="preserve"><value>Mehrfachauswahl</value></data>
+  <data name="NoRecipesYet" xml:space="preserve"><value>Noch keine Rezepte vorhanden.</value></data>
+  <data name="Select" xml:space="preserve"><value>Auswählen</value></data>
+  <data name="ImageFor" xml:space="preserve"><value>Bild zu</value></data>
+  <data name="AssignToCookbooks" xml:space="preserve"><value>Zu Kochbüchern zuweisen</value></data>
+  <data name="LoadRecipeFromUrl" xml:space="preserve"><value>Rezept von URL laden</value></data>
+  <data name="ImportUrlHelp" xml:space="preserve"><value>Gib die URL einer Datei oder eines unterstützten Imports ein. Der Server versucht, den Inhalt herunterzuladen und mit den vorhandenen Import-Handlern zu verarbeiten.</value></data>
+  <data name="Create" xml:space="preserve"><value>+ Anlegen</value></data>
+  <data name="NoCookbooksYet" xml:space="preserve"><value>Noch keine Kochbücher vorhanden.</value></data>
+  <data name="LastRecipeIn" xml:space="preserve"><value>Letztes Rezept in</value></data>
+  <data name="Move" xml:space="preserve"><value>Verschieben</value></data>
+  <data name="ErrorOccurred" xml:space="preserve"><value>Bei der Verarbeitung Ihrer Anfrage ist ein Fehler aufgetreten.</value></data>
+  <data name="RequestId" xml:space="preserve"><value>Request ID:</value></data>
+  <data name="DevelopmentMode" xml:space="preserve"><value>Entwicklungsmodus</value></data>
+  <data name="DevEnvironmentWarning" xml:space="preserve"><value>Die Entwicklungsumgebung sollte für bereitgestellte Anwendungen nicht aktiviert sein.</value></data>
+  <data name="CreateNewRecipe" xml:space="preserve"><value>Neues Rezept anlegen</value></data>
+  <data name="New" xml:space="preserve"><value>+ Neu</value></data>
+  <data name="ScheduleEvent" xml:space="preserve"><value>Termin planen</value></data>
+  <data name="AddIngredientsToShoppingList" xml:space="preserve"><value>Zutaten zur Einkaufsliste</value></data>
+  <data name="AssignRecipeToCookbooks" xml:space="preserve"><value>Zu Kochbüchern zuordnen</value></data>
+  <data name="OpenSource" xml:space="preserve"><value>Quelle aufrufen</value></data>
+  <data name="OpenSourceNewWindow" xml:space="preserve"><value>Quelle aufrufen (öffnet neues Fenster)</value></data>
+  <data name="RecipeNotFound" xml:space="preserve"><value>Rezept nicht gefunden.</value></data>
+  <data name="RecipePhoto" xml:space="preserve"><value>Rezeptfoto</value></data>
+  <data name="AddPhoto" xml:space="preserve"><value>Foto hinzufügen</value></data>
+  <data name="ShowAllImages" xml:space="preserve"><value>Alle Bilder anzeigen</value></data>
+  <data name="SettingsPageTitle" xml:space="preserve"><value>Rezepte - Einstellungen</value></data>
+  <data name="PleaseLogin" xml:space="preserve"><value>Bitte anmelden.</value></data>
+  <data name="Profile" xml:space="preserve"><value>Profil</value></data>
+  <data name="SettingsNavTitle" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="Users" xml:space="preserve"><value>Benutzer</value></data>
+  <data name="Plugins" xml:space="preserve"><value>Plugins</value></data>
+  <data name="Updates" xml:space="preserve"><value>Updates</value></data>
+  <data name="DataExport" xml:space="preserve"><value>Datenexport</value></data>
+  <data name="Backup" xml:space="preserve"><value>Sicherung</value></data>
+  <data name="UsageStatistics" xml:space="preserve"><value>Nutzungsstatistiken</value></data>
 </root>

@@ -1,33 +1,34 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Nav
+@inject IStringLocalizer<UiStrings> Localizer
 
 <nav class="navbar navbar-expand-lg navbar-dark app-navbar shadow-sm">
     <div class="container">
         <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="/">
-            <img src="icons/rezepte_64x64.ico" alt="Rezepte" width="24" height="24" class="me-1" />
+            <img src="icons/rezepte_64x64.ico" alt="@Localizer["AppName"]" width="24" height="24" class="me-1" />
             <span>Rezepte</span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="@Localizer["ToggleNavigation"]">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="mainNavbar">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <NavLink class="nav-link d-flex align-items-center" href="/cookbooks" title="Kochbücher">
+                    <NavLink class="nav-link d-flex align-items-center" href="/cookbooks" title="@Localizer["Cookbooks"]">
                         <span class="me-1">📚</span>
                         <span class="d-inline">Kochbücher</span>
                     </NavLink>
                 </li>
                 <li class="nav-item">
-                    <NavLink class="nav-link d-flex align-items-center" href="/calendar" title="Kalender">
+                    <NavLink class="nav-link d-flex align-items-center" href="/calendar" title="@Localizer["Calendar"]">
                         <span class="me-1">📅</span>
                         <span class="d-inline">Kalender</span>
                     </NavLink>
                 </li>
                 <li class="nav-item">
-                    <NavLink class="nav-link d-flex align-items-center" href="/shopping-list" title="Einkaufsliste">
+                    <NavLink class="nav-link d-flex align-items-center" href="/shopping-list" title="@Localizer["ShoppingList"]">
                         <span class="bi bi-cart-check me-1" aria-hidden="true"></span>
                         <span class="d-inline">Einkaufsliste</span>
                     </NavLink>
@@ -36,8 +37,8 @@
 
             <!-- Search box in title bar -->
             <form class="nav-search-form d-flex w-100 my-2 my-lg-0 ms-lg-3 me-lg-2" role="search" @onsubmit="OnSubmitSearch" action="recipes/search">
-                <InputText id="nav-search" name="q" class="form-control form-control-sm" placeholder="Rezepte suchen..." aria-label="Suche Rezepte" @bind-Value="searchQuery" @bind-Value:event="oninput" />
-                <button type="submit" class="btn btn-sm btn-outline-light ms-2" aria-label="Suche starten">🔍</button>
+                <InputText id="nav-search" name="q" class="form-control form-control-sm" placeholder="@Localizer["SearchRecipesPlaceholder"]" aria-label="@Localizer["SearchRecipes"]" @bind-Value="searchQuery" @bind-Value:event="oninput" />
+                <button type="submit" class="btn btn-sm btn-outline-light ms-2" aria-label="@Localizer["StartSearch"]">🔍</button>
             </form>
 
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center nav-actions">
@@ -49,13 +50,13 @@
                             var roleName = context.User.IsInRole("Admin") ? "Admin" : "Benutzer";
                         }
                         <li class="nav-item">
-                            <NavLink class="nav-link nav-icon-link" href="/settings" title="Einrichtung" aria-label="Einrichtung">
+                            <NavLink class="nav-link nav-icon-link" href="/settings" title="@Localizer["Settings"]" aria-label="@Localizer["Settings"]">
                                 <span class="bi bi-gear-fill" aria-hidden="true"></span>
                                 <span class="nav-mobile-label">Einrichtung</span>
                             </NavLink>
                         </li>
                         <li class="nav-item dropdown">
-                            <button type="button" class="nav-link nav-user-button dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Benutzermenü öffnen">
+                            <button type="button" class="nav-link nav-user-button dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="@Localizer["OpenUserMenu"]">
                                 <span class="bi bi-person-circle" aria-hidden="true"></span>
                                 <span class="nav-mobile-label">Benutzermenü</span>
                             </button>

@@ -1,17 +1,18 @@
-﻿@page "/"
+@page "/"
 @using Rezepte.Web.Components.Shared
 @rendermode InteractiveServer
 @inject ApiClient Api
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject IStringLocalizer<UiStrings> Localizer
 
 <PageTitle>Rezepte</PageTitle>
 
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
     <span></span>
     <div class="btn-group">
-        <button class="btn btn-sm btn-outline-primary" @onclick="ToggleCreateMenu" title="Neues Rezept anlegen">
-            <span>+ Neu</span>
+        <button class="btn btn-sm btn-outline-primary" @onclick="ToggleCreateMenu" title="@Localizer["CreateNewRecipe"]">
+            <span>@Localizer["New"]</span>
         </button>
     </div>
 </h5>
