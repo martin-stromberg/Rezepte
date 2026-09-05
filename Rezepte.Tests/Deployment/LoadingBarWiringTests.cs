@@ -13,11 +13,17 @@ using Xunit;
 
 namespace Rezepte.Tests.Deployment;
 
+/// <summary>
+/// Class representing the loading bar wiring tests.
+/// </summary>
 public class LoadingBarWiringTests
 {
     private static readonly Regex LoadingBarElementPattern = new(@"<LoadingBar\s*/>", RegexOptions.Compiled);
     private static readonly Regex MainElementPattern = new(@"<main[\s>]", RegexOptions.Compiled);
 
+    /// <summary>
+    /// Layout should place loading bar between navigation and main content.
+    /// </summary>
     [Fact]
     public void Layout_ShouldPlaceLoadingBarBetweenNavigationAndMainContent()
     {
@@ -34,6 +40,9 @@ public class LoadingBarWiringTests
         mainMatch.Index.Should().BeGreaterThan(loadingBarMatch.Index);
     }
 
+    /// <summary>
+    /// App should load loading bar script after blazor script.
+    /// </summary>
     [Fact]
     public void App_ShouldLoadLoadingBarScriptAfterBlazorScript()
     {
@@ -46,6 +55,9 @@ public class LoadingBarWiringTests
         loadingBarScriptIndex.Should().BeGreaterThan(blazorScriptIndex);
     }
 
+    /// <summary>
+    /// Configuration loading bar section matches documented defaults.
+    /// </summary>
     [Fact]
     public void Configuration_LoadingBarSection_MatchesDocumentedDefaults()
     {
@@ -67,6 +79,9 @@ public class LoadingBarWiringTests
         options.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
+    /// <summary>
+    /// Service collection extensions should bind loading bar options section.
+    /// </summary>
     [Fact]
     public void ServiceCollectionExtensions_ShouldBindLoadingBarOptionsSection()
     {
@@ -79,6 +94,9 @@ public class LoadingBarWiringTests
         provider.GetRequiredService<IOptions<LoadingBarOptions>>().Value.Height.Should().Be("5px");
     }
 
+    /// <summary>
+    /// Service collection extensions should register loading bar service.
+    /// </summary>
     [Fact]
     public void ServiceCollectionExtensions_ShouldRegisterLoadingBarService()
     {

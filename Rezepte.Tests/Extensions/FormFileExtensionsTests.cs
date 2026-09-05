@@ -6,8 +6,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Extensions;
 
+/// <summary>
+/// Class representing the form file extensions tests.
+/// </summary>
 public class FormFileExtensionsTests
 {
+    /// <summary>
+    /// Read to memory stream async should return rewound copy of uploaded file.
+    /// </summary>
     [Fact]
     public async Task ReadToMemoryStreamAsync_ShouldReturnRewoundCopyOfUploadedFile()
     {

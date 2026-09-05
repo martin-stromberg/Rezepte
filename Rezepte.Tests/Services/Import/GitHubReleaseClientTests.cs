@@ -7,8 +7,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the git hub release client tests.
+/// </summary>
 public sealed class GitHubReleaseClientTests
 {
+    /// <summary>
+    /// Get latest release async should use asset api url for download.
+    /// </summary>
     [Fact]
     public async Task GetLatestReleaseAsync_ShouldUseAssetApiUrlForDownload()
     {
@@ -34,6 +40,9 @@ public sealed class GitHubReleaseClientTests
         release!.Assets.Should().ContainSingle().Which.DownloadUrl.Should().Be("https://api.github.test/repos/owner/repo/releases/assets/2");
     }
 
+    /// <summary>
+    /// Download asset async should request asset api url as octet stream.
+    /// </summary>
     [Fact]
     public async Task DownloadAssetAsync_ShouldRequestAssetApiUrlAsOctetStream()
     {
@@ -63,6 +72,9 @@ public sealed class GitHubReleaseClientTests
         }
     }
 
+    /// <summary>
+    /// Get latest release async should retry retry after rate limit and then succeed.
+    /// </summary>
     [Fact]
     public async Task GetLatestReleaseAsync_ShouldRetryRetryAfterRateLimitAndThenSucceed()
     {
@@ -79,6 +91,9 @@ public sealed class GitHubReleaseClientTests
         handler.Requests.Select(r => r.Headers.Authorization?.Parameter).Should().OnlyContain(parameter => parameter == "secret");
     }
 
+    /// <summary>
+    /// Download asset async should throw dedicated rate limit exception for rate limited forbidden.
+    /// </summary>
     [Fact]
     public async Task DownloadAssetAsync_ShouldThrowDedicatedRateLimitExceptionForRateLimitedForbidden()
     {

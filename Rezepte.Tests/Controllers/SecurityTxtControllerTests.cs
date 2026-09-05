@@ -9,6 +9,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Controllers;
 
+/// <summary>
+/// Class representing the security txt controller tests.
+/// </summary>
 public class SecurityTxtControllerTests
 {
     private static readonly SecurityTxtSettings EnabledSettings = new(
@@ -48,6 +51,9 @@ public class SecurityTxtControllerTests
         return controller;
     }
 
+    /// <summary>
+    /// Get security txt returns ok when enabled.
+    /// </summary>
     [Fact]
     public async Task GetSecurityTxt_ReturnsOk_WhenEnabled()
     {
@@ -61,6 +67,9 @@ public class SecurityTxtControllerTests
         content.ContentType.Should().StartWith("text/plain");
     }
 
+    /// <summary>
+    /// Get security txt returns not found when disabled.
+    /// </summary>
     [Fact]
     public async Task GetSecurityTxt_ReturnsNotFound_WhenDisabled()
     {
@@ -71,6 +80,9 @@ public class SecurityTxtControllerTests
         result.Should().BeOfType<NotFoundResult>();
     }
 
+    /// <summary>
+    /// Get security md returns ok with markdown content type.
+    /// </summary>
     [Fact]
     public async Task GetSecurityMd_ReturnsOk_WithMarkdownContentType()
     {
@@ -82,6 +94,9 @@ public class SecurityTxtControllerTests
             .Which.ContentType.Should().StartWith("text/markdown");
     }
 
+    /// <summary>
+    /// Get security html returns ok with html content type.
+    /// </summary>
     [Fact]
     public async Task GetSecurityHtml_ReturnsOk_WithHtmlContentType()
     {
@@ -93,6 +108,9 @@ public class SecurityTxtControllerTests
             .Which.ContentType.Should().StartWith("text/html");
     }
 
+    /// <summary>
+    /// Get security txt uses canonical for plain text path.
+    /// </summary>
     [Fact]
     public async Task GetSecurityTxt_UsesCanonicalForPlainTextPath()
     {
@@ -104,6 +122,9 @@ public class SecurityTxtControllerTests
         content.Content.Should().Contain("Canonical: https://rezepte.example/security.txt");
     }
 
+    /// <summary>
+    /// Get security txt uses canonical for well known alias path.
+    /// </summary>
     [Fact]
     public async Task GetSecurityTxt_UsesCanonicalForWellKnownAliasPath()
     {
@@ -115,6 +136,9 @@ public class SecurityTxtControllerTests
         content.Content.Should().Contain("Canonical: https://rezepte.example/security.txt");
     }
 
+    /// <summary>
+    /// Get security md uses canonical for markdown path.
+    /// </summary>
     [Fact]
     public async Task GetSecurityMd_UsesCanonicalForMarkdownPath()
     {
@@ -126,6 +150,9 @@ public class SecurityTxtControllerTests
         content.Content.Should().Contain("https://rezepte.example/.well-known/security.md");
     }
 
+    /// <summary>
+    /// Get security html uses canonical for html path.
+    /// </summary>
     [Fact]
     public async Task GetSecurityHtml_UsesCanonicalForHtmlPath()
     {

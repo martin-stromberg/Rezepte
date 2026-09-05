@@ -8,6 +8,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the export cleanup hosted service tests.
+/// </summary>
 public sealed class ExportCleanupHostedServiceTests
 {
     private readonly Mock<IExportCleanupService> _cleanup = new();
@@ -20,6 +23,9 @@ public sealed class ExportCleanupHostedServiceTests
         return new ExportCleanupHostedService(services.BuildServiceProvider(), _time, NullLogger<ExportCleanupHostedService>.Instance);
     }
 
+    /// <summary>
+    /// Run if due async should run cleanup when due.
+    /// </summary>
     [Fact]
     public async Task RunIfDueAsync_ShouldRunCleanup_WhenDue()
     {
@@ -32,6 +38,9 @@ public sealed class ExportCleanupHostedServiceTests
         _cleanup.Verify(c => c.RunCleanupAsync(_time.GetLocalNow(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// Run if due async should skip when not due.
+    /// </summary>
     [Fact]
     public async Task RunIfDueAsync_ShouldSkip_WhenNotDue()
     {
@@ -42,6 +51,9 @@ public sealed class ExportCleanupHostedServiceTests
         _cleanup.Verify(c => c.RunCleanupAsync(It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    /// <summary>
+    /// Run if due async should swallow cleanup errors.
+    /// </summary>
     [Fact]
     public async Task RunIfDueAsync_ShouldSwallowCleanupErrors()
     {
@@ -54,6 +66,9 @@ public sealed class ExportCleanupHostedServiceTests
         await act.Should().NotThrowAsync();
     }
 
+    /// <summary>
+    /// Start async should check immediately on startup.
+    /// </summary>
     [Fact]
     public async Task StartAsync_ShouldCheckImmediatelyOnStartup()
     {

@@ -8,8 +8,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the plugin update service tests.
+/// </summary>
 public sealed class PluginUpdateServiceTests
 {
+    /// <summary>
+    /// Check for updates async should ignore disabled sources.
+    /// </summary>
     [Fact]
     public async Task CheckForUpdatesAsync_ShouldIgnoreDisabledSources()
     {
@@ -31,6 +37,9 @@ public sealed class PluginUpdateServiceTests
         github.LatestReleaseCalls.Should().Be(0);
     }
 
+    /// <summary>
+    /// Check for updates async should retry previously failed release version on later run.
+    /// </summary>
     [Fact]
     public async Task CheckForUpdatesAsync_ShouldRetryPreviouslyFailedReleaseVersionOnLaterRun()
     {
@@ -69,6 +78,9 @@ public sealed class PluginUpdateServiceTests
         record.ReloadedAt.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Check for updates async should persist reload failure separately.
+    /// </summary>
     [Fact]
     public async Task CheckForUpdatesAsync_ShouldPersistReloadFailureSeparately()
     {
@@ -158,6 +170,9 @@ public sealed class PluginUpdateServiceTests
     private sealed class FailingPackageInstaller(string status) : IPluginPackageInstaller
     {
         public Task InstallAsync(IReadOnlyList<string> pluginDirectories, CancellationToken ct = default)
-            => throw new PluginPackageInstallException(status, "reload failed", new InvalidOperationException("reload failed"));
+        {
+            ArgumentNullException.ThrowIfNull(pluginDirectories);
+            throw new PluginPackageInstallException(status, "reload failed", new InvalidOperationException("reload failed"));
+        }
     }
 }

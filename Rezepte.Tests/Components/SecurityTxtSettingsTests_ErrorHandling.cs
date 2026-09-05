@@ -10,10 +10,24 @@ using Xunit;
 
 namespace Rezepte.Tests.Components;
 
+/// <summary>
+/// Class representing the security txt settings tests error handling.
+/// </summary>
 public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
 {
     private readonly TestContext _context = new();
 
+    /// <summary>
+    /// Initializes a new instance.
+    /// </summary>
+    public SecurityTxtSettingsTests_ErrorHandling()
+    {
+        _context.Services.AddLocalization();
+    }
+
+    /// <summary>
+    /// Loading when http request fails shows generic error without technical details.
+    /// </summary>
     [Fact]
     public void Loading_WhenHttpRequestFails_ShowsGenericErrorWithoutTechnicalDetails()
     {
@@ -29,6 +43,9 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
         });
     }
 
+    /// <summary>
+    /// Saving when request times out shows timeout error without technical details.
+    /// </summary>
     [Fact]
     public void Saving_WhenRequestTimesOut_ShowsTimeoutErrorWithoutTechnicalDetails()
     {
@@ -69,6 +86,9 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
         });
     }
 
+    /// <summary>
+    /// Rendered form contains canonical input.
+    /// </summary>
     [Fact]
     public void RenderedForm_ContainsCanonicalInput()
     {
@@ -95,6 +115,9 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
         cut.FindAll("#securitytxt-canonical").Should().ContainSingle();
     }
 
+    /// <summary>
+    /// Dispose.
+    /// </summary>
     public void Dispose()
     {
         _context.Dispose();

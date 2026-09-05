@@ -6,8 +6,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the productive import plugin parser tests.
+/// </summary>
 public class ProductiveImportPluginParserTests
 {
+    /// <summary>
+    /// Backup plugin should parse recipes json from zip.
+    /// </summary>
     [Fact]
     public async Task BackupPlugin_ShouldParseRecipesJsonFromZip()
     {

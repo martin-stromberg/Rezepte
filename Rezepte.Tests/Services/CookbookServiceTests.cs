@@ -9,6 +9,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the cookbook service tests.
+/// </summary>
 public class CookbookServiceTests
 {
     private static RezepteDbContext CreateDb()
@@ -22,6 +25,9 @@ public class CookbookServiceTests
     private const string UserA = "user-a";
     private const string UserB = "user-b";
 
+    /// <summary>
+    /// Create async should create for user.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldCreate_ForUser()
     {
@@ -34,6 +40,9 @@ public class CookbookServiceTests
         book!.UserId.Should().Be(UserA);
     }
 
+    /// <summary>
+    /// Get all async should return only user cookbooks.
+    /// </summary>
     [Fact]
     public async Task GetAllAsync_ShouldReturnOnlyUserCookbooks()
     {
@@ -52,6 +61,9 @@ public class CookbookServiceTests
         listB.Single().UserId.Should().Be(UserB);
     }
 
+    /// <summary>
+    /// Get by id async should return only user cookbook.
+    /// </summary>
     [Fact]
     public async Task GetByIdAsync_ShouldReturnOnlyUserCookbook()
     {
@@ -72,6 +84,9 @@ public class CookbookServiceTests
         foundB.Should().BeNull();
     }
 
+    /// <summary>
+    /// Update async should update only user cookbook.
+    /// </summary>
     [Fact]
     public async Task UpdateAsync_ShouldUpdateOnlyUserCookbook()
     {
@@ -95,6 +110,9 @@ public class CookbookServiceTests
         fail.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Delete async should delete only user cookbook.
+    /// </summary>
     [Fact]
     public async Task DeleteAsync_ShouldDeleteOnlyUserCookbook()
     {

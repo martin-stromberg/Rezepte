@@ -8,11 +8,17 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the current user accessor tests.
+/// </summary>
 public class CurrentUserAccessorTests
 {
     private static ClaimsPrincipal CreatePrincipal(string name)
         => new(new ClaimsIdentity([new Claim(ClaimTypes.Name, name)], "test"));
 
+    /// <summary>
+    /// User should be null initially.
+    /// </summary>
     [Fact]
     public void User_ShouldBeNullInitially()
     {
@@ -21,6 +27,9 @@ public class CurrentUserAccessorTests
         sut.User.Should().BeNull();
     }
 
+    /// <summary>
+    /// Wait for user async should complete immediately when user is already set.
+    /// </summary>
     [Fact]
     public async Task WaitForUserAsync_ShouldCompleteImmediatelyWhenUserIsAlreadySet()
     {
@@ -32,6 +41,9 @@ public class CurrentUserAccessorTests
         result.Should().BeSameAs(principal);
     }
 
+    /// <summary>
+    /// Wait for user async should complete when user is set later.
+    /// </summary>
     [Fact]
     public async Task WaitForUserAsync_ShouldCompleteWhenUserIsSetLater()
     {
@@ -45,6 +57,9 @@ public class CurrentUserAccessorTests
         (await pending).Should().BeSameAs(principal);
     }
 
+    /// <summary>
+    /// Wait for user async should return first assigned user for pending waiters.
+    /// </summary>
     [Fact]
     public async Task WaitForUserAsync_ShouldReturnFirstAssignedUserForPendingWaiters()
     {
@@ -59,6 +74,9 @@ public class CurrentUserAccessorTests
         sut.User!.Identity!.Name.Should().Be("second");
     }
 
+    /// <summary>
+    /// Wait for user async should cancel when token is cancelled.
+    /// </summary>
     [Fact]
     public async Task WaitForUserAsync_ShouldCancelWhenTokenIsCancelled()
     {
@@ -71,6 +89,9 @@ public class CurrentUserAccessorTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
     }
 
+    /// <summary>
+    /// Wait for user async should ignore cancellation after user was set.
+    /// </summary>
     [Fact]
     public async Task WaitForUserAsync_ShouldIgnoreCancellationAfterUserWasSet()
     {
@@ -85,6 +106,9 @@ public class CurrentUserAccessorTests
         (await pending).Should().BeSameAs(principal);
     }
 
+    /// <summary>
+    /// Wait for user async should return user for already cancelled token when user is set.
+    /// </summary>
     [Fact]
     public async Task WaitForUserAsync_ShouldReturnUserForAlreadyCancelledTokenWhenUserIsSet()
     {

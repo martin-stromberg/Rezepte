@@ -10,15 +10,24 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the update backup service tests.
+/// </summary>
 public sealed class UpdateBackupServiceTests : IDisposable
 {
     private readonly string _contentRoot = Path.Combine(Path.GetTempPath(), "rezepte-update-backup-tests", Guid.NewGuid().ToString("N"));
 
+    /// <summary>
+    /// Initializes a new instance.
+    /// </summary>
     public UpdateBackupServiceTests()
     {
         Directory.CreateDirectory(_contentRoot);
     }
 
+    /// <summary>
+    /// Create backup async should write final zip and use configured export options.
+    /// </summary>
     [Fact]
     public async Task CreateBackupAsync_ShouldWriteFinalZipAndUseConfiguredExportOptions()
     {
@@ -43,6 +52,9 @@ public sealed class UpdateBackupServiceTests : IDisposable
         export.IncludePdf.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Create backup async should apply retention only to update backups.
+    /// </summary>
     [Fact]
     public async Task CreateBackupAsync_ShouldApplyRetentionOnlyToUpdateBackups()
     {
@@ -70,6 +82,10 @@ public sealed class UpdateBackupServiceTests : IDisposable
         Directory.EnumerateFiles(backupDirectory, "update-backup-*.zip").Should().HaveCount(3);
     }
 
+    /// <summary>
+    /// Create backup async should reject missing backup directory.
+    /// </summary>
+    /// <param name="directory">The directory parameter.</param>
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
@@ -85,6 +101,9 @@ public sealed class UpdateBackupServiceTests : IDisposable
         export.ExportAllCalls.Should().Be(0);
     }
 
+    /// <summary>
+    /// Create backup async should reject invalid retention before export.
+    /// </summary>
     [Fact]
     public async Task CreateBackupAsync_ShouldRejectInvalidRetentionBeforeExport()
     {
@@ -98,6 +117,9 @@ public sealed class UpdateBackupServiceTests : IDisposable
         export.ExportAllCalls.Should().Be(0);
     }
 
+    /// <summary>
+    /// Create backup async should not publish final backup when export fails.
+    /// </summary>
     [Fact]
     public async Task CreateBackupAsync_ShouldNotPublishFinalBackup_WhenExportFails()
     {
@@ -144,6 +166,9 @@ public sealed class UpdateBackupServiceTests : IDisposable
         return stream.ToArray();
     }
 
+    /// <summary>
+    /// Dispose.
+    /// </summary>
     public void Dispose()
     {
         if (Directory.Exists(_contentRoot))
@@ -160,7 +185,10 @@ public sealed class UpdateBackupServiceTests : IDisposable
         public bool IncludePdf { get; private set; }
 
         public Task<Stream> ExportUserAsync(string userId, bool includeImages, bool includePdf, CancellationToken ct = default)
-            => throw new NotSupportedException();
+        {
+            ct.ThrowIfCancellationRequested();
+            throw new NotSupportedException();
+        }
 
         public Task<Stream> ExportAllAsync(string adminUserId, bool includeImages, bool includePdf, CancellationToken ct = default)
         {
@@ -172,19 +200,31 @@ public sealed class UpdateBackupServiceTests : IDisposable
         }
 
         public Task RestoreFromZipAsync(Stream zipStream, string adminUserId, CancellationToken ct = default)
-            => throw new NotSupportedException();
+        {
+            ct.ThrowIfCancellationRequested();
+            throw new NotSupportedException();
+        }
     }
 
     private sealed class FailingExportService : IExportService
     {
         public Task<Stream> ExportUserAsync(string userId, bool includeImages, bool includePdf, CancellationToken ct = default)
-            => throw new NotSupportedException();
+        {
+            ct.ThrowIfCancellationRequested();
+            throw new NotSupportedException();
+        }
 
         public Task<Stream> ExportAllAsync(string adminUserId, bool includeImages, bool includePdf, CancellationToken ct = default)
-            => throw new InvalidOperationException("export failed");
+        {
+            ct.ThrowIfCancellationRequested();
+            throw new InvalidOperationException("export failed");
+        }
 
         public Task RestoreFromZipAsync(Stream zipStream, string adminUserId, CancellationToken ct = default)
-            => throw new NotSupportedException();
+        {
+            ct.ThrowIfCancellationRequested();
+            throw new NotSupportedException();
+        }
     }
 
     private sealed class TestHostEnvironment(string contentRootPath) : IHostEnvironment

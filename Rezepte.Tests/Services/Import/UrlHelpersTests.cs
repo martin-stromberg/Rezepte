@@ -5,8 +5,15 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the url helpers tests.
+/// </summary>
 public class UrlHelpersTests
 {
+    /// <summary>
+    /// Try create http uri should accept http and https.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
     [Theory]
     [InlineData("http://example.com")]
     [InlineData("https://example.com/recipes/1")]
@@ -18,6 +25,10 @@ public class UrlHelpersTests
         uri.Host.Should().Be("example.com");
     }
 
+    /// <summary>
+    /// Try create http uri should reject non http values.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -32,6 +43,11 @@ public class UrlHelpersTests
         UrlHelpers.TryCreateHttpUri(value, out _).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Normalize http url should lowercase scheme and host and drop default ports.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
+    /// <param name="expected">The expected parameter.</param>
     [Theory]
     [InlineData("HTTPS://Example.COM/Recipes", "https://example.com/Recipes")]
     [InlineData("http://EXAMPLE.com:80/path", "http://example.com/path")]
@@ -43,12 +59,19 @@ public class UrlHelpersTests
         UrlHelpers.NormalizeHttpUrl(value).Should().Be(expected);
     }
 
+    /// <summary>
+    /// Normalize http url should append root path for authority only urls.
+    /// </summary>
     [Fact]
     public void NormalizeHttpUrl_ShouldAppendRootPathForAuthorityOnlyUrls()
     {
         UrlHelpers.NormalizeHttpUrl("https://example.com").Should().Be("https://example.com/");
     }
 
+    /// <summary>
+    /// Normalize http url should throw for invalid urls.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
     [Theory]
     [InlineData("")]
     [InlineData("not a url")]

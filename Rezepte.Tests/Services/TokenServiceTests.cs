@@ -11,6 +11,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the token service tests.
+/// </summary>
 public class TokenServiceTests
 {
     private const string ConfiguredKey = "unit-test-signing-secret-0123456789";
@@ -37,6 +40,9 @@ public class TokenServiceTests
         return (JwtSecurityToken)validated;
     }
 
+    /// <summary>
+    /// Create token should issue signed token with identity claims.
+    /// </summary>
     [Fact]
     public void CreateToken_ShouldIssueSignedTokenWithIdentityClaims()
     {
@@ -52,6 +58,9 @@ public class TokenServiceTests
         token.ValidTo.Should().BeCloseTo(DateTime.UtcNow.AddHours(8), TimeSpan.FromMinutes(1));
     }
 
+    /// <summary>
+    /// Create token should not add admin role by default.
+    /// </summary>
     [Fact]
     public void CreateToken_ShouldNotAddAdminRoleByDefault()
     {
@@ -62,6 +71,9 @@ public class TokenServiceTests
         token.Claims.Should().NotContain(c => c.Type == "role");
     }
 
+    /// <summary>
+    /// Create token should add admin role for admins.
+    /// </summary>
     [Fact]
     public void CreateToken_ShouldAddAdminRoleForAdmins()
     {
@@ -72,6 +84,9 @@ public class TokenServiceTests
         token.Claims.Should().Contain(c => c.Type == "role" && c.Value == "Admin");
     }
 
+    /// <summary>
+    /// Create token should cache token per user.
+    /// </summary>
     [Fact]
     public void CreateToken_ShouldCacheTokenPerUser()
     {
@@ -85,6 +100,9 @@ public class TokenServiceTests
         sut.GetToken("user-2").Should().Be(second);
     }
 
+    /// <summary>
+    /// Create token should replace cached token for same user.
+    /// </summary>
     [Fact]
     public void CreateToken_ShouldReplaceCachedTokenForSameUser()
     {
@@ -96,6 +114,9 @@ public class TokenServiceTests
         sut.GetToken("user-1").Should().Be(latest);
     }
 
+    /// <summary>
+    /// Get token should return null for unknown user.
+    /// </summary>
     [Fact]
     public void GetToken_ShouldReturnNullForUnknownUser()
     {
@@ -104,6 +125,9 @@ public class TokenServiceTests
         sut.GetToken("unknown").Should().BeNull();
     }
 
+    /// <summary>
+    /// Create token should sign with derived key only.
+    /// </summary>
     [Fact]
     public void CreateToken_ShouldSignWithDerivedKeyOnly()
     {

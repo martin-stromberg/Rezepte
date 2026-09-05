@@ -4,8 +4,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Components.Shared;
 
+/// <summary>
+/// Class representing the collection import selection state tests.
+/// </summary>
 public sealed class CollectionImportSelectionStateTests
 {
+    /// <summary>
+    /// Initialize items should select items and use default target cookbook.
+    /// </summary>
     [Fact]
     public void InitializeItems_ShouldSelectItemsAndUseDefaultTargetCookbook()
     {
@@ -20,6 +26,9 @@ public sealed class CollectionImportSelectionStateTests
         state.BulkTargetCookbookId.Should().Be("cookbook-default");
     }
 
+    /// <summary>
+    /// Clear selection and select all should preserve disabled items.
+    /// </summary>
     [Fact]
     public void ClearSelectionAndSelectAll_ShouldPreserveDisabledItems()
     {
@@ -39,6 +48,9 @@ public sealed class CollectionImportSelectionStateTests
         state.SelectedItemIds.Should().BeEquivalentTo("item-1", "item-2", "item-3");
     }
 
+    /// <summary>
+    /// Apply bulk target cookbook should update only selected enabled items.
+    /// </summary>
     [Fact]
     public void ApplyBulkTargetCookbook_ShouldUpdateOnlySelectedEnabledItems()
     {
@@ -58,6 +70,9 @@ public sealed class CollectionImportSelectionStateTests
         state.GetTargetCookbook("item-3").Should().Be("cookbook-default");
     }
 
+    /// <summary>
+    /// Can submit should require session selection and target cookbooks.
+    /// </summary>
     [Fact]
     public void CanSubmit_ShouldRequireSessionSelectionAndTargetCookbooks()
     {

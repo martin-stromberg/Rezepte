@@ -1,7 +1,14 @@
 namespace Rezepte.Tests.TestHelpers;
 
+/// <summary>
+/// Class representing the repository paths.
+/// </summary>
 public static class RepositoryPaths
 {
+    /// <summary>
+    /// Find repository root.
+    /// </summary>
+    /// <returns>The result.</returns>
     public static DirectoryInfo FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -19,6 +26,11 @@ public static class RepositoryPaths
         throw new FileNotFoundException($"Could not locate repository root from '{AppContext.BaseDirectory}'.");
     }
 
+    /// <summary>
+    /// Read repository file.
+    /// </summary>
+    /// <param name="relativePathParts">The relative path parts parameter.</param>
+    /// <returns>The result.</returns>
     public static string ReadRepositoryFile(params string[] relativePathParts)
     {
         var directory = FindRepositoryRoot();

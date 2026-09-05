@@ -11,6 +11,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the plugin settings service tests.
+/// </summary>
 public class PluginSettingsServiceTests
 {
     private static RezepteDbContext CreateDb()
@@ -21,6 +24,9 @@ public class PluginSettingsServiceTests
         return new RezepteDbContext(options);
     }
 
+    /// <summary>
+    /// Set enabled async should persist activation.
+    /// </summary>
     [Fact]
     public async Task SetEnabledAsync_ShouldPersistActivation()
     {
@@ -35,6 +41,9 @@ public class PluginSettingsServiceTests
         plugin!.Enabled.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Move async should swap order with neighbor.
+    /// </summary>
     [Fact]
     public async Task MoveAsync_ShouldSwapOrderWithNeighbor()
     {
@@ -50,6 +59,9 @@ public class PluginSettingsServiceTests
         ordered.Select(p => p.PluginId).Should().Equal("plugin-b", "plugin-a");
     }
 
+    /// <summary>
+    /// Save source async should canonicalize global source and store pat only in secret store.
+    /// </summary>
     [Fact]
     public async Task SaveSourceAsync_ShouldCanonicalizeGlobalSourceAndStorePatOnlyInSecretStore()
     {
@@ -78,6 +90,9 @@ public class PluginSettingsServiceTests
         item.ToString().Should().NotContain("ghp_secret");
     }
 
+    /// <summary>
+    /// Save source async should require trust confirmation for new source.
+    /// </summary>
     [Fact]
     public async Task SaveSourceAsync_ShouldRequireTrustConfirmationForNewSource()
     {
@@ -95,6 +110,9 @@ public class PluginSettingsServiceTests
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
+    /// <summary>
+    /// Save source async should reject non admin users.
+    /// </summary>
     [Fact]
     public async Task SaveSourceAsync_ShouldRejectNonAdminUsers()
     {
@@ -112,6 +130,9 @@ public class PluginSettingsServiceTests
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
     }
 
+    /// <summary>
+    /// Save source async should reject missing http context.
+    /// </summary>
     [Fact]
     public async Task SaveSourceAsync_ShouldRejectMissingHttpContext()
     {
@@ -129,6 +150,9 @@ public class PluginSettingsServiceTests
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
     }
 
+    /// <summary>
+    /// Get plugins async should populate usability for loaded plugins.
+    /// </summary>
     [Fact]
     public async Task GetPluginsAsync_ShouldPopulateUsabilityForLoadedPlugins()
     {
@@ -143,6 +167,9 @@ public class PluginSettingsServiceTests
         items.Single(p => p.PluginId == "plugin-a").Usability.Should().Be(usability);
     }
 
+    /// <summary>
+    /// Get plugins async should expose usability issues for misconfigured ai plugin.
+    /// </summary>
     [Fact]
     public async Task GetPluginsAsync_ShouldExposeUsabilityIssuesForMisconfiguredAiPlugin()
     {
@@ -159,6 +186,9 @@ public class PluginSettingsServiceTests
         item.Usability.Issues.Should().ContainSingle(i => i.Message == "Gemini authentication is missing." && i.Hint == "Configure a Gemini API key.");
     }
 
+    /// <summary>
+    /// Get plugins async should report usable for fully configured plugin.
+    /// </summary>
     [Fact]
     public async Task GetPluginsAsync_ShouldReportUsableForFullyConfiguredPlugin()
     {

@@ -6,8 +6,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.BackgroundJobs;
 
+/// <summary>
+/// Class representing the export job payload tests.
+/// </summary>
 public class ExportJobPayloadTests
 {
+    /// <summary>
+    /// From json should read include flags.
+    /// </summary>
     [Fact]
     public void FromJson_ShouldReadIncludeFlags()
     {
@@ -17,6 +23,9 @@ public class ExportJobPayloadTests
         payload.IncludePdf.Should().BeTrue();
     }
 
+    /// <summary>
+    /// From json should accept string booleans.
+    /// </summary>
     [Fact]
     public void FromJson_ShouldAcceptStringBooleans()
     {
@@ -26,6 +35,9 @@ public class ExportJobPayloadTests
         payload.IncludePdf.Should().BeFalse();
     }
 
+    /// <summary>
+    /// From json should use defaults for empty payload.
+    /// </summary>
     [Fact]
     public void FromJson_ShouldUseDefaultsForEmptyPayload()
     {
@@ -35,6 +47,9 @@ public class ExportJobPayloadTests
         payload.IncludePdf.Should().BeFalse();
     }
 
+    /// <summary>
+    /// File store should reject path traversal file name.
+    /// </summary>
     [Fact]
     public void FileStore_ShouldRejectPathTraversalFileName()
     {

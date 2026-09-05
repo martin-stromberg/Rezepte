@@ -10,6 +10,9 @@ using Xunit;
 
 namespace Rezepte.Tests.ViewModels;
 
+/// <summary>
+/// Class representing the user admin view model tests.
+/// </summary>
 public class UserAdminViewModelTests
 {
     private const string UsersJson = """
@@ -26,12 +29,18 @@ public class UserAdminViewModelTests
         return (new UserAdminViewModel(factory.Create(), NullLogger<UserAdminViewModel>.Instance), factory);
     }
 
+    /// <summary>
+    /// Constructor should reject missing api client.
+    /// </summary>
     [Fact]
     public void Constructor_ShouldRejectMissingApiClient()
     {
         Assert.Throws<ArgumentNullException>(() => new UserAdminViewModel(null!, NullLogger<UserAdminViewModel>.Instance));
     }
 
+    /// <summary>
+    /// Load async should populate users.
+    /// </summary>
     [Fact]
     public async Task LoadAsync_ShouldPopulateUsers()
     {
@@ -45,6 +54,9 @@ public class UserAdminViewModelTests
         factory.Requests[0].RequestUri!.AbsolutePath.Should().Be("/api/admin/users");
     }
 
+    /// <summary>
+    /// Load async should yield empty list for null payload.
+    /// </summary>
     [Fact]
     public async Task LoadAsync_ShouldYieldEmptyListForNullPayload()
     {
@@ -56,6 +68,9 @@ public class UserAdminViewModelTests
         sut.IsError.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Load async should report failure.
+    /// </summary>
     [Fact]
     public async Task LoadAsync_ShouldReportFailure()
     {
@@ -68,6 +83,9 @@ public class UserAdminViewModelTests
         sut.IsLoading.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Reload async should request users again.
+    /// </summary>
     [Fact]
     public async Task ReloadAsync_ShouldRequestUsersAgain()
     {
@@ -80,6 +98,9 @@ public class UserAdminViewModelTests
         sut.Users.Should().HaveCount(2);
     }
 
+    /// <summary>
+    /// Filtered should match username and email case insensitively.
+    /// </summary>
     [Fact]
     public async Task Filtered_ShouldMatchUsernameAndEmailCaseInsensitively()
     {
@@ -98,6 +119,9 @@ public class UserAdminViewModelTests
         sut.Filtered.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Create async should require username and password.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldRequireUsernameAndPassword()
     {
@@ -117,6 +141,9 @@ public class UserAdminViewModelTests
         factory.Requests.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Create async should add created user sorted and reset form.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldAddCreatedUserSortedAndResetForm()
     {
@@ -142,6 +169,9 @@ public class UserAdminViewModelTests
         factory.Requests.Last().Method.Should().Be(HttpMethod.Post);
     }
 
+    /// <summary>
+    /// Create async should report generic message for server problem details.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldReportGenericMessageForServerProblemDetails()
     {
@@ -157,6 +187,9 @@ public class UserAdminViewModelTests
         sut.NewUser.Username.Should().Be("carol");
     }
 
+    /// <summary>
+    /// Create async should handle transport failures.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldHandleTransportFailures()
     {
@@ -171,6 +204,9 @@ public class UserAdminViewModelTests
         sut.IsBusy.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Save async should put user and report success.
+    /// </summary>
     [Fact]
     public async Task SaveAsync_ShouldPutUserAndReportSuccess()
     {
@@ -185,6 +221,9 @@ public class UserAdminViewModelTests
         factory.Requests[0].RequestUri!.AbsolutePath.Should().Be("/api/admin/users/1");
     }
 
+    /// <summary>
+    /// Save async should report failure.
+    /// </summary>
     [Fact]
     public async Task SaveAsync_ShouldReportFailure()
     {
@@ -197,6 +236,9 @@ public class UserAdminViewModelTests
         sut.Message.Should().Be("Save failed.");
     }
 
+    /// <summary>
+    /// Delete async should remove user on success.
+    /// </summary>
     [Fact]
     public async Task DeleteAsync_ShouldRemoveUserOnSuccess()
     {
@@ -214,6 +256,9 @@ public class UserAdminViewModelTests
         factory.Requests.Last().RequestUri!.AbsolutePath.Should().Be("/api/admin/users/2");
     }
 
+    /// <summary>
+    /// Delete async should keep user on failure.
+    /// </summary>
     [Fact]
     public async Task DeleteAsync_ShouldKeepUserOnFailure()
     {

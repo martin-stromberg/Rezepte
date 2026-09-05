@@ -10,6 +10,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the settings service tests.
+/// </summary>
 public class SettingsServiceTests
 {
     private static RezepteDbContext CreateDb()
@@ -20,6 +23,9 @@ public class SettingsServiceTests
         return new RezepteDbContext(options);
     }
 
+    /// <summary>
+    /// Get user ai enabled async should return true by default when no setting exists.
+    /// </summary>
     [Fact]
     public async Task GetUserAiEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
     {
@@ -31,6 +37,9 @@ public class SettingsServiceTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Set user ai enabled async should persist value when setting initially.
+    /// </summary>
     [Fact]
     public async Task SetUserAiEnabledAsync_ShouldPersistValue_WhenSettingInitially()
     {
@@ -43,6 +52,9 @@ public class SettingsServiceTests
         read.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Set user ai enabled async should update existing value.
+    /// </summary>
     [Fact]
     public async Task SetUserAiEnabledAsync_ShouldUpdateExistingValue()
     {
@@ -56,6 +68,9 @@ public class SettingsServiceTests
         read.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Get global ai enabled async should return true by default when no setting exists.
+    /// </summary>
     [Fact]
     public async Task GetGlobalAiEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
     {
@@ -67,6 +82,9 @@ public class SettingsServiceTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Set global ai enabled async should persist value when setting initially.
+    /// </summary>
     [Fact]
     public async Task SetGlobalAiEnabledAsync_ShouldPersistValue_WhenSettingInitially()
     {
@@ -79,6 +97,9 @@ public class SettingsServiceTests
         read.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Set global ai enabled async should update existing value.
+    /// </summary>
     [Fact]
     public async Task SetGlobalAiEnabledAsync_ShouldUpdateExistingValue()
     {
@@ -92,6 +113,9 @@ public class SettingsServiceTests
         read.Should().BeTrue();
     }
 
+    /// <summary>
+    /// User and global settings should be independent.
+    /// </summary>
     [Fact]
     public async Task UserAndGlobalSettings_ShouldBeIndependent()
     {
@@ -109,6 +133,9 @@ public class SettingsServiceTests
         user.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Get user shopping list edit mode async should return false by default when no setting exists.
+    /// </summary>
     [Fact]
     public async Task GetUserShoppingListEditModeAsync_ShouldReturnFalseByDefault_WhenNoSettingExists()
     {
@@ -118,6 +145,9 @@ public class SettingsServiceTests
         (await sut.GetUserShoppingListEditModeAsync("user-1", CancellationToken.None)).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Set user shopping list edit mode async should persist value per user.
+    /// </summary>
     [Fact]
     public async Task SetUserShoppingListEditModeAsync_ShouldPersistValue_PerUser()
     {
@@ -131,6 +161,9 @@ public class SettingsServiceTests
         (await sut.GetUserShoppingListEditModeAsync("user-2", CancellationToken.None)).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Shopping list edit mode should update existing value.
+    /// </summary>
     [Fact]
     public async Task ShoppingListEditMode_ShouldUpdateExistingValue()
     {
@@ -143,6 +176,9 @@ public class SettingsServiceTests
         (await sut.GetUserShoppingListEditModeAsync("user-1", CancellationToken.None)).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Get security txt settings async should return defaults when no settings exist.
+    /// </summary>
     [Fact]
     public async Task GetSecurityTxtSettingsAsync_ShouldReturnDefaults_WhenNoSettingsExist()
     {
@@ -162,6 +198,9 @@ public class SettingsServiceTests
         result.Hiring.Should().BeNull();
     }
 
+    /// <summary>
+    /// Set security txt settings async should persist all fields.
+    /// </summary>
     [Fact]
     public async Task SetSecurityTxtSettingsAsync_ShouldPersistAllFields()
     {
@@ -194,6 +233,9 @@ public class SettingsServiceTests
         read.Hiring.Should().Be("https://example.com/jobs");
     }
 
+    /// <summary>
+    /// Set security txt settings async should overwrite existing values.
+    /// </summary>
     [Fact]
     public async Task SetSecurityTxtSettingsAsync_ShouldOverwriteExistingValues()
     {
@@ -233,6 +275,9 @@ public class SettingsServiceTests
         read.Expires.Should().Be(expiresV2);
     }
 
+    /// <summary>
+    /// Set security txt settings async should clear nullable fields when passed null.
+    /// </summary>
     [Fact]
     public async Task SetSecurityTxtSettingsAsync_ShouldClearNullableFields_WhenPassedNull()
     {
@@ -274,6 +319,9 @@ public class SettingsServiceTests
         read.Hiring.Should().BeNull();
     }
 
+    /// <summary>
+    /// Set security txt settings async should persist canonical when provided.
+    /// </summary>
     [Fact]
     public async Task SetSecurityTxtSettingsAsync_ShouldPersistCanonical_WhenProvided()
     {
@@ -296,6 +344,9 @@ public class SettingsServiceTests
         (await sut.GetSecurityTxtSettingsAsync(CancellationToken.None)).Canonical.Should().Be("https://example.com/should-be-stored");
     }
 
+    /// <summary>
+    /// Get security txt settings async should return null expires when value is invalid date string.
+    /// </summary>
     [Fact]
     public async Task GetSecurityTxtSettingsAsync_ShouldReturnNullExpires_WhenValueIsInvalidDateString()
     {
@@ -323,6 +374,9 @@ public class SettingsServiceTests
         read.Expires.Should().BeNull();
     }
 
+    /// <summary>
+    /// Set global google vision enabled async should persist value.
+    /// </summary>
     [Fact]
     public async Task SetGlobalGoogleVisionEnabledAsync_ShouldPersistValue()
     {
@@ -335,6 +389,9 @@ public class SettingsServiceTests
         read.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Set global google vision enabled async should update existing value.
+    /// </summary>
     [Fact]
     public async Task SetGlobalGoogleVisionEnabledAsync_ShouldUpdateExistingValue()
     {
@@ -348,6 +405,9 @@ public class SettingsServiceTests
         read.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Get global google vision enabled async should return true by default when no setting exists.
+    /// </summary>
     [Fact]
     public async Task GetGlobalGoogleVisionEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
     {
@@ -359,6 +419,9 @@ public class SettingsServiceTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Set global gemini enabled async should persist value.
+    /// </summary>
     [Fact]
     public async Task SetGlobalGeminiEnabledAsync_ShouldPersistValue()
     {
@@ -371,6 +434,9 @@ public class SettingsServiceTests
         read.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Set global gemini enabled async should update existing value.
+    /// </summary>
     [Fact]
     public async Task SetGlobalGeminiEnabledAsync_ShouldUpdateExistingValue()
     {
@@ -384,6 +450,9 @@ public class SettingsServiceTests
         read.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Get global gemini enabled async should return true by default when no setting exists.
+    /// </summary>
     [Fact]
     public async Task GetGlobalGeminiEnabledAsync_ShouldReturnTrueByDefault_WhenNoSettingExists()
     {
@@ -395,6 +464,9 @@ public class SettingsServiceTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Set global max requests per hour async should persist value.
+    /// </summary>
     [Fact]
     public async Task SetGlobalMaxRequestsPerHourAsync_ShouldPersistValue()
     {
@@ -407,6 +479,9 @@ public class SettingsServiceTests
         read.Should().Be(100);
     }
 
+    /// <summary>
+    /// Set global max requests per hour async should clear value when passed null.
+    /// </summary>
     [Fact]
     public async Task SetGlobalMaxRequestsPerHourAsync_ShouldClearValue_WhenPassedNull()
     {
@@ -420,6 +495,9 @@ public class SettingsServiceTests
         read.Should().BeNull();
     }
 
+    /// <summary>
+    /// Get global max requests per hour async should return null when no setting exists.
+    /// </summary>
     [Fact]
     public async Task GetGlobalMaxRequestsPerHourAsync_ShouldReturnNull_WhenNoSettingExists()
     {
@@ -431,6 +509,9 @@ public class SettingsServiceTests
         result.Should().BeNull();
     }
 
+    /// <summary>
+    /// Set global max requests per day async should persist value.
+    /// </summary>
     [Fact]
     public async Task SetGlobalMaxRequestsPerDayAsync_ShouldPersistValue()
     {
@@ -443,6 +524,9 @@ public class SettingsServiceTests
         read.Should().Be(500);
     }
 
+    /// <summary>
+    /// Set global max requests per day async should clear value when passed null.
+    /// </summary>
     [Fact]
     public async Task SetGlobalMaxRequestsPerDayAsync_ShouldClearValue_WhenPassedNull()
     {
@@ -456,6 +540,9 @@ public class SettingsServiceTests
         read.Should().BeNull();
     }
 
+    /// <summary>
+    /// Get global max requests per day async should return null when no setting exists.
+    /// </summary>
     [Fact]
     public async Task GetGlobalMaxRequestsPerDayAsync_ShouldReturnNull_WhenNoSettingExists()
     {
@@ -467,6 +554,9 @@ public class SettingsServiceTests
         result.Should().BeNull();
     }
 
+    /// <summary>
+    /// Set global disable on limit reached async should persist value.
+    /// </summary>
     [Fact]
     public async Task SetGlobalDisableOnLimitReachedAsync_ShouldPersistValue()
     {
@@ -479,6 +569,9 @@ public class SettingsServiceTests
         read.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Set global disable on limit reached async should update existing value.
+    /// </summary>
     [Fact]
     public async Task SetGlobalDisableOnLimitReachedAsync_ShouldUpdateExistingValue()
     {
@@ -492,6 +585,9 @@ public class SettingsServiceTests
         read.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Get global disable on limit reached async should return false by default when no setting exists.
+    /// </summary>
     [Fact]
     public async Task GetGlobalDisableOnLimitReachedAsync_ShouldReturnFalseByDefault_WhenNoSettingExists()
     {

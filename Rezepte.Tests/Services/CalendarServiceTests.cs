@@ -12,6 +12,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the calendar service tests.
+/// </summary>
 public class CalendarServiceTests
 {
     private const string UserA = "user-a";
@@ -33,6 +36,9 @@ public class CalendarServiceTests
         return mock;
     }
 
+    /// <summary>
+    /// Constructor should reject missing dependencies.
+    /// </summary>
     [Fact]
     public void Constructor_ShouldRejectMissingDependencies()
     {
@@ -43,6 +49,9 @@ public class CalendarServiceTests
         Assert.Throws<ArgumentNullException>(() => new CalendarService(db, null!));
     }
 
+    /// <summary>
+    /// Create event async should reject missing user.
+    /// </summary>
     [Fact]
     public async Task CreateEventAsync_ShouldRejectMissingUser()
     {
@@ -56,6 +65,10 @@ public class CalendarServiceTests
         ev.Should().BeNull();
     }
 
+    /// <summary>
+    /// Create event async should reject non positive portions.
+    /// </summary>
+    /// <param name="portions">The portions parameter.</param>
     [Theory]
     [InlineData(0)]
     [InlineData(-3)]
@@ -71,6 +84,9 @@ public class CalendarServiceTests
         ev.Should().BeNull();
     }
 
+    /// <summary>
+    /// Create event async should reject unknown recipe.
+    /// </summary>
     [Fact]
     public async Task CreateEventAsync_ShouldRejectUnknownRecipe()
     {
@@ -84,6 +100,9 @@ public class CalendarServiceTests
         ev.Should().BeNull();
     }
 
+    /// <summary>
+    /// Create event async should persist event with normalized start date.
+    /// </summary>
     [Fact]
     public async Task CreateEventAsync_ShouldPersistEventWithNormalizedStartDate()
     {
@@ -113,6 +132,9 @@ public class CalendarServiceTests
         stored.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Create event async should allow event without recipe.
+    /// </summary>
     [Fact]
     public async Task CreateEventAsync_ShouldAllowEventWithoutRecipe()
     {
@@ -127,6 +149,9 @@ public class CalendarServiceTests
         recipes.Verify(s => s.GetByIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    /// <summary>
+    /// Get event async should not return event of other user.
+    /// </summary>
     [Fact]
     public async Task GetEventAsync_ShouldNotReturnEventOfOtherUser()
     {
@@ -139,6 +164,9 @@ public class CalendarServiceTests
         result.Should().BeNull();
     }
 
+    /// <summary>
+    /// Get events for user async should return only own events starting before end.
+    /// </summary>
     [Fact]
     public async Task GetEventsForUserAsync_ShouldReturnOnlyOwnEventsStartingBeforeEnd()
     {
@@ -155,6 +183,9 @@ public class CalendarServiceTests
         events.Single().StartDate.Should().Be(start);
     }
 
+    /// <summary>
+    /// Update event async should apply changes.
+    /// </summary>
     [Fact]
     public async Task UpdateEventAsync_ShouldApplyChanges()
     {
@@ -184,6 +215,9 @@ public class CalendarServiceTests
         updated.ModifiedAt.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Update event async should fail for foreign event.
+    /// </summary>
     [Fact]
     public async Task UpdateEventAsync_ShouldFailForForeignEvent()
     {
@@ -197,6 +231,9 @@ public class CalendarServiceTests
         error.Should().Be("Event not found");
     }
 
+    /// <summary>
+    /// Delete event async should remove own event only.
+    /// </summary>
     [Fact]
     public async Task DeleteEventAsync_ShouldRemoveOwnEventOnly()
     {
@@ -214,6 +251,9 @@ public class CalendarServiceTests
         (await sut.GetEventAsync(UserA, ev.Id, CancellationToken.None)).Should().BeNull();
     }
 
+    /// <summary>
+    /// Get occurrences async should return single occurrence inside range.
+    /// </summary>
     [Fact]
     public async Task GetOccurrencesAsync_ShouldReturnSingleOccurrenceInsideRange()
     {
@@ -230,6 +270,9 @@ public class CalendarServiceTests
         beforeRange.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Get occurrences async should expand weekly recurrence ordered by date.
+    /// </summary>
     [Fact]
     public async Task GetOccurrencesAsync_ShouldExpandWeeklyRecurrenceOrderedByDate()
     {
@@ -252,6 +295,34 @@ public class CalendarServiceTests
         occurrences.Should().OnlyContain(o => o.Occurrence.TimeOfDay == TimeSpan.FromHours(12));
     }
 
+    /// <summary>
+    /// Get occurrences async should expand weekly recurrence on tuesday and saturday.
+    /// </summary>
+    [Fact]
+    public async Task GetOccurrencesAsync_ShouldExpandWeeklyRecurrenceOnTuesdayAndSaturday()
+    {
+        using var db = CreateDb();
+        var sut = new CalendarService(db, CreateRecipeService().Object);
+        // 2025-05-05 is a Monday.
+        var start = new DateTime(2025, 5, 5);
+        var (_, _, ev) = await sut.CreateEventAsync(UserA, string.Empty, start, TimeSpan.FromHours(12), 2, RecurrenceType.Weekly, WeekDays.Tuesday | WeekDays.Saturday, CancellationToken.None);
+
+        ev!.RecurrenceDays.Should().Be(WeekDays.Tuesday | WeekDays.Saturday);
+        ev.RecurrenceDays.HasFlag(WeekDays.Tuesday).Should().BeTrue();
+        ev.RecurrenceDays.HasFlag(WeekDays.Saturday).Should().BeTrue();
+
+        var occurrences = (await sut.GetOccurrencesAsync(UserA, start, start.AddDays(10), CancellationToken.None)).ToList();
+
+        var dates = occurrences.Select(o => o.Occurrence.Date).ToList();
+        dates.Should().Contain(new DateTime(2025, 5, 6));
+        dates.Should().Contain(new DateTime(2025, 5, 10));
+        dates.Should().Contain(new DateTime(2025, 5, 13));
+        dates.Should().NotContain(new DateTime(2025, 5, 8));
+    }
+
+    /// <summary>
+    /// Get occurrences async should ignore weekly recurrence without days.
+    /// </summary>
     [Fact]
     public async Task GetOccurrencesAsync_ShouldIgnoreWeeklyRecurrenceWithoutDays()
     {

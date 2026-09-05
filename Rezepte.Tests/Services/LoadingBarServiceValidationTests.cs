@@ -8,8 +8,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the loading bar service validation tests.
+/// </summary>
 public class LoadingBarServiceValidationTests
 {
+    /// <summary>
+    /// Get settings with invalid height falls back to default height.
+    /// </summary>
     [Fact]
     public void GetSettings_WithInvalidHeight_FallsBackToDefaultHeight()
     {
@@ -20,6 +26,9 @@ public class LoadingBarServiceValidationTests
         result.Height.Should().Be("3px");
     }
 
+    /// <summary>
+    /// Get settings with null height falls back to default height.
+    /// </summary>
     [Fact]
     public void GetSettings_WithNullHeight_FallsBackToDefaultHeight()
     {
@@ -30,6 +39,9 @@ public class LoadingBarServiceValidationTests
         result.Height.Should().Be("3px");
     }
 
+    /// <summary>
+    /// Get settings with invalid animation duration falls back to default duration.
+    /// </summary>
     [Fact]
     public void GetSettings_WithInvalidAnimationDuration_FallsBackToDefaultDuration()
     {
@@ -40,6 +52,9 @@ public class LoadingBarServiceValidationTests
         result.AnimationDuration.Should().Be("2s");
     }
 
+    /// <summary>
+    /// Get settings with invalid hide delay falls back to default hide delay.
+    /// </summary>
     [Fact]
     public void GetSettings_WithInvalidHideDelay_FallsBackToDefaultHideDelay()
     {
@@ -50,6 +65,9 @@ public class LoadingBarServiceValidationTests
         result.HideDelayMilliseconds.Should().Be(300);
     }
 
+    /// <summary>
+    /// Get settings with max visible duration below hide delay falls back to default.
+    /// </summary>
     [Fact]
     public void GetSettings_WithMaxVisibleDurationBelowHideDelay_FallsBackToDefault()
     {
@@ -60,6 +78,9 @@ public class LoadingBarServiceValidationTests
         result.MaxVisibleDurationMilliseconds.Should().Be(15000);
     }
 
+    /// <summary>
+    /// Get settings with max visible duration equal to hide delay falls back to default.
+    /// </summary>
     [Fact]
     public void GetSettings_WithMaxVisibleDurationEqualToHideDelay_FallsBackToDefault()
     {
@@ -70,6 +91,9 @@ public class LoadingBarServiceValidationTests
         result.MaxVisibleDurationMilliseconds.Should().Be(15000);
     }
 
+    /// <summary>
+    /// Get settings with hide delay above maximum falls back to default hide delay.
+    /// </summary>
     [Fact]
     public void GetSettings_WithHideDelayAboveMaximum_FallsBackToDefaultHideDelay()
     {
@@ -80,6 +104,9 @@ public class LoadingBarServiceValidationTests
         result.HideDelayMilliseconds.Should().Be(300);
     }
 
+    /// <summary>
+    /// Get settings with max visible duration above maximum falls back to default max visible duration.
+    /// </summary>
     [Fact]
     public void GetSettings_WithMaxVisibleDurationAboveMaximum_FallsBackToDefaultMaxVisibleDuration()
     {
@@ -90,6 +117,9 @@ public class LoadingBarServiceValidationTests
         result.MaxVisibleDurationMilliseconds.Should().Be(15000);
     }
 
+    /// <summary>
+    /// Get settings with max visible duration below minimum falls back to default max visible duration.
+    /// </summary>
     [Fact]
     public void GetSettings_WithMaxVisibleDurationBelowMinimum_FallsBackToDefaultMaxVisibleDuration()
     {
@@ -100,6 +130,9 @@ public class LoadingBarServiceValidationTests
         result.MaxVisibleDurationMilliseconds.Should().Be(15000);
     }
 
+    /// <summary>
+    /// Get settings with hide delay above default max visible duration keeps invariant.
+    /// </summary>
     [Fact]
     public void GetSettings_WithHideDelayAboveDefaultMaxVisibleDuration_KeepsInvariant()
     {
@@ -112,6 +145,9 @@ public class LoadingBarServiceValidationTests
         result.MaxVisibleDurationMilliseconds.Should().Be(15000);
     }
 
+    /// <summary>
+    /// Get settings with zero height falls back to default height.
+    /// </summary>
     [Fact]
     public void GetSettings_WithZeroHeight_FallsBackToDefaultHeight()
     {
@@ -122,6 +158,9 @@ public class LoadingBarServiceValidationTests
         result.Height.Should().Be("3px");
     }
 
+    /// <summary>
+    /// Get settings with zero animation duration falls back to default duration.
+    /// </summary>
     [Fact]
     public void GetSettings_WithZeroAnimationDuration_FallsBackToDefaultDuration()
     {
@@ -132,6 +171,9 @@ public class LoadingBarServiceValidationTests
         result.AnimationDuration.Should().Be("2s");
     }
 
+    /// <summary>
+    /// Get settings with invalid color entries removes invalid entries.
+    /// </summary>
     [Fact]
     public void GetSettings_WithInvalidColorEntries_RemovesInvalidEntries()
     {
@@ -142,6 +184,9 @@ public class LoadingBarServiceValidationTests
         result.Colors.Should().BeEquivalentTo(new[] { "#FF6B6B", "#123" });
     }
 
+    /// <summary>
+    /// Get settings with only invalid colors falls back to default colors.
+    /// </summary>
     [Fact]
     public void GetSettings_WithOnlyInvalidColors_FallsBackToDefaultColors()
     {
@@ -152,6 +197,9 @@ public class LoadingBarServiceValidationTests
         result.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
+    /// <summary>
+    /// Get settings with null colors falls back to default colors.
+    /// </summary>
     [Fact]
     public void GetSettings_WithNullColors_FallsBackToDefaultColors()
     {
@@ -162,6 +210,9 @@ public class LoadingBarServiceValidationTests
         result.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
+    /// <summary>
+    /// Get settings with empty colors falls back to default colors.
+    /// </summary>
     [Fact]
     public void GetSettings_WithEmptyColors_FallsBackToDefaultColors()
     {
@@ -172,6 +223,9 @@ public class LoadingBarServiceValidationTests
         result.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
+    /// <summary>
+    /// Get settings with invalid height logs warning.
+    /// </summary>
     [Fact]
     public void GetSettings_WithInvalidHeight_LogsWarning()
     {

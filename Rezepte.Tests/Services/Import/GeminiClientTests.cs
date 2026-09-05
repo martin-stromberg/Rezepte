@@ -11,9 +11,15 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the gemini client tests.
+/// </summary>
 [Collection(GoogleCredentialsEnvironmentCollection.Name)]
 public class GeminiClientTests
 {
+    /// <summary>
+    /// Extract recipe from url async uses api key before service account.
+    /// </summary>
     [Fact]
     public async Task ExtractRecipeFromUrlAsync_UsesApiKeyBeforeServiceAccount()
     {
@@ -39,6 +45,9 @@ public class GeminiClientTests
         }
     }
 
+    /// <summary>
+    /// Extract recipe from url async throws secret free message when authentication is missing.
+    /// </summary>
     [Fact]
     public async Task ExtractRecipeFromUrlAsync_ThrowsSecretFreeMessage_WhenAuthenticationIsMissing()
     {
@@ -55,6 +64,9 @@ public class GeminiClientTests
         ex.Which.Message.Should().NotContain("GoogleCredentials:GeminiApiKey");
     }
 
+    /// <summary>
+    /// Extract recipe from url async throws path context when service account file is invalid.
+    /// </summary>
     [Fact]
     public async Task ExtractRecipeFromUrlAsync_ThrowsPathContext_WhenServiceAccountFileIsInvalid()
     {

@@ -4,8 +4,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the plugin source release tests.
+/// </summary>
 public sealed class PluginSourceReleaseTests
 {
+    /// <summary>
+    /// Git hub repository parse should canonicalize https git hub repository.
+    /// </summary>
     [Fact]
     public void GitHubRepository_Parse_ShouldCanonicalizeHttpsGitHubRepository()
     {
@@ -16,6 +22,9 @@ public sealed class PluginSourceReleaseTests
         repository.CanonicalUrl.Should().Be("https://github.com/example/my-plugin");
     }
 
+    /// <summary>
+    /// Git hub release info find zip asset should allow variable zip asset names.
+    /// </summary>
     [Fact]
     public void GitHubReleaseInfo_FindZipAsset_ShouldAllowVariableZipAssetNames()
     {

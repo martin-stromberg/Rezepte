@@ -10,8 +10,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Http;
 
+/// <summary>
+/// Class representing the remote content fetcher tests.
+/// </summary>
 public class RemoteContentFetcherTests
 {
+    /// <summary>
+    /// Fetch async should return seekable content and file name from url.
+    /// </summary>
     [Fact]
     public async Task FetchAsync_ShouldReturnSeekableContentAndFileNameFromUrl()
     {
@@ -28,6 +34,9 @@ public class RemoteContentFetcherTests
         new StreamReader(result.Content).ReadToEnd().Should().Be("<html></html>");
     }
 
+    /// <summary>
+    /// Fetch async should decompress gzipped content.
+    /// </summary>
     [Fact]
     public async Task FetchAsync_ShouldDecompressGzippedContent()
     {
@@ -46,6 +55,9 @@ public class RemoteContentFetcherTests
         new StreamReader(result.Content!).ReadToEnd().Should().Be("compressed payload");
     }
 
+    /// <summary>
+    /// Fetch async should fall back to content disposition file name.
+    /// </summary>
     [Fact]
     public async Task FetchAsync_ShouldFallBackToContentDispositionFileName()
     {
@@ -58,6 +70,9 @@ public class RemoteContentFetcherTests
         result.FileName.Should().Be("export.zip");
     }
 
+    /// <summary>
+    /// Fetch async should report failure with error body.
+    /// </summary>
     [Fact]
     public async Task FetchAsync_ShouldReportFailureWithErrorBody()
     {

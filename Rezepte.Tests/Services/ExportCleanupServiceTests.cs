@@ -11,6 +11,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the export cleanup service tests.
+/// </summary>
 public sealed class ExportCleanupServiceTests : IDisposable
 {
     private readonly string _contentRoot = Path.Combine(Path.GetTempPath(), $"rezepte-cleanup-{Guid.NewGuid():N}");
@@ -18,6 +21,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
     private readonly ExportJobFileStore _fileStore;
     private readonly ExportCleanupService _sut;
 
+    /// <summary>
+    /// Initializes a new instance.
+    /// </summary>
     public ExportCleanupServiceTests()
     {
         Directory.CreateDirectory(_contentRoot);
@@ -34,6 +40,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         _sut = new ExportCleanupService(_db, _fileStore, NullLogger<ExportCleanupService>.Instance);
     }
 
+    /// <summary>
+    /// Dispose.
+    /// </summary>
     public void Dispose()
     {
         _db.Dispose();
@@ -43,6 +52,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// Get settings async should return defaults when nothing stored.
+    /// </summary>
     [Fact]
     public async Task GetSettingsAsync_ShouldReturnDefaults_WhenNothingStored()
     {
@@ -52,6 +64,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         settings.LastRunAt.Should().BeNull();
     }
 
+    /// <summary>
+    /// Set cleanup time async should persist time.
+    /// </summary>
     [Fact]
     public async Task SetCleanupTimeAsync_ShouldPersistTime()
     {
@@ -62,6 +77,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         (await _db.AppSettings.FindAsync(ExportCleanupService.CleanupTimeKey))!.Value.Should().Be("22:30");
     }
 
+    /// <summary>
+    /// Is cleanup due should be true when never run.
+    /// </summary>
     [Fact]
     public void IsCleanupDue_ShouldBeTrue_WhenNeverRun()
     {
@@ -70,6 +88,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         ExportCleanupService.IsCleanupDue(settings, new DateTimeOffset(2026, 9, 5, 1, 0, 0, TimeSpan.Zero)).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Is cleanup due should be false when already run after last scheduled occurrence.
+    /// </summary>
     [Fact]
     public void IsCleanupDue_ShouldBeFalse_WhenAlreadyRunAfterLastScheduledOccurrence()
     {
@@ -80,6 +101,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         ExportCleanupService.IsCleanupDue(settings, new DateTimeOffset(2026, 9, 6, 2, 59, 0, TimeSpan.Zero)).Should().BeFalse();
     }
 
+    /// <summary>
+    /// Is cleanup due should be true when scheduled time passed since last run.
+    /// </summary>
     [Fact]
     public void IsCleanupDue_ShouldBeTrue_WhenScheduledTimePassedSinceLastRun()
     {
@@ -89,6 +113,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         ExportCleanupService.IsCleanupDue(settings, new DateTimeOffset(2026, 9, 6, 3, 0, 0, TimeSpan.Zero)).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Is cleanup due should catch up missed run when application was offline at scheduled time.
+    /// </summary>
     [Fact]
     public void IsCleanupDue_ShouldCatchUpMissedRun_WhenApplicationWasOfflineAtScheduledTime()
     {
@@ -100,6 +127,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         ExportCleanupService.IsCleanupDue(settings, new DateTimeOffset(2026, 9, 5, 1, 0, 0, TimeSpan.Zero)).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Get last scheduled occurrence should use yesterday when time not yet reached today.
+    /// </summary>
     [Fact]
     public void GetLastScheduledOccurrence_ShouldUseYesterday_WhenTimeNotYetReachedToday()
     {
@@ -110,6 +140,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         occurrence.Should().Be(new DateTimeOffset(2026, 9, 4, 3, 0, 0, TimeSpan.FromHours(2)));
     }
 
+    /// <summary>
+    /// Run cleanup async should delete expired files and records but keep recent ones.
+    /// </summary>
     [Fact]
     public async Task RunCleanupAsync_ShouldDeleteExpiredFilesAndRecords_ButKeepRecentOnes()
     {
@@ -127,6 +160,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         (await _db.UserExportFiles.ToListAsync()).Should().ContainSingle(f => f.Id == recent.Id);
     }
 
+    /// <summary>
+    /// Run cleanup async should remove record when file already missing.
+    /// </summary>
     [Fact]
     public async Task RunCleanupAsync_ShouldRemoveRecord_WhenFileAlreadyMissing()
     {
@@ -141,6 +177,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         (await _db.UserExportFiles.FindAsync(expired.Id)).Should().BeNull();
     }
 
+    /// <summary>
+    /// Run cleanup async should delete orphaned archives older than one day.
+    /// </summary>
     [Fact]
     public async Task RunCleanupAsync_ShouldDeleteOrphanedArchivesOlderThanOneDay()
     {
@@ -158,6 +197,9 @@ public sealed class ExportCleanupServiceTests : IDisposable
         File.Exists(orphanNew).Should().BeTrue();
     }
 
+    /// <summary>
+    /// Run cleanup async should record last run so cleanup is no longer due.
+    /// </summary>
     [Fact]
     public async Task RunCleanupAsync_ShouldRecordLastRun_SoCleanupIsNoLongerDue()
     {

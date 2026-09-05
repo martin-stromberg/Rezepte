@@ -4,10 +4,17 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Validation;
 
+/// <summary>
+/// Class representing the username validator tests.
+/// </summary>
 public class UsernameValidatorTests
 {
     private readonly UsernameValidator _sut = new();
 
+    /// <summary>
+    /// Validate should accept valid usernames.
+    /// </summary>
+    /// <param name="username">The username parameter.</param>
     [Theory]
     [InlineData("max_mustermann")]
     [InlineData("anna-2026")]
@@ -20,6 +27,10 @@ public class UsernameValidatorTests
         result.ErrorMessage.Should().BeNull();
     }
 
+    /// <summary>
+    /// Validate should reject missing or invalid length usernames.
+    /// </summary>
+    /// <param name="username">The username parameter.</param>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -35,6 +46,10 @@ public class UsernameValidatorTests
         result.ErrorMessage.Should().Be(UsernameValidator.LengthMessage);
     }
 
+    /// <summary>
+    /// Validate should reject invalid characters.
+    /// </summary>
+    /// <param name="username">The username parameter.</param>
     [Theory]
     [InlineData("max mustermann")]
     [InlineData("max/mustermann")]
@@ -50,6 +65,10 @@ public class UsernameValidatorTests
         result.ErrorMessage.Should().Be(UsernameValidator.CharactersMessage);
     }
 
+    /// <summary>
+    /// Validate should reject reserved usernames.
+    /// </summary>
+    /// <param name="username">The username parameter.</param>
     [Theory]
     [InlineData("admin")]
     [InlineData("Admin")]
@@ -86,6 +105,10 @@ public class UsernameValidatorTests
         result.ErrorMessage.Should().Be(UsernameValidator.ReservedMessage);
     }
 
+    /// <summary>
+    /// Validate should reject ip addresses and domains.
+    /// </summary>
+    /// <param name="username">The username parameter.</param>
     [Theory]
     [InlineData("127.0.0.1")]
     [InlineData("192.168.1.1")]
@@ -99,6 +122,10 @@ public class UsernameValidatorTests
         result.ErrorMessage.Should().Be(UsernameValidator.IpOrDomainMessage);
     }
 
+    /// <summary>
+    /// Validate should reject official looking usernames.
+    /// </summary>
+    /// <param name="username">The username parameter.</param>
     [Theory]
     [InlineData("support_team")]
     [InlineData("security_admin")]
@@ -116,6 +143,10 @@ public class UsernameValidatorTests
         result.ErrorMessage.Should().Be(UsernameValidator.GenericBlockedMessage);
     }
 
+    /// <summary>
+    /// Validate should reject leetspeak variants of high risk names.
+    /// </summary>
+    /// <param name="username">The username parameter.</param>
     [Theory]
     [InlineData("adm1n")]
     [InlineData("r00t")]

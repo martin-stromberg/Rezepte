@@ -8,8 +8,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the aiurl import plugin tests.
+/// </summary>
 public sealed class AIUrlImportPluginTests
 {
+    /// <summary>
+    /// Check usability async should return usable when all global prerequisites met.
+    /// </summary>
     [Fact]
     public async Task CheckUsabilityAsync_ShouldReturnUsable_WhenAllGlobalPrerequisitesMet()
     {
@@ -26,6 +32,9 @@ public sealed class AIUrlImportPluginTests
         result.Issues.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Check usability async should report disabled global gemini.
+    /// </summary>
     [Fact]
     public async Task CheckUsabilityAsync_ShouldReportDisabledGlobalGemini()
     {
@@ -42,6 +51,9 @@ public sealed class AIUrlImportPluginTests
         result.Issues.Should().ContainSingle(i => i.Message == "Global Gemini is disabled.");
     }
 
+    /// <summary>
+    /// Check usability async should report missing gemini authentication.
+    /// </summary>
     [Fact]
     public async Task CheckUsabilityAsync_ShouldReportMissingGeminiAuthentication()
     {

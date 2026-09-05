@@ -9,10 +9,16 @@ using Xunit;
 
 namespace Rezepte.Tests.Components;
 
+/// <summary>
+/// Class representing the loading bar rendering tests.
+/// </summary>
 public class LoadingBarRenderingTests : IDisposable
 {
     private readonly TestContext _context = new();
 
+    /// <summary>
+    /// Render when enabled renders host element with indicator.
+    /// </summary>
     [Fact]
     public void Render_WhenEnabled_RendersHostElementWithIndicator()
     {
@@ -22,6 +28,9 @@ public class LoadingBarRenderingTests : IDisposable
         host.QuerySelector(".loading-bar-indicator").Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Render when disabled renders no markup.
+    /// </summary>
     [Fact]
     public void Render_WhenDisabled_RendersNoMarkup()
     {
@@ -30,6 +39,9 @@ public class LoadingBarRenderingTests : IDisposable
         component.Markup.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Render when enabled writes height and duration as css custom properties.
+    /// </summary>
     [Fact]
     public void Render_WhenEnabled_WritesHeightAndDurationAsCssCustomProperties()
     {
@@ -42,6 +54,9 @@ public class LoadingBarRenderingTests : IDisposable
         style.Should().Contain("--loading-bar-duration: 3s");
     }
 
+    /// <summary>
+    /// Render when enabled writes colors and timings as data attributes.
+    /// </summary>
     [Fact]
     public void Render_WhenEnabled_WritesColorsAndTimingsAsDataAttributes()
     {
@@ -58,6 +73,9 @@ public class LoadingBarRenderingTests : IDisposable
         host.GetAttribute("data-max-visible-duration").Should().Be("15000");
     }
 
+    /// <summary>
+    /// Render when enabled marks bar as decorative and permanent.
+    /// </summary>
     [Fact]
     public void Render_WhenEnabled_MarksBarAsDecorativeAndPermanent()
     {
@@ -69,6 +87,9 @@ public class LoadingBarRenderingTests : IDisposable
         host.HasAttribute("data-permanent").Should().BeTrue();
     }
 
+    /// <summary>
+    /// Dispose.
+    /// </summary>
     public void Dispose()
     {
         _context.Dispose();

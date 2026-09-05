@@ -8,8 +8,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Controllers;
 
+/// <summary>
+/// Class representing the security txt controller tests authentication.
+/// </summary>
 public sealed class SecurityTxtControllerTests_Authentication
 {
+    /// <summary>
+    /// Get security txt requires no authentication.
+    /// </summary>
     [Fact]
     public async Task GetSecurityTxt_RequiresNoAuthentication()
     {

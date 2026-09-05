@@ -5,8 +5,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the loading bar service defaults tests.
+/// </summary>
 public class LoadingBarServiceDefaultsTests
 {
+    /// <summary>
+    /// Get settings with default options returns documented defaults.
+    /// </summary>
     [Fact]
     public void GetSettings_WithDefaultOptions_ReturnsDocumentedDefaults()
     {
@@ -22,6 +28,9 @@ public class LoadingBarServiceDefaultsTests
         result.Colors.Should().BeEquivalentTo(LoadingBarOptions.DefaultColors);
     }
 
+    /// <summary>
+    /// Get settings with enabled false returns disabled settings.
+    /// </summary>
     [Fact]
     public void GetSettings_WithEnabledFalse_ReturnsDisabledSettings()
     {
@@ -32,6 +41,9 @@ public class LoadingBarServiceDefaultsTests
         result.Enabled.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Get settings called twice returns same instance.
+    /// </summary>
     [Fact]
     public void GetSettings_CalledTwice_ReturnsSameInstance()
     {
@@ -43,6 +55,9 @@ public class LoadingBarServiceDefaultsTests
         second.Should().BeSameAs(first);
     }
 
+    /// <summary>
+    /// Get settings with valid custom options returns configured values.
+    /// </summary>
     [Fact]
     public void GetSettings_WithValidCustomOptions_ReturnsConfiguredValues()
     {

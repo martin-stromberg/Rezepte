@@ -7,14 +7,28 @@ public sealed class FixedTimeProvider : TimeProvider
 {
     private DateTimeOffset _utcNow;
 
+    /// <summary>
+    /// Initializes a new instance.
+    /// </summary>
+    /// <param name="utcNow">The utc now parameter.</param>
     public FixedTimeProvider(DateTimeOffset utcNow)
     {
         _utcNow = utcNow.ToUniversalTime();
     }
 
+    /// <summary>
+    /// Get utc now.
+    /// </summary>
+    /// <returns>The result.</returns>
     public override DateTimeOffset GetUtcNow() => _utcNow;
 
+    /// <summary>
+    /// Gets or sets the local time zone.
+    /// </summary>
     public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
 
+    /// <summary>
+    /// Advance.
+    /// </summary>
     public void Advance(TimeSpan delta) => _utcNow = _utcNow.Add(delta);
 }

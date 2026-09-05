@@ -7,8 +7,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.BackgroundJobs;
 
+/// <summary>
+/// Class representing the background job persistence tests.
+/// </summary>
 public class BackgroundJobPersistenceTests
 {
+    /// <summary>
+    /// Db context should persist background job.
+    /// </summary>
     [Fact]
     public async Task DbContext_ShouldPersistBackgroundJob()
     {
@@ -37,6 +43,48 @@ public class BackgroundJobPersistenceTests
         persisted.Status.Should().Be(BackgroundJobStatus.Pending);
     }
 
+    /// <summary>
+    /// Db context should round trip all background job statuses.
+    /// </summary>
+    [Fact]
+    public async Task DbContext_ShouldRoundTripAllBackgroundJobStatuses()
+    {
+        await using var connection = new SqliteConnection("DataSource=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<RezepteDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using var db = new RezepteDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+
+        var statuses = new[]
+        {
+            BackgroundJobStatus.Running,
+            BackgroundJobStatus.Failed,
+            BackgroundJobStatus.Cancelled
+        };
+
+        foreach (var status in statuses)
+        {
+            db.BackgroundJobs.Add(new BackgroundJob
+            {
+                JobType = $"export:{status}",
+                InitiatorUserId = "admin",
+                Status = status
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        var persisted = await db.BackgroundJobs.AsNoTracking().Select(j => j.Status).ToListAsync();
+        persisted.Should().BeEquivalentTo(statuses);
+    }
+
+    /// <summary>
+    /// Migrations should create background jobs table.
+    /// </summary>
     [Fact]
     public async Task Migrations_ShouldCreateBackgroundJobsTable()
     {

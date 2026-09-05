@@ -5,8 +5,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the loading bar service duration parsing tests.
+/// </summary>
 public class LoadingBarServiceDurationParsingTests
 {
+    /// <summary>
+    /// Get settings with hide delay in milliseconds converts to milliseconds.
+    /// </summary>
     [Fact]
     public void GetSettings_WithHideDelayInMilliseconds_ConvertsToMilliseconds()
     {
@@ -17,6 +23,9 @@ public class LoadingBarServiceDurationParsingTests
         result.HideDelayMilliseconds.Should().Be(250);
     }
 
+    /// <summary>
+    /// Get settings with hide delay in seconds converts to milliseconds.
+    /// </summary>
     [Fact]
     public void GetSettings_WithHideDelayInSeconds_ConvertsToMilliseconds()
     {
@@ -27,6 +36,9 @@ public class LoadingBarServiceDurationParsingTests
         result.HideDelayMilliseconds.Should().Be(500);
     }
 
+    /// <summary>
+    /// Get settings with max visible duration in seconds converts to milliseconds.
+    /// </summary>
     [Fact]
     public void GetSettings_WithMaxVisibleDurationInSeconds_ConvertsToMilliseconds()
     {

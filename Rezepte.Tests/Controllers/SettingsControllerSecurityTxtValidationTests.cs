@@ -8,6 +8,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Controllers;
 
+/// <summary>
+/// Class representing the settings controller security txt validation tests.
+/// </summary>
 public class SettingsControllerSecurityTxtValidationTests
 {
     private static SettingsController CreateController(Mock<ISettingsService>? settingsMock = null)
@@ -28,6 +31,9 @@ public class SettingsControllerSecurityTxtValidationTests
         Policy: null,
         Hiring: null);
 
+    /// <summary>
+    /// Set global security txt returns bad request when enabled and contact missing.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_ReturnsBadRequest_WhenEnabledAndContactMissing()
     {
@@ -39,6 +45,9 @@ public class SettingsControllerSecurityTxtValidationTests
         result.Should().BeOfType<BadRequestObjectResult>();
     }
 
+    /// <summary>
+    /// Set global security txt returns bad request when enabled and contact empty.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_ReturnsBadRequest_WhenEnabledAndContactEmpty()
     {
@@ -50,6 +59,9 @@ public class SettingsControllerSecurityTxtValidationTests
         result.Should().BeOfType<BadRequestObjectResult>();
     }
 
+    /// <summary>
+    /// Set global security txt returns bad request when enabled and expires missing.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_ReturnsBadRequest_WhenEnabledAndExpiresMissing()
     {
@@ -61,6 +73,9 @@ public class SettingsControllerSecurityTxtValidationTests
         result.Should().BeOfType<BadRequestObjectResult>();
     }
 
+    /// <summary>
+    /// Set global security txt returns bad request when enabled and expires in past.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_ReturnsBadRequest_WhenEnabledAndExpiresInPast()
     {
@@ -72,6 +87,9 @@ public class SettingsControllerSecurityTxtValidationTests
         result.Should().BeOfType<BadRequestObjectResult>();
     }
 
+    /// <summary>
+    /// Set global security txt returns bad request when enabled and expires is now.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_ReturnsBadRequest_WhenEnabledAndExpiresIsNow()
     {
@@ -83,6 +101,9 @@ public class SettingsControllerSecurityTxtValidationTests
         result.Should().BeOfType<BadRequestObjectResult>();
     }
 
+    /// <summary>
+    /// Set global security txt returns no content when enabled and all required fields valid.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_ReturnsNoContent_WhenEnabledAndAllRequiredFieldsValid()
     {
@@ -97,6 +118,9 @@ public class SettingsControllerSecurityTxtValidationTests
         result.Should().BeOfType<NoContentResult>();
     }
 
+    /// <summary>
+    /// Set global security txt returns no content when disabled with no required fields.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_ReturnsNoContent_WhenDisabledWithNoRequiredFields()
     {
@@ -120,6 +144,9 @@ public class SettingsControllerSecurityTxtValidationTests
         result.Should().BeOfType<NoContentResult>();
     }
 
+    /// <summary>
+    /// Set global security txt returns bad request when settings is null.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_ReturnsBadRequest_WhenSettingsIsNull()
     {
@@ -130,6 +157,9 @@ public class SettingsControllerSecurityTxtValidationTests
         result.Should().BeOfType<BadRequestObjectResult>();
     }
 
+    /// <summary>
+    /// Set global security txt skips validation when disabled even if contact missing.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_SkipsValidation_WhenDisabledEvenIfContactMissing()
     {
@@ -154,6 +184,9 @@ public class SettingsControllerSecurityTxtValidationTests
         settingsMock.Verify(s => s.SetSecurityTxtSettingsAsync(It.IsAny<SecurityTxtSettings>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// Set global security txt preserves canonical from request.
+    /// </summary>
     [Fact]
     public async Task SetGlobalSecurityTxt_PreservesCanonicalFromRequest()
     {

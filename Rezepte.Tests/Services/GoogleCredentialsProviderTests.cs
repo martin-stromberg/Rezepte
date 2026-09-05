@@ -8,12 +8,18 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the google credentials provider tests.
+/// </summary>
 [Collection(GoogleCredentialsEnvironmentCollection.Name)]
 public class GoogleCredentialsProviderTests
 {
     private const string ServiceAccountEnvironmentVariable = EnvironmentVariableScope.ServiceAccountEnvironmentVariable;
     private const string GeminiApiKeyEnvironmentVariable = EnvironmentVariableScope.GeminiApiKeyEnvironmentVariable;
 
+    /// <summary>
+    /// Get service account file path returns path from environment variable.
+    /// </summary>
     [Fact]
     public void GetServiceAccountFilePath_ReturnsPath_FromEnvironmentVariable()
     {
@@ -26,6 +32,9 @@ public class GoogleCredentialsProviderTests
         result.Should().Be("C:/secrets/google.application-credentials.json");
     }
 
+    /// <summary>
+    /// Get service account file path returns path from options when env not set.
+    /// </summary>
     [Fact]
     public void GetServiceAccountFilePath_ReturnsPath_FromOptions_WhenEnvNotSet()
     {
@@ -38,6 +47,9 @@ public class GoogleCredentialsProviderTests
         result.Should().Be("C:/secrets/google.application-credentials.json");
     }
 
+    /// <summary>
+    /// Get service account file path does not mutate environment variable when resolved from options.
+    /// </summary>
     [Fact]
     public void GetServiceAccountFilePath_DoesNotMutateEnvironmentVariable_WhenResolvedFromOptions()
     {
@@ -50,6 +62,9 @@ public class GoogleCredentialsProviderTests
         Environment.GetEnvironmentVariable(ServiceAccountEnvironmentVariable).Should().BeNull();
     }
 
+    /// <summary>
+    /// Get service account file path reflects options monitor changes without caching.
+    /// </summary>
     [Fact]
     public void GetServiceAccountFilePath_ReflectsOptionsMonitorChanges_WithoutCaching()
     {
@@ -66,6 +81,9 @@ public class GoogleCredentialsProviderTests
         secondResult.Should().Be("C:/second/path.json");
     }
 
+    /// <summary>
+    /// Get service account file path returns empty when nothing configured.
+    /// </summary>
     [Fact]
     public void GetServiceAccountFilePath_ReturnsEmpty_WhenNothingConfigured()
     {
@@ -78,6 +96,9 @@ public class GoogleCredentialsProviderTests
         result.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Get service account file path returns empty when options value is whitespace.
+    /// </summary>
     [Fact]
     public void GetServiceAccountFilePath_ReturnsEmpty_WhenOptionsValueIsWhitespace()
     {
@@ -90,6 +111,9 @@ public class GoogleCredentialsProviderTests
         result.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Service account file exists returns false when path missing.
+    /// </summary>
     [Fact]
     public void ServiceAccountFileExists_ReturnsFalse_WhenPathMissing()
     {
@@ -102,6 +126,9 @@ public class GoogleCredentialsProviderTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Service account file exists returns true when path is set and file exists.
+    /// </summary>
     [Fact]
     public void ServiceAccountFileExists_ReturnsTrue_WhenPathIsSetAndFileExists()
     {
@@ -122,6 +149,9 @@ public class GoogleCredentialsProviderTests
         }
     }
 
+    /// <summary>
+    /// Get gemini api key returns key from environment variable.
+    /// </summary>
     [Fact]
     public void GetGeminiApiKey_ReturnsKey_FromEnvironmentVariable()
     {
@@ -134,6 +164,9 @@ public class GoogleCredentialsProviderTests
         result.Should().Be("env-api-key");
     }
 
+    /// <summary>
+    /// Get gemini api key returns key from options when env not set.
+    /// </summary>
     [Fact]
     public void GetGeminiApiKey_ReturnsKey_FromOptions_WhenEnvNotSet()
     {
@@ -146,6 +179,9 @@ public class GoogleCredentialsProviderTests
         result.Should().Be("options-api-key");
     }
 
+    /// <summary>
+    /// Get gemini api key returns empty when nothing configured.
+    /// </summary>
     [Fact]
     public void GetGeminiApiKey_ReturnsEmpty_WhenNothingConfigured()
     {
@@ -158,6 +194,9 @@ public class GoogleCredentialsProviderTests
         result.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Get gemini api key returns empty when options value is whitespace.
+    /// </summary>
     [Fact]
     public void GetGeminiApiKey_ReturnsEmpty_WhenOptionsValueIsWhitespace()
     {
@@ -170,6 +209,9 @@ public class GoogleCredentialsProviderTests
         result.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Get diagnostics reports environment sources without api key value.
+    /// </summary>
     [Fact]
     public void GetDiagnostics_ReportsEnvironmentSources_WithoutApiKeyValue()
     {
@@ -204,6 +246,9 @@ public class GoogleCredentialsProviderTests
         }
     }
 
+    /// <summary>
+    /// Get diagnostics reports options fallback when environment variables missing.
+    /// </summary>
     [Fact]
     public void GetDiagnostics_ReportsOptionsFallback_WhenEnvironmentVariablesMissing()
     {

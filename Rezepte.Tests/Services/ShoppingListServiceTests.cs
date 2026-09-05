@@ -7,6 +7,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the shopping list service tests.
+/// </summary>
 public class ShoppingListServiceTests
 {
     private const string UserA = "user-a";
@@ -20,6 +23,9 @@ public class ShoppingListServiceTests
         return new RezepteDbContext(options);
     }
 
+    /// <summary>
+    /// Get groups async should create default group when list is empty.
+    /// </summary>
     [Fact]
     public async Task GetGroupsAsync_ShouldCreateDefaultGroup_WhenListIsEmpty()
     {
@@ -33,6 +39,9 @@ public class ShoppingListServiceTests
         groups.Single().UserId.Should().Be(UserA);
     }
 
+    /// <summary>
+    /// Add item async should add item to users group.
+    /// </summary>
     [Fact]
     public async Task AddItemAsync_ShouldAddItemToUsersGroup()
     {
@@ -50,6 +59,9 @@ public class ShoppingListServiceTests
         groups.Single().Items.Single().Unit.Should().Be("kg");
     }
 
+    /// <summary>
+    /// Set item checked async should persist checked state.
+    /// </summary>
     [Fact]
     public async Task SetItemCheckedAsync_ShouldPersistCheckedState()
     {
@@ -65,6 +77,9 @@ public class ShoppingListServiceTests
         groups.Single().Items.Single().IsChecked.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Add recipe ingredients async should create recipe group with selected ingredients.
+    /// </summary>
     [Fact]
     public async Task AddRecipeIngredientsAsync_ShouldCreateRecipeGroupWithSelectedIngredients()
     {
@@ -102,6 +117,9 @@ public class ShoppingListServiceTests
         result.group.Items.Single().Name.Should().Be("Mehl");
     }
 
+    /// <summary>
+    /// Add item async should reject group from different user.
+    /// </summary>
     [Fact]
     public async Task AddItemAsync_ShouldRejectGroupFromDifferentUser()
     {
@@ -116,6 +134,9 @@ public class ShoppingListServiceTests
         (await db.ShoppingListItems.CountAsync()).Should().Be(0);
     }
 
+    /// <summary>
+    /// Get recipe ingredient groups async should return main recipe and side dishes.
+    /// </summary>
     [Fact]
     public async Task GetRecipeIngredientGroupsAsync_ShouldReturnMainRecipeAndSideDishes()
     {
@@ -146,6 +167,9 @@ public class ShoppingListServiceTests
         groups[1].IsMainRecipe.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Add recipe ingredient groups async should create separate groups for selections.
+    /// </summary>
     [Fact]
     public async Task AddRecipeIngredientGroupsAsync_ShouldCreateSeparateGroupsForSelections()
     {
@@ -185,6 +209,9 @@ public class ShoppingListServiceTests
         groups.Select(g => g.Name).Should().Contain(new[] { "Lasagne", "Salat" });
     }
 
+    /// <summary>
+    /// Add recipe ingredient groups async should reject unlinked recipe ingredient.
+    /// </summary>
     [Fact]
     public async Task AddRecipeIngredientGroupsAsync_ShouldRejectUnlinkedRecipeIngredient()
     {
@@ -210,6 +237,9 @@ public class ShoppingListServiceTests
         result.error.Should().Be("Mindestens eine ausgewählte Zutat passt nicht zum Rezept.");
     }
 
+    /// <summary>
+    /// Add recipe ingredient groups async should reject mixed valid and unlinked selections.
+    /// </summary>
     [Fact]
     public async Task AddRecipeIngredientGroupsAsync_ShouldRejectMixedValidAndUnlinkedSelections()
     {
@@ -245,6 +275,9 @@ public class ShoppingListServiceTests
         (await db.ShoppingListGroups.CountAsync()).Should().Be(0);
     }
 
+    /// <summary>
+    /// Add recipe ingredient groups async should merge duplicate recipe selections.
+    /// </summary>
     [Fact]
     public async Task AddRecipeIngredientGroupsAsync_ShouldMergeDuplicateRecipeSelections()
     {

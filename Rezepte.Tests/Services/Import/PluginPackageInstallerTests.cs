@@ -7,8 +7,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the plugin package installer tests.
+/// </summary>
 public sealed class PluginPackageInstallerTests
 {
+    /// <summary>
+    /// Install async should restore backup and reinitialize after reload failure.
+    /// </summary>
     [Fact]
     public async Task InstallAsync_ShouldRestoreBackupAndReinitializeAfterReloadFailure()
     {
@@ -29,6 +35,9 @@ public sealed class PluginPackageInstallerTests
         File.ReadAllText(Path.Combine(existingPlugin, "PluginA.dll")).Should().Be("original");
     }
 
+    /// <summary>
+    /// Install async should remove partially copied new target after copy failure.
+    /// </summary>
     [Fact]
     public async Task InstallAsync_ShouldRemovePartiallyCopiedNewTargetAfterCopyFailure()
     {

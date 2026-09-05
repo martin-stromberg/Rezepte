@@ -6,8 +6,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the plugin source release migration tests.
+/// </summary>
 public sealed class PluginSourceReleaseMigrationTests
 {
+    /// <summary>
+    /// Migrations should add reload state columns to existing plugin source releases table.
+    /// </summary>
     [Fact]
     public async Task Migrations_ShouldAddReloadStateColumnsToExistingPluginSourceReleasesTable()
     {
