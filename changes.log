@@ -1,0 +1,8 @@
+# Änderungsprotokoll
+
+## 2026-09-05 — Git-Hooks
+
+- Die Git-Hooks aus dem Pattern-Collection-Repository wurden in `.githooks/` übernommen und über `git config core.hooksPath .githooks` aktiviert. Sie führen vor jedem Commit und Push automatisierte Qualitätsprüfungen aus.
+- `pre-commit` blockiert Commits auf `main` und `staging` und prüft Übersetzungskonsistenz, XML-Dokumentation, Razor-Lokalisierung, Formatierung mit `dotnet format` und Kodierung mit `check-encoding.ps1`.
+- `pre-push` blockiert Pushes auf `main` und `staging` und prüft das gesamte Repository auf `throw`-only Member, Razor-Komponentenverwendung und Enum-Abdeckung in Tests.
+- Alle durch die Prüfungen aufgedeckten Verstöße wurden behoben: XML-Dokumentation in 10 Projekten vollständig ergänzt, 40 Razor-Komponenten über `IStringLocalizer<UiStrings>` lokalisiert, `throw`-only Test-Stubs umgebaut, Enum-Werte in Tests abgedeckt, BOMs entfernt und `SettingsViewModel` refactored.
