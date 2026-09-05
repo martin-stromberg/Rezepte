@@ -33,6 +33,12 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
     public static async Task<SecurityTxtPageObject> CreateAsync(IBrowser browser, string baseAddress)
     {
         var context = await browser.NewContextAsync();
+        await context.Tracing.StartAsync(new TracingStartOptions
+        {
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
         var page = await context.NewPageAsync();
         return new SecurityTxtPageObject(context, page, baseAddress);
     }
@@ -123,6 +129,11 @@ public sealed class SecurityTxtPageObject : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        Directory.CreateDirectory("playwright-traces");
+        await _context.Tracing.StopAsync(new TracingStopOptions
+        {
+            Path = Path.Combine("playwright-traces", $"SecurityTxt-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.zip")
+        });
         await _context.CloseAsync();
     }
 }

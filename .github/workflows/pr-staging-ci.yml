@@ -217,6 +217,19 @@ jobs:
             Rezepte.Tests.Browser/TestResults/*.trx
           retention-days: 14
 
+      - name: Upload Playwright traces
+        # LoadingBarPageObject/SecurityTxtPageObject write a Screenshots+Snapshots+Sources
+        # trace per test to playwright-traces/{Name}.zip (relative to the repo root, since the
+        # Test step above runs dotnet test from there). Uploaded unconditionally (if: always())
+        # so a failed run leaves real diagnostic evidence (open the .zip with
+        # `npx playwright show-trace <file>.zip`) instead of only a bare pass/fail count.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces-pr
+          path: playwright-traces/
+          retention-days: 14
+
   back-merge-skip:
     needs: detect-backmerge
     if: needs.detect-backmerge.outputs.is_backmerge == 'true'
