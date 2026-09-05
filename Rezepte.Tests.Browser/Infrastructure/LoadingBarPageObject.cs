@@ -40,6 +40,12 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     public static async Task<LoadingBarPageObject> CreateAsync(IBrowser browser, string baseAddress)
     {
         var context = await browser.NewContextAsync();
+        await context.Tracing.StartAsync(new TracingStartOptions
+        {
+            Screenshots = true,
+            Snapshots = true,
+            Sources = true
+        });
         var page = await context.NewPageAsync();
         return new LoadingBarPageObject(context, page, baseAddress);
     }
@@ -185,6 +191,11 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        Directory.CreateDirectory("playwright-traces");
+        await _context.Tracing.StopAsync(new TracingStopOptions
+        {
+            Path = Path.Combine("playwright-traces", $"LoadingBar-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.zip")
+        });
         await _context.CloseAsync();
     }
 }
