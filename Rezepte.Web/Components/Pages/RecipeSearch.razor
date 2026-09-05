@@ -3,12 +3,13 @@
 @inject ApiClient Client
 @inject NavigationManager Nav
 @inject ILogger<Rezepte.Web.Components.Pages.RecipeSearch> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
-<PageTitle>Rezepte – Suche</PageTitle>
+<PageTitle>@Localizer["RecipeSearchPageTitle"]</PageTitle>
 
 <div class="mb-4 d-flex align-items-start gap-3">
     <form class="d-flex flex-grow-1" @onsubmit="OnSubmitSearch" role="search">
-        <input id="search-q" name="q" class="form-control" placeholder="Rezepte suchen (Titel, Zutaten, Tags)..." aria-label="Suche Rezepte"
+        <input id="search-q" name="q" class="form-control" placeholder="@Localizer["SearchRecipeInputPlaceholder"]" aria-label="@Localizer["SearchRecipes"]"
                @bind="searchQuery" @bind:event="oninput" />
         <button type="submit" class="btn btn-accent ms-2">Suchen</button>
     </form>
@@ -18,16 +19,16 @@
 {
     <div class="text-center py-5">
         <div class="spinner-border" role="status" aria-hidden="true"></div>
-        <div class="mt-2">Suche läuft…</div>
+        <div class="mt-2">@Localizer["SearchInProgress"]</div>
     </div>
 }
 else if (searchFailed)
 {
-    <div class="alert alert-danger">Die Suche ist fehlgeschlagen. Bitte versuche es erneut.</div>
+    <div class="alert alert-danger">@Localizer["SearchFailed"]</div>
 }
 else if (results?.Any() != true)
 {
-    <div class="alert alert-secondary">Keine Treffer.</div>
+    <div class="alert alert-secondary">@Localizer["NoSearchResults"]</div>
 }
 else
 {
@@ -56,16 +57,16 @@ else
         }
     </div>
 
-    <nav class="mt-3" aria-label="Seitennavigation">
+    <nav class="mt-3" aria-label="@Localizer["PageNavigation"]">
         <ul class="pagination justify-content-center">
             <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
-                <button class="page-link" @onclick="() => ChangePage(pageNumber - 1)" aria-label="Vorherige">«</button>
+                <button class="page-link" @onclick="() => ChangePage(pageNumber - 1)" aria-label="@Localizer["PreviousPage"]">«</button>
             </li>
             <li class="page-item disabled">
                 <span class="page-link">Seite @pageNumber von @TotalPages</span>
             </li>
             <li class="page-item @(pageNumber >= TotalPages ? "disabled" : "")">
-                <button class="page-link" @onclick="() => ChangePage(pageNumber + 1)" aria-label="Nächste">»</button>
+                <button class="page-link" @onclick="() => ChangePage(pageNumber + 1)" aria-label="@Localizer["NextPage"]">»</button>
             </li>
         </ul>
     </nav>

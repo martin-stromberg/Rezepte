@@ -68,4 +68,43 @@
   <data name="DataExport" xml:space="preserve"><value>Datenexport</value></data>
   <data name="Backup" xml:space="preserve"><value>Sicherung</value></data>
   <data name="UsageStatistics" xml:space="preserve"><value>Nutzungsstatistiken</value></data>
+  <data name="LoginPageTitle" xml:space="preserve"><value>Rezepte - Anmeldung</value></data>
+  <data name="RememberMe" xml:space="preserve"><value>Angemeldet bleiben</value></data>
+  <data name="InvalidUsernameOrPassword" xml:space="preserve"><value>Benutzername oder Passwort falsch.</value></data>
+  <data name="RegisterPageTitle" xml:space="preserve"><value>Rezepte - Ersteinrichtung</value></data>
+  <data name="EmailOptional" xml:space="preserve"><value>E-Mail (optional)</value></data>
+  <data name="RecipeSearchPageTitle" xml:space="preserve"><value>Rezepte – Suche</value></data>
+  <data name="SearchRecipeInputPlaceholder" xml:space="preserve"><value>Rezepte suchen (Titel, Zutaten, Tags)...</value></data>
+  <data name="SearchInProgress" xml:space="preserve"><value>Suche läuft…</value></data>
+  <data name="SearchFailed" xml:space="preserve"><value>Die Suche ist fehlgeschlagen. Bitte versuche es erneut.</value></data>
+  <data name="NoSearchResults" xml:space="preserve"><value>Keine Treffer.</value></data>
+  <data name="PageNavigation" xml:space="preserve"><value>Seitennavigation</value></data>
+  <data name="PreviousPage" xml:space="preserve"><value>Vorherige</value></data>
+  <data name="NextPage" xml:space="preserve"><value>Nächste</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="ManageImages" xml:space="preserve"><value>Bilder verwalten</value></data>
+  <data name="RecipeLoadFailed" xml:space="preserve"><value>Rezept konnte nicht geladen werden.</value></data>
+  <data name="SourceUrl" xml:space="preserve"><value>Quelle (URL)</value></data>
+  <data name="SideDishSearchPlaceholder" xml:space="preserve"><value>Rezept, Rezept-ID oder Rezept-URL als Beilage suchen...</value></data>
+  <data name="NoSideDishes" xml:space="preserve"><value>Keine Beilagen hinterlegt.</value></data>
+  <data name="StepTitleOptional" xml:space="preserve"><value>Titel (optional)</value></data>
+  <data name="PreparationDurationMinutes" xml:space="preserve"><value>Zubereitungsdauer (Minuten)</value></data>
+  <data name="OvernightRest" xml:space="preserve"><value>Ruhezeit über Nacht</value></data>
+  <data name="AddIngredient" xml:space="preserve"><value>Zutat hinzufügen</value></data>
+  <data name="AddPreparationStep" xml:space="preserve"><value>Neuen Zubereitungsschritt hinzufügen</value></data>
+  <data name="ScheduledRecipesTitle" xml:space="preserve"><value>🗓️ Geplante Rezepte</value></data>
+  <data name="OpenCalendar" xml:space="preserve"><value>Kalender öffnen</value></data>
+  <data name="NoScheduledRecipes" xml:space="preserve"><value>Keine geplanten Rezepte in den nächsten 3 Tagen.</value></data>
+  <data name="DisplayMode" xml:space="preserve"><value>Anzeigemodus</value></data>
+  <data name="View" xml:space="preserve"><value>Ansicht</value></data>
+  <data name="AddGroup" xml:space="preserve"><value>Gruppe hinzufügen</value></data>
+  <data name="GroupName" xml:space="preserve"><value>Gruppenname</value></data>
+  <data name="DeleteGroup" xml:space="preserve"><value>Gruppe löschen</value></data>
+  <data name="TakenFromRecipe" xml:space="preserve"><value>Aus Rezept übernommen</value></data>
+  <data name="NoIngredientsInGroup" xml:space="preserve"><value>Noch keine Zutaten in dieser Gruppe.</value></data>
+  <data name="QuantityAndUnit" xml:space="preserve"><value>Menge und Einheit</value></data>
+  <data name="Ingredient" xml:space="preserve"><value>Zutat</value></data>
+  <data name="DeleteIngredient" xml:space="preserve"><value>Zutat löschen</value></data>
+  <data name="Amount" xml:space="preserve"><value>Menge</value></data>
+  <data name="Unit" xml:space="preserve"><value>Einheit</value></data>
 </root>
