@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Data;
+using Rezepte.Web.Security;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.Validation;
 using Xunit;
@@ -146,6 +147,75 @@ public class UserServiceTests
         okUser.Should().NotBeNull();
         var badUser = await sut.LoginAsync("frank", "oldpass", CancellationToken.None);
         badUser.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LoginAsync_ShouldRehashPassword_WhenStoredHashOutdated()
+    {
+        using var db = CreateDb();
+        var sut = CreateSut(db);
+        await sut.RegisterAsync("rehashUser", "secret!", CancellationToken.None);
+
+        // Simulate a legacy hash with the minimum accepted iteration count.
+        var entity = await db.Users.SingleAsync(u => u.Username == "rehashUser");
+        entity.PasswordHash = PasswordHasher.Hash("secret!", PasswordHasher.MinIterations);
+        await db.SaveChangesAsync();
+
+        var user = await sut.LoginAsync("rehashUser", "secret!", CancellationToken.None);
+
+        user.Should().NotBeNull();
+        var reloaded = await db.Users.AsNoTracking().SingleAsync(u => u.Username == "rehashUser");
+        reloaded.PasswordHash.Should().StartWith($"{PasswordHasher.CurrentIterations}.");
+    }
+
+    [Fact]
+    public async Task LoginAsync_ShouldNotRehash_WhenStoredHashCurrent()
+    {
+        using var db = CreateDb();
+        var sut = CreateSut(db);
+        await sut.RegisterAsync("currentUser", "secret!", CancellationToken.None);
+        var originalHash = (await db.Users.AsNoTracking().SingleAsync(u => u.Username == "currentUser")).PasswordHash;
+
+        var user = await sut.LoginAsync("currentUser", "secret!", CancellationToken.None);
+
+        user.Should().NotBeNull();
+        var reloaded = await db.Users.AsNoTracking().SingleAsync(u => u.Username == "currentUser");
+        reloaded.PasswordHash.Should().Be(originalHash);
+    }
+
+    [Fact]
+    public async Task LoginAsync_ShouldReturnNull_WhenStoredHashViolatesPolicy()
+    {
+        using var db = CreateDb();
+        var sut = CreateSut(db);
+        await sut.RegisterAsync("weakHashUser", "secret!", CancellationToken.None);
+
+        var entity = await db.Users.SingleAsync(u => u.Username == "weakHashUser");
+        var salt = Convert.ToHexString(new byte[PasswordHasher.SaltLengthBytes]);
+        var hash = Convert.ToHexString(new byte[PasswordHasher.HashLengthBytes]);
+        entity.PasswordHash = $"{PasswordHasher.MinIterations - 1}.{salt}.{hash}";
+        await db.SaveChangesAsync();
+
+        var user = await sut.LoginAsync("weakHashUser", "secret!", CancellationToken.None);
+
+        user.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_ShouldReturnError_WhenStoredHashMalformed()
+    {
+        using var db = CreateDb();
+        var sut = CreateSut(db);
+        var (_, _, user) = await sut.RegisterAsync("malformedUser", "oldpass", CancellationToken.None);
+
+        var entity = await db.Users.SingleAsync(u => u.Username == "malformedUser");
+        entity.PasswordHash = "not-a-valid-hash";
+        await db.SaveChangesAsync();
+
+        var (ok, error) = await sut.ChangePasswordAsync(user!.Id, "oldpass", "newpass", CancellationToken.None);
+
+        ok.Should().BeFalse();
+        error.Should().NotBeNull();
     }
 
     [Fact]
