@@ -209,7 +209,7 @@
   <data name="RecipeOptional" xml:space="preserve"><value>Rezept (optional)</value></data>
   <data name="NoRecipeSelected" xml:space="preserve"><value>Kein Rezept ausgewählt</value></data>
   <data name="ClickToSelectRecipe" xml:space="preserve"><value>Klicken, um ein Rezept auszuwählen</value></data>
-  <data name="RecipeIdOrSelectPlaceholder" xml:space="preserve"><value>Rezept-Id oder per Auswahl wählen</value></data>
+  <data name="RecipeIdOrSelectPlaceholder" xml:space="preserve"><value>Rezept‑Id oder per Auswahl wählen</value></data>
   <data name="WeeklyOn" xml:space="preserve"><value>Wöchentlich an</value></data>
   <data name="SearchRecipePlaceholder" xml:space="preserve"><value>Rezept suchen...</value></data>
   <data name="Selected" xml:space="preserve"><value>Ausgewählt</value></data>
