@@ -9,8 +9,8 @@ Branch: `task/issue-154-6c3461c1d9ff4d0bbd8a49a16a64aae8-githooks`
 | [x] | – | Einstiegspunkt ermitteln (keine Artefakte → Schritt 3) | – |
 | [x] | 3 | Anforderung übersetzen (Unteragent) | `requirement.md` |
 | [x] | 4 | Bestandsaufnahme (Unteragent) | `inventory.md`, `inventory/` |
-| [ ] | 5 | Umsetzungsplanung (Unteragent) | `plan.md` |
-| [ ] | 5a | Offene Punkte prüfen und ggf. Planung wiederholen | `plan.md` (aktualisiert) |
+| [x] | 5 | Umsetzungsplanung (Unteragent) | `plan.md` |
+| [x] | 5a | Offene Punkte prüfen und ggf. Planung wiederholen | `plan.md` (aktualisiert) |
 | [ ] | 5b | Plan gegen Anforderung und Testbedarf prüfen (Unteragent) | `plan-check.md` |
 | [ ] | 5c | Planungscommit | – |
 | [ ] | 6 | Implementierung (Unteragent) | Codeänderungen |
