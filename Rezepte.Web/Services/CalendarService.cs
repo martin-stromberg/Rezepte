@@ -9,22 +9,45 @@ using System.Threading.Tasks;
 
 namespace Rezepte.Web.Services
 {
+    /// <summary>
+    /// Represents the calendar service class.
+    /// </summary>
     public sealed class CalendarService : ICalendarService
     {
         private readonly RezepteDbContext _db;
         private readonly IRecipeService _recipeService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CalendarService"/> class.
+        /// </summary>
+        /// <param name="db">The db parameter.</param>
+        /// <param name="recipeService">The recipe service parameter.</param>
         public CalendarService(RezepteDbContext db, IRecipeService recipeService)
         {
             _db = db ?? throw new ArgumentNullException(nameof(db));
             _recipeService = recipeService ?? throw new ArgumentNullException(nameof(recipeService));
         }
 
+        /// <summary>
+        /// Gets the event async.
+        /// </summary>
+        /// <param name="userId">The user id parameter.</param>
+        /// <param name="eventId">The event id parameter.</param>
+        /// <param name="ct">The ct parameter.</param>
+        /// <returns>The result.</returns>
         public async Task<CalendarEvent?> GetEventAsync(string userId, string eventId, CancellationToken ct)
         {
             return await _db.Set<CalendarEvent>().AsNoTracking().FirstOrDefaultAsync(e => e.Id == eventId && e.UserId == userId, ct);
         }
 
+        /// <summary>
+        /// Gets the events for user async.
+        /// </summary>
+        /// <param name="userId">The user id parameter.</param>
+        /// <param name="from">The from parameter.</param>
+        /// <param name="to">The to parameter.</param>
+        /// <param name="ct">The ct parameter.</param>
+        /// <returns>The result.</returns>
         public async Task<IEnumerable<CalendarEvent>> GetEventsForUserAsync(string userId, DateTime from, DateTime to, CancellationToken ct)
         {
             // return stored events that either have a start in range or are recurring (caller may expand)
@@ -34,6 +57,24 @@ namespace Rezepte.Web.Services
                 .ToListAsync(ct);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Task"/> class.
+        /// </summary>
+        /// <param name="userId">The user id parameter.</param>
+        /// <param name="recipeId">The recipe id parameter.</param>
+        /// <param name="startDate">The start date parameter.</param>
+        /// <param name="timeOfDay">The time of day parameter.</param>
+        /// <param name="portions">The portions parameter.</param>
+        /// <param name="recurrence">The recurrence parameter.</param>
+        /// <param name="recurrenceDays">The recurrence days parameter.</param>
+        /// <param name="ct">The ct parameter.</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <returns>The result.</returns>
+        /// <param name="ok">The ok parameter.</param>
+        /// <param name="error">The error parameter.</param>
+        /// <param name="ev">The ev parameter.</param>
         public async Task<(bool ok, string? error, CalendarEvent? ev)> CreateEventAsync(string userId, string? recipeId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(userId)) return (false, "Unauthorized", null);
@@ -64,6 +105,23 @@ namespace Rezepte.Web.Services
             return (true, null, ev);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Task"/> class.
+        /// </summary>
+        /// <param name="userId">The user id parameter.</param>
+        /// <param name="eventId">The event id parameter.</param>
+        /// <param name="startDate">The start date parameter.</param>
+        /// <param name="timeOfDay">The time of day parameter.</param>
+        /// <param name="portions">The portions parameter.</param>
+        /// <param name="recurrence">The recurrence parameter.</param>
+        /// <param name="recurrenceDays">The recurrence days parameter.</param>
+        /// <param name="ct">The ct parameter.</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <returns>The result.</returns>
+        /// <param name="ok">The ok parameter.</param>
+        /// <param name="error">The error parameter.</param>
         public async Task<(bool ok, string? error)> UpdateEventAsync(string userId, string eventId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct)
         {
             var ev = await _db.Set<CalendarEvent>().FirstOrDefaultAsync(e => e.Id == eventId && e.UserId == userId, ct);
@@ -78,6 +136,18 @@ namespace Rezepte.Web.Services
             return (true, null);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Task"/> class.
+        /// </summary>
+        /// <param name="userId">The user id parameter.</param>
+        /// <param name="eventId">The event id parameter.</param>
+        /// <param name="ct">The ct parameter.</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <returns>The result.</returns>
+        /// <param name="ok">The ok parameter.</param>
+        /// <param name="error">The error parameter.</param>
         public async Task<(bool ok, string? error)> DeleteEventAsync(string userId, string eventId, CancellationToken ct)
         {
             var ev = await _db.Set<CalendarEvent>().FirstOrDefaultAsync(e => e.Id == eventId && e.UserId == userId, ct);
@@ -87,6 +157,19 @@ namespace Rezepte.Web.Services
             return (true, null);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Task"/> class.
+        /// </summary>
+        /// <param name="userId">The user id parameter.</param>
+        /// <param name="from">The from parameter.</param>
+        /// <param name="to">The to parameter.</param>
+        /// <param name="ct">The ct parameter.</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <returns>The result.</returns>
+        /// <param name="Ev">The ev parameter.</param>
+        /// <param name="Occurrence">The occurrence parameter.</param>
         public async Task<IEnumerable<(CalendarEvent Ev, DateTime Occurrence)>> GetOccurrencesAsync(string userId, DateTime from, DateTime to, CancellationToken ct)
         {
             var events = await GetEventsForUserAsync(userId, from, to, ct);

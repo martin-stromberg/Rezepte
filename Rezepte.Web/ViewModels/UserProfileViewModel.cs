@@ -6,26 +6,61 @@ using Rezepte.Web.Contracts;
 
 namespace Rezepte.Web.ViewModels;
 
+/// <summary>
+/// Represents the user profile view model class.
+/// </summary>
 public class UserProfileViewModel
 {
     private readonly HttpClient _http;
     private readonly ILogger<UserProfileViewModel> _logger;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public event Action? OnChange;
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool IsLoading { get; private set; } = true;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool IsBusy { get; private set; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool IsError { get; private set; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Message { get; private set; }
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
+    /// <returns>The result.</returns>
     public ProfileModel Profile { get; private set; } = new();
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
+    /// <returns>The result.</returns>
     public PasswordModel Password { get; set; } = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UserProfileViewModel"/> class.
+    /// </summary>
+    /// <param name="apiClient">The api client parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public UserProfileViewModel(ApiClient apiClient, ILogger<UserProfileViewModel> logger)
     {
         _http = apiClient.Http;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Loads the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
     public async Task LoadAsync(CancellationToken ct = default)
     {
         ResetMessage();
@@ -71,6 +106,10 @@ public class UserProfileViewModel
         }
     }
 
+    /// <summary>
+    /// Saves the profile async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
     public async Task SaveProfileAsync(CancellationToken ct = default)
     {
         ResetMessage();
@@ -107,6 +146,10 @@ public class UserProfileViewModel
         }
     }
 
+    /// <summary>
+    /// changes the password async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
     public async Task ChangePasswordAsync(CancellationToken ct = default)
     {
         ResetMessage();
@@ -165,26 +208,50 @@ public class UserProfileViewModel
     private void ResetMessage() { IsError = false; Message = null; Notify(); }
     private void Notify() => OnChange?.Invoke();
 
+    /// <summary>
+    /// Represents the profile model class.
+    /// </summary>
     public class ProfileModel
     {
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public string Id { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         [Required]
         public string? Username { get; set; }
 
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         [EmailAddress]
         [DataType(DataType.EmailAddress)]
         public string? Email { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// Represents the password model class.
+    /// </summary>
     public class PasswordModel
     {
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         [Required]
         public string CurrentPassword { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         [Required, MinLength(6)]
         public string NewPassword { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         [Required]
         public string ConfirmPassword { get; set; } = string.Empty;
     }

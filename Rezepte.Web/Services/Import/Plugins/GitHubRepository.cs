@@ -1,7 +1,19 @@
 namespace Rezepte.Web.Services.Import.Plugins;
 
+/// <summary>
+/// gits the hub repository.
+/// </summary>
+/// <param name="Owner">The owner parameter.</param>
+/// <param name="Repository">The repository parameter.</param>
+/// <param name="CanonicalUrl">The canonical url parameter.</param>
+/// <returns>The result.</returns>
 public sealed record GitHubRepository(string Owner, string Repository, string CanonicalUrl)
 {
+    /// <summary>
+    /// Parses the value.
+    /// </summary>
+    /// <param name="repositoryUrl">The repository url parameter.</param>
+    /// <returns>The result.</returns>
     public static GitHubRepository Parse(string repositoryUrl)
     {
         if (!TryParse(repositoryUrl, out var repository))
@@ -12,6 +24,12 @@ public sealed record GitHubRepository(string Owner, string Repository, string Ca
         return repository;
     }
 
+    /// <summary>
+    /// Tries to parse.
+    /// </summary>
+    /// <param name="repositoryUrl">The repository url parameter.</param>
+    /// <param name="repository">The repository parameter.</param>
+    /// <returns>The result.</returns>
     public static bool TryParse(string repositoryUrl, out GitHubRepository repository)
     {
         repository = default!;

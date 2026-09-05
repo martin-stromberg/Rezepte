@@ -2,6 +2,12 @@ using System.IO.Compression;
 
 namespace Rezepte.Web.Services.Import.Plugins;
 
+/// <summary>
+/// plugins the package validator.
+/// </summary>
+/// <param name="pluginManager">The plugin manager parameter.</param>
+/// <param name="logger">The logger parameter.</param>
+/// <returns>The result.</returns>
 public sealed class PluginPackageValidator(IPluginManager pluginManager, ILogger<PluginPackageValidator> logger) : IPluginPackageValidator
 {
     private static readonly HashSet<string> AllowedTopLevelFiles = new(StringComparer.OrdinalIgnoreCase)
@@ -12,6 +18,12 @@ public sealed class PluginPackageValidator(IPluginManager pluginManager, ILogger
         "CHANGELOG.md"
     };
 
+    /// <summary>
+    /// Validates the async.
+    /// </summary>
+    /// <param name="zipPath">The zip path parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public Task<PluginPackageValidationResult> ValidateAsync(string zipPath, CancellationToken ct = default)
     {
         var extractRoot = Path.Combine(Path.GetTempPath(), "rezepte-plugin-package", Guid.NewGuid().ToString("N"));

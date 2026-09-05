@@ -15,12 +15,22 @@ public class GoogleQuotaClient
     private readonly string _serviceAccountJsonPath;
     private readonly HttpClient _httpClient;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GoogleQuotaClient"/> class.
+    /// </summary>
+    /// <param name="serviceAccountJsonPath">The service account json path parameter.</param>
     public GoogleQuotaClient(string serviceAccountJsonPath)
     {
         _serviceAccountJsonPath = serviceAccountJsonPath;
         _httpClient = new HttpClient();
     }
 
+    /// <summary>
+    /// Gets the quota async.
+    /// </summary>
+    /// <param name="serviceName">The service name parameter.</param>
+    /// <param name="projectId">The project id parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<string> GetQuotaAsync(string serviceName, string projectId)
     {
         // GoogleCredential.FromFile(string) is obsolete (potential security risk loading an

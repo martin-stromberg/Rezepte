@@ -3,10 +3,16 @@ using System.Text.Json;
 
 namespace Rezepte.Web;
 
+/// <summary>
+/// Represents the application version class.
+/// </summary>
 public static class ApplicationVersion
 {
     private static readonly string Value = Resolve();
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public static string Current => Value;
 
     private static string Resolve()

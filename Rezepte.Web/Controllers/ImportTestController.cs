@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 
 namespace Rezepte.Web.Controllers
 {
+    /// <summary>
+    /// Represents the import test controller class.
+    /// </summary>
     [ApiController]
     [Route("api/import")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)]
@@ -20,6 +23,12 @@ namespace Rezepte.Web.Controllers
         private readonly IRecipeService _recipes;
         private readonly ILogger<ImportTestController> _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImportTestController"/> class.
+        /// </summary>
+        /// <param name="testService">The test service parameter.</param>
+        /// <param name="recipes">The recipes parameter.</param>
+        /// <param name="logger">The logger parameter.</param>
         public ImportTestController(ITestRecipeImportService testService, IRecipeService recipes, ILogger<ImportTestController> logger)
         {
             _testService = testService;
@@ -27,6 +36,11 @@ namespace Rezepte.Web.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Gets the test urls.
+        /// </summary>
+        /// <param name="ct">The ct parameter.</param>
+        /// <returns>The result.</returns>
         [HttpGet("test-urls")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetTestUrls(CancellationToken ct)
@@ -35,8 +49,19 @@ namespace Rezepte.Web.Controllers
             return Ok(urls);
         }
 
+        /// <summary>
+        /// Deletes the by url request.
+        /// </summary>
+        /// <param name="Url">The url parameter.</param>
+        /// <returns>The result.</returns>
         public record DeleteByUrlRequest(string Url);
 
+        /// <summary>
+        /// Deletes the by url.
+        /// </summary>
+        /// <param name="req">The req parameter.</param>
+        /// <param name="ct">The ct parameter.</param>
+        /// <returns>The result.</returns>
         [HttpPost("test-delete")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteByUrl([FromBody] DeleteByUrlRequest req, CancellationToken ct)

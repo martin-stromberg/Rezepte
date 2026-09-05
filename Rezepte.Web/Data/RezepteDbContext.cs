@@ -5,31 +5,133 @@ using System.Collections.Generic;
 
 namespace Rezepte.Web.Data;
 
+/// <summary>
+/// rezeptes the db context.
+/// </summary>
+/// <param name="options">The options parameter.</param>
+/// <returns>The result.</returns>
 public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbContext(options)
 {
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="User">The user type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<User> Users => Set<User>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="Cookbook">The cookbook type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<Cookbook> Cookbooks => Set<Cookbook>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="Recipe">The recipe type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<Recipe> Recipes => Set<Recipe>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="RecipeStep">The recipe step type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<RecipeStep> RecipeSteps => Set<RecipeStep>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="RecipeCookbook">The recipe cookbook type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<RecipeCookbook> RecipeCookbooks => Set<RecipeCookbook>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="RecipeSideDish">The recipe side dish type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<RecipeSideDish> RecipeSideDishes => Set<RecipeSideDish>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="RecipeIngredient">The recipe ingredient type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DbSet<RecipeImage> RecipeImages { get; set; } = null!;
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="AiRequestLog">The ai request log type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<AiRequestLog> AiRequestLogs => Set<AiRequestLog>();
 
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="UserSetting">The user setting type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<UserSetting> UserSettings => Set<UserSetting>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="AppSetting">The app setting type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="PluginSetting">The plugin setting type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<PluginSetting> PluginSettings => Set<PluginSetting>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="PluginSource">The plugin source type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<PluginSource> PluginSources => Set<PluginSource>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="PluginSourceRelease">The plugin source release type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<PluginSourceRelease> PluginSourceReleases => Set<PluginSourceRelease>();
 
     // Calendar events
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="CalendarEvent">The calendar event type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="ShoppingListGroup">The shopping list group type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<ShoppingListGroup> ShoppingListGroups => Set<ShoppingListGroup>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="ShoppingListItem">The shopping list item type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="BackgroundJob">The background job type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<BackgroundJob> BackgroundJobs => Set<BackgroundJob>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <typeparam name="UserExportFile">The user export file type parameter.</typeparam>
+    /// <returns>The result.</returns>
     public DbSet<UserExportFile> UserExportFiles => Set<UserExportFile>();
 
+    /// <summary>
+    /// ons the model creating.
+    /// </summary>
+    /// <param name="modelBuilder">The model builder parameter.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -308,4 +410,3 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
         });
     }
 }
-

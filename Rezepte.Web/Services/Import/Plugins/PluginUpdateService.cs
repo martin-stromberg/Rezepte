@@ -4,6 +4,16 @@ using Rezepte.Web.Entities;
 
 namespace Rezepte.Web.Services.Import.Plugins;
 
+/// <summary>
+/// plugins the update service.
+/// </summary>
+/// <param name="db">The db parameter.</param>
+/// <param name="gitHubReleaseClient">The git hub release client parameter.</param>
+/// <param name="secretStore">The secret store parameter.</param>
+/// <param name="packageValidator">The package validator parameter.</param>
+/// <param name="packageInstaller">The package installer parameter.</param>
+/// <param name="logger">The logger parameter.</param>
+/// <returns>The result.</returns>
 public sealed class PluginUpdateService(
     RezepteDbContext db,
     IGitHubReleaseClient gitHubReleaseClient,
@@ -12,6 +22,10 @@ public sealed class PluginUpdateService(
     IPluginPackageInstaller packageInstaller,
     ILogger<PluginUpdateService> logger) : IPluginUpdateService
 {
+    /// <summary>
+    /// Checks the for updates async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
     public async Task CheckForUpdatesAsync(CancellationToken ct = default)
     {
         var sources = await db.PluginSources

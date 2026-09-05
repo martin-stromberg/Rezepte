@@ -18,6 +18,9 @@ public enum PasswordVerificationResult
     SuccessRehashNeeded
 }
 
+/// <summary>
+/// Represents the password hasher class.
+/// </summary>
 public static class PasswordHasher
 {
     /// <summary>Iteration count used for newly created password hashes (OWASP recommendation for PBKDF2-HMAC-SHA256).</summary>
@@ -36,6 +39,12 @@ public static class PasswordHasher
     public const int HashLengthBytes = 32;
 
     // PBKDF2 with HMACSHA256
+    /// <summary>
+    /// hashs the value.
+    /// </summary>
+    /// <param name="password">The password parameter.</param>
+    /// <param name="iterations">The iterations parameter.</param>
+    /// <returns>The result.</returns>
     public static string Hash(string password, int iterations = CurrentIterations)
     {
         ArgumentNullException.ThrowIfNull(password);
@@ -54,6 +63,12 @@ public static class PasswordHasher
         return $"{iterations}.{Convert.ToHexString(salt)}.{Convert.ToHexString(hash)}";
     }
 
+    /// <summary>
+    /// verifys the value.
+    /// </summary>
+    /// <param name="password">The password parameter.</param>
+    /// <param name="hashString">The hash string parameter.</param>
+    /// <returns>The result.</returns>
     public static PasswordVerificationResult Verify(string password, string hashString)
     {
         ArgumentNullException.ThrowIfNull(password);

@@ -10,6 +10,9 @@ using System.Text.RegularExpressions;
 
 namespace Rezepte.Web.Services.Import;
 
+/// <summary>
+/// Represents the gemini client class.
+/// </summary>
 public class GeminiClient : IGeminiClient
 {
     private readonly HttpClient _apiClient;
@@ -18,6 +21,12 @@ public class GeminiClient : IGeminiClient
     private GoogleCredential? _credential;
     private readonly object _initLock = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GeminiClient"/> class.
+    /// </summary>
+    /// <param name="apiClient">The api client parameter.</param>
+    /// <param name="provider">The provider parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public GeminiClient(System.Net.Http.IHttpClientFactory apiClient, IGoogleCredentialsProvider provider, ILogger<GeminiClient> logger)
     {
         _apiClient = apiClient.CreateClient();
@@ -98,6 +107,12 @@ public class GeminiClient : IGeminiClient
         throw new InvalidOperationException($"No Gemini API key configured and service account file at '{serviceAccountPath}' could not provide credentials.");
     }
 
+    /// <summary>
+    /// extracts the recipe async.
+    /// </summary>
+    /// <param name="ocrText">The ocr text parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<AIRecipe[]> ExtractRecipeAsync(string ocrText, CancellationToken ct = default)
     {
         await InitHttpClientAsync();
@@ -177,6 +192,12 @@ OCR-Text:
         return new AIRecipe[] { ParseRecipe(text) };
     }
 
+    /// <summary>
+    /// extracts the recipe from url async.
+    /// </summary>
+    /// <param name="responseContent">The response content parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<AIRecipe[]> ExtractRecipeFromUrlAsync(string responseContent, CancellationToken ct = default)
     {
         await InitHttpClientAsync();
@@ -362,10 +383,18 @@ Html-Code:
         return names.Select(name => new KeyValuePair<string, string>(name, ParseInformation(recipeContent, name))).ToArray();
     }
 
+    /// <summary>
+    /// Determines whether service account.
+    /// </summary>
+    /// <returns>The result.</returns>
     public bool HasServiceAccount()
     {
         return _provider.GetDiagnostics().ServiceAccountFileExists;
     }
+    /// <summary>
+    /// Determines whether api key.
+    /// </summary>
+    /// <returns>The result.</returns>
     public bool HasApiKey()
     {
         return _provider.GetDiagnostics().GeminiApiKeyConfigured;

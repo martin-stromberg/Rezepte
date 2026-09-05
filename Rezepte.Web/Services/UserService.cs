@@ -10,6 +10,7 @@ namespace Rezepte.Web.Services;
 /// <summary>
 /// Lightweight user projection used by the service layer.
 /// </summary>
+/// <returns>The result.</returns>
 /// <param name="Id">User identifier.</param>
 /// <param name="Username">Username (unique).</param>
 /// <param name="Email">E-mail address (optional).</param>
@@ -112,6 +113,12 @@ public interface IUserService
     /// <returns>Tuple with success flag and optional error.</returns>
     Task<(bool ok, string? error)> DeleteAsync(string id, CancellationToken ct);
 }
+/// <summary>
+/// users the service.
+/// </summary>
+/// <param name="db">The db parameter.</param>
+/// <param name="usernameValidator">The username validator parameter.</param>
+/// <returns>The result.</returns>
 public class UserService(RezepteDbContext db, IUsernameValidator usernameValidator) : BaseService, IUserService
 {
     private readonly RezepteDbContext _db = db;

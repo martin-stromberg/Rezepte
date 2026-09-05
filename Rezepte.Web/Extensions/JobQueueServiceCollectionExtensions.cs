@@ -3,12 +3,20 @@ using Rezepte.Web.Services.BackgroundJobs;
 
 namespace Rezepte.Web.Extensions;
 
+/// <summary>
+/// Represents the job queue service collection extensions class.
+/// </summary>
 public static class JobQueueServiceCollectionExtensions
 {
     /// <summary>
     /// Registers job queue, hosted worker and job handler discovery.
     /// Register your IBackgroundJobHandler implementations separately (Scoped/Transient).
     /// </summary>
+    /// <param name="services">The services parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     public static IServiceCollection AddBackgroundJobQueue(this IServiceCollection services)
     {
         // queue as singleton

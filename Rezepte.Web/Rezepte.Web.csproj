@@ -4,6 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningsAsErrors>CS1591</WarningsAsErrors>
     <ExternalImportPluginsPath>$(MSBuildProjectDirectory)\..\external\rezepte-import-plugins-private\artifacts\plugins</ExternalImportPluginsPath>
   </PropertyGroup>
 

@@ -24,8 +24,18 @@ using System.Threading.RateLimiting;
 
 namespace Rezepte.Web.Extensions;
 
+/// <summary>
+/// Represents the service collection extensions class.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Adds the rezepte services.
+    /// </summary>
+    /// <param name="services">The services parameter.</param>
+    /// <param name="configuration">The configuration parameter.</param>
+    /// <param name="env">The env parameter.</param>
+    /// <returns>The result.</returns>
     public static IServiceCollection AddRezepteServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment env)
     {
         // Bind configuration sections used by the app

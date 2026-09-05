@@ -4,33 +4,75 @@ using System.Text.Json;
 
 namespace Rezepte.Web.ViewModels;
 
+/// <summary>
+/// Represents the user admin view model class.
+/// </summary>
 public class UserAdminViewModel
 {
     private readonly ApiClient _api;
     private readonly ILogger<UserAdminViewModel> _logger;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public event Action? OnChange;
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool IsLoading { get; private set; } = true;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool IsBusy { get; private set; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool IsError { get; private set; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Message { get; private set; }
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<UserRow> Users { get; private set; } = [];
+    /// <summary>
+    /// strings the value.
+    /// </summary>
+    /// <param name="Query">The query parameter.</param>
+    /// <returns>The result.</returns>
     public IEnumerable<UserRow> Filtered => string.IsNullOrWhiteSpace(Query)
         ? Users
         : Users.Where(u => (u.Username?.Contains(Query, StringComparison.OrdinalIgnoreCase) ?? false)
                         || (u.Email?.Contains(Query, StringComparison.OrdinalIgnoreCase) ?? false));
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Query { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
+    /// <returns>The result.</returns>
     public NewUserModel NewUser { get; } = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UserAdminViewModel"/> class.
+    /// </summary>
+    /// <param name="api">The api parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public UserAdminViewModel(ApiClient api, ILogger<UserAdminViewModel> logger)
     {
         _api = api ?? throw new ArgumentNullException(nameof(api));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Loads the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
     public async Task LoadAsync(CancellationToken ct = default)
     {
         Reset(); IsLoading = true; Notify();
@@ -49,8 +91,15 @@ public class UserAdminViewModel
         finally { IsLoading = false; Notify(); }
     }
 
+    /// <summary>
+    /// reloads the async.
+    /// </summary>
     public async Task ReloadAsync() => await LoadAsync();
 
+    /// <summary>
+    /// Creates the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
     public async Task CreateAsync(CancellationToken ct = default)
     {
         Reset();
@@ -94,6 +143,11 @@ public class UserAdminViewModel
         finally { IsBusy = false; Notify(); }
     }
 
+    /// <summary>
+    /// Saves the async.
+    /// </summary>
+    /// <param name="user">The user parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task SaveAsync(UserRow user, CancellationToken ct = default)
     {
         Reset(); IsBusy = true; Notify();
@@ -112,6 +166,11 @@ public class UserAdminViewModel
         finally { IsBusy = false; Notify(); }
     }
 
+    /// <summary>
+    /// Deletes the async.
+    /// </summary>
+    /// <param name="user">The user parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task DeleteAsync(UserRow user, CancellationToken ct = default)
     {
         Reset(); IsBusy = true; Notify();
@@ -151,22 +210,52 @@ public class UserAdminViewModel
     private void Reset() { IsError = false; Message = null; }
     private void Notify() => OnChange?.Invoke();
 
+    /// <summary>
+    /// Represents the user row class.
+    /// </summary>
     public class UserRow
     {
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public string Id { get; set; } = string.Empty;
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         [Required] public string Username { get; set; } = string.Empty;
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public string? Email { get; set; }
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public bool IsAdmin { get; set; }
     }
 
+    /// <summary>
+    /// Represents the new user model class.
+    /// </summary>
     public class NewUserModel
     {
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         [Required]
         public string? Username { get; set; }
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         [EmailAddress]
         public string? Email { get; set; }
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         [Required, MinLength(6)]
         public string Password { get; set; } = string.Empty;
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public bool IsAdmin { get; set; }
     }
 }

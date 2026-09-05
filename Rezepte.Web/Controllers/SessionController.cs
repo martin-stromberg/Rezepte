@@ -76,6 +76,7 @@ public class SessionController : ControllerBase
     /// <summary>
     /// Form DTO for login.
     /// </summary>
+    /// <returns>The result.</returns>
     /// <param name="Username">Username.</param>
     /// <param name="Password">Password.</param>
     /// <param name="RememberMe">When true, creates a persistent cookie.</param>

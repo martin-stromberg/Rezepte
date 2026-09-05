@@ -35,6 +35,7 @@ public sealed class LoadingBarOptions
     /// <summary>
     /// Colors from which one is chosen at random for each navigation interaction.
     /// </summary>
+    /// <returns>The result.</returns>
     /// <remarks>
     /// Defaults to an empty array rather than <see cref="DefaultColors"/> because the .NET configuration
     /// binder appends configured entries to a pre-populated array instead of replacing them. Starting
@@ -48,5 +49,10 @@ public sealed class LoadingBarOptions
     /// <summary>
     /// The documented default color palette, used when <see cref="Colors"/> is empty or invalid.
     /// </summary>
+    /// <param name="DefaultColorsArray">The default colors array parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     public static readonly IReadOnlyList<string> DefaultColors = new ReadOnlyCollection<string>(DefaultColorsArray);
 }

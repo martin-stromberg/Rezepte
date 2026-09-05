@@ -28,9 +28,20 @@ public interface IGoogleCredentialsProvider
     /// <summary>
     /// Returns secret-free diagnostics for the currently resolved Google credentials.
     /// </summary>
+    /// <returns>The result.</returns>
     GoogleCredentialsDiagnostics GetDiagnostics();
 }
 
+/// <summary>
+/// googles the credentials diagnostics.
+/// </summary>
+/// <param name="ServiceAccountEnvironmentVariableSet">The service account environment variable set parameter.</param>
+/// <param name="ServiceAccountOptionsFallbackSet">The service account options fallback set parameter.</param>
+/// <param name="ServiceAccountFilePath">The service account file path parameter.</param>
+/// <param name="ServiceAccountFileExists">The service account file exists parameter.</param>
+/// <param name="GeminiApiKeyEnvironmentVariableSet">The gemini api key environment variable set parameter.</param>
+/// <param name="GeminiApiKeyOptionsFallbackSet">The gemini api key options fallback set parameter.</param>
+/// <returns>The result.</returns>
 public sealed record GoogleCredentialsDiagnostics(
     bool ServiceAccountEnvironmentVariableSet,
     bool ServiceAccountOptionsFallbackSet,
@@ -39,15 +50,24 @@ public sealed record GoogleCredentialsDiagnostics(
     bool GeminiApiKeyEnvironmentVariableSet,
     bool GeminiApiKeyOptionsFallbackSet)
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string ServiceAccountSource =>
         ServiceAccountEnvironmentVariableSet ? "environment" :
         ServiceAccountOptionsFallbackSet ? "options" :
         "none";
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string GeminiApiKeySource =>
         GeminiApiKeyEnvironmentVariableSet ? "environment" :
         GeminiApiKeyOptionsFallbackSet ? "options" :
         "none";
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool GeminiApiKeyConfigured => GeminiApiKeyEnvironmentVariableSet || GeminiApiKeyOptionsFallbackSet;
 }

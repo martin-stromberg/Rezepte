@@ -10,16 +10,35 @@ using static Grpc.Core.Metadata;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Defines the iexport service interface.
+/// </summary>
 public interface IExportService
 {
     /// <summary>
     /// Exportiert die Rezepte des angegebenen Benutzers als ZIP-Stream.
     /// </summary>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="includeImages">The include images parameter.</param>
+    /// <param name="includePdf">The include pdf parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     Task<Stream> ExportUserAsync(string userId, bool includeImages, bool includePdf, CancellationToken ct = default);
 
     /// <summary>
     /// Exportiert alle Daten (Admin-Export) als ZIP-Stream.
     /// </summary>
+    /// <param name="adminUserId">The admin user id parameter.</param>
+    /// <param name="includeImages">The include images parameter.</param>
+    /// <param name="includePdf">The include pdf parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     Task<Stream> ExportAllAsync(string adminUserId, bool includeImages, bool includePdf, CancellationToken ct = default);
 
     /// <summary>
@@ -27,6 +46,12 @@ public interface IExportService
     /// Achtung: Implementierung ist vorsichtig - legt fehlende Entitaeten an, überschreibt
     /// bestehende nicht. Prüfe und erweitere nach Bedarf (Transaktionen, Validierung, BackgroundJob).
     /// </summary>
+    /// <param name="zipStream">The zip stream parameter.</param>
+    /// <param name="adminUserId">The admin user id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
     Task RestoreFromZipAsync(Stream zipStream, string adminUserId, CancellationToken ct = default);
 }
 
@@ -39,6 +64,12 @@ public interface IPdfGenerator
     /// <summary>
     /// Erzeugt ein PDF für das gegebene Rezept (z.B. HTML-to-PDF) und liefert die Binaerdaten zurück.
     /// </summary>
+    /// <param name="recipe">The recipe parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     Task<byte[]?> GenerateRecipePdfAsync(ExportRecipeDto recipe, CancellationToken ct = default);
 }
 
@@ -57,6 +88,13 @@ public class ExportService : BaseService, IExportService
     private readonly RestoreValidationOptions _validationOptions;
     private readonly JsonSerializerOptions _jsonOptions;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExportService"/> class.
+    /// </summary>
+    /// <param name="db">The db parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
+    /// <param name="pdfGenerator">The pdf generator parameter.</param>
+    /// <param name="validationOptions">The validation options parameter.</param>
     public ExportService(RezepteDbContext db, ILogger<ExportService> logger, IPdfGenerator? pdfGenerator = null, RestoreValidationOptions? validationOptions = null)
     {
         _db = db;
@@ -71,6 +109,14 @@ public class ExportService : BaseService, IExportService
         };
     }
 
+    /// <summary>
+    /// exports the user async.
+    /// </summary>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="includeImages">The include images parameter.</param>
+    /// <param name="includePdf">The include pdf parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<Stream> ExportUserAsync(string userId, bool includeImages, bool includePdf, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(userId);
@@ -94,6 +140,14 @@ public class ExportService : BaseService, IExportService
         return await CreateZipAsync(userId, false, cookbooks, recipes, includeImages, includePdf, ct);
     }
 
+    /// <summary>
+    /// exports the all async.
+    /// </summary>
+    /// <param name="adminUserId">The admin user id parameter.</param>
+    /// <param name="includeImages">The include images parameter.</param>
+    /// <param name="includePdf">The include pdf parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<Stream> ExportAllAsync(string adminUserId, bool includeImages, bool includePdf, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(adminUserId);
@@ -491,6 +545,12 @@ public class ExportService : BaseService, IExportService
         };
     }
 
+    /// <summary>
+    /// restores the from zip async.
+    /// </summary>
+    /// <param name="zipStream">The zip stream parameter.</param>
+    /// <param name="adminUserId">The admin user id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task RestoreFromZipAsync(Stream zipStream, string adminUserId, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(zipStream);
@@ -1128,219 +1188,696 @@ public class ExportService : BaseService, IExportService
 }
 
 #region DTOs for export JSON
+/// <summary>
+/// Represents the export root dto record.
+/// </summary>
 public record ExportRootDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string FormatVersion { get; init; } = "1.0";
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime ExportedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportCookbookDto>? Cookbooks { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportRecipeDto>? Recipes { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportUserDto>? Users { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public ExportSystemDataDto? SystemData { get; init; }
 }
 
+/// <summary>
+/// Represents the export cookbook dto record.
+/// </summary>
 public record ExportCookbookDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string UserId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Title { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Description { get; init; }
 }
 
+/// <summary>
+/// Represents the export recipe dto record.
+/// </summary>
 public record ExportRecipeDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? OwnerId { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Title { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Description { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Uri { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public int? Portions { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportStepDto>? Steps { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<string>? ImagePaths { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportRecipeCookbookDto>? Cookbooks { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportRecipeSideDishDto>? SideDishes { get; init; }
 }
 
+/// <summary>
+/// Represents the export recipe cookbook dto record.
+/// </summary>
 public record ExportRecipeCookbookDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string RecipeId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string CookbookId { get; init; } = default!;
 }
 
+/// <summary>
+/// Represents the export recipe side dish dto record.
+/// </summary>
 public record ExportRecipeSideDishDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string RecipeId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string SideDishRecipeId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public int OrderIndex { get; init; }
 }
 
+/// <summary>
+/// Represents the export step dto record.
+/// </summary>
 public record ExportStepDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public int StepIndex { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Title { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Description { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public int DurationMinutes { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool RequiresOvernightRest { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportIngredientDto>? Ingredients { get; init; }
 }
 
+/// <summary>
+/// Represents the export ingredient dto record.
+/// </summary>
 public record ExportIngredientDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public decimal Amount { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Unit { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Name { get; init; } = default!;
 }
 
+/// <summary>
+/// Represents the export user dto record.
+/// </summary>
 public record ExportUserDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string UserName { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Email { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool IsAdmin { get; init; }
 }
 
+/// <summary>
+/// Represents the export system data dto record.
+/// </summary>
 public record ExportSystemDataDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportCalendarEventDto> CalendarEvents { get; init; } = [];
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportShoppingListGroupDto> ShoppingListGroups { get; init; } = [];
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportShoppingListItemDto> ShoppingListItems { get; init; } = [];
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportUserSettingDto> UserSettings { get; init; } = [];
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportAppSettingDto> AppSettings { get; init; } = [];
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportPluginSettingDto> PluginSettings { get; init; } = [];
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportPluginSourceDto> PluginSources { get; init; } = [];
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportPluginSourceReleaseDto> PluginSourceReleases { get; init; } = [];
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportAiRequestLogDto> AiRequestLogs { get; init; } = [];
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public List<ExportBackgroundJobDto> BackgroundJobs { get; init; } = [];
 }
 
+/// <summary>
+/// Represents the export calendar event dto record.
+/// </summary>
 public record ExportCalendarEventDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string UserId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime StartDate { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public TimeSpan TimeOfDay { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? RecipeId { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public int Portions { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public RecurrenceType Recurrence { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public WeekDays RecurrenceDays { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime CreatedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? ModifiedAt { get; init; }
 }
 
+/// <summary>
+/// Represents the export shopping list group dto record.
+/// </summary>
 public record ExportShoppingListGroupDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string UserId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Name { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? RecipeId { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public int OrderIndex { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime CreatedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? ModifiedAt { get; init; }
 }
 
+/// <summary>
+/// Represents the export shopping list item dto record.
+/// </summary>
 public record ExportShoppingListItemDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string GroupId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public decimal Amount { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Unit { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Name { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool IsChecked { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public int OrderIndex { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime CreatedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? ModifiedAt { get; init; }
 }
 
+/// <summary>
+/// Represents the export user setting dto record.
+/// </summary>
 public record ExportUserSettingDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string UserId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool AiEnabled { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool GoogleVisionEnabled { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool GeminiEnabled { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool RequireAiConfirmation { get; init; }
 }
 
+/// <summary>
+/// Represents the export app setting dto record.
+/// </summary>
 public record ExportAppSettingDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Key { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Value { get; init; } = default!;
 }
 
+/// <summary>
+/// Represents the export plugin setting dto record.
+/// </summary>
 public record ExportPluginSettingDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string PluginId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string DisplayName { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Description { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string AssemblyName { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string TypeName { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool Enabled { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public int OrderIndex { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Status { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Error { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime DiscoveredAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime LastSeenAt { get; init; }
 }
 
+/// <summary>
+/// Represents the export plugin source dto record.
+/// </summary>
 public record ExportPluginSourceDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string RepositoryUrl { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Owner { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Repository { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool IsPrivate { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool Enabled { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public bool TrustConfirmed { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? SecretName { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? LastSuccessfulReleaseTag { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? LastError { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? LastCheckedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? LastErrorAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime CreatedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime UpdatedAt { get; init; }
 }
 
+/// <summary>
+/// Represents the export plugin source release dto record.
+/// </summary>
 public record ExportPluginSourceReleaseDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string PluginSourceId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string ReleaseTag { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public long GitHubReleaseId { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public long AssetId { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string AssetName { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Status { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Error { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime CreatedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? DownloadedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? ValidatedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? InstalledAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? ReloadStatus { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? ReloadedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? ReloadError { get; init; }
 }
 
+/// <summary>
+/// Represents the export ai request log dto record.
+/// </summary>
 public record ExportAiRequestLogDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Id { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string UserId { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string Service { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime Timestamp { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public AiRequestLogType Type { get; init; }
 }
 
+/// <summary>
+/// Represents the export background job dto record.
+/// </summary>
 public record ExportBackgroundJobDto
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public Guid Id { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string JobType { get; init; } = default!;
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? InitiatorUserId { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime CreatedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? StartedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public DateTime? CompletedAt { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public BackgroundJobs.BackgroundJobStatus Status { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? PayloadJson { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public int Progress { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? ResultMessage { get; init; }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string? Error { get; init; }
 }
 #endregion

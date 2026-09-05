@@ -3,6 +3,15 @@ using System.Net;
 
 namespace Rezepte.Web.Services.Http;
 
+/// <summary>
+/// remotes the content result.
+/// </summary>
+/// <param name="Success">The success parameter.</param>
+/// <param name="Content">The content parameter.</param>
+/// <param name="FileName">The file name parameter.</param>
+/// <param name="StatusCode">The status code parameter.</param>
+/// <param name="ErrorBody">The error body parameter.</param>
+/// <returns>The result.</returns>
 public sealed record RemoteContentResult(
     bool Success,
     MemoryStream? Content,
@@ -10,19 +19,39 @@ public sealed record RemoteContentResult(
     HttpStatusCode StatusCode,
     string? ErrorBody)
 {
+    /// <summary>
+    /// faileds the value.
+    /// </summary>
+    /// <param name="statusCode">The status code parameter.</param>
+    /// <param name="errorBody">The error body parameter.</param>
+    /// <returns>The result.</returns>
     public static RemoteContentResult Failed(HttpStatusCode statusCode, string? errorBody) =>
         new(false, null, string.Empty, statusCode, errorBody);
 }
 
+/// <summary>
+/// Defines the iremote content fetcher interface.
+/// </summary>
 public interface IRemoteContentFetcher
 {
     /// <summary>
     /// Downloads the resource behind <paramref name="uri"/> into a seekable memory stream,
     /// transparently decompressing encoded responses and inferring a file name.
     /// </summary>
+    /// <param name="uri">The uri parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     Task<RemoteContentResult> FetchAsync(Uri uri, CancellationToken ct);
 }
 
+/// <summary>
+/// remotes the content fetcher.
+/// </summary>
+/// <param name="httpClientFactory">The http client factory parameter.</param>
+/// <returns>The result.</returns>
 public sealed class RemoteContentFetcher(IHttpClientFactory httpClientFactory) : IRemoteContentFetcher
 {
     private const string DefaultFileName = "import-from-url";
@@ -34,6 +63,12 @@ public sealed class RemoteContentFetcher(IHttpClientFactory httpClientFactory) :
 
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
+    /// <summary>
+    /// Fetches the async.
+    /// </summary>
+    /// <param name="uri">The uri parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<RemoteContentResult> FetchAsync(Uri uri, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(uri);

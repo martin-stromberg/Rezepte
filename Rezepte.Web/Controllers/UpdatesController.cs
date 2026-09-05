@@ -6,6 +6,9 @@ using msTools.Updater;
 
 namespace Rezepte.Web.Controllers;
 
+/// <summary>
+/// Represents the updates controller class.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
@@ -14,12 +17,21 @@ public class UpdatesController : ControllerBase
     private readonly IAutoUpdateServiceResolver _serviceResolver;
     private readonly IOptions<AutoUpdateOptions> _updateOptions;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UpdatesController"/> class.
+    /// </summary>
+    /// <param name="serviceResolver">The service resolver parameter.</param>
+    /// <param name="updateOptions">The update options parameter.</param>
     public UpdatesController(IAutoUpdateServiceResolver serviceResolver, IOptions<AutoUpdateOptions> updateOptions)
     {
         _serviceResolver = serviceResolver;
         _updateOptions = updateOptions;
     }
 
+    /// <summary>
+    /// preflights the value.
+    /// </summary>
+    /// <returns>The result.</returns>
     [HttpGet("preflight")]
     public IActionResult Preflight()
     {

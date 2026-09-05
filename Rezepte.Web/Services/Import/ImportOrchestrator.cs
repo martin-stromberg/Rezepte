@@ -4,6 +4,9 @@ using System.Collections.Concurrent;
 
 namespace Rezepte.Web.Services.Import;
 
+/// <summary>
+/// Represents the import orchestrator class.
+/// </summary>
 public sealed class ImportOrchestrator
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -13,6 +16,12 @@ public sealed class ImportOrchestrator
     // Simple in-memory sessions (replaceable with distributed store)
     private readonly ConcurrentDictionary<string, ImportSession> _sessions = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ImportOrchestrator"/> class.
+    /// </summary>
+    /// <param name="scopeFactory">The scope factory parameter.</param>
+    /// <param name="pluginManager">The plugin manager parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public ImportOrchestrator(IServiceScopeFactory scopeFactory, IPluginManager pluginManager, ILogger<ImportOrchestrator> logger)
     {
         _scopeFactory = scopeFactory;
@@ -20,23 +29,79 @@ public sealed class ImportOrchestrator
         _logger = logger;
     }
 
+    /// <summary>
+    /// imports the session.
+    /// </summary>
+    /// <param name="Id">The id parameter.</param>
+    /// <param name="InitiatorUserId">The initiator user id parameter.</param>
+    /// <returns>The result.</returns>
     public record ImportSession(string Id, string InitiatorUserId)
     {
         internal object SyncRoot { get; } = new();
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public string Status { get; set; } = "Queued";
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public string State { get; set; } = "Queued";
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public bool ReadOnly { get; set; }
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public bool WaitingForConfirmation { get; set; } = false;
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public string? ConfirmationPrompt { get; set; }
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public TaskCompletionSource<bool>? ConfirmationTcs { get; set; }
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public TaskCompletionSource<ImportCollectionSelection>? SelectionTcs { get; set; }
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public ImportCollectionPreview? CollectionPreview { get; set; }
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public List<ImportCollectionItemStatus> CollectionItems { get; set; } = [];
+        /// <summary>
+        /// Represents the public class.
+        /// </summary>
         public ImportResult? Result { get; set; }
     }
 
+    /// <summary>
+    /// Gets the session for user.
+    /// </summary>
+    /// <param name="session">The session parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param name="id">The id parameter.</param>
+    /// <param name="userId">The user id parameter.</param>
+    /// <returns>The result.</returns>
     public ImportSession? GetSessionForUser(string id, string userId) => TryGetSessionForUser(id, userId, out var session) ? session : null;
 
+    /// <summary>
+    /// starts the import async.
+    /// </summary>
+    /// <param name="stream">The stream parameter.</param>
+    /// <param name="fileName">The file name parameter.</param>
+    /// <param name="uri">The uri parameter.</param>
+    /// <param name="targetCookbookId">The target cookbook id parameter.</param>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<string> StartImportAsync(Stream stream, string fileName, string? uri, string? targetCookbookId, string userId, CancellationToken ct = default)
     {
         // Make an independent in-memory copy of the provided stream so background processing
@@ -214,6 +279,13 @@ public sealed class ImportOrchestrator
     }
 
     // Called by UI to confirm a waiting session
+    /// <summary>
+    /// confirms the value.
+    /// </summary>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="accepted">The accepted parameter.</param>
+    /// <returns>The result.</returns>
     public bool Confirm(string sessionId, string userId, bool accepted)
     {
         if (!TryGetSessionForUser(sessionId, userId, out var session) || session.ConfirmationTcs == null)
@@ -223,6 +295,13 @@ public sealed class ImportOrchestrator
         return true;
     }
 
+    /// <summary>
+    /// submits the selection.
+    /// </summary>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="selection">The selection parameter.</param>
+    /// <returns>The result.</returns>
     public SelectionSubmitResult SubmitSelection(string sessionId, string userId, ImportCollectionSelection selection)
     {
         if (!TryGetSessionForUser(sessionId, userId, out var session))
@@ -277,6 +356,12 @@ public sealed class ImportOrchestrator
         }
     }
 
+    /// <summary>
+    /// cancels the selection.
+    /// </summary>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="userId">The user id parameter.</param>
+    /// <returns>The result.</returns>
     public SelectionSubmitResult CancelSelection(string sessionId, string userId)
     {
         if (!TryGetSessionForUser(sessionId, userId, out var session))
@@ -464,10 +549,44 @@ public sealed class ImportOrchestrator
         };
     }
 
+    /// <summary>
+    /// selections the submit result.
+    /// </summary>
+    /// <param name="Success">The success parameter.</param>
+    /// <param name="IsNotFound">The is not found parameter.</param>
+    /// <param name="Error">The error parameter.</param>
+    /// <returns>The result.</returns>
     public sealed record SelectionSubmitResult(bool Success, bool IsNotFound, string? Error)
     {
+        /// <summary>
+        /// accepteds the value.
+        /// </summary>
+        /// <param name="false">The false parameter.</param>
+        /// <param name="null">The null parameter.</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <returns>The result.</returns>
         public static SelectionSubmitResult Accepted() => new(true, false, null);
+        /// <summary>
+        /// invalids the value.
+        /// </summary>
+        /// <param name="false">The false parameter.</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <param name="error">The error parameter.</param>
+        /// <returns>The result.</returns>
         public static SelectionSubmitResult Invalid(string error) => new(false, false, error);
+        /// <summary>
+        /// nots the found.
+        /// </summary>
+        /// <param name="true">The true parameter.</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <param>...</param>
+        /// <param name="error">The error parameter.</param>
+        /// <returns>The result.</returns>
         public static SelectionSubmitResult NotFound(string error) => new(false, true, error);
     }
 

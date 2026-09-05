@@ -3,11 +3,17 @@ using System.Threading.Tasks;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Represents the current user accessor class.
+/// </summary>
 public class CurrentUserAccessor
 {
     private ClaimsPrincipal? _user;
     private TaskCompletionSource<ClaimsPrincipal?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public ClaimsPrincipal? User
     {
         get => _user;
@@ -21,6 +27,11 @@ public class CurrentUserAccessor
         }
     }
 
+    /// <summary>
+    /// waits the for user async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public Task<ClaimsPrincipal?> WaitForUserAsync(CancellationToken ct = default)
     {
         if (_user is not null)

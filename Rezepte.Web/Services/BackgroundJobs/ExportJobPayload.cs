@@ -2,12 +2,31 @@ using System.Text.Json;
 
 namespace Rezepte.Web.Services.BackgroundJobs;
 
+/// <summary>
+/// exports the job payload.
+/// </summary>
+/// <param name="IncludeImages">The include images parameter.</param>
+/// <param name="IncludePdf">The include pdf parameter.</param>
+/// <returns>The result.</returns>
 public sealed record ExportJobPayload(bool IncludeImages = false, bool IncludePdf = false)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    /// <summary>
+    /// tos the json.
+    /// </summary>
+    /// <param name="JsonOptions">The json options parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 
+    /// <summary>
+    /// froms the json.
+    /// </summary>
+    /// <param name="payloadJson">The payload json parameter.</param>
+    /// <returns>The result.</returns>
     public static ExportJobPayload FromJson(string? payloadJson)
     {
         if (string.IsNullOrWhiteSpace(payloadJson))

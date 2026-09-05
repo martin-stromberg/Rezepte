@@ -3,6 +3,9 @@ using Rezepte.Web.Configuration;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Represents the google credentials provider class.
+/// </summary>
 public sealed class GoogleCredentialsProvider : IGoogleCredentialsProvider
 {
     private const string ServiceAccountEnvironmentVariable = "GOOGLE_APPLICATION_CREDENTIALS";
@@ -10,16 +13,28 @@ public sealed class GoogleCredentialsProvider : IGoogleCredentialsProvider
 
     private readonly IOptionsMonitor<GoogleCredentialsOptions> _options;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GoogleCredentialsProvider"/> class.
+    /// </summary>
+    /// <param name="options">The options parameter.</param>
     public GoogleCredentialsProvider(IOptionsMonitor<GoogleCredentialsOptions> options)
     {
         _options = options;
     }
 
+    /// <summary>
+    /// Gets the service account file path.
+    /// </summary>
+    /// <returns>The result.</returns>
     public string GetServiceAccountFilePath()
     {
         return ResolveValue(ServiceAccountEnvironmentVariable, _options.CurrentValue.ServiceAccountFilePath);
     }
 
+    /// <summary>
+    /// services the account file exists.
+    /// </summary>
+    /// <returns>The result.</returns>
     public bool ServiceAccountFileExists()
     {
         var path = GetServiceAccountFilePath();
@@ -28,11 +43,19 @@ public sealed class GoogleCredentialsProvider : IGoogleCredentialsProvider
         return File.Exists(path);
     }
 
+    /// <summary>
+    /// Gets the gemini api key.
+    /// </summary>
+    /// <returns>The result.</returns>
     public string GetGeminiApiKey()
     {
         return ResolveValue(GeminiApiKeyEnvironmentVariable, _options.CurrentValue.GeminiApiKey);
     }
 
+    /// <summary>
+    /// Gets the diagnostics.
+    /// </summary>
+    /// <returns>The result.</returns>
     public GoogleCredentialsDiagnostics GetDiagnostics()
     {
         var options = _options.CurrentValue;

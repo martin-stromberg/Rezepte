@@ -8,11 +8,19 @@ using Microsoft.Extensions.Hosting;
 
 namespace Rezepte.Web.Services.Import
 {
+    /// <summary>
+    /// Represents the test recipe import service class.
+    /// </summary>
     public sealed class TestRecipeImportService : ITestRecipeImportService
     {
         private readonly string _filePath;
         private readonly ILogger<TestRecipeImportService> _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestRecipeImportService"/> class.
+        /// </summary>
+        /// <param name="env">The env parameter.</param>
+        /// <param name="logger">The logger parameter.</param>
         public TestRecipeImportService(IHostEnvironment env, ILogger<TestRecipeImportService> logger)
         {
             _logger = logger;
@@ -20,6 +28,11 @@ namespace Rezepte.Web.Services.Import
             _filePath = Path.Combine(env.ContentRootPath ?? AppContext.BaseDirectory, "test.recipe-import.json");
         }
 
+        /// <summary>
+        /// Gets the test urls async.
+        /// </summary>
+        /// <param name="ct">The ct parameter.</param>
+        /// <returns>The result.</returns>
         public async Task<string[]> GetTestUrlsAsync(CancellationToken ct = default)
         {
             try
@@ -38,6 +51,11 @@ namespace Rezepte.Web.Services.Import
             }
         }
 
+        /// <summary>
+        /// Determines whether test urls async.
+        /// </summary>
+        /// <param name="ct">The ct parameter.</param>
+        /// <returns>The result.</returns>
         public async Task<bool> HasTestUrlsAsync(CancellationToken ct = default)
         {
             var urls = await GetTestUrlsAsync(ct).ConfigureAwait(false);

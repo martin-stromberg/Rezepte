@@ -3,17 +3,28 @@ using Rezepte.Web.Services;
 
 namespace Rezepte.Web.Middleware;
 
+/// <summary>
+/// Represents the redirect to register middleware class.
+/// </summary>
 public class RedirectToRegisterMiddleware
 {
     private static readonly string[] StaticExtensions = [".css", ".js", ".map", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff2", ".woff", ".ttf", ".eot", ".webmanifest"];
 
     private readonly RequestDelegate _next;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RedirectToRegisterMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">The next parameter.</param>
     public RedirectToRegisterMiddleware(RequestDelegate next)
     {
         _next = next;
     }
 
+    /// <summary>
+    /// invokes the async.
+    /// </summary>
+    /// <param name="context">The context parameter.</param>
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? string.Empty;
@@ -94,8 +105,16 @@ public class RedirectToRegisterMiddleware
     }
 }
 
+/// <summary>
+/// Represents the redirect to register middleware extensions class.
+/// </summary>
 public static class RedirectToRegisterMiddlewareExtensions
 {
+    /// <summary>
+    /// Uses the redirect to register when no users.
+    /// </summary>
+    /// <param name="app">The app parameter.</param>
+    /// <returns>The result.</returns>
     public static IApplicationBuilder UseRedirectToRegisterWhenNoUsers(this IApplicationBuilder app)
     {
         return app.UseMiddleware<RedirectToRegisterMiddleware>();

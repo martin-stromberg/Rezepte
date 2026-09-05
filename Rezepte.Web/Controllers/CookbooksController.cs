@@ -11,6 +11,12 @@ using static Rezepte.Web.Controllers.RecipesController;
 
 namespace Rezepte.Web.Controllers;
 
+/// <summary>
+/// Represents the cookbooks controller.
+/// </summary>
+/// <param name="cookbooks">The cookbooks parameter.</param>
+/// <param name="recipes">The recipes parameter.</param>
+/// <param name="remoteContent">The remote content parameter.</param>
 [ApiController]
 [Route("api/[controller]")]
 // allow either Bearer *or* cookie auth for browser uploads (so fetch with cookies or short-lived JWT works)
@@ -21,6 +27,11 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     private readonly IRecipeService _recipes = recipes;
     private readonly IRemoteContentFetcher _remoteContent = remoteContent;
 
+    /// <summary>
+    /// Gets the all.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
@@ -30,6 +41,12 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return Ok(list);
     }
 
+    /// <summary>
+    /// Creates the value.
+    /// </summary>
+    /// <param name="dto">The dto parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCookbookRequest dto, CancellationToken ct)
     {
@@ -44,6 +61,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return Ok(entity);
     }
 
+    /// <summary>
+    /// Adds the recipes to cookbook.
+    /// </summary>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="recipeIds">The recipe ids parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("{cookbookId}/recipes")]
     public async Task<IActionResult> AddRecipesToCookbook(string cookbookId, [FromBody] List<string> recipeIds, CancellationToken ct)
     {
@@ -57,6 +81,12 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return Ok(dtos);
     }
 
+    /// <summary>
+    /// Gets the by id.
+    /// </summary>
+    /// <param name="id">The id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id, CancellationToken ct)
     {
@@ -67,6 +97,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return Ok(entity);
     }
 
+    /// <summary>
+    /// Updates the value.
+    /// </summary>
+    /// <param name="id">The id parameter.</param>
+    /// <param name="dto">The dto parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateCookbookRequest dto, CancellationToken ct)
     {
@@ -81,6 +118,12 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return NoContent();
     }
 
+    /// <summary>
+    /// Deletes the value.
+    /// </summary>
+    /// <param name="id">The id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id, CancellationToken ct)
     {
@@ -91,6 +134,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return NoContent();
     }
 
+    /// <summary>
+    /// Removes the recipe from cookbook.
+    /// </summary>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="recipeId">The recipe id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpDelete("{cookbookId}/recipes/{recipeId}")]
     public async Task<IActionResult> RemoveRecipeFromCookbook(string cookbookId, string recipeId, CancellationToken ct)
     {
@@ -104,6 +154,14 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return NoContent();
     }
 
+    /// <summary>
+    /// imports the from file.
+    /// </summary>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="file">The file parameter.</param>
+    /// <param name="importService">The import service parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("{cookbookId}/import")]
     public async Task<IActionResult> ImportFromFile(string cookbookId, IFormFile file, [FromServices] IImportService importService, CancellationToken ct)
     {
@@ -136,6 +194,14 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         }
     }
 
+    /// <summary>
+    /// imports the from url.
+    /// </summary>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="request">The request parameter.</param>
+    /// <param name="importService">The import service parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("{cookbookId}/import-url")]
     public async Task<IActionResult> ImportFromUrl(string cookbookId, [FromBody] ImportUrlRequest request, [FromServices] IImportService importService, CancellationToken ct)
     {
@@ -150,6 +216,14 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return await ImportFromUrlAsync(request.Url, cookbookId, importService, userId, ct);
     }
 
+    /// <summary>
+    /// imports the from file.
+    /// </summary>
+    /// <param name="file">The file parameter.</param>
+    /// <param name="importService">The import service parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    /// <response code="500">The 500 response.</response>
     [HttpPost("import")]
     [RequestSizeLimit(524288000)] // 500 MB limit, anpassen nach Bedarf
     [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
@@ -180,6 +254,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         }
     }
 
+    /// <summary>
+    /// imports the from url.
+    /// </summary>
+    /// <param name="request">The request parameter.</param>
+    /// <param name="importService">The import service parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("import-url")]
     public async Task<IActionResult> ImportFromUrl([FromBody] ImportUrlRequest request, [FromServices] IImportService importService, CancellationToken ct)
     {
@@ -190,6 +271,12 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         return await ImportFromUrlAsync(request.Url, null, importService, userId, ct);
     }
 
+    /// <summary>
+    /// reorders the value.
+    /// </summary>
+    /// <param name="orderedIds">The ordered ids parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("reorder")]
     public async Task<IActionResult> Reorder([FromBody] List<string>? orderedIds, CancellationToken ct)
     {
@@ -206,6 +293,14 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
 
     // --- Ergänzungen innerhalb existing controller (neue Endpoints) ---
     // POST api/cookbooks/{cookbookId}/import-session/start
+    /// <summary>
+    /// starts the import session.
+    /// </summary>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="request">The request parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("{cookbookId}/import-session/start")]
     public async Task<IActionResult> StartImportSession(string cookbookId, [FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
@@ -217,6 +312,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // GET api/cookbooks/{cookbookId}/import-session/{sessionId}/status
+    /// <summary>
+    /// Gets the import session status.
+    /// </summary>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <returns>The result.</returns>
     [HttpGet("{cookbookId}/import-session/{sessionId}/status")]
     public IActionResult GetImportSessionStatus(string cookbookId, string sessionId, [FromServices] ImportOrchestrator orchestrator)
     {
@@ -229,6 +331,14 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // POST api/cookbooks/{cookbookId}/import-session/{sessionId}/confirm
+    /// <summary>
+    /// confirms the import session.
+    /// </summary>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="req">The req parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("{cookbookId}/import-session/{sessionId}/confirm")]
     public IActionResult ConfirmImportSession(string cookbookId, string sessionId, [FromBody] ConfirmRequest req, [FromServices] ImportOrchestrator orchestrator)
     {
@@ -241,6 +351,15 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // POST api/cookbooks/{cookbookId}/import-session/{sessionId}/selection
+    /// <summary>
+    /// submits the import session selection.
+    /// </summary>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="req">The req parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("{cookbookId}/import-session/{sessionId}/selection")]
     public async Task<IActionResult> SubmitImportSessionSelection(string cookbookId, string sessionId, [FromBody] ImportCollectionSelectionRequest req, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
@@ -256,6 +375,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // POST api/cookbooks/{cookbookId}/import-session/{sessionId}/selection/cancel
+    /// <summary>
+    /// cancels the import session selection.
+    /// </summary>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("{cookbookId}/import-session/{sessionId}/selection/cancel")]
     public IActionResult CancelImportSessionSelection(string cookbookId, string sessionId, [FromServices] ImportOrchestrator orchestrator)
     {
@@ -270,6 +396,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
 
     // --- Neue Endpoints ohne cookbookId, damit der Blazor-Client die session-basierten Aufrufe auch ohne Cookbook nutzt ---
     // POST api/cookbooks/import-session/start
+    /// <summary>
+    /// starts the import session no cookbook.
+    /// </summary>
+    /// <param name="request">The request parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("import-session/start")]
     public async Task<IActionResult> StartImportSessionNoCookbook([FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
@@ -281,6 +414,12 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // GET api/cookbooks/import-session/{sessionId}/status
+    /// <summary>
+    /// Gets the import session status no cookbook.
+    /// </summary>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <returns>The result.</returns>
     [HttpGet("import-session/{sessionId}/status")]
     public IActionResult GetImportSessionStatusNoCookbook(string sessionId, [FromServices] ImportOrchestrator orchestrator)
     {
@@ -293,6 +432,13 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // POST api/cookbooks/import-session/{sessionId}/confirm
+    /// <summary>
+    /// confirms the import session no cookbook.
+    /// </summary>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="req">The req parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("import-session/{sessionId}/confirm")]
     public IActionResult ConfirmImportSessionNoCookbook(string sessionId, [FromBody] ConfirmRequest req, [FromServices] ImportOrchestrator orchestrator)
     {
@@ -305,6 +451,14 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // POST api/cookbooks/import-session/{sessionId}/selection
+    /// <summary>
+    /// submits the import session selection no cookbook.
+    /// </summary>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="req">The req parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("import-session/{sessionId}/selection")]
     public async Task<IActionResult> SubmitImportSessionSelectionNoCookbook(string sessionId, [FromBody] ImportCollectionSelectionRequest req, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
@@ -320,6 +474,12 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // POST api/cookbooks/import-session/{sessionId}/selection/cancel
+    /// <summary>
+    /// cancels the import session selection no cookbook.
+    /// </summary>
+    /// <param name="sessionId">The session id parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("import-session/{sessionId}/selection/cancel")]
     public IActionResult CancelImportSessionSelectionNoCookbook(string sessionId, [FromServices] ImportOrchestrator orchestrator)
     {
@@ -334,6 +494,18 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
 
     // --- Neue Endpoints: Starten einer Import-Session aus einer hochgeladenen Datei ---
     // POST api/cookbooks/{cookbookId}/import-session/start-file
+    /// <summary>
+    /// starts the import session from file.
+    /// </summary>
+    /// <param name="file">The file parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param name="cookbookId">The cookbook id parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    /// <response code="500">The 500 response.</response>
     [HttpPost("{cookbookId}/import-session/start-file")]
     [RequestSizeLimit(524288000)] // 500 MB
     [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
@@ -364,6 +536,16 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // POST api/cookbooks/import-session/start-file
+    /// <summary>
+    /// starts the import session from file no cookbook.
+    /// </summary>
+    /// <param name="file">The file parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpPost("import-session/start-file")]
     [RequestSizeLimit(524288000)]
     [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
@@ -527,10 +709,44 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
             .ToList());
     }
 
+    /// <summary>
+    /// Creates the cookbook request.
+    /// </summary>
+    /// <param name="Name">The name parameter.</param>
+    /// <param name="Description">The description parameter.</param>
+    /// <returns>The result.</returns>
     public record CreateCookbookRequest(string Name, string? Description);
+    /// <summary>
+    /// Updates the cookbook request.
+    /// </summary>
+    /// <param name="Name">The name parameter.</param>
+    /// <param name="Description">The description parameter.</param>
+    /// <returns>The result.</returns>
     public record UpdateCookbookRequest(string Name, string? Description);
+    /// <summary>
+    /// imports the url request.
+    /// </summary>
+    /// <param name="Url">The url parameter.</param>
+    /// <returns>The result.</returns>
     public record ImportUrlRequest(string Url);
+    /// <summary>
+    /// confirms the request.
+    /// </summary>
+    /// <param name="Accepted">The accepted parameter.</param>
+    /// <returns>The result.</returns>
     public record ConfirmRequest(bool Accepted);
+    /// <summary>
+    /// imports the collection selection request.
+    /// </summary>
+    /// <param name="Items">The items parameter.</param>
+    /// <returns>The result.</returns>
     public record ImportCollectionSelectionRequest(List<ImportCollectionSelectionItemRequest> Items);
+    /// <summary>
+    /// imports the collection selection item request.
+    /// </summary>
+    /// <param name="ItemId">The item id parameter.</param>
+    /// <param name="Url">The url parameter.</param>
+    /// <param name="TargetCookbookId">The target cookbook id parameter.</param>
+    /// <returns>The result.</returns>
     public record ImportCollectionSelectionItemRequest(string ItemId, string Url, string TargetCookbookId);
 }

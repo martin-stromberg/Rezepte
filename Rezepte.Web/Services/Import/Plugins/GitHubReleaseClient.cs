@@ -5,11 +5,24 @@ using Rezepte.Web.Configuration;
 
 namespace Rezepte.Web.Services.Import.Plugins;
 
+/// <summary>
+/// gits the hub release client.
+/// </summary>
+/// <param name="httpClient">The http client parameter.</param>
+/// <param name="options">The options parameter.</param>
+/// <returns>The result.</returns>
 public sealed class GitHubReleaseClient(HttpClient httpClient, IOptions<PluginUpdateOptions> options) : IGitHubReleaseClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly PluginUpdateOptions _options = options.Value;
 
+    /// <summary>
+    /// Gets the latest release async.
+    /// </summary>
+    /// <param name="repository">The repository parameter.</param>
+    /// <param name="personalAccessToken">The personal access token parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<GitHubReleaseInfo?> GetLatestReleaseAsync(GitHubRepository repository, string? personalAccessToken, CancellationToken ct = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, BuildApiUri($"/repos/{repository.Owner}/{repository.Repository}/releases/latest"));
@@ -43,6 +56,13 @@ public sealed class GitHubReleaseClient(HttpClient httpClient, IOptions<PluginUp
         return new GitHubReleaseInfo(id, tagName, assets);
     }
 
+    /// <summary>
+    /// downloads the asset async.
+    /// </summary>
+    /// <param name="asset">The asset parameter.</param>
+    /// <param name="targetPath">The target path parameter.</param>
+    /// <param name="personalAccessToken">The personal access token parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task DownloadAssetAsync(GitHubReleaseAsset asset, string targetPath, string? personalAccessToken, CancellationToken ct = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, asset.DownloadUrl);

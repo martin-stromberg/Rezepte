@@ -5,6 +5,9 @@ using Rezepte.Web.Dto;
 using Rezepte.Web.Controllers;
 using Rezepte.Web.Services;
 
+/// <summary>
+/// Represents the user stats controller class.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -15,6 +18,13 @@ public class UserStatsController : ApiControllerBase
     private readonly IAiUsageService _aiUsage;
     private readonly IUserService _users;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UserStatsController"/> class.
+    /// </summary>
+    /// <param name="recipes">The recipes parameter.</param>
+    /// <param name="cookbooks">The cookbooks parameter.</param>
+    /// <param name="aiUsage">The ai usage parameter.</param>
+    /// <param name="users">The users parameter.</param>
     public UserStatsController(IRecipeService recipes, ICookbookService cookbooks, IAiUsageService aiUsage, IUserService users)
     {
         _recipes = recipes;
@@ -23,6 +33,11 @@ public class UserStatsController : ApiControllerBase
         _users = users;
     }
 
+    /// <summary>
+    /// Gets the my stats.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     [HttpGet("me")]
     public async Task<IActionResult> GetMyStats(CancellationToken ct)
     {

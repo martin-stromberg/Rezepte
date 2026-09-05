@@ -6,15 +6,54 @@ using Rezepte.Web.Services.BackgroundJobs;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// exports the cleanup settings.
+/// </summary>
+/// <param name="CleanupTime">The cleanup time parameter.</param>
+/// <param name="LastRunAt">The last run at parameter.</param>
+/// <returns>The result.</returns>
 public sealed record ExportCleanupSettings(TimeOnly CleanupTime, DateTimeOffset? LastRunAt);
 
+/// <summary>
+/// exports the cleanup result.
+/// </summary>
+/// <param name="DeletedFiles">The deleted files parameter.</param>
+/// <param name="DeletedRecords">The deleted records parameter.</param>
+/// <param name="RunAt">The run at parameter.</param>
+/// <returns>The result.</returns>
 public sealed record ExportCleanupResult(int DeletedFiles, int DeletedRecords, DateTimeOffset RunAt);
 
+/// <summary>
+/// Defines the iexport cleanup service interface.
+/// </summary>
 public interface IExportCleanupService
 {
+    /// <summary>
+    /// Gets the settings async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<ExportCleanupSettings> GetSettingsAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Sets the cleanup time async.
+    /// </summary>
+    /// <param name="cleanupTime">The cleanup time parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<ExportCleanupSettings> SetCleanupTimeAsync(TimeOnly cleanupTime, CancellationToken ct = default);
+    /// <summary>
+    /// Determines whether cleanup due async.
+    /// </summary>
+    /// <param name="now">The now parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<bool> IsCleanupDueAsync(DateTimeOffset now, CancellationToken ct = default);
+    /// <summary>
+    /// Runs the cleanup async.
+    /// </summary>
+    /// <param name="now">The now parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<ExportCleanupResult> RunCleanupAsync(DateTimeOffset now, CancellationToken ct = default);
 }
 
@@ -26,9 +65,23 @@ public interface IExportCleanupService
 /// </summary>
 public sealed class ExportCleanupService : IExportCleanupService
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public const string CleanupTimeKey = "ExportCleanup:Time";
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public const string LastRunAtKey = "ExportCleanup:LastRunAt";
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
+    /// <returns>The result.</returns>
     public static readonly TimeOnly DefaultCleanupTime = new(3, 0);
+    /// <summary>
+    /// times the span.
+    /// </summary>
+    /// <returns>The result.</returns>
     public static readonly TimeSpan MaxAge = TimeSpan.FromDays(1);
 
     private const string TimeFormat = "HH:mm";
@@ -37,6 +90,12 @@ public sealed class ExportCleanupService : IExportCleanupService
     private readonly ExportJobFileStore _fileStore;
     private readonly ILogger<ExportCleanupService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExportCleanupService"/> class.
+    /// </summary>
+    /// <param name="db">The db parameter.</param>
+    /// <param name="fileStore">The file store parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public ExportCleanupService(RezepteDbContext db, ExportJobFileStore fileStore, ILogger<ExportCleanupService> logger)
     {
         _db = db;
@@ -44,6 +103,11 @@ public sealed class ExportCleanupService : IExportCleanupService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Gets the settings async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ExportCleanupSettings> GetSettingsAsync(CancellationToken ct = default)
     {
         var rows = await _db.AppSettings
@@ -64,6 +128,12 @@ public sealed class ExportCleanupService : IExportCleanupService
         return new ExportCleanupSettings(cleanupTime, lastRunAt);
     }
 
+    /// <summary>
+    /// Sets the cleanup time async.
+    /// </summary>
+    /// <param name="cleanupTime">The cleanup time parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ExportCleanupSettings> SetCleanupTimeAsync(TimeOnly cleanupTime, CancellationToken ct = default)
     {
         await UpsertAsync(CleanupTimeKey, cleanupTime.ToString(TimeFormat, CultureInfo.InvariantCulture), ct).ConfigureAwait(false);
@@ -71,6 +141,12 @@ public sealed class ExportCleanupService : IExportCleanupService
         return await GetSettingsAsync(ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Determines whether cleanup due async.
+    /// </summary>
+    /// <param name="now">The now parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<bool> IsCleanupDueAsync(DateTimeOffset now, CancellationToken ct = default)
     {
         var settings = await GetSettingsAsync(ct).ConfigureAwait(false);
@@ -81,18 +157,36 @@ public sealed class ExportCleanupService : IExportCleanupService
     /// The cleanup is due when the most recent scheduled occurrence (today at the configured time,
     /// or yesterday if that time has not been reached yet) lies after the last completed run.
     /// </summary>
+    /// <param name="settings">The settings parameter.</param>
+    /// <param name="now">The now parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     public static bool IsCleanupDue(ExportCleanupSettings settings, DateTimeOffset now)
     {
         var lastScheduled = GetLastScheduledOccurrence(settings.CleanupTime, now);
         return settings.LastRunAt is null || settings.LastRunAt.Value < lastScheduled;
     }
 
+    /// <summary>
+    /// Gets the last scheduled occurrence.
+    /// </summary>
+    /// <param name="cleanupTime">The cleanup time parameter.</param>
+    /// <param name="now">The now parameter.</param>
+    /// <returns>The result.</returns>
     public static DateTimeOffset GetLastScheduledOccurrence(TimeOnly cleanupTime, DateTimeOffset now)
     {
         var todayOccurrence = new DateTimeOffset(now.Date.Add(cleanupTime.ToTimeSpan()), now.Offset);
         return todayOccurrence <= now ? todayOccurrence : todayOccurrence.AddDays(-1);
     }
 
+    /// <summary>
+    /// Runs the cleanup async.
+    /// </summary>
+    /// <param name="now">The now parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ExportCleanupResult> RunCleanupAsync(DateTimeOffset now, CancellationToken ct = default)
     {
         var threshold = now.UtcDateTime - MaxAge;

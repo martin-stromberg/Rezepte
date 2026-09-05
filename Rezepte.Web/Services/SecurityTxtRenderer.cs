@@ -4,8 +4,16 @@ using Rezepte.Web.Dtos;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Represents the security txt renderer class.
+/// </summary>
 public class SecurityTxtRenderer : ISecurityTxtRenderer
 {
+    /// <summary>
+    /// Renders the plain text.
+    /// </summary>
+    /// <param name="settings">The settings parameter.</param>
+    /// <returns>The result.</returns>
     public string RenderPlainText(SecurityTxtSettings settings)
     {
         var sb = new StringBuilder();
@@ -24,6 +32,11 @@ public class SecurityTxtRenderer : ISecurityTxtRenderer
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Renders the markdown.
+    /// </summary>
+    /// <param name="settings">The settings parameter.</param>
+    /// <returns>The result.</returns>
     public string RenderMarkdown(SecurityTxtSettings settings)
     {
         var sb = new StringBuilder();
@@ -36,6 +49,11 @@ public class SecurityTxtRenderer : ISecurityTxtRenderer
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Renders the html.
+    /// </summary>
+    /// <param name="settings">The settings parameter.</param>
+    /// <returns>The result.</returns>
     public string RenderHtml(SecurityTxtSettings settings)
     {
         var sb = new StringBuilder();

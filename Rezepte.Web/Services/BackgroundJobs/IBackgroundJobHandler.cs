@@ -16,5 +16,11 @@ public interface IBackgroundJobHandler
     /// Der Handler erhält die BackgroundJob-Entity (persistiert) und CancellationToken.
     /// Der Handler soll Status/Progress in der DbContext aktualisieren (oder rely on UpdateProgressAsync helper).
     /// </summary>
+    /// <param name="job">The job parameter.</param>
+    /// <param name="scopeServices">The scope services parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
     Task HandleAsync(BackgroundJob job, IServiceProvider scopeServices, CancellationToken ct);
 }

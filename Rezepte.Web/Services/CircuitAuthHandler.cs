@@ -5,12 +5,21 @@ using Microsoft.AspNetCore.Http;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Represents the circuit auth handler class.
+/// </summary>
 public class CircuitAuthHandler : DelegatingHandler
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly AuthenticationStateProvider _authenticationStateProvider;
     private readonly ITokenService _tokenService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CircuitAuthHandler"/> class.
+    /// </summary>
+    /// <param name="httpContextAccessor">The http context accessor parameter.</param>
+    /// <param name="authenticationStateProvider">The authentication state provider parameter.</param>
+    /// <param name="tokenService">The token service parameter.</param>
     public CircuitAuthHandler(IHttpContextAccessor httpContextAccessor, AuthenticationStateProvider authenticationStateProvider, ITokenService tokenService)
     {
         _httpContextAccessor = httpContextAccessor;
@@ -18,6 +27,12 @@ public class CircuitAuthHandler : DelegatingHandler
         _tokenService = tokenService;
     }
 
+    /// <summary>
+    /// Sends the async.
+    /// </summary>
+    /// <param name="request">The request parameter.</param>
+    /// <param name="cancellationToken">The cancellation token parameter.</param>
+    /// <returns>The result.</returns>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var user = _httpContextAccessor.HttpContext?.User;
