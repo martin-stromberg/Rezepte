@@ -201,6 +201,15 @@ jobs:
             Rezepte.Tests.Browser/TestResults/*.trx
           retention-days: 14
 
+      - name: Upload Playwright traces
+        # See pr-staging-ci.yml's equivalent step for why this is needed.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces-staging
+          path: playwright-traces/
+          retention-days: 14
+
   version:
     name: version
     needs: [detect-backmerge, static-checks, build-and-test]
