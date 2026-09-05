@@ -43,6 +43,44 @@
     }
 
     <ExportFilesList @ref="exportFilesList" />
+
+    <hr class="my-4" />
+
+    <section>
+        <h6>Bereinigung alter Sicherungen</h6>
+        <p class="text-muted small">
+            Exportdateien werden spätestens einen Tag nach ihrer Erstellung automatisch gelöscht.
+            Die Bereinigung läuft täglich zur eingestellten Uhrzeit (Serverzeit). Wurde sie verpasst, weil die
+            Anwendung nicht lief, wird sie beim nächsten Start nachgeholt.
+        </p>
+
+        <div class="row g-2 align-items-end mb-2">
+            <div class="col-auto">
+                <label class="form-label small" for="cleanup-time">Uhrzeit der Bereinigung</label>
+                <input id="cleanup-time" class="form-control form-control-sm" type="time" @bind="cleanupTime" disabled="@isCleanupBusy" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary btn-sm" @onclick="SaveCleanupSettingsAsync" disabled="@isCleanupBusy">Speichern</button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="RunCleanupNowAsync" disabled="@isCleanupBusy">Jetzt bereinigen</button>
+            </div>
+        </div>
+
+        @if (cleanupLastRunAt is not null)
+        {
+            <div class="text-muted small">Letzte Bereinigung: @cleanupLastRunAt.Value.LocalDateTime.ToString("g")</div>
+        }
+        else if (cleanupLoaded)
+        {
+            <div class="text-muted small">Bisher wurde noch keine Bereinigung ausgeführt.</div>
+        }
+
+        @if (!string.IsNullOrEmpty(cleanupMessage))
+        {
+            <div class="mt-2 text-muted small">@cleanupMessage</div>
+        }
+    </section>
 </div>
 
 @code {
@@ -52,6 +90,100 @@
     private int progress;
     private string? message;
     private ExportFilesList? exportFilesList;
+    private TimeOnly cleanupTime = new(3, 0);
+    private DateTimeOffset? cleanupLastRunAt;
+    private bool cleanupLoaded;
+    private bool isCleanupBusy;
+    private string? cleanupMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCleanupSettingsAsync();
+    }
+
+    private async Task LoadCleanupSettingsAsync()
+    {
+        try
+        {
+            var settings = await Api.Http.GetFromJsonAsync<CleanupSettingsResponse>("api/admin/exports/cleanup");
+            if (settings is not null)
+            {
+                cleanupTime = ParseCleanupTime(settings.CleanupTime) ?? cleanupTime;
+                cleanupLastRunAt = settings.LastRunAt;
+            }
+            cleanupLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            cleanupMessage = $"Bereinigungseinstellungen konnten nicht geladen werden: {ex.Message}";
+        }
+    }
+
+    private async Task SaveCleanupSettingsAsync()
+    {
+        isCleanupBusy = true;
+        cleanupMessage = null;
+        try
+        {
+            var response = await Api.Http.PutAsJsonAsync("api/admin/exports/cleanup", new { cleanupTime = cleanupTime.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture) });
+            if (!response.IsSuccessStatusCode)
+            {
+                cleanupMessage = $"Speichern fehlgeschlagen: {response.StatusCode}";
+                return;
+            }
+
+            var settings = await response.Content.ReadFromJsonAsync<CleanupSettingsResponse>();
+            if (settings is not null)
+            {
+                cleanupTime = ParseCleanupTime(settings.CleanupTime) ?? cleanupTime;
+                cleanupLastRunAt = settings.LastRunAt;
+            }
+            cleanupMessage = "Uhrzeit gespeichert.";
+        }
+        catch (Exception ex)
+        {
+            cleanupMessage = $"Speichern fehlgeschlagen: {ex.Message}";
+        }
+        finally
+        {
+            isCleanupBusy = false;
+        }
+    }
+
+    private async Task RunCleanupNowAsync()
+    {
+        isCleanupBusy = true;
+        cleanupMessage = null;
+        try
+        {
+            var response = await Api.Http.PostAsync("api/admin/exports/cleanup/run", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                cleanupMessage = $"Bereinigung fehlgeschlagen: {response.StatusCode}";
+                return;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<CleanupRunResponse>();
+            if (result is not null)
+            {
+                cleanupLastRunAt = result.RunAt;
+                cleanupMessage = $"Bereinigung abgeschlossen: {result.DeletedFiles} Datei(en) gelöscht.";
+            }
+
+            if (exportFilesList is not null)
+            {
+                await exportFilesList.RefreshFilesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            cleanupMessage = $"Bereinigung fehlgeschlagen: {ex.Message}";
+        }
+        finally
+        {
+            isCleanupBusy = false;
+        }
+    }
 
     private async Task ExportAllAsync()
     {
@@ -198,6 +330,24 @@
     private sealed class JobStartResponse
     {
         public Guid? JobId { get; set; }
+    }
+
+    private static TimeOnly? ParseCleanupTime(string? value)
+        => TimeOnly.TryParseExact(value, "HH:mm", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed)
+            ? parsed
+            : null;
+
+    private sealed class CleanupSettingsResponse
+    {
+        public string? CleanupTime { get; set; }
+        public DateTimeOffset? LastRunAt { get; set; }
+    }
+
+    private sealed class CleanupRunResponse
+    {
+        public int DeletedFiles { get; set; }
+        public int DeletedRecords { get; set; }
+        public DateTimeOffset RunAt { get; set; }
     }
 
     private sealed class JobStatusResponse

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
 using Microsoft.IdentityModel.Tokens;
 using Rezepte.Web.Configuration;
@@ -180,6 +181,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUpdateBackupService, UpdateBackupService>();
         services.AddScoped<IApplicationUpdateSettingsService, ApplicationUpdateSettingsService>();
         services.AddScoped<ExportJobFileStore>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<IExportCleanupService, ExportCleanupService>();
+        services.AddHostedService<ExportCleanupHostedService>();
         services.AddScoped<IBackgroundJobHandler, ExportUserJobHandler>();
         services.AddScoped<IBackgroundJobHandler, ExportAllJobHandler>();
         services.AddScoped<IPdfGenerator, PdfGenerator>();

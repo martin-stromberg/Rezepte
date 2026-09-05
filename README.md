@@ -194,7 +194,7 @@ Die Anwendung bindet `msTools.Updater` als externe Update-Komponente ein. Admini
 
 ## Daten und Sicherheit
 
-- Passwoerter werden serverseitig gehasht gespeichert.
+- Passwoerter werden serverseitig mit PBKDF2-HMAC-SHA256 gehasht gespeichert (210.000 Iterationen, Policy-Grenzen 100.000 bis 1.000.000); veraltete Hashes werden beim Login automatisch aktualisiert.
 - Benutzernamen werden zentral serverseitig auf Laenge, erlaubte Zeichen, reservierte Namen sowie IP-/Domain- und offiziell wirkende Muster geprüft.
 - Website-Zugriffe verwenden ein HTTP-only Auth-Cookie.
 - Login und Registrierung sind pro Client-IP auf 10 Anfragen pro Minute begrenzt (HTTP 429 bei Überschreitung).
