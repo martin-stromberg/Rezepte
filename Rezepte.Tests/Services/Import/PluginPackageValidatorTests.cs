@@ -6,8 +6,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the plugin package validator tests.
+/// </summary>
 public sealed class PluginPackageValidatorTests
 {
+    /// <summary>
+    /// Validate async should reject zip path traversal.
+    /// </summary>
     [Fact]
     public async Task ValidateAsync_ShouldRejectZipPathTraversal()
     {
@@ -26,6 +32,9 @@ public sealed class PluginPackageValidatorTests
         result.Error.Should().Contain("unsafe path");
     }
 
+    /// <summary>
+    /// Validate async should accept multiple plugin subdirectories when discovery succeeds.
+    /// </summary>
     [Fact]
     public async Task ValidateAsync_ShouldAcceptMultiplePluginSubdirectoriesWhenDiscoverySucceeds()
     {

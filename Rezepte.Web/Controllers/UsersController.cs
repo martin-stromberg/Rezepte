@@ -10,6 +10,11 @@ namespace Rezepte.Web.Controllers;
 /// <summary>
 /// User profile endpoints for the authenticated user (JWT protected).
 /// </summary>
+/// <param name="users">The users parameter.</param>
+/// <param>...</param>
+/// <param>...</param>
+/// <param>...</param>
+/// <returns>The result.</returns>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]

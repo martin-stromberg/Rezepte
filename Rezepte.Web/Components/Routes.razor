@@ -1,8 +1,9 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Rezepte.Web.Components.Layout
 
 <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
             <NotAuthorized>
                 <RedirectToLogin />
             </NotAuthorized>

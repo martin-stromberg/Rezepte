@@ -1,8 +1,9 @@
-﻿@namespace Rezepte.Web.Components.Shared
+@namespace Rezepte.Web.Components.Shared
 @using Rezepte.Web.Entities
 @using Microsoft.AspNetCore.Components.Forms
 @inject ApiClient Client
 @inject ILogger<Rezepte.Web.Components.Shared.CalendarEventDialog> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 @* Render content: modal (zentriert) oder inline *@
 @if (Modal)
@@ -11,10 +12,10 @@
         <div class="calendar-dialog-container" @onclick:stopPropagation>
             <div class="card mt-0 p-3">
                 @* Card content (form) *@
-                <h5>@(EditingId == null ? "Neuer Termin" : "Termin bearbeiten")</h5>
+                <h5>@(EditingId == null ? Localizer["NewEvent"].Value : Localizer["EditEvent"].Value)</h5>
 
                 <div class="mb-2">
-                    <label class="form-label">Rezept (optional)</label>
+                    <label class="form-label">@Localizer["RecipeOptional"]</label>
                     @if (!string.IsNullOrWhiteSpace(selectedRecipeTitle))
                     {
                         <div class="card mb-2" style="cursor:default;">
@@ -47,14 +48,14 @@
                     {
                         <div class="card mb-2" style="cursor:pointer;" @onclick="ShowRecipePickerAsync">
                             <div class="card-body text-center text-muted">
-                                <div class="fw-semibold">Kein Rezept ausgewählt</div>
-                                <div class="small">Klicken, um ein Rezept auszuwählen</div>
+                                <div class="fw-semibold">@Localizer["NoRecipeSelected"]</div>
+                                <div class="small">@Localizer["ClickToSelectRecipe"]</div>
                             </div>
                         </div>
                     }
 
                     <div class="input-group visually-hidden">
-                        <input class="form-control" @bind="form.RecipeId" placeholder="Rezept‑Id oder per Auswahl wählen" />
+                        <input class="form-control" @bind="form.RecipeId" placeholder="@Localizer["RecipeIdOrSelectPlaceholder"]" />
                     </div>
                 </div>
 
@@ -115,7 +116,7 @@
                 }
 
                 <div class="mb-2">
-                    <label class="form-label">Wöchentlich an</label>
+                    <label class="form-label">@Localizer["WeeklyOn"]</label>
                     <div>
                         @foreach (var wd in Enum.GetValues(typeof(WeekDays)).Cast<WeekDays>().Where(w => w != WeekDays.None))
                         {
@@ -140,18 +141,18 @@
 else
 {
     <div class="card mt-3 p-3">
-        <h5>@(EditingId == null ? "Neuer Termin" : "Termin bearbeiten")</h5>
+        <h5>@(EditingId == null ? Localizer["NewEvent"].Value : Localizer["EditEvent"].Value)</h5>
 
         @* Inline: reuse same form content (kept minimal here) *@
         <div class="mb-2">
-            <label class="form-label">Rezept (optional)</label>
+            <label class="form-label">@Localizer["RecipeOptional"]</label>
             @if (!string.IsNullOrWhiteSpace(selectedRecipeTitle))
             {
-                <div class="small text-muted mb-2">Ausgewählt: @selectedRecipeTitle</div>
+                <div class="small text-muted mb-2">@Localizer["Selected"]: @selectedRecipeTitle</div>
             }
             else
             {
-                <div class="small text-muted mb-2">Kein Rezept ausgewählt</div>
+                <div class="small text-muted mb-2">@Localizer["NoRecipeSelected"]</div>
             }
             <div class="input-group visually-hidden">
                 <input class="form-control" @bind="form.RecipeId" />
@@ -198,7 +199,7 @@ else
     <div class="modal-backdrop" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:13000;background:rgba(0,0,0,.45);" @onclick="CloseRecipePicker">
         <div class="card p-3" style="max-width:720px;width:95%;" @onclick:stopPropagation>
             <div class="d-flex mb-2">
-                <input class="form-control me-2" placeholder="Rezept suchen..." @bind="recipeSearchQuery" @oninput="OnRecipeSearchInput" @ref="recipeSearchInputRef" />
+                <input class="form-control me-2" placeholder="@Localizer["SearchRecipePlaceholder"]" @bind="recipeSearchQuery" @oninput="OnRecipeSearchInput" @ref="recipeSearchInputRef" />
                 <button type="button" class="btn btn-outline-secondary" @onclick="TriggerRecipeSearchAsync">Suchen</button>
             </div>
 
@@ -235,7 +236,7 @@ else
             }
             else if (!isSearching && !string.IsNullOrWhiteSpace(recipeSearchQuery))
             {
-                <div class="text-muted">Keine Treffer.</div>
+                <div class="text-muted">@Localizer["NoSearchResults"]</div>
             }
 
             <div class="d-flex justify-content-end gap-2 mt-2">

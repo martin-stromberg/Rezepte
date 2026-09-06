@@ -15,6 +15,12 @@ public class BackgroundJobHostedService : BackgroundService
     private readonly IServiceProvider _svcProvider;
     private readonly ILogger<BackgroundJobHostedService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BackgroundJobHostedService"/> class.
+    /// </summary>
+    /// <param name="queue">The queue parameter.</param>
+    /// <param name="svcProvider">The svc provider parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public BackgroundJobHostedService(BackgroundJobQueue queue, IServiceProvider svcProvider, ILogger<BackgroundJobHostedService> logger)
     {
         _queue = queue;
@@ -22,6 +28,10 @@ public class BackgroundJobHostedService : BackgroundService
         _logger = logger;
     }
 
+    /// <summary>
+    /// executes the async.
+    /// </summary>
+    /// <param name="stoppingToken">The stopping token parameter.</param>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("BackgroundJobHostedService starting.");

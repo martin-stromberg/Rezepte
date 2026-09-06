@@ -10,8 +10,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the application update pre install handler tests.
+/// </summary>
 public sealed class ApplicationUpdatePreInstallHandlerTests
 {
+    /// <summary>
+    /// Run pre install backup async should await scoped backup service.
+    /// </summary>
     [Fact]
     public async Task RunPreInstallBackupAsync_ShouldAwaitScopedBackupService()
     {
@@ -29,6 +35,9 @@ public sealed class ApplicationUpdatePreInstallHandlerTests
         backup.Completed.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Run pre install backup async should propagate backup failure.
+    /// </summary>
     [Fact]
     public async Task RunPreInstallBackupAsync_ShouldPropagateBackupFailure()
     {
@@ -45,6 +54,9 @@ public sealed class ApplicationUpdatePreInstallHandlerTests
             .WithMessage("backup failed");
     }
 
+    /// <summary>
+    /// Application update hosted service should allow install when pre install backup succeeds.
+    /// </summary>
     [Fact]
     public async Task ApplicationUpdateHostedService_ShouldAllowInstall_WhenPreInstallBackupSucceeds()
     {
@@ -64,6 +76,9 @@ public sealed class ApplicationUpdatePreInstallHandlerTests
         handler.Calls.Should().Be(1);
     }
 
+    /// <summary>
+    /// Application update hosted service should cancel install when pre install backup fails.
+    /// </summary>
     [Fact]
     public async Task ApplicationUpdateHostedService_ShouldCancelInstall_WhenPreInstallBackupFails()
     {
@@ -99,7 +114,10 @@ public sealed class ApplicationUpdatePreInstallHandlerTests
     private sealed class FailingBackupService : IUpdateBackupService
     {
         public Task<UpdateBackupResult> CreateBackupAsync(CancellationToken ct = default)
-            => throw new InvalidOperationException("backup failed");
+        {
+            ct.ThrowIfCancellationRequested();
+            throw new InvalidOperationException("backup failed");
+        }
     }
 
     private sealed class RecordingPreInstallHandler : IApplicationUpdatePreInstallHandler
@@ -116,6 +134,9 @@ public sealed class ApplicationUpdatePreInstallHandlerTests
     private sealed class FailingPreInstallHandler : IApplicationUpdatePreInstallHandler
     {
         public Task RunPreInstallBackupAsync(CancellationToken ct = default)
-            => throw new InvalidOperationException("backup failed");
+        {
+            ct.ThrowIfCancellationRequested();
+            throw new InvalidOperationException("backup failed");
+        }
     }
 }

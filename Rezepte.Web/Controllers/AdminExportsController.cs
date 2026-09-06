@@ -8,6 +8,9 @@ using Rezepte.Web.Services.BackgroundJobs;
 
 namespace Rezepte.Web.Controllers;
 
+/// <summary>
+/// Represents the admin exports controller class.
+/// </summary>
 [ApiController]
 [Route("api/admin/exports")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
@@ -17,6 +20,12 @@ public class AdminExportsController : ApiControllerBase
     private readonly IBackgroundJobQueue _jobQueue;
     private readonly ILogger<AdminExportsController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AdminExportsController"/> class.
+    /// </summary>
+    /// <param name="exportService">The export service parameter.</param>
+    /// <param name="jobQueue">The job queue parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public AdminExportsController(IExportService exportService, IBackgroundJobQueue jobQueue, ILogger<AdminExportsController> logger)
     {
         _exportService = exportService;
@@ -29,6 +38,13 @@ public class AdminExportsController : ApiControllerBase
     /// POST /api/admin/exports?includePdf=true
     /// Startet einen Hintergrundjob und liefert dessen Job-ID zurück.
     /// </summary>
+    /// <param name="includeImages">The include images parameter.</param>
+    /// <param name="includePdf">The include pdf parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpPost]
     public async Task<IActionResult> ExportAll([FromQuery] bool includeImages = false, [FromQuery] bool includePdf = false, CancellationToken ct = default)
     {
@@ -64,6 +80,12 @@ public class AdminExportsController : ApiControllerBase
     /// Admin-Import: Stellt Daten aus einer ZIP-Datei wieder her.
     /// POST /api/admin/exports/restore
     /// </summary>
+    /// <param name="file">The file parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpPost("restore")]
     [Authorize(Roles = "Admin")]
     [RequestSizeLimit(1_500_000_000)] // 1.5 GB limit

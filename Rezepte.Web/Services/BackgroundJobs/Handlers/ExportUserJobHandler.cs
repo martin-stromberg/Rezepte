@@ -6,10 +6,22 @@ using Rezepte.Web.Services.BackgroundJobs;
 
 namespace Rezepte.Web.Services.BackgroundJobs.Handlers;
 
+/// <summary>
+/// Represents the export user job handler class.
+/// </summary>
 public class ExportUserJobHandler : IBackgroundJobHandler
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public string JobType => "export:user";
 
+    /// <summary>
+    /// Handles the async.
+    /// </summary>
+    /// <param name="job">The job parameter.</param>
+    /// <param name="scopeServices">The scope services parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task HandleAsync(BackgroundJob job, IServiceProvider scopeServices, CancellationToken ct)
     {
         if (job is null) throw new ArgumentNullException(nameof(job));

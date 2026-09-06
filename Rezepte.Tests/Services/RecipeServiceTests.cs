@@ -13,6 +13,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the recipe service tests.
+/// </summary>
 public class RecipeServiceTests
 {
     private const string UserA = "user-a";
@@ -45,6 +48,9 @@ public class RecipeServiceTests
         return mock.Object;
     }
 
+    /// <summary>
+    /// Create async should create with steps and ingredients.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldCreate_WithStepsAndIngredients()
     {
@@ -84,6 +90,9 @@ public class RecipeServiceTests
         loaded.Steps.SelectMany(s => s.Ingredients).Should().HaveCount(2);
     }
 
+    /// <summary>
+    /// Update async should replace steps.
+    /// </summary>
     [Fact]
     public async Task UpdateAsync_ShouldReplaceSteps()
     {
@@ -112,6 +121,9 @@ public class RecipeServiceTests
         loaded.Steps.First().Description.Should().Be("Mischen");
     }
 
+    /// <summary>
+    /// Delete async should remove recipe.
+    /// </summary>
     [Fact]
     public async Task DeleteAsync_ShouldRemoveRecipe()
     {
@@ -132,6 +144,9 @@ public class RecipeServiceTests
         loaded.Should().BeNull();
     }
 
+    /// <summary>
+    /// Get by cookbook async should return only recipes from given cookbook in title order.
+    /// </summary>
     [Fact]
     public async Task GetByCookbookAsync_ShouldReturnOnlyRecipesFromGivenCookbook_InTitleOrder()
     {
@@ -152,6 +167,9 @@ public class RecipeServiceTests
         list.Select(r => r.Title).Should().ContainInOrder("A-Titel", "Z-Titel");
     }
 
+    /// <summary>
+    /// Create async should fail when title too short.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldFail_WhenTitleTooShort()
     {
@@ -168,6 +186,9 @@ public class RecipeServiceTests
         recipe.Should().BeNull();
     }
 
+    /// <summary>
+    /// Get available for cookbook async should return recipes not in given cookbook.
+    /// </summary>
     [Fact]
     public async Task GetAvailableForCookbookAsync_ShouldReturnRecipes_NotInGivenCookbook()
     {
@@ -187,6 +208,9 @@ public class RecipeServiceTests
         available.Select(r => r.Title).Should().BeEquivalentTo(new[] { "R02", "R03" });
     }
 
+    /// <summary>
+    /// Search async should find honig recipe for owning user.
+    /// </summary>
     [Fact]
     public async Task SearchAsync_ShouldFindHonigRecipe_ForOwningUser()
     {
@@ -204,6 +228,9 @@ public class RecipeServiceTests
         result.Items.Select(i => i.Title).Should().Contain("Honig - Senf - Sojamarinade");
     }
 
+    /// <summary>
+    /// Search async should not return foreign user recipes.
+    /// </summary>
     [Fact]
     public async Task SearchAsync_ShouldNotReturnForeignUserRecipes()
     {
@@ -221,6 +248,9 @@ public class RecipeServiceTests
         result.TotalCount.Should().Be(0);
     }
 
+    /// <summary>
+    /// Search async should filter by string cookbook id.
+    /// </summary>
     [Fact]
     public async Task SearchAsync_ShouldFilterByStringCookbookId()
     {
@@ -241,6 +271,9 @@ public class RecipeServiceTests
         result.TotalCount.Should().Be(1);
     }
 
+    /// <summary>
+    /// Add existing to cookbook async should clone selected with steps and ingredients.
+    /// </summary>
     [Fact]
     public async Task AddExistingToCookbookAsync_ShouldCloneSelected_WithStepsAndIngredients()
     {
@@ -276,6 +309,9 @@ public class RecipeServiceTests
         cloned.Description.Should().Be("D1");
     }
 
+    /// <summary>
+    /// Add existing to cookbook async should ignore already in target.
+    /// </summary>
     [Fact]
     public async Task AddExistingToCookbookAsync_ShouldIgnoreAlreadyInTarget()
     {
@@ -297,6 +333,9 @@ public class RecipeServiceTests
         created.Single().Title.Should().Be("Neu01");
     }
 
+    /// <summary>
+    /// Add existing to cookbook async should return empty when no ids.
+    /// </summary>
     [Fact]
     public async Task AddExistingToCookbookAsync_ShouldReturnEmpty_WhenNoIds()
     {
@@ -313,6 +352,9 @@ public class RecipeServiceTests
         created.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Create async should store side dishes without duplicates.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldStoreSideDishes_WithoutDuplicates()
     {
@@ -332,6 +374,9 @@ public class RecipeServiceTests
         loaded.SideDishes.Single().SideDishRecipeId.Should().Be(side.Id);
     }
 
+    /// <summary>
+    /// Create async should reject foreign side dish.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldRejectForeignSideDish()
     {
@@ -349,6 +394,9 @@ public class RecipeServiceTests
         result.error.Should().Be("Mindestens eine Beilage wurde nicht gefunden.");
     }
 
+    /// <summary>
+    /// Update async should replace side dishes and reject self reference.
+    /// </summary>
     [Fact]
     public async Task UpdateAsync_ShouldReplaceSideDishes_AndRejectSelfReference()
     {
@@ -376,6 +424,9 @@ public class RecipeServiceTests
         afterFailedUpdate.SideDishes.Should().ContainSingle(sd => sd.SideDishRecipeId == sideB.Id);
     }
 
+    /// <summary>
+    /// Get by id async should return side dishes in configured order.
+    /// </summary>
     [Fact]
     public async Task GetByIdAsync_ShouldReturnSideDishes_InConfiguredOrder()
     {

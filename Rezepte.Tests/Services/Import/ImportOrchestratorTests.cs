@@ -8,11 +8,17 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the import orchestrator tests.
+/// </summary>
 public sealed class ImportOrchestratorTests
 {
     private const string OwnerUserId = "user-1";
     private const string OtherUserId = "user-2";
 
+    /// <summary>
+    /// Start import async should use active plugins in configured order.
+    /// </summary>
     [Fact]
     public async Task StartImportAsync_ShouldUseActivePluginsInConfiguredOrder()
     {
@@ -30,6 +36,9 @@ public sealed class ImportOrchestratorTests
         second.HandleCalls.Should().Be(1);
     }
 
+    /// <summary>
+    /// Start import async should store initiator user id.
+    /// </summary>
     [Fact]
     public async Task StartImportAsync_ShouldStoreInitiatorUserId()
     {
@@ -42,6 +51,9 @@ public sealed class ImportOrchestratorTests
         sut.GetSessionForUser(sessionId, OwnerUserId).Should().BeSameAs(session);
     }
 
+    /// <summary>
+    /// Get session for user should hide session from different user.
+    /// </summary>
     [Fact]
     public async Task GetSessionForUser_ShouldHideSessionFromDifferentUser()
     {
@@ -53,6 +65,9 @@ public sealed class ImportOrchestratorTests
         sut.GetSessionForUser(sessionId, OtherUserId).Should().BeNull();
     }
 
+    /// <summary>
+    /// Start import async should support interactive plugin confirmation.
+    /// </summary>
     [Fact]
     public async Task StartImportAsync_ShouldSupportInteractivePluginConfirmation()
     {
@@ -70,6 +85,9 @@ public sealed class ImportOrchestratorTests
         completedSession.Result.CreatedRecipeIds.Should().Equal("interactive-confirmed");
     }
 
+    /// <summary>
+    /// Confirm should hide waiting session from different user.
+    /// </summary>
     [Fact]
     public async Task Confirm_ShouldHideWaitingSessionFromDifferentUser()
     {
@@ -87,6 +105,9 @@ public sealed class ImportOrchestratorTests
         await WaitForResultAsync(sut, sessionId);
     }
 
+    /// <summary>
+    /// Start import async should stop after failing matching plugin.
+    /// </summary>
     [Fact]
     public async Task StartImportAsync_ShouldStopAfterFailingMatchingPlugin()
     {
@@ -102,6 +123,9 @@ public sealed class ImportOrchestratorTests
         later.CanHandleCalls.Should().Be(0);
     }
 
+    /// <summary>
+    /// Start import async should wait for collection selection and import selected items.
+    /// </summary>
     [Fact]
     public async Task StartImportAsync_ShouldWaitForCollectionSelectionAndImportSelectedItems()
     {
@@ -128,6 +152,37 @@ public sealed class ImportOrchestratorTests
         completedSession.CollectionItems.Should().ContainSingle(i => i.ItemId == "item-2" && i.State == ImportCollectionItemState.Succeeded);
     }
 
+    /// <summary>
+    /// Start import async should track pending and importing collection item states.
+    /// </summary>
+    [Fact]
+    public async Task StartImportAsync_ShouldTrackPendingAndImportingItemStates()
+    {
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var collection = new CollectionRecordingHandler { ImportGate = gate.Task };
+        var persister = new PassthroughPersister();
+        var sut = CreateOrchestrator(persister, collection);
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", OwnerUserId);
+        var waitingSession = await WaitUntilAsync(sut, sessionId, s => s.State == "SelectionRequired");
+        waitingSession.CollectionItems.Should().OnlyContain(i => i.State == ImportCollectionItemState.Pending);
+
+        var selection = new ImportCollectionSelection([
+            new ImportCollectionSelectionItem("item-1", "https://example.test/1", "cookbook-1")
+        ]);
+        sut.SubmitSelection(sessionId, OwnerUserId, selection).Success.Should().BeTrue();
+
+        var importingSession = await WaitUntilAsync(sut, sessionId, s => s.CollectionItems.Any(i => i.State == ImportCollectionItemState.Importing));
+        importingSession.CollectionItems.Should().Contain(i => i.ItemId == "item-1" && i.State == ImportCollectionItemState.Importing);
+
+        gate.SetResult(true);
+        var completedSession = await WaitForResultAsync(sut, sessionId);
+        completedSession.CollectionItems.Should().ContainSingle(i => i.ItemId == "item-1" && i.State == ImportCollectionItemState.Succeeded);
+    }
+
+    /// <summary>
+    /// Submit selection should hide selection session from different user.
+    /// </summary>
     [Fact]
     public async Task SubmitSelection_ShouldHideSelectionSessionFromDifferentUser()
     {
@@ -150,6 +205,9 @@ public sealed class ImportOrchestratorTests
         sut.CancelSelection(sessionId, OwnerUserId).Success.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Cancel selection should hide selection session from different user.
+    /// </summary>
     [Fact]
     public async Task CancelSelection_ShouldHideSelectionSessionFromDifferentUser()
     {
@@ -169,6 +227,9 @@ public sealed class ImportOrchestratorTests
         sut.CancelSelection(sessionId, OwnerUserId).Success.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Submit selection should still work after selection was left open.
+    /// </summary>
     [Fact]
     public async Task SubmitSelection_ShouldStillWorkAfterSelectionWasLeftOpen()
     {
@@ -194,6 +255,9 @@ public sealed class ImportOrchestratorTests
         persister.TargetCookbookIds.Should().Equal("cookbook-1");
     }
 
+    /// <summary>
+    /// Start import async should fail collection preview with duplicate item ids.
+    /// </summary>
     [Fact]
     public async Task StartImportAsync_ShouldFailCollectionPreviewWithDuplicateItemIds()
     {
@@ -209,6 +273,9 @@ public sealed class ImportOrchestratorTests
         collection.ImportedItemIds.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Submit selection should accept only one concurrent selection.
+    /// </summary>
     [Fact]
     public async Task SubmitSelection_ShouldAcceptOnlyOneConcurrentSelection()
     {
@@ -236,6 +303,9 @@ public sealed class ImportOrchestratorTests
         collection.ImportedItemIds.Should().Equal("item-1");
     }
 
+    /// <summary>
+    /// Start import async should report cancellation when token is cancelled before processing starts.
+    /// </summary>
     [Fact]
     public async Task StartImportAsync_ShouldReportCancellationWhenTokenIsCancelledBeforeProcessingStarts()
     {
@@ -271,6 +341,9 @@ public sealed class ImportOrchestratorTests
     /// Stream that cancels the token once its content has been copied, so the background
     /// processing of the orchestrator starts with an already cancelled token.
     /// </summary>
+    /// <param name="content">The content parameter.</param>
+    /// <param name="cts">The cts parameter.</param>
+    /// <returns>The result.</returns>
     private sealed class CancellingStream(byte[] content, CancellationTokenSource cts) : MemoryStream(content)
     {
         public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
@@ -388,6 +461,7 @@ public sealed class ImportOrchestratorTests
     {
         public override Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
         {
+            ct.ThrowIfCancellationRequested();
             throw new InvalidOperationException("handler failed");
         }
     }
@@ -397,6 +471,8 @@ public sealed class ImportOrchestratorTests
         private readonly bool _duplicateIds;
 
         public List<string> ImportedItemIds { get; } = [];
+
+        public Task? ImportGate { get; set; }
 
         public CollectionRecordingHandler(bool duplicateIds = false) : base("collection", canHandle: false)
         {
@@ -416,14 +492,19 @@ public sealed class ImportOrchestratorTests
             return Task.FromResult<ImportCollectionPreview?>(preview);
         }
 
-        public Task<ImportResult> ImportCollectionItemAsync(ImportCollectionItem item, string userId, CancellationToken ct = default)
+        public async Task<ImportResult> ImportCollectionItemAsync(ImportCollectionItem item, string userId, CancellationToken ct = default)
         {
             ImportedItemIds.Add(item.Id);
-            return Task.FromResult(new ImportResult(
+            if (ImportGate is not null)
+            {
+                await ImportGate;
+            }
+
+            return new ImportResult(
                 true,
                 null,
                 [],
-                [new ImportedRecipe { Title = item.Title, SourceUri = item.Url }]));
+                [new ImportedRecipe { Title = item.Title, SourceUri = item.Url }]);
         }
     }
 }

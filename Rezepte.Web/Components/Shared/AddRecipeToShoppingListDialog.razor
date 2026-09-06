@@ -3,6 +3,7 @@
 @using Rezepte.Web.Services
 @inject IShoppingListService ShoppingListService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IStringLocalizer<UiStrings> Localizer
 
 @if (Show)
 {
@@ -11,8 +12,8 @@
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 id="shoppingListDialogTitle" class="modal-title">Zutaten übernehmen</h5>
-                    <button type="button" class="btn-close" aria-label="Schließen" @onclick="CloseAsync"></button>
+                    <h5 id="shoppingListDialogTitle" class="modal-title">@Localizer["TakeOverIngredients"]</h5>
+                    <button type="button" class="btn-close" aria-label="@Localizer["Close"]" @onclick="CloseAsync"></button>
                 </div>
                 <div class="modal-body">
                     @if (!string.IsNullOrWhiteSpace(message))
@@ -22,11 +23,11 @@
 
                     @if (isLoading)
                     {
-                        <div class="text-muted">Lade Zutaten...</div>
+                        <div class="text-muted">@Localizer["LoadingIngredients"]</div>
                     }
                     else if (ingredientGroups.Sum(g => g.Ingredients.Count) == 0)
                     {
-                        <div class="alert alert-info mb-0">Dieses Rezept hat keine Zutaten.</div>
+                        <div class="alert alert-info mb-0">@Localizer["RecipeHasNoIngredients"]</div>
                     }
                     else
                     {
@@ -68,7 +69,7 @@
                         }
                         @if (ingredientGroups.Any(g => !g.IsMainRecipe))
                         {
-                            <div class="form-text mt-2">Zutaten der Beilagen sind nicht vorausgewählt.</div>
+                            <div class="form-text mt-2">@Localizer["SideDishIngredientsNotPreselected"]</div>
                         }
                     }
                 </div>

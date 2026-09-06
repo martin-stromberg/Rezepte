@@ -6,10 +6,17 @@ using Rezepte.Web.Entities;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Represents the security txt settings service class.
+/// </summary>
 public class SecurityTxtSettingsService : ISecurityTxtSettingsService
 {
     private readonly RezepteDbContext _db;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SecurityTxtSettingsService"/> class.
+    /// </summary>
+    /// <param name="db">The db parameter.</param>
     public SecurityTxtSettingsService(RezepteDbContext db)
     {
         _db = db;
@@ -32,6 +39,11 @@ public class SecurityTxtSettingsService : ISecurityTxtSettingsService
         SecurityTxtCanonicalKey, SecurityTxtPolicyKey, SecurityTxtHiringKey
     };
 
+    /// <summary>
+    /// Gets the security txt settings async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<SecurityTxtSettings> GetSecurityTxtSettingsAsync(CancellationToken ct = default)
     {
         var rows = await _db.Set<AppSetting>()
@@ -58,6 +70,11 @@ public class SecurityTxtSettingsService : ISecurityTxtSettingsService
             Hiring: Get(SecurityTxtHiringKey));
     }
 
+    /// <summary>
+    /// Sets the security txt settings async.
+    /// </summary>
+    /// <param name="settings">The settings parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task SetSecurityTxtSettingsAsync(SecurityTxtSettings settings, CancellationToken ct = default)
     {
         var existing = await _db.Set<AppSetting>()

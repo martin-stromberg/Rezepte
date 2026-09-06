@@ -6,16 +6,52 @@ using Rezepte.Web.Entities;
 
 namespace Rezepte.Web.Services.Updates;
 
+/// <summary>
+/// Defines the iapplication update settings service interface.
+/// </summary>
 public interface IApplicationUpdateSettingsService
 {
+    /// <summary>
+    /// Gets the status.
+    /// </summary>
+    /// <returns>The result.</returns>
     ApplicationUpdateStatusItem GetStatus();
+    /// <summary>
+    /// Gets the settings async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<ApplicationUpdateSettingsItem> GetSettingsAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Sets the allow prerelease updates async.
+    /// </summary>
+    /// <param name="allowPrereleaseUpdates">The allow prerelease updates parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<ApplicationUpdateSettingsItem> SetAllowPrereleaseUpdatesAsync(bool allowPrereleaseUpdates, CancellationToken ct = default);
+    /// <summary>
+    /// Checks the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<ApplicationUpdateCommandResult> CheckAsync(CancellationToken ct = default);
+    /// <summary>
+    /// downloads the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<ApplicationUpdateCommandResult> DownloadAsync(CancellationToken ct = default);
+    /// <summary>
+    /// installs the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<ApplicationUpdateCommandResult> InstallAsync(CancellationToken ct = default);
 }
 
+/// <summary>
+/// Represents the application update settings service class.
+/// </summary>
 public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSettingsService
 {
     private const string AllowPrereleaseUpdatesKey = "ApplicationUpdates:AllowPrereleaseUpdates";
@@ -27,6 +63,14 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
     private readonly RezepteDbContext? _db;
     private readonly SemaphoreSlim _manualCheckGate = new(1, 1);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ApplicationUpdateSettingsService"/> class.
+    /// </summary>
+    /// <param name="statusProvider">The status provider parameter.</param>
+    /// <param name="commandHandler">The command handler parameter.</param>
+    /// <param name="options">The options parameter.</param>
+    /// <param name="db">The db parameter.</param>
+    /// <param name="applicationOptions">The application options parameter.</param>
     public ApplicationUpdateSettingsService(
         IAutoUpdateStatusProvider statusProvider,
         IAutoUpdateCommandHandler commandHandler,
@@ -41,12 +85,21 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
         _db = db;
     }
 
+    /// <summary>
+    /// Gets the status.
+    /// </summary>
+    /// <returns>The result.</returns>
     public ApplicationUpdateStatusItem GetStatus()
     {
         var snapshot = _statusProvider.GetSnapshot();
         return ApplicationUpdateStatusItem.FromSnapshot(snapshot);
     }
 
+    /// <summary>
+    /// Gets the settings async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ApplicationUpdateSettingsItem> GetSettingsAsync(CancellationToken ct = default)
     {
         if (_db is null)
@@ -63,6 +116,12 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
         return new ApplicationUpdateSettingsItem(_options.AllowPrereleaseUpdates);
     }
 
+    /// <summary>
+    /// Sets the allow prerelease updates async.
+    /// </summary>
+    /// <param name="allowPrereleaseUpdates">The allow prerelease updates parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ApplicationUpdateSettingsItem> SetAllowPrereleaseUpdatesAsync(bool allowPrereleaseUpdates, CancellationToken ct = default)
     {
         ApplyPrereleaseSetting(allowPrereleaseUpdates);
@@ -104,6 +163,11 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
         }
     }
 
+    /// <summary>
+    /// Checks the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ApplicationUpdateCommandResult> CheckAsync(CancellationToken ct = default)
     {
         await _manualCheckGate.WaitAsync(ct).ConfigureAwait(false);
@@ -121,15 +185,45 @@ public sealed class ApplicationUpdateSettingsService : IApplicationUpdateSetting
         }
     }
 
+    /// <summary>
+    /// downloads the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ApplicationUpdateCommandResult> DownloadAsync(CancellationToken ct = default)
         => ApplicationUpdateCommandResult.FromResult(await _commandHandler.DownloadAsync(ct).ConfigureAwait(false));
 
+    /// <summary>
+    /// installs the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ApplicationUpdateCommandResult> InstallAsync(CancellationToken ct = default)
         => ApplicationUpdateCommandResult.FromResult(await _commandHandler.InstallAsync(confirmDowntime: true, force: false, ct).ConfigureAwait(false));
 }
 
+/// <summary>
+/// applications the update settings item.
+/// </summary>
+/// <param name="AllowPrereleaseUpdates">The allow prerelease updates parameter.</param>
+/// <returns>The result.</returns>
 public sealed record ApplicationUpdateSettingsItem(bool AllowPrereleaseUpdates);
 
+/// <summary>
+/// applications the update status item.
+/// </summary>
+/// <param name="State">The state parameter.</param>
+/// <param name="InstalledVersion">The installed version parameter.</param>
+/// <param name="AvailableVersion">The available version parameter.</param>
+/// <param name="HasAvailablePackage">The has available package parameter.</param>
+/// <param name="LastCheckedAt">The last checked at parameter.</param>
+/// <param name="LastCheckSummary">The last check summary parameter.</param>
+/// <param name="LastDownloadSummary">The last download summary parameter.</param>
+/// <param name="LastInstallSummary">The last install summary parameter.</param>
+/// <param name="LastError">The last error parameter.</param>
+/// <param name="IsLocked">The is locked parameter.</param>
+/// <param name="LockCreatedAt">The lock created at parameter.</param>
+/// <returns>The result.</returns>
 public sealed record ApplicationUpdateStatusItem(
     string State,
     string? InstalledVersion,
@@ -143,6 +237,11 @@ public sealed record ApplicationUpdateStatusItem(
     bool IsLocked,
     DateTimeOffset? LockCreatedAt)
 {
+    /// <summary>
+    /// froms the snapshot.
+    /// </summary>
+    /// <param name="snapshot">The snapshot parameter.</param>
+    /// <returns>The result.</returns>
     public static ApplicationUpdateStatusItem FromSnapshot(AutoUpdateStatusSnapshot snapshot)
         => new(
             LocalizeState(snapshot.State.ToString()),
@@ -206,14 +305,31 @@ public sealed record ApplicationUpdateStatusItem(
     }
 }
 
+/// <summary>
+/// applications the update command result.
+/// </summary>
+/// <param name="Outcome">The outcome parameter.</param>
+/// <param name="State">The state parameter.</param>
+/// <param name="Message">The message parameter.</param>
+/// <param name="Error">The error parameter.</param>
+/// <returns>The result.</returns>
 public sealed record ApplicationUpdateCommandResult(
     string Outcome,
     string State,
     string? Message,
     string? Error)
 {
+    /// <summary>
+    /// nameofs the value.
+    /// </summary>
+    /// <returns>The result.</returns>
     public bool IsSuccess => Error is null && Outcome is not nameof(AutoUpdateOutcome.Failed) and not "Fehlgeschlagen";
 
+    /// <summary>
+    /// froms the result.
+    /// </summary>
+    /// <param name="result">The result parameter.</param>
+    /// <returns>The result.</returns>
     public static ApplicationUpdateCommandResult FromResult(AutoUpdateResult result)
         => new(
             ApplicationUpdateText.LocalizeOutcome(result.Outcome.ToString()),

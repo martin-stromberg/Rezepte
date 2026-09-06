@@ -2,12 +2,30 @@ using System.Text.RegularExpressions;
 
 namespace Rezepte.Web.Services.Validation;
 
+/// <summary>
+/// Represents the username validator class.
+/// </summary>
 public sealed partial class UsernameValidator : IUsernameValidator
 {
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public const string LengthMessage = "The username must be between 3 and 20 characters long.";
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public const string CharactersMessage = "The username may only contain letters, numbers, underscores, and hyphens.";
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public const string ReservedMessage = "The username is reserved.";
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public const string GenericBlockedMessage = "This username cannot be used. Please choose another name.";
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public const string IpOrDomainMessage = "The username must not be an IP address or domain.";
 
     private static readonly HashSet<string> ReservedNames = new(StringComparer.OrdinalIgnoreCase)
@@ -57,6 +75,11 @@ public sealed partial class UsernameValidator : IUsernameValidator
         "support"
     };
 
+    /// <summary>
+    /// Validates the value.
+    /// </summary>
+    /// <param name="username">The username parameter.</param>
+    /// <returns>The result.</returns>
     public UsernameValidationResult Validate(string? username)
     {
         if (string.IsNullOrWhiteSpace(username))

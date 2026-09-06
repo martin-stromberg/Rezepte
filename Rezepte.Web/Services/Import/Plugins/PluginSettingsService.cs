@@ -4,6 +4,15 @@ using Rezepte.Web.Entities;
 
 namespace Rezepte.Web.Services.Import.Plugins;
 
+/// <summary>
+/// plugins the settings service.
+/// </summary>
+/// <param name="db">The db parameter.</param>
+/// <param name="pluginManager">The plugin manager parameter.</param>
+/// <param name="serviceProvider">The service provider parameter.</param>
+/// <param name="httpContextAccessor">The http context accessor parameter.</param>
+/// <param name="secretStore">The secret store parameter.</param>
+/// <returns>The result.</returns>
 public sealed class PluginSettingsService(
     RezepteDbContext db,
     IPluginManager pluginManager,
@@ -11,6 +20,11 @@ public sealed class PluginSettingsService(
     IHttpContextAccessor? httpContextAccessor = null,
     ISystemSecretStore? secretStore = null) : IPluginSettingsService
 {
+    /// <summary>
+    /// Gets the plugins async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<IReadOnlyList<PluginSettingsItem>> GetPluginsAsync(CancellationToken ct = default)
     {
         var items = await db.PluginSettings
@@ -40,6 +54,11 @@ public sealed class PluginSettingsService(
             .ToList();
     }
 
+    /// <summary>
+    /// Gets the sources async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<IReadOnlyList<PluginSourceSettingsItem>> GetSourcesAsync(CancellationToken ct = default)
     {
         EnsureAdmin();
@@ -64,6 +83,11 @@ public sealed class PluginSettingsService(
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Saves the source async.
+    /// </summary>
+    /// <param name="request">The request parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task SaveSourceAsync(PluginSourceSaveRequest request, CancellationToken ct = default)
     {
         EnsureAdmin();
@@ -122,6 +146,12 @@ public sealed class PluginSettingsService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Sets the source enabled async.
+    /// </summary>
+    /// <param name="sourceId">The source id parameter.</param>
+    /// <param name="enabled">The enabled parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task SetSourceEnabledAsync(string sourceId, bool enabled, CancellationToken ct = default)
     {
         EnsureAdmin();
@@ -132,6 +162,11 @@ public sealed class PluginSettingsService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Deletes the source async.
+    /// </summary>
+    /// <param name="sourceId">The source id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task DeleteSourceAsync(string sourceId, CancellationToken ct = default)
     {
         EnsureAdmin();
@@ -146,6 +181,12 @@ public sealed class PluginSettingsService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Sets the enabled async.
+    /// </summary>
+    /// <param name="pluginId">The plugin id parameter.</param>
+    /// <param name="enabled">The enabled parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task SetEnabledAsync(string pluginId, bool enabled, CancellationToken ct = default)
     {
         var plugin = await db.PluginSettings.FindAsync([pluginId], ct).ConfigureAwait(false);
@@ -158,6 +199,12 @@ public sealed class PluginSettingsService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// moves the async.
+    /// </summary>
+    /// <param name="pluginId">The plugin id parameter.</param>
+    /// <param name="direction">The direction parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task MoveAsync(string pluginId, int direction, CancellationToken ct = default)
     {
         if (direction == 0)

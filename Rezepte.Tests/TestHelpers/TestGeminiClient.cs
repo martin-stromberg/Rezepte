@@ -10,6 +10,12 @@ namespace Rezepte.Tests.TestHelpers;
 /// </summary>
 public class TestGeminiClient : IGeminiClient
 {
+    /// <summary>
+    /// Initializes a new instance.
+    /// </summary>
+    /// <param name="ocrText">The ocr text parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public Task<AIRecipe[]> ExtractRecipeAsync(string ocrText, CancellationToken ct = default)
     {
         var r = new AIRecipe
@@ -23,6 +29,12 @@ public class TestGeminiClient : IGeminiClient
         return Task.FromResult(new[] { r });
     }
 
+    /// <summary>
+    /// Initializes a new instance.
+    /// </summary>
+    /// <param name="responseContent">The response content parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public Task<AIRecipe[]> ExtractRecipeFromUrlAsync(string responseContent, CancellationToken ct = default)
     {
         var r = new AIRecipe
@@ -36,11 +48,19 @@ public class TestGeminiClient : IGeminiClient
         return Task.FromResult(new[] { r });
     }
 
+    /// <summary>
+    /// Has api key.
+    /// </summary>
+    /// <returns>The result.</returns>
     public bool HasApiKey()
     {
         return true;
     }
 
+    /// <summary>
+    /// Has service account.
+    /// </summary>
+    /// <returns>The result.</returns>
     public bool HasServiceAccount()
     {
         return true;

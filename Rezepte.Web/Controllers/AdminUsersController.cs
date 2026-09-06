@@ -8,6 +8,11 @@ namespace Rezepte.Web.Controllers;
 /// <summary>
 /// Administration endpoints for managing user accounts (JWT + Admin role required).
 /// </summary>
+/// <param name="users">The users parameter.</param>
+/// <param>...</param>
+/// <param>...</param>
+/// <param>...</param>
+/// <returns>The result.</returns>
 [ApiController]
 [Route("api/admin/users")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
@@ -18,6 +23,7 @@ public class AdminUsersController(IUserService users) : ControllerBase
     /// <summary>
     /// Returns all users for administration.
     /// </summary>
+    /// <returns>The result.</returns>
     /// <param name="ct">Cancellation token.</param>
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -30,6 +36,7 @@ public class AdminUsersController(IUserService users) : ControllerBase
     /// <summary>
     /// Creates a new user account.
     /// </summary>
+    /// <returns>The result.</returns>
     /// <param name="dto">Creation request.</param>
     /// <param name="ct">Cancellation token.</param>
     [HttpPost]
@@ -60,6 +67,7 @@ public class AdminUsersController(IUserService users) : ControllerBase
     /// <summary>
     /// Updates an existing user.
     /// </summary>
+    /// <returns>The result.</returns>
     /// <param name="id">User id.</param>
     /// <param name="dto">Update request.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -74,6 +82,7 @@ public class AdminUsersController(IUserService users) : ControllerBase
     /// <summary>
     /// Deletes a user by id.
     /// </summary>
+    /// <returns>The result.</returns>
     /// <param name="id">User id.</param>
     /// <param name="ct">Cancellation token.</param>
     [HttpDelete("{id}")]
@@ -85,8 +94,23 @@ public class AdminUsersController(IUserService users) : ControllerBase
     }
 
     /// <summary>Creation DTO.</summary>
+    /// <param name="Username">The username parameter.</param>
+    /// <param name="Email">The email parameter.</param>
+    /// <param name="Password">The password parameter.</param>
+    /// <param name="IsAdmin">The is admin parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     public record CreateUserRequest(string Username, string? Email, string Password, bool IsAdmin);
 
     /// <summary>Update DTO.</summary>
+    /// <param name="Username">The username parameter.</param>
+    /// <param name="Email">The email parameter.</param>
+    /// <param name="IsAdmin">The is admin parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     public record UpdateUserRequest(string Username, string? Email, bool IsAdmin);
 }

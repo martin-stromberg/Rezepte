@@ -8,6 +8,9 @@ using Rezepte.Web.Services.BackgroundJobs;
 
 namespace Rezepte.Web.Controllers;
 
+/// <summary>
+/// Represents the jobs controller class.
+/// </summary>
 [ApiController]
 [Route("api/jobs")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -16,6 +19,11 @@ public class JobsController : ApiControllerBase
     private readonly IBackgroundJobQueue _queue;
     private readonly ExportJobFileStore _fileStore;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JobsController"/> class.
+    /// </summary>
+    /// <param name="queue">The queue parameter.</param>
+    /// <param name="fileStore">The file store parameter.</param>
     public JobsController(IBackgroundJobQueue queue, ExportJobFileStore fileStore)
     {
         _queue = queue;
@@ -27,6 +35,12 @@ public class JobsController : ApiControllerBase
     /// POST /api/jobs/exports/me
     /// Body (optional): { "includePdf": true }
     /// </summary>
+    /// <param name="body">The body parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpPost("exports/me")]
     public async Task<IActionResult> EnqueueUserExport([FromBody] JsonElement? body = null, CancellationToken ct = default)
     {
@@ -49,6 +63,12 @@ public class JobsController : ApiControllerBase
     /// POST /api/jobs/exports/all
     /// Body (optional): { "includeImages": true, "includePdf": true }
     /// </summary>
+    /// <param name="body">The body parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpPost("exports/all")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> EnqueueAdminExport([FromBody] JsonElement? body = null, CancellationToken ct = default)
@@ -70,6 +90,12 @@ public class JobsController : ApiControllerBase
     /// Query job status.
     /// GET /api/jobs/{id}
     /// </summary>
+    /// <param name="id">The id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetJobStatus(Guid id, CancellationToken ct = default)
     {
@@ -100,6 +126,12 @@ public class JobsController : ApiControllerBase
     /// Download the result file of a finished export job.
     /// GET /api/jobs/{id}/download
     /// </summary>
+    /// <param name="id">The id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpGet("{id:guid}/download")]
     public async Task<IActionResult> DownloadJobResult(Guid id, CancellationToken ct = default)
     {

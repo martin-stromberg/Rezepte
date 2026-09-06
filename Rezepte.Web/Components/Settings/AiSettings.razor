@@ -1,11 +1,12 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using System.Text.Json
 @inject ApiClient Client
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<Rezepte.Web.Components.Settings.AiSettings> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 <div>
-    <h6>Nutzung von KI</h6>
+    <h6>@Localizer["AiUsage"]</h6>
 
     @if (isLoading)
     {
@@ -18,39 +19,39 @@
             <hr />
             <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="globalAi" checked="@globalAiEnabled" @onchange="OnGlobalToggle" disabled="@isSaving" />
-                <label class="form-check-label" for="globalAi">KI global aktiv (Admin)</label>
+                <label class="form-check-label" for="globalAi">@Localizer["AiGlobalActiveAdmin"]</label>
             </div>
 
             <div class="ps-3 mt-2">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="globalGoogle" checked="@(globalAiEnabled && globalGoogleVisionEnabled)" @onchange="OnGlobalGoogleToggle" disabled="@(isSaving || !globalAiEnabled)" />
-                    <label class="form-check-label" for="globalGoogle">Google Vision global aktiv (Admin)</label>
+                    <label class="form-check-label" for="globalGoogle">@Localizer["GoogleVisionGlobalActiveAdmin"]</label>
                 </div>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="globalGemini" checked="@(globalAiEnabled && globalGeminiEnabled)" @onchange="OnGlobalGeminiToggle" disabled="@(isSaving || !globalAiEnabled)" />
-                    <label class="form-check-label" for="globalGemini">Gemini global aktiv (Admin)</label>
+                    <label class="form-check-label" for="globalGemini">@Localizer["GeminiGlobalActiveAdmin"]</label>
                 </div>
 
                 <!-- New: global limits for admins -->
                 <div class="mt-3">
-                    <h6 class="small">Limit Einstellungen</h6>
+                    <h6 class="small">@Localizer["LimitSettings"]</h6>
 
                     <div class="mb-2">
-                        <label class="form-label small" for="maxPerHour">Max Anfragen pro Stunde</label>
+                        <label class="form-label small" for="maxPerHour">@Localizer["MaxRequestsPerHour"]</label>
                         <input id="maxPerHour" class="form-control form-control-sm" type="number" min="0" value="@globalMaxRequestsPerHourString" @onchange="OnGlobalMaxPerHourChanged" disabled="@(isSaving || !globalAiEnabled)" />
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label small" for="maxPerDay">Max Anfragen pro Tag</label>
+                        <label class="form-label small" for="maxPerDay">@Localizer["MaxRequestsPerDay"]</label>
                         <input id="maxPerDay" class="form-control form-control-sm" type="number" min="0" value="@globalMaxRequestsPerDayString" @onchange="OnGlobalMaxPerDayChanged" disabled="@(isSaving || !globalAiEnabled)" />
                     </div>
 
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="disableOnLimit" checked="@globalDisableOnLimitReached" @onchange="OnGlobalDisableOnLimitChanged" disabled="@(isSaving || !globalAiEnabled)" />
-                        <label class="form-check-label" for="disableOnLimit">KI global deaktivieren, wenn Limit erreicht</label>
+                        <label class="form-check-label" for="disableOnLimit">@Localizer["DisableAiGloballyOnLimit"]</label>
                     </div>
 
-                    <div class="small text-muted mt-1">Setzen Sie 0 für unbegrenzte Anfragen.</div>
+                    <div class="small text-muted mt-1">@Localizer["ZeroForUnlimitedRequests"]</div>
                 </div>
             </div>
         }
@@ -62,7 +63,7 @@
                    checked="@userAiEnabled"
                    @onchange="OnUserToggle"
                    disabled="@(isSaving || !globalAiEnabled)" />
-            <label class="form-check-label" for="userAi">KI für mein Konto aktivieren</label>
+            <label class="form-check-label" for="userAi">@Localizer["EnableAiForMyAccount"]</label>
         </div>
 
         <div class="ps-3">
@@ -74,9 +75,9 @@
                            checked="@(userAiEnabled && userGoogleVisionEnabled)"
                            @onchange="OnUserGoogleToggle"
                            disabled="@(isSaving || !globalAiEnabled || !globalGoogleVisionEnabled)" />
-                    <label class="form-check-label" for="userGoogle">Google Vision für mein Konto aktivieren</label>
+                    <label class="form-check-label" for="userGoogle">@Localizer["EnableGoogleVisionForMyAccount"]</label>
                 </div>
-                <button class="btn btn-link p-0 ms-2" title="Info" @onclick="ToggleGoogleInfo" aria-label="Info Google Vision">
+                <button class="btn btn-link p-0 ms-2" title="@Localizer["Info"]" @onclick="ToggleGoogleInfo" aria-label="@Localizer["InfoGoogleVision"]">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" role="img" focusable="false">
                       <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.25"/>
                       <circle cx="8" cy="4.5" r="0.9" fill="currentColor"/>
@@ -93,9 +94,9 @@
                            checked="@(userAiEnabled && userGeminiEnabled)"
                            @onchange="OnUserGeminiToggle"
                            disabled="@(isSaving || !globalAiEnabled || !globalGeminiEnabled)" />
-                    <label class="form-check-label" for="userGemini">Gemini für mein Konto aktivieren</label>
+                    <label class="form-check-label" for="userGemini">@Localizer["EnableGeminiForMyAccount"]</label>
                 </div>
-                <button class="btn btn-link p-0 ms-2" title="Info" @onclick="ToggleGeminiInfo" aria-label="Info Gemini">
+                <button class="btn btn-link p-0 ms-2" title="@Localizer["Info"]" @onclick="ToggleGeminiInfo" aria-label="@Localizer["InfoGemini"]">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" role="img" focusable="false">
                       <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.25"/>
                       <circle cx="8" cy="4.5" r="0.9" fill="currentColor"/>
@@ -113,9 +114,9 @@
                            checked="@requireAiConfirmation"
                            @onchange="OnUserRequireConfirm"
                            disabled="@(isSaving || !userAiEnabled)" />
-                    <label class="form-check-label" for="requireAiConfirm">Bestätigung vor KI‑Nutzung anfordern</label>
+                    <label class="form-check-label" for="requireAiConfirm">@Localizer["RequestConfirmationBeforeAi"]</label>
                 </div>
-                <button class="btn btn-link p-0 ms-2" title="Info" @onclick="ToggleConfirmInfo" aria-label="Info Bestätigung">
+                <button class="btn btn-link p-0 ms-2" title="@Localizer["Info"]" @onclick="ToggleConfirmInfo" aria-label="@Localizer["InfoConfirmation"]">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" role="img" focusable="false">
                       <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.25"/>
                       <circle cx="8" cy="4.5" r="0.9" fill="currentColor"/>
@@ -127,15 +128,15 @@
 
         @if (!globalAiEnabled && !isAdmin)
         {
-            <div class="text-muted small mb-2">KI ist global deaktiviert — Ihre Einstellung ist gesperrt.</div>
+            <div class="text-muted small mb-2">@Localizer["AiGloballyDisabledLocked"]</div>
         }
         @if (!globalGoogleVisionEnabled && !isAdmin)
         {
-            <div class="text-muted small mb-2">Google Vision ist vom Administrator deaktiviert — Ihre Einstellung ist gesperrt.</div>
+            <div class="text-muted small mb-2">@Localizer["GoogleVisionDisabledByAdminLocked"]</div>
         }
         @if (!globalGeminiEnabled && !isAdmin)
         {
-            <div class="text-muted small mb-2">Gemini ist vom Administrator deaktiviert — Ihre Einstellung ist gesperrt.</div>
+            <div class="text-muted small mb-2">@Localizer["GeminiDisabledByAdminLocked"]</div>
         }               
     }
 
@@ -152,24 +153,24 @@
     <div class="ai-info-overlay" role="dialog" aria-modal="true">
         <div class="d-flex justify-content-between align-items-start mb-2">
             <h6 class="m-0">
-                @if (showInfoGoogle) { <text>Google Vision</text> }
+                @if (showInfoGoogle) { <text>@Localizer["GoogleVision"]</text> }
                 else if (showInfoGemini) { <text>Gemini</text> }
-                else { <text>Bestätigung vor KI‑Nutzung</text> }
+                else { <text>@Localizer["AiConfirmationTitle"]</text> }
             </h6>
             <button class="btn btn-sm btn-outline-secondary" @onclick="CloseOverlays">Schließen</button>
         </div>
         <div>
             @if (showInfoGoogle)
             {
-                <p>Google Vision wird für die Erkennung von Text in Bilddateien verwendet. Bei Fotoerkennung werden GoogleVision und zusätzlich Gemini zur Extraktion von Rezeptinformationen eingesetzt.</p>
+                <p>@Localizer["GoogleVisionInfoText"]</p>
             }
             else if (showInfoGemini)
             {
-                <p>Gemini wird für das Auslesen von Rezeptinformationen aus Texten benötigt. Beim Auslesen von Webseiten wird nur Gemini benötigt; bei Fotoerkennung wird Gemini zusammen mit Google Vision verwendet.</p>
+                <p>@Localizer["GeminiInfoText"]</p>
             }
             else if (showInfoConfirm)
             {
-                <p>Wenn diese Option aktiviert ist, erscheint vor jeder Aktion, die KI‑Dienste nutzt, eine kurze Bestätigungsabfrage. Das verhindert unbeabsichtigte KI‑Anfragen.</p>
+                <p>@Localizer["AiConfirmationInfoText"]</p>
             }
         </div>
     </div>

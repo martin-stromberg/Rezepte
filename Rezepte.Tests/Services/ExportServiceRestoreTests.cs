@@ -13,8 +13,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the export service restore tests.
+/// </summary>
 public class ExportServiceRestoreTests
 {
+    /// <summary>
+    /// Restore from zip async should skip imported user when username already exists.
+    /// </summary>
     [Fact]
     public async Task RestoreFromZipAsync_ShouldSkipImportedUser_WhenUsernameAlreadyExists()
     {
@@ -76,6 +82,9 @@ public class ExportServiceRestoreTests
         cookbook.UserId.Should().Be(adminUserId);
     }
 
+    /// <summary>
+    /// Restore from zip async should throw when recipes json missing.
+    /// </summary>
     [Fact]
     public async Task RestoreFromZipAsync_ShouldThrow_WhenRecipesJsonMissing()
     {
@@ -98,6 +107,9 @@ public class ExportServiceRestoreTests
         await act.Should().ThrowAsync<InvalidDataException>();
     }
 
+    /// <summary>
+    /// Restore from zip async should throw when archive contains too many entries.
+    /// </summary>
     [Fact]
     public async Task RestoreFromZipAsync_ShouldThrow_WhenArchiveContainsTooManyEntries()
     {
@@ -126,6 +138,9 @@ public class ExportServiceRestoreTests
         await act.Should().ThrowAsync<InvalidDataException>();
     }
 
+    /// <summary>
+    /// Restore from zip async should throw when compression ratio exceeds limit.
+    /// </summary>
     [Fact]
     public async Task RestoreFromZipAsync_ShouldThrow_WhenCompressionRatioExceedsLimit()
     {
@@ -154,6 +169,9 @@ public class ExportServiceRestoreTests
         await act.Should().ThrowAsync<InvalidDataException>();
     }
 
+    /// <summary>
+    /// Restore from zip async should throw when image exceeds max uncompressed size.
+    /// </summary>
     [Fact]
     public async Task RestoreFromZipAsync_ShouldThrow_WhenImageExceedsMaxUncompressedSize()
     {
@@ -182,6 +200,9 @@ public class ExportServiceRestoreTests
         await act.Should().ThrowAsync<InvalidDataException>();
     }
 
+    /// <summary>
+    /// Restore from zip async should rollback when total image size exceeded.
+    /// </summary>
     [Fact]
     public async Task RestoreFromZipAsync_ShouldRollback_WhenTotalImageSizeExceeded()
     {
@@ -289,6 +310,9 @@ public class ExportServiceRestoreTests
         cookbooks.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Restore from zip async should restore recipe and image when archive is valid.
+    /// </summary>
     [Fact]
     public async Task RestoreFromZipAsync_ShouldRestoreRecipeAndImage_WhenArchiveIsValid()
     {

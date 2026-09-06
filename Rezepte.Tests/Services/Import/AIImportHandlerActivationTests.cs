@@ -14,9 +14,15 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the aiimport handler activation tests.
+/// </summary>
 [Collection(GoogleCredentialsEnvironmentCollection.Name)]
 public class AIImportHandlerActivationTests
 {
+    /// <summary>
+    /// Aiurl is active when only gemini api key exists.
+    /// </summary>
     [Fact]
     public async Task AIUrl_IsActive_WhenOnlyGeminiApiKeyExists()
     {
@@ -31,6 +37,9 @@ public class AIImportHandlerActivationTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Aiurl is inactive when gemini authentication is missing.
+    /// </summary>
     [Fact]
     public async Task AIUrl_IsInactive_WhenGeminiAuthenticationIsMissing()
     {
@@ -45,6 +54,9 @@ public class AIImportHandlerActivationTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Aifoto is active when vision service account and gemini authentication exist.
+    /// </summary>
     [Fact]
     public async Task AIFoto_IsActive_WhenVisionServiceAccountAndGeminiAuthenticationExist()
     {
@@ -67,6 +79,9 @@ public class AIImportHandlerActivationTests
         }
     }
 
+    /// <summary>
+    /// Aifoto is inactive when only gemini api key exists.
+    /// </summary>
     [Fact]
     public async Task AIFoto_IsInactive_WhenOnlyGeminiApiKeyExists()
     {
@@ -81,6 +96,9 @@ public class AIImportHandlerActivationTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Aifoto is inactive when service account path does not exist.
+    /// </summary>
     [Fact]
     public async Task AIFoto_IsInactive_WhenServiceAccountPathDoesNotExist()
     {
@@ -96,6 +114,9 @@ public class AIImportHandlerActivationTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Base activation does not require service account when gemini api key exists.
+    /// </summary>
     [Fact]
     public async Task BaseActivation_DoesNotRequireServiceAccount_WhenGeminiApiKeyExists()
     {

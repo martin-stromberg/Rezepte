@@ -5,12 +5,21 @@ using Rezepte.Web.Entities;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Represents the ai usage service class.
+/// </summary>
 public class AiUsageService : IAiUsageService
 {
     private readonly RezepteDbContext _db;
     private readonly ISettingsService _settings;
     private readonly ILogger<AiUsageService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AiUsageService"/> class.
+    /// </summary>
+    /// <param name="db">The db parameter.</param>
+    /// <param name="settings">The settings parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public AiUsageService(RezepteDbContext db, ISettingsService settings, ILogger<AiUsageService> logger)
     {
         _db = db;
@@ -18,6 +27,13 @@ public class AiUsageService : IAiUsageService
         _logger = logger;
     }
 
+    /// <summary>
+    /// records the request async.
+    /// </summary>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="serviceName">The service name parameter.</param>
+    /// <param name="type">The type parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task RecordRequestAsync(string userId, string serviceName, AiRequestLogType type = AiRequestLogType.Request, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -32,6 +48,13 @@ public class AiUsageService : IAiUsageService
         await _db.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Tries to record request async.
+    /// </summary>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="serviceName">The service name parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<bool> TryRecordRequestAsync(string userId, string serviceName, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -92,6 +115,12 @@ public class AiUsageService : IAiUsageService
         return true;
     }
 
+    /// <summary>
+    /// Gets the count async.
+    /// </summary>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<int> GetCountAsync(string userId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

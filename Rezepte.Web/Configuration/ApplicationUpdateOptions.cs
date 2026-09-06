@@ -1,5 +1,8 @@
 namespace Rezepte.Web.Configuration;
 
+/// <summary>
+/// Represents the application update options class.
+/// </summary>
 public sealed class ApplicationUpdateOptions
 {
     /// <summary>

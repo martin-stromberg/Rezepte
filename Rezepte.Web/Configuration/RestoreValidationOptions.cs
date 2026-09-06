@@ -1,5 +1,8 @@
 namespace Rezepte.Web.Configuration;
 
+/// <summary>
+/// Represents the restore validation options class.
+/// </summary>
 public sealed class RestoreValidationOptions
 {
     /// <summary>

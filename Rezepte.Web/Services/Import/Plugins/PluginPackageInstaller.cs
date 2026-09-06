@@ -1,12 +1,30 @@
 namespace Rezepte.Web.Services.Import.Plugins;
 
+/// <summary>
+/// plugins the package installer.
+/// </summary>
+/// <param name="environment">The environment parameter.</param>
+/// <param name="pluginManager">The plugin manager parameter.</param>
+/// <param name="logger">The logger parameter.</param>
+/// <returns>The result.</returns>
 public sealed class PluginPackageInstaller(IHostEnvironment environment, IPluginManager pluginManager, ILogger<PluginPackageInstaller> logger) : IPluginPackageInstaller
 {
     private static readonly SemaphoreSlim InstallLock = new(1, 1);
 
+    /// <summary>
+    /// installs the async.
+    /// </summary>
+    /// <param name="pluginDirectories">The plugin directories parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task InstallAsync(IReadOnlyList<string> pluginDirectories, CancellationToken ct = default)
         => await InstallWithReloadTrackingAsync(pluginDirectories, null, ct).ConfigureAwait(false);
 
+    /// <summary>
+    /// installs the with reload tracking async.
+    /// </summary>
+    /// <param name="pluginDirectories">The plugin directories parameter.</param>
+    /// <param name="beforeReload">The before reload parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task InstallWithReloadTrackingAsync(IReadOnlyList<string> pluginDirectories, Func<CancellationToken, Task>? beforeReload, CancellationToken ct = default)
     {
         if (pluginDirectories.Count == 0)

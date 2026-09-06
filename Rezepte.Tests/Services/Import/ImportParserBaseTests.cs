@@ -12,6 +12,10 @@ namespace Rezepte.Tests.Services.Import;
 /// </summary>
 public static class ImportParserBaseTestData
 {
+    /// <summary>
+    /// Ingredients.
+    /// </summary>
+    /// <returns>The result.</returns>
     public static TheoryData<string?, decimal, string?, string> Ingredients => new()
     {
         { null, 0m, null, "" },
@@ -31,6 +35,10 @@ public static class ImportParserBaseTestData
         { "Butter 100 weich", 100m, null, "Butter weich" }
     };
 
+    /// <summary>
+    /// Vulgar ingredients.
+    /// </summary>
+    /// <returns>The result.</returns>
     public static TheoryData<string?, decimal, string?, string> VulgarIngredients => new()
     {
         { "½ TL Salz", 0.5m, "TL", "Salz" },
@@ -41,6 +49,10 @@ public static class ImportParserBaseTestData
         { "Zucker ¼", 0.25m, null, "Zucker" }
     };
 
+    /// <summary>
+    /// Durations.
+    /// </summary>
+    /// <returns>The result.</returns>
     public static TheoryData<string?, int> Durations => new()
     {
         { null, 0 },
@@ -54,6 +66,10 @@ public static class ImportParserBaseTestData
         { "PT1H15M30S", 76 }
     };
 
+    /// <summary>
+    /// Invalid durations.
+    /// </summary>
+    /// <returns>The result.</returns>
     public static TheoryData<string> InvalidDurations => new()
     {
         "1H30M",
@@ -63,6 +79,9 @@ public static class ImportParserBaseTestData
     };
 }
 
+/// <summary>
+/// Class representing the sdk import parser base tests.
+/// </summary>
 public class SdkImportParserBaseTests
 {
     private sealed class Probe : SdkParserBase
@@ -78,16 +97,33 @@ public class SdkImportParserBaseTests
 
     private readonly Probe _sut = new();
 
+    /// <summary>
+    /// Parse ingredient line should parse quantity unit and name.
+    /// </summary>
+    /// <param name="line">The line parameter.</param>
+    /// <param name="amount">The amount parameter.</param>
+    /// <param name="unit">The unit parameter.</param>
+    /// <param name="name">The name parameter.</param>
     [Theory]
     [MemberData(nameof(ImportParserBaseTestData.Ingredients), MemberType = typeof(ImportParserBaseTestData))]
     public void ParseIngredientLine_ShouldParseQuantityUnitAndName(string? line, decimal amount, string? unit, string name)
         => _sut.Parse(line).Should().Be((amount, unit, name));
 
+    /// <summary>
+    /// Parse ingredient line should parse vulgar fractions.
+    /// </summary>
+    /// <param name="line">The line parameter.</param>
+    /// <param name="amount">The amount parameter.</param>
+    /// <param name="unit">The unit parameter.</param>
+    /// <param name="name">The name parameter.</param>
     [Theory]
     [MemberData(nameof(ImportParserBaseTestData.VulgarIngredients), MemberType = typeof(ImportParserBaseTestData))]
     public void ParseIngredientLine_ShouldParseVulgarFractions(string? line, decimal amount, string? unit, string name)
         => _sut.Parse(line).Should().Be((amount, unit, name));
 
+    /// <summary>
+    /// Parse ingredient line should parse thirds as fraction.
+    /// </summary>
     [Fact]
     public void ParseIngredientLine_ShouldParseThirdsAsFraction()
     {
@@ -98,11 +134,20 @@ public class SdkImportParserBaseTests
         result.Name.Should().Be("Tasse Reis");
     }
 
+    /// <summary>
+    /// Parse iso duration to minutes should convert duration.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
+    /// <param name="expected">The expected parameter.</param>
     [Theory]
     [MemberData(nameof(ImportParserBaseTestData.Durations), MemberType = typeof(ImportParserBaseTestData))]
     public void ParseIsoDurationToMinutes_ShouldConvertDuration(string? value, int expected)
         => _sut.ParseIsoDurationToMinutes(value).Should().Be(expected);
 
+    /// <summary>
+    /// Parse iso duration to minutes should throw for invalid duration.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
     [Theory]
     [MemberData(nameof(ImportParserBaseTestData.InvalidDurations), MemberType = typeof(ImportParserBaseTestData))]
     public void ParseIsoDurationToMinutes_ShouldThrowForInvalidDuration(string value)
@@ -113,6 +158,9 @@ public class SdkImportParserBaseTests
     }
 }
 
+/// <summary>
+/// Class representing the web import parser base tests.
+/// </summary>
 public class WebImportParserBaseTests
 {
     private sealed class Probe : WebParserBase
@@ -128,21 +176,44 @@ public class WebImportParserBaseTests
 
     private readonly Probe _sut = new();
 
+    /// <summary>
+    /// Parse ingredient line should parse quantity unit and name.
+    /// </summary>
+    /// <param name="line">The line parameter.</param>
+    /// <param name="amount">The amount parameter.</param>
+    /// <param name="unit">The unit parameter.</param>
+    /// <param name="name">The name parameter.</param>
     [Theory]
     [MemberData(nameof(ImportParserBaseTestData.Ingredients), MemberType = typeof(ImportParserBaseTestData))]
     public void ParseIngredientLine_ShouldParseQuantityUnitAndName(string? line, decimal amount, string? unit, string name)
         => _sut.Parse(line).Should().Be((amount, unit, name));
 
+    /// <summary>
+    /// Parse ingredient line should parse vulgar fractions.
+    /// </summary>
+    /// <param name="line">The line parameter.</param>
+    /// <param name="amount">The amount parameter.</param>
+    /// <param name="unit">The unit parameter.</param>
+    /// <param name="name">The name parameter.</param>
     [Theory]
     [MemberData(nameof(ImportParserBaseTestData.VulgarIngredients), MemberType = typeof(ImportParserBaseTestData))]
     public void ParseIngredientLine_ShouldParseVulgarFractions(string? line, decimal amount, string? unit, string name)
         => _sut.Parse(line).Should().Be((amount, unit, name));
 
+    /// <summary>
+    /// Parse iso duration to minutes should convert duration.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
+    /// <param name="expected">The expected parameter.</param>
     [Theory]
     [MemberData(nameof(ImportParserBaseTestData.Durations), MemberType = typeof(ImportParserBaseTestData))]
     public void ParseIsoDurationToMinutes_ShouldConvertDuration(string? value, int expected)
         => _sut.ParseIsoDurationToMinutes(value).Should().Be(expected);
 
+    /// <summary>
+    /// Parse iso duration to minutes should throw for invalid duration.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
     [Theory]
     [MemberData(nameof(ImportParserBaseTestData.InvalidDurations), MemberType = typeof(ImportParserBaseTestData))]
     public void ParseIsoDurationToMinutes_ShouldThrowForInvalidDuration(string value)

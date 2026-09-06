@@ -12,6 +12,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the ai usage service tests.
+/// </summary>
 public class AiUsageServiceTests
 {
     private static RezepteDbContext CreateDb()
@@ -22,6 +25,9 @@ public class AiUsageServiceTests
         return new RezepteDbContext(options);
     }
 
+    /// <summary>
+    /// Try record request async counts only request entries and blocks when limit reached.
+    /// </summary>
     [Fact]
     public async Task TryRecordRequestAsync_counts_only_request_entries_and_blocks_when_limit_reached()
     {
@@ -48,6 +54,9 @@ public class AiUsageServiceTests
         reqCount.Should().Be(2);
     }
 
+    /// <summary>
+    /// Success entries are not counted against limits.
+    /// </summary>
     [Fact]
     public async Task Success_entries_are_not_counted_against_limits()
     {
@@ -77,6 +86,9 @@ public class AiUsageServiceTests
         requestCount.Should().Be(1);
     }
 
+    /// <summary>
+    /// When disable on limit reached global ai is disabled.
+    /// </summary>
     [Fact]
     public async Task When_disableOnLimit_reached_global_ai_is_disabled()
     {

@@ -1,4 +1,4 @@
-﻿@page "/cookbooks/{Id}"
+@page "/cookbooks/{Id}"
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @rendermode InteractiveServer
@@ -7,6 +7,7 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject ILogger<Rezepte.Web.Components.Pages.CookbookPage> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 @using Rezepte.Web.Components.Shared
 
 <PageTitle>@(book?.Name ?? "Kochbuch")</PageTitle>
@@ -14,14 +15,14 @@
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
     <span>@(book?.Name ?? "Kochbuch")</span>
     <div class="btn-group">
-        <a class="btn btn-sm btn-outline-secondary" href="/cookbooks/@Id/edit" title="Bearbeiten">✏️</a>
+        <a class="btn btn-sm btn-outline-secondary" href="/cookbooks/@Id/edit" title="@Localizer["Edit"]">✏️</a>
 
-        <button type="button" class="btn btn-sm btn-primary" @onclick="OpenCreateDialog" title="Rezept hinzufügen">
+        <button type="button" class="btn btn-sm btn-primary" @onclick="OpenCreateDialog" title="@Localizer["AddRecipe"]">
             ＋
         </button>
 
         @* Multi-Select Toggle *@
-        <button class="btn btn-sm btn-outline-secondary ms-2" title="Mehrfachauswahl" @onclick="ToggleMultiSelect">
+        <button class="btn btn-sm btn-outline-secondary ms-2" title="@Localizer["MultiSelect"]" @onclick="ToggleMultiSelect">
             @if (isMultiSelecting)
             {
                 <i class="bi bi-check2-square"></i>
@@ -43,7 +44,7 @@
 }
 else if (book is null)
 {
-    <div class="alert alert-warning">Kochbuch nicht gefunden.</div>
+    <div class="alert alert-warning">@Localizer["CookbookNotFound"]</div>
 }
 else
 {
@@ -60,7 +61,7 @@ else
     <h6 class="mb-2">Rezepte</h6>
     @if (recipes is null || recipes.Count == 0)
     {
-        <div class="alert alert-info">Noch keine Rezepte vorhanden.</div>
+        <div class="alert alert-info">@Localizer["NoRecipesYet"]</div>
     }
     else
     {
@@ -74,7 +75,7 @@ else
                         <input class="select-checkbox form-check-input" type="checkbox"
                                checked="@selectedRecipeIds.Contains(recipe.Id)"
                                @onclick="() => ToggleSelect(recipe.Id)"
-                               title="Auswählen" />
+                               title="@Localizer["Select"]" />
                     }
 
                     <a class="recipe-card"
@@ -86,7 +87,7 @@ else
                        tabindex="0">
                         @if (!string.IsNullOrWhiteSpace(recipe.ImageUrl))
                         {
-                            <img src="@recipe.ImageUrl" alt="Bild zu @recipe.Title" />
+                            <img src="@recipe.ImageUrl" alt="@Localizer["ImageFor"] @recipe.Title" />
                         }
                         else
                         {
@@ -114,7 +115,7 @@ else
             </div>
             <div class="d-flex gap-2">
                 <button class="btn btn-outline-secondary" @onclick="ClearSelection" disabled="@(selectedRecipeIds.Count == 0)">Abbrechen</button>
-                <button class="btn btn-primary" @onclick="OpenMultiAssign" disabled="@(selectedRecipeIds.Count == 0)">Zu Kochbüchern zuweisen</button>
+                <button class="btn btn-primary" @onclick="OpenMultiAssign" disabled="@(selectedRecipeIds.Count == 0)">@Localizer["AssignToCookbooks"]</button>
             </div>
         </div>
     </div>
@@ -139,8 +140,8 @@ else
     <div class="overlay-backdrop" @onclick="CloseImportUrlDialog">
         <div class="overlay-content" @onclick:stopPropagation>
             <button class="btn btn-sm btn-danger overlay-close" @onclick="CloseImportUrlDialog">×</button>
-            <h5>Rezept von URL laden</h5>
-            <p class="text-muted">Gib die URL einer Datei oder eines unterstützten Imports ein. Der Server versucht, den Inhalt herunterzuladen und mit den vorhandenen Import-Handlern zu verarbeiten.</p>
+            <h5>@Localizer["LoadRecipeFromUrl"]</h5>
+            <p class="text-muted">@Localizer["ImportUrlHelp"]</p>
 
             <div class="mb-3">
                 <label class="form-label">URL</label>

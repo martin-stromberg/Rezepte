@@ -1,5 +1,8 @@
 ﻿namespace Rezepte.Web.Configuration;
 
+/// <summary>
+/// Represents the image options class.
+/// </summary>
 public sealed class ImageOptions
 {
     /// <summary>

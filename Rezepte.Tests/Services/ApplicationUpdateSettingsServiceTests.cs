@@ -10,8 +10,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the application update settings service tests.
+/// </summary>
 public sealed class ApplicationUpdateSettingsServiceTests
 {
+    /// <summary>
+    /// Get status should map updater snapshot.
+    /// </summary>
     [Fact]
     public void GetStatus_ShouldMapUpdaterSnapshot()
     {
@@ -46,6 +52,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         status.LastCheckSummary.Should().Be("Version 1.1.0 gefunden.");
     }
 
+    /// <summary>
+    /// Get status should report available version without matching package.
+    /// </summary>
     [Fact]
     public void GetStatus_ShouldReportAvailableVersionWithoutMatchingPackage()
     {
@@ -70,6 +79,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         status.LastCheckSummary.Should().Be("Version 1.1.0 gefunden, aber kein Paket für diese Plattform.");
     }
 
+    /// <summary>
+    /// Get status should report matching package.
+    /// </summary>
     [Fact]
     public void GetStatus_ShouldReportMatchingPackage()
     {
@@ -102,6 +114,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         status.LastCheckSummary.Should().Be("Version 1.1.0 gefunden.");
     }
 
+    /// <summary>
+    /// Install async should confirm downtime.
+    /// </summary>
     [Fact]
     public async Task InstallAsync_ShouldConfirmDowntime()
     {
@@ -118,6 +133,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         result.Outcome.Should().Be("Erfolgreich");
     }
 
+    /// <summary>
+    /// Check async should return failed result.
+    /// </summary>
     [Fact]
     public async Task CheckAsync_ShouldReturnFailedResult()
     {
@@ -141,6 +159,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         result.Error.Should().Be("Die Update-Quelle ist nicht erreichbar.");
     }
 
+    /// <summary>
+    /// Check async should allow manual check when automatic updates are disabled.
+    /// </summary>
     [Fact]
     public async Task CheckAsync_ShouldAllowManualCheckWhenAutomaticUpdatesAreDisabled()
     {
@@ -161,6 +182,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         options.Enabled.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Check async should translate disabled updater message.
+    /// </summary>
     [Fact]
     public async Task CheckAsync_ShouldTranslateDisabledUpdaterMessage()
     {
@@ -185,6 +209,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         result.State.Should().Be("Deaktiviert");
     }
 
+    /// <summary>
+    /// Check async should translate no newer update message.
+    /// </summary>
     [Fact]
     public async Task CheckAsync_ShouldTranslateNoNewerUpdateMessage()
     {
@@ -209,6 +236,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         result.State.Should().Be("Bereit");
     }
 
+    /// <summary>
+    /// Get settings async should map prerelease setting.
+    /// </summary>
     [Fact]
     public async Task GetSettingsAsync_ShouldMapPrereleaseSetting()
     {
@@ -222,6 +252,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         settings.AllowPrereleaseUpdates.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Get settings async should prefer persisted prerelease setting.
+    /// </summary>
     [Fact]
     public async Task GetSettingsAsync_ShouldPreferPersistedPrereleaseSetting()
     {
@@ -245,6 +278,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         options.AllowPrereleaseUpdates.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Set allow prerelease updates async should update runtime updater options.
+    /// </summary>
     [Fact]
     public async Task SetAllowPrereleaseUpdatesAsync_ShouldUpdateRuntimeUpdaterOptions()
     {
@@ -260,6 +296,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         options.AllowPrereleaseUpdates.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Set allow prerelease updates async should persist prerelease setting.
+    /// </summary>
     [Fact]
     public async Task SetAllowPrereleaseUpdatesAsync_ShouldPersistPrereleaseSetting()
     {
@@ -277,6 +316,9 @@ public sealed class ApplicationUpdateSettingsServiceTests
         setting!.Value.Should().Be(bool.TrueString);
     }
 
+    /// <summary>
+    /// Set allow prerelease updates async should recreate github source with prerelease setting.
+    /// </summary>
     [Fact]
     public async Task SetAllowPrereleaseUpdatesAsync_ShouldRecreateGithubSourceWithPrereleaseSetting()
     {

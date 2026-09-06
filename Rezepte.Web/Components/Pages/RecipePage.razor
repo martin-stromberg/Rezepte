@@ -1,4 +1,4 @@
-﻿@page "/recipes/{Id}"
+@page "/recipes/{Id}"
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Extensions.Options
@@ -15,6 +15,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IOptionsMonitor<ImageOptions> ImageOptionsMonitor
 @inject ILogger<Rezepte.Web.Components.Pages.RecipePage> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 <PageTitle>@(recipe?.Title ?? "Rezept")</PageTitle>
 
@@ -22,19 +23,19 @@
     <span>
         @if (!isLoading && recipe is not null)
         {
-            <button class="btn btn-sm btn-success me-2" @onclick="OpenScheduleDialog">Termin planen</button>
+            <button class="btn btn-sm btn-success me-2" @onclick="OpenScheduleDialog">@Localizer["ScheduleEvent"]</button>
         }
     </span>
     @if (isOwner && !isLoading && recipe is not null)
     {
         <div class="btn-group">
-            <button class="btn btn-sm btn-outline-secondary" title="Zutaten zur Einkaufsliste" @onclick="OpenShoppingListDialog">
+            <button class="btn btn-sm btn-outline-secondary" title="@Localizer["AddIngredientsToShoppingList"]" @onclick="OpenShoppingListDialog">
                 <span class="bi bi-cart-plus" aria-hidden="true"></span>
             </button>
-            <a class="btn btn-sm btn-outline-secondary" href="/recipes/@Id/edit" title="Bearbeiten">✏️</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/recipes/@Id/edit" title="@Localizer["Edit"]">✏️</a>
 
             @* Favoriten / Zuordnungen zu Kochbüchern *@
-            <button class="btn btn-sm btn-outline-secondary" title="Zu Kochbüchern zuordnen" @onclick="OpenAssignOverlay">
+            <button class="btn btn-sm btn-outline-secondary" title="@Localizer["AssignRecipeToCookbooks"]" @onclick="OpenAssignOverlay">
                 @if (isInAnyCookbook)
                 {
                     <i class="bi bi-heart-fill text-danger"></i>
@@ -49,10 +50,10 @@
             {
                 <a class="btn btn-sm btn-outline-secondary"
                    href="@recipe.sourceUri"
-                   title="Quelle aufrufen"
+                   title="@Localizer["OpenSource"]"
                    target="_blank"
                    rel="noopener noreferrer"
-                   aria-label="Quelle aufrufen (öffnet neues Fenster)">
+                   aria-label="@Localizer["OpenSourceNewWindow"]">
                     ↗
                 </a>
             }
@@ -66,7 +67,7 @@
 }
 else if (recipe is null)
 {
-    <div class="alert alert-warning">Rezept nicht gefunden.</div>
+    <div class="alert alert-warning">@Localizer["RecipeNotFound"]</div>
 }
 else
 {
@@ -75,7 +76,7 @@ else
             <div class="rounded shadow-sm bg-light w-100 position-relative" style="aspect-ratio: 4/3; overflow: hidden;">
                 @if (!string.IsNullOrWhiteSpace(recipe.ImageUrl))
                 {
-                    <img src="@recipe.ImageUrl" alt="Rezeptfoto" class="img-fluid w-100 h-100" style="object-fit: cover;" />
+                    <img src="@recipe.ImageUrl" alt="@Localizer["RecipePhoto"]" class="img-fluid w-100 h-100" style="object-fit: cover;" />
                 }
                 else
                 {
@@ -88,13 +89,13 @@ else
                 <InputFile id="FotoUpload" style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; opacity:0;" OnChange="OnImageSelected" accept="image/*" />
 
                 @* Use a label as trigger rather than programmatic click for iOS Safari compatibility *@
-                <label for="FotoUpload" class="btn btn-sm btn-primary position-absolute top-0 end-0 m-2" title="Foto hinzufügen" role="button" style="cursor:pointer;">
+                <label for="FotoUpload" class="btn btn-sm btn-primary position-absolute top-0 end-0 m-2" title="@Localizer["AddPhoto"]" role="button" style="cursor:pointer;">
                     <i class="bi bi-camera"></i>
                 </label>
 
                 @if (recipe.ImageCount > 1)
                 {
-                    <button type="button" class="btn btn-sm btn-secondary position-absolute bottom-0 end-0 m-2" title="Alle Bilder anzeigen" @onclick="ShowAllImages">
+                    <button type="button" class="btn btn-sm btn-secondary position-absolute bottom-0 end-0 m-2" title="@Localizer["ShowAllImages"]" @onclick="ShowAllImages">
                         <i class="bi bi-images"></i>
                     </button>
                 }

@@ -8,8 +8,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the import service plugin tests.
+/// </summary>
 public class ImportServicePluginTests
 {
+    /// <summary>
+    /// Import async should use first matching plugin in configured order.
+    /// </summary>
     [Fact]
     public async Task ImportAsync_ShouldUseFirstMatchingPluginInConfiguredOrder()
     {
@@ -27,6 +33,9 @@ public class ImportServicePluginTests
         third.CanHandleCalls.Should().Be(0);
     }
 
+    /// <summary>
+    /// Import async should return plugin error when no plugin can handle input.
+    /// </summary>
     [Fact]
     public async Task ImportAsync_ShouldReturnPluginError_WhenNoPluginCanHandleInput()
     {

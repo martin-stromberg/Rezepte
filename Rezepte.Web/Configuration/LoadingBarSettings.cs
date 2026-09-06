@@ -3,6 +3,7 @@ namespace Rezepte.Web.Configuration;
 /// <summary>
 /// Normalized, render-ready settings for the loading bar, assembled from <see cref="LoadingBarOptions"/>.
 /// </summary>
+/// <returns>The result.</returns>
 /// <param name="Enabled">Whether the loading bar feature is enabled.</param>
 /// <param name="Height">Height of the loading bar as a CSS length.</param>
 /// <param name="AnimationDuration">Duration of one full right-to-left sweep as a CSS time.</param>

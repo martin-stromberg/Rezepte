@@ -5,18 +5,29 @@ using Rezepte.Web.Services;
 
 namespace Rezepte.Web.Controllers
 {
+    /// <summary>
+    /// Represents the session token controller class.
+    /// </summary>
     [ApiController]
     [Route("api/session")]
     public class SessionTokenController : ControllerBase
     {
         private readonly ITokenService _tokenService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SessionTokenController"/> class.
+        /// </summary>
+        /// <param name="tokenService">The token service parameter.</param>
         public SessionTokenController(ITokenService tokenService)
         {
             _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
         }
 
         // Liefert ein kurzlebiges JWT für clientseitige Uploads; geschützt über Cookie-Auth
+        /// <summary>
+        /// Gets the token.
+        /// </summary>
+        /// <returns>The result.</returns>
         [HttpGet("token")]
         [Authorize]
         public IActionResult GetToken()

@@ -1,5 +1,6 @@
 @inject ApiClient Client
 @inject ILogger<Rezepte.Web.Components.Settings.SecurityTxtSettings> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 @if (isLoading)
 {
@@ -12,7 +13,7 @@ else if (!string.IsNullOrWhiteSpace(loadErrorMessage))
 else
 {
     <section>
-        <h3 class="h6">security.txt (RFC 9116)</h3>
+        <h3 class="h6">@Localizer["SecurityTxtTitle"]</h3>
         <p class="text-muted small mb-3">
             Hinterlegen Sie hier die öffentlichen Kontakt- und Policy-Angaben für Sicherheitsmeldungen.
             Canonical-URLs können optional manuell angegeben werden. Wenn das Feld leer bleibt, wird die URL automatisch aus der Anfrage bestimmt.
@@ -30,15 +31,15 @@ else
 
         <div class="form-check form-switch mb-3">
             <input class="form-check-input" type="checkbox" id="securitytxt-enabled" @bind="Enabled" @bind:event="onchange" disabled="@isSaving" />
-            <label class="form-check-label" for="securitytxt-enabled">security.txt aktivieren</label>
+            <label class="form-check-label" for="securitytxt-enabled">@Localizer["EnableSecurityTxt"]</label>
         </div>
 
         <div class="mb-2">
-            <label class="form-label small" for="securitytxt-contact">Contact (ein URI oder E-Mail pro Zeile, Pflichtfeld)</label>
+            <label class="form-label small" for="securitytxt-contact">@Localizer["SecurityTxtContactLabel"]</label>
             <textarea id="securitytxt-contact" class="form-control form-control-sm" rows="3" @bind="Contact" disabled="@isSaving"></textarea>
         </div>
         <div class="mb-2">
-            <label class="form-label small" for="securitytxt-expires">Expires (Pflichtfeld)</label>
+            <label class="form-label small" for="securitytxt-expires">@Localizer["SecurityTxtExpiresLabel"]</label>
             <input id="securitytxt-expires" class="form-control form-control-sm" type="datetime-local" value="@ExpiresLocal" @onchange="OnExpiresChanged" disabled="@isSaving" />
         </div>
         <div class="mb-2">
@@ -46,7 +47,7 @@ else
             <input id="securitytxt-encryption" class="form-control form-control-sm" type="text" @bind="Encryption" disabled="@isSaving" />
         </div>
         <div class="mb-2">
-            <label class="form-label small" for="securitytxt-acknowledgments">Acknowledgments (ein URI pro Zeile)</label>
+            <label class="form-label small" for="securitytxt-acknowledgments">@Localizer["SecurityTxtAcknowledgmentsLabel"]</label>
             <textarea id="securitytxt-acknowledgments" class="form-control form-control-sm" rows="3" @bind="Acknowledgments" disabled="@isSaving"></textarea>
         </div>
         <div class="mb-2">
@@ -54,7 +55,7 @@ else
             <input id="securitytxt-preferred-languages" class="form-control form-control-sm" type="text" @bind="PreferredLanguages" disabled="@isSaving" />
         </div>
         <div class="mb-2">
-            <label class="form-label small" for="securitytxt-canonical">Canonical (optional; wenn leer, wird die URL automatisch bestimmt)</label>
+            <label class="form-label small" for="securitytxt-canonical">@Localizer["SecurityTxtCanonicalLabel"]</label>
             <input id="securitytxt-canonical" class="form-control form-control-sm" type="text" @bind="Canonical" disabled="@isSaving" />
         </div>
         <div class="mb-2">

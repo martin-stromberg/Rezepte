@@ -5,6 +5,16 @@ using System.Text.RegularExpressions;
 
 namespace Rezepte.Web.Services.Import;
 
+/// <summary>
+/// bases the aiimport handler.
+/// </summary>
+/// <param name="aioptions">The aioptions parameter.</param>
+/// <param name="aiUsage">The ai usage parameter.</param>
+/// <param name="recipeService">The recipe service parameter.</param>
+/// <param name="geminiClient">The gemini client parameter.</param>
+/// <param name="settingsService">The settings service parameter.</param>
+/// <param name="logger">The logger parameter.</param>
+/// <returns>The result.</returns>
 public abstract class BaseAIImportHandler(
     IOptionsMonitor<AIOptions> aioptions,
     IAiUsageService aiUsage,
@@ -16,17 +26,38 @@ public abstract class BaseAIImportHandler(
     private KeyValuePair<string, AIRecipe[]> _lastRecipes;
     private StreamReader? lastReader = null;
     private string _responseContent = string.Empty;
+    /// <summary>
+    /// Determines whether text mode.
+    /// </summary>
+    /// <returns>The result.</returns>
     protected abstract bool IsTextMode();
+    /// <summary>
+    /// Represents the protected class.
+    /// </summary>
     protected readonly IRecipeService recipeService = recipeService;
+    /// <summary>
+    /// Represents the protected class.
+    /// </summary>
     protected readonly ILogger _logger = logger;
+    /// <summary>
+    /// Represents the protected class.
+    /// </summary>
     protected IAiUsageService AiUsageService => aiUsage;
     private readonly IGeminiClient geminiClient = geminiClient;
 
+    /// <summary>
+    /// Creates the gemini client.
+    /// </summary>
+    /// <returns>The result.</returns>
     protected IGeminiClient CreateGeminiClient()
     {
         return geminiClient;
     }
 
+    /// <summary>
+    /// Determines whether active async.
+    /// </summary>
+    /// <returns>The result.</returns>
     protected virtual async Task<bool> IsActiveAsync()
     {
         if (!await SettingsService.GetGlobalAiEnabledAsync())
@@ -42,6 +73,10 @@ public abstract class BaseAIImportHandler(
         return true;
     }
 
+    /// <summary>
+    /// Determines whether gemini authentication.
+    /// </summary>
+    /// <returns>The result.</returns>
     protected bool HasGeminiAuthentication()
     {
         if (geminiClient.HasApiKey() || geminiClient.HasServiceAccount())
@@ -51,6 +86,10 @@ public abstract class BaseAIImportHandler(
         return false;
     }
 
+    /// <summary>
+    /// logs the inactive.
+    /// </summary>
+    /// <param name="reason">The reason parameter.</param>
     protected void LogInactive(string reason)
     {
         _logger.LogInformation(
@@ -59,6 +98,11 @@ public abstract class BaseAIImportHandler(
             UserId,
             reason);
     }
+    /// <summary>
+    /// lookss the like html document.
+    /// </summary>
+    /// <param name="input">The input parameter.</param>
+    /// <returns>The result.</returns>
     public static bool LooksLikeHtmlDocument(string input)
     {
         return input.Contains("<html") && input.Contains("<body");
@@ -67,8 +111,16 @@ public abstract class BaseAIImportHandler(
     {
         get => aioptions.CurrentValue.Simulate;
     }
+    /// <summary>
+    /// Represents the public class.
+    /// </summary>
     public ISettingsService SettingsService { get; } = settingsService;
 
+    /// <summary>
+    /// Creates the simulation receipt.
+    /// </summary>
+    /// <param name="imageBytes">The image bytes parameter.</param>
+    /// <returns>The result.</returns>
     protected virtual AIRecipe CreateSimulationReceipt(byte[] imageBytes)
     {
         return new AIRecipe()
@@ -80,6 +132,13 @@ public abstract class BaseAIImportHandler(
         };
     }
 
+    /// <summary>
+    /// Determines whether handle async.
+    /// </summary>
+    /// <param name="stream">The stream parameter.</param>
+    /// <param name="fileName">The file name parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<bool> CanHandleAsync(Stream stream, string fileName, CancellationToken ct = default)
     {
         if (lastReader is not null)
@@ -146,7 +205,25 @@ public abstract class BaseAIImportHandler(
             return true;
         }
     }
+    /// <summary>
+    /// Reads the recipe collection.
+    /// </summary>
+    /// <param name="fileName">The file name parameter.</param>
+    /// <param name="stream">The stream parameter.</param>
+    /// <param name="responseContent">The response content parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     protected abstract Task<AIRecipe[]> ReadRecipeCollection(string fileName, Stream stream, string responseContent, CancellationToken ct);
+    /// <summary>
+    /// Handles the async.
+    /// </summary>
+    /// <param name="stream">The stream parameter.</param>
+    /// <param name="fileName">The file name parameter.</param>
+    /// <param name="uri">The uri parameter.</param>
+    /// <param name="targetCookbookId">The target cookbook id parameter.</param>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
     {
         if (IsSimulationModeActive)
@@ -251,6 +328,17 @@ public abstract class BaseAIImportHandler(
     }
 
 
+    /// <summary>
+    /// Handles the interactive async.
+    /// </summary>
+    /// <param name="stream">The stream parameter.</param>
+    /// <param name="fileName">The file name parameter.</param>
+    /// <param name="uri">The uri parameter.</param>
+    /// <param name="targetCookbookId">The target cookbook id parameter.</param>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="interaction">The interaction parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ImportResult> HandleInteractiveAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, IImportInteraction interaction, CancellationToken ct = default)
     {
         if (!await HandleConfirmation(interaction))
@@ -260,6 +348,11 @@ public abstract class BaseAIImportHandler(
         return await HandleAsync(stream, fileName, uri, targetCookbookId, userId, ct);
     }
 
+    /// <summary>
+    /// Handles the confirmation.
+    /// </summary>
+    /// <param name="interaction">The interaction parameter.</param>
+    /// <returns>The result.</returns>
     protected virtual async Task<bool> HandleConfirmation(IImportInteraction interaction)
     {
         return await interaction.AskForConfirmationAsync("Weitermachen?");

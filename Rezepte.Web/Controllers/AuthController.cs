@@ -9,6 +9,11 @@ namespace Rezepte.Web.Controllers;
 /// <summary>
 /// Authentication endpoints such as registration. Accepts form posts for the website and JSON for API.
 /// </summary>
+/// <param name="userService">The user service parameter.</param>
+/// <param>...</param>
+/// <param>...</param>
+/// <param>...</param>
+/// <returns>The result.</returns>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController(IUserService userService) : ControllerBase
@@ -88,6 +93,13 @@ public class AuthController(IUserService userService) : ControllerBase
     }
 
     /// <summary>Form DTO used by the website registration page.</summary>
+    /// <param name="Email">The email parameter.</param>
+    /// <param name="Username">The username parameter.</param>
+    /// <param name="Password">The password parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     public record RegisterRequestForm(string? Email, string Username, string Password);
 
     private LocalRedirectResult RedirectToRegisterError(string message)

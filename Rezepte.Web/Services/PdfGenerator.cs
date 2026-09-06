@@ -21,6 +21,11 @@ public class PdfGenerator : IPdfGenerator
     private readonly RezepteDbContext _db;
     private readonly ILogger<PdfGenerator> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PdfGenerator"/> class.
+    /// </summary>
+    /// <param name="db">The db parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public PdfGenerator(RezepteDbContext db, ILogger<PdfGenerator> logger)
     {
         _db = db;
@@ -28,6 +33,12 @@ public class PdfGenerator : IPdfGenerator
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
+    /// <summary>
+    /// Generates the recipe pdf async.
+    /// </summary>
+    /// <param name="recipe">The recipe parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<byte[]?> GenerateRecipePdfAsync(ExportRecipeDto recipe, CancellationToken ct = default)
     {
         if (recipe is null) throw new ArgumentNullException(nameof(recipe));

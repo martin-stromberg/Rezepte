@@ -13,8 +13,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the plugin manager tests.
+/// </summary>
 public sealed class PluginManagerTests
 {
+    /// <summary>
+    /// Initialize async should discover external plugin directly under plugins.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldDiscoverExternalPluginDirectlyUnderPlugins()
     {
@@ -31,6 +37,9 @@ public sealed class PluginManagerTests
         plugin.Enabled.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Initialize async should discover external plugin from subfolder with adjacent abstractions assembly.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldDiscoverExternalPluginFromSubfolderWithAdjacentAbstractionsAssembly()
     {
@@ -48,6 +57,9 @@ public sealed class PluginManagerTests
         plugin.Error.Should().BeNull();
     }
 
+    /// <summary>
+    /// Initialize async should discover external plugin from application base directory.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldDiscoverExternalPluginFromApplicationBaseDirectory()
     {
@@ -88,6 +100,9 @@ public sealed class PluginManagerTests
         }
     }
 
+    /// <summary>
+    /// Initialize async should mark broken dll as load failed.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldMarkBrokenDllAsLoadFailed()
     {
@@ -105,6 +120,9 @@ public sealed class PluginManagerTests
         plugin.Error.Should().NotBeNullOrWhiteSpace();
     }
 
+    /// <summary>
+    /// Initialize async should ignore adjacent contract assembly without plugin.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldIgnoreAdjacentContractAssemblyWithoutPlugin()
     {
@@ -119,6 +137,9 @@ public sealed class PluginManagerTests
         plugin.Should().BeNull();
     }
 
+    /// <summary>
+    /// Initialize async should discover productive external import plugins.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldDiscoverProductiveExternalImportPlugins()
     {
@@ -143,6 +164,9 @@ public sealed class PluginManagerTests
         ]);
     }
 
+    /// <summary>
+    /// Initialize async should load published external chefkoch plugin without adjacent contract assembly.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldLoadPublishedExternalChefkochPluginWithoutAdjacentContractAssembly()
     {
@@ -174,6 +198,9 @@ public sealed class PluginManagerTests
         result.ImportedRecipes!.Should().ContainSingle(r => r.Title == "Chefkoch-Demo-Rezept");
     }
 
+    /// <summary>
+    /// Initialize async should load all published external online plugins without adjacent contract assembly.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldLoadAllPublishedExternalOnlinePluginsWithoutAdjacentContractAssembly()
     {
@@ -225,6 +252,9 @@ public sealed class PluginManagerTests
         }
     }
 
+    /// <summary>
+    /// Initialize async should use default priority for initial order.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldUseDefaultPriorityForInitialOrder()
     {
@@ -246,6 +276,9 @@ public sealed class PluginManagerTests
         pluginIds.Where(id => id.StartsWith("ai-", StringComparison.Ordinal)).Should().HaveCount(2);
     }
 
+    /// <summary>
+    /// Initialize async should mark plugin with invalid handler type as incompatible.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldMarkPluginWithInvalidHandlerTypeAsIncompatible()
     {
@@ -263,6 +296,9 @@ public sealed class PluginManagerTests
         plugin.Error.Should().Be("Configured handler type does not implement IImportHandler.");
     }
 
+    /// <summary>
+    /// Initialize async should keep existing order and append new plugins.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldKeepExistingOrderAndAppendNewPlugins()
     {
@@ -292,6 +328,9 @@ public sealed class PluginManagerTests
         aiUrl!.OrderIndex.Should().BeGreaterThan(existing.OrderIndex);
     }
 
+    /// <summary>
+    /// Initialize async should mark previously configured plugin as missing.
+    /// </summary>
     [Fact]
     public async Task InitializeAsync_ShouldMarkPreviouslyConfiguredPluginAsMissing()
     {
@@ -314,6 +353,9 @@ public sealed class PluginManagerTests
         missing.Error.Should().Be("Plugin was not found during startup discovery.");
     }
 
+    /// <summary>
+    /// Discover from directory should not keep assemblies loaded from temporary directory.
+    /// </summary>
     [Fact]
     public void DiscoverFromDirectory_ShouldNotKeepAssembliesLoadedFromTemporaryDirectory()
     {
@@ -351,6 +393,9 @@ public sealed class PluginManagerTests
             .Any(a => string.Equals(a.GetName().Name, "coverlet.core", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Get active handlers async should not instantiate disabled plugins.
+    /// </summary>
     [Fact]
     public async Task GetActiveHandlersAsync_ShouldNotInstantiateDisabledPlugins()
     {
@@ -373,6 +418,9 @@ public sealed class PluginManagerTests
         handlers.Should().NotContain(h => h.Plugin.Id == "external-test-plugin");
     }
 
+    /// <summary>
+    /// Default check usability async should return usable for plugin without override.
+    /// </summary>
     [Fact]
     public async Task DefaultCheckUsabilityAsync_ShouldReturnUsable_ForPluginWithoutOverride()
     {
@@ -388,6 +436,9 @@ public sealed class PluginManagerTests
         results["backup"].Issues.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Get plugins usability async should return results for loaded plugins.
+    /// </summary>
     [Fact]
     public async Task GetPluginsUsabilityAsync_ShouldReturnResultsForLoadedPlugins()
     {
@@ -401,6 +452,9 @@ public sealed class PluginManagerTests
         results.Keys.Should().Contain(["backup", "ai-foto", "ai-url"]);
     }
 
+    /// <summary>
+    /// Get plugins usability async should treat check exception as not usable.
+    /// </summary>
     [Fact]
     public async Task GetPluginsUsabilityAsync_ShouldTreatCheckExceptionAsNotUsable()
     {
