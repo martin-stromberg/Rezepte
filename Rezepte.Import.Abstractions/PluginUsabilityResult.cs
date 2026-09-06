@@ -8,12 +8,18 @@ namespace Rezepte.Import.Abstractions;
 /// <returns>A new instance of the <see cref="PluginUsabilityResult"/> record.</returns>
 public sealed record PluginUsabilityResult(bool IsUsable, IReadOnlyList<PluginUsabilityIssue> Issues)
 {
-    private static readonly PluginUsabilityResult _usable = new(true, []);
+    /// <summary>
+    /// Initializes static members of the <see cref="PluginUsabilityResult"/> class.
+    /// </summary>
+    static PluginUsabilityResult()
+    {
+        Usable = new PluginUsabilityResult(true, []);
+    }
 
     /// <summary>
     /// Singleton value representing a usable plugin without issues.
     /// </summary>
-    public static PluginUsabilityResult Usable { get; } = _usable;
+    public static readonly PluginUsabilityResult Usable;
 
     /// <summary>
     /// Creates a usability result from the provided issues.
