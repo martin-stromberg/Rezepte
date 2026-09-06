@@ -6,8 +6,15 @@ using Xunit;
 
 namespace Rezepte.Tests.Security;
 
+/// <summary>
+/// Class representing the jwt signing key provider tests.
+/// </summary>
 public class JwtSigningKeyProviderTests
 {
+    /// <summary>
+    /// Constructor throws outside development when secret is missing or weak.
+    /// </summary>
+    /// <param name="secret">The secret parameter.</param>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -23,6 +30,9 @@ public class JwtSigningKeyProviderTests
         act.Should().Throw<InvalidOperationException>();
     }
 
+    /// <summary>
+    /// Constructor generates ephemeral key in development when secret is missing.
+    /// </summary>
     [Fact]
     public void Constructor_GeneratesEphemeralKeyInDevelopment_WhenSecretIsMissing()
     {
@@ -36,6 +46,9 @@ public class JwtSigningKeyProviderTests
         first.Key.Should().NotEqual(second.Key);
     }
 
+    /// <summary>
+    /// Constructor uses configured secret issuer and audience.
+    /// </summary>
     [Fact]
     public void Constructor_UsesConfiguredSecretIssuerAndAudience()
     {

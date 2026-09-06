@@ -9,8 +9,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Deployment;
 
+/// <summary>
+/// Class representing the deployment documentation tests.
+/// </summary>
 public class DeploymentDocumentationTests
 {
+    /// <summary>
+    /// Install documentation should describe runtime requirements and correct entrypoint.
+    /// </summary>
     [Fact]
     public void InstallDocumentation_ShouldDescribeRuntimeRequirementsAndCorrectEntrypoint()
     {
@@ -28,6 +34,9 @@ public class DeploymentDocumentationTests
         install.Should().Contain("chmod +x /var/www/rezepte/Rezepte.Web");
     }
 
+    /// <summary>
+    /// Readme deployment section should point to runtime checked deployment options.
+    /// </summary>
     [Fact]
     public void ReadmeDeploymentSection_ShouldPointToRuntimeCheckedDeploymentOptions()
     {
@@ -40,6 +49,9 @@ public class DeploymentDocumentationTests
         readme.Should().Contain("self-contained");
     }
 
+    /// <summary>
+    /// Framework dependent linux publish should produce documented entrypoint and runtime frameworks.
+    /// </summary>
     [Fact]
     public void FrameworkDependentLinuxPublish_ShouldProduceDocumentedEntrypointAndRuntimeFrameworks()
     {

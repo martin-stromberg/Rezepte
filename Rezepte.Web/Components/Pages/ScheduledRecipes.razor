@@ -1,19 +1,20 @@
-﻿@using Rezepte.Web.Dtos
+@using Rezepte.Web.Dtos
 @using System.Globalization
 @using System.Text.Json
 @inject ApiClient Api
 @inject NavigationManager Navigation
 @inject ILogger<Rezepte.Web.Components.Pages.ScheduledRecipes> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 <div class="random-recipes" id="@containerId">
 
     @if (isLoading || (items is not null && items.Count > 0))
     {
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="m-0">🗓️ Geplante Rezepte</h3>
+            <h3 class="m-0">@Localizer["ScheduledRecipesTitle"]</h3>
             <div>
                 <a class="btn btn-sm btn-outline-secondary" href="/calendar"disabled="@isLoading">
-                        <span>Kalender öffnen</span>
+                        <span>@Localizer["OpenCalendar"]</span>
                 </a>
             </div>
         </div>
@@ -36,7 +37,7 @@
     }
     else if (!isLoading && (items is null || items.Count == 0))
     {
-        <div class="text-muted small">Keine geplanten Rezepte in den nächsten 3 Tagen.</div>
+        <div class="text-muted small">@Localizer["NoScheduledRecipes"]</div>
     }
     else
     {
@@ -46,14 +47,14 @@
                 <div class="random-item">
                     @if (it.Recipe is null)
                     {
-                        <div class="text-muted small">Rezept nicht gefunden.</div>
+                        <div class="text-muted small">@Localizer["RecipeNotFound"]</div>
                     }
                     else
                     {
                         <a class="recipe-card small-card" href="@($"/recipes/{it.Recipe.Id}")" title="@it.Recipe.Title">
                             @if (!string.IsNullOrWhiteSpace(it.Recipe.ImageUrl))
                             {
-                                <img src="@it.Recipe.ImageUrl" alt="Bild zu @it.Recipe.Title" />
+                                <img src="@it.Recipe.ImageUrl" alt="@($"{Localizer["ImageFor"]} {it.Recipe.Title}")" />
                             }
                             else
                             {

@@ -3,8 +3,16 @@ using System.Text.RegularExpressions;
 
 namespace Rezepte.Web.Services.Import;
 
+/// <summary>
+/// Represents the import parser base class.
+/// </summary>
 public abstract class ImportParserBase
 {
+    /// <summary>
+    /// Parses the iso duration to minutes.
+    /// </summary>
+    /// <param name="isoDuration">The iso duration parameter.</param>
+    /// <returns>The result.</returns>
     protected int ParseIsoDurationToMinutes(string? isoDuration)
     {
         if (string.IsNullOrWhiteSpace(isoDuration))
@@ -21,6 +29,11 @@ public abstract class ImportParserBase
         return hours * 60 + minutes + (seconds >= 30 ? 1 : 0);
     }
 
+    /// <summary>
+    /// Parses the ingredient line.
+    /// </summary>
+    /// <param name="line">The line parameter.</param>
+    /// <returns>The result.</returns>
     protected ParsedIngredient ParseIngredientLine(string? line)
     {
         if (string.IsNullOrWhiteSpace(line))

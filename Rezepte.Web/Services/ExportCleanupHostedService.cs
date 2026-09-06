@@ -8,12 +8,22 @@ namespace Rezepte.Web.Services;
 /// </summary>
 public sealed class ExportCleanupHostedService : BackgroundService
 {
+    /// <summary>
+    /// times the span.
+    /// </summary>
+    /// <returns>The result.</returns>
     public static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(1);
 
     private readonly IServiceProvider _serviceProvider;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<ExportCleanupHostedService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExportCleanupHostedService"/> class.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider parameter.</param>
+    /// <param name="timeProvider">The time provider parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public ExportCleanupHostedService(
         IServiceProvider serviceProvider,
         TimeProvider timeProvider,
@@ -24,6 +34,10 @@ public sealed class ExportCleanupHostedService : BackgroundService
         _logger = logger;
     }
 
+    /// <summary>
+    /// executes the async.
+    /// </summary>
+    /// <param name="stoppingToken">The stopping token parameter.</param>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("ExportCleanupHostedService starting.");
@@ -42,6 +56,10 @@ public sealed class ExportCleanupHostedService : BackgroundService
         _logger.LogInformation("ExportCleanupHostedService stopping.");
     }
 
+    /// <summary>
+    /// Runs the if due async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
     public async Task RunIfDueAsync(CancellationToken ct)
     {
         try

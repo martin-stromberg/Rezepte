@@ -30,6 +30,11 @@ public sealed class LoadingBarService : ILoadingBarService
     private readonly ILogger<LoadingBarService> _logger;
     private readonly Lazy<LoadingBarSettings> _settings;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoadingBarService"/> class.
+    /// </summary>
+    /// <param name="options">The options parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public LoadingBarService(IOptions<LoadingBarOptions> options, ILogger<LoadingBarService> logger)
     {
         _logger = logger;

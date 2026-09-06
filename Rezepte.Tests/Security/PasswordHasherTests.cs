@@ -5,6 +5,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Security;
 
+/// <summary>
+/// Class representing the password hasher tests.
+/// </summary>
 public class PasswordHasherTests
 {
     private static string CraftHash(string password, int iterations, int saltLength = PasswordHasher.SaltLengthBytes, int hashLength = PasswordHasher.HashLengthBytes)
@@ -14,6 +17,9 @@ public class PasswordHasherTests
         return $"{iterations}.{Convert.ToHexString(salt)}.{Convert.ToHexString(hash)}";
     }
 
+    /// <summary>
+    /// Hash should use current iterations by default.
+    /// </summary>
     [Fact]
     public void Hash_ShouldUseCurrentIterations_ByDefault()
     {
@@ -26,6 +32,10 @@ public class PasswordHasherTests
         Convert.FromHexString(parts[2]).Should().HaveCount(PasswordHasher.HashLengthBytes);
     }
 
+    /// <summary>
+    /// Hash should throw when iterations outside policy.
+    /// </summary>
+    /// <param name="iterations">The iterations parameter.</param>
     [Theory]
     [InlineData(PasswordHasher.MinIterations - 1)]
     [InlineData(PasswordHasher.MaxIterations + 1)]
@@ -37,6 +47,9 @@ public class PasswordHasherTests
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
+    /// <summary>
+    /// Verify should return success when hash current.
+    /// </summary>
     [Fact]
     public void Verify_ShouldReturnSuccess_WhenHashCurrent()
     {
@@ -45,6 +58,9 @@ public class PasswordHasherTests
         PasswordHasher.Verify("secret!", hashString).Should().Be(PasswordVerificationResult.Success);
     }
 
+    /// <summary>
+    /// Verify should return failed when password wrong.
+    /// </summary>
     [Fact]
     public void Verify_ShouldReturnFailed_WhenPasswordWrong()
     {
@@ -53,6 +69,9 @@ public class PasswordHasherTests
         PasswordHasher.Verify("wrong", hashString).Should().Be(PasswordVerificationResult.Failed);
     }
 
+    /// <summary>
+    /// Verify should return success rehash needed when iterations below current.
+    /// </summary>
     [Fact]
     public void Verify_ShouldReturnSuccessRehashNeeded_WhenIterationsBelowCurrent()
     {
@@ -61,6 +80,9 @@ public class PasswordHasherTests
         PasswordHasher.Verify("secret!", hashString).Should().Be(PasswordVerificationResult.SuccessRehashNeeded);
     }
 
+    /// <summary>
+    /// Verify should return failed when iterations below min.
+    /// </summary>
     [Fact]
     public void Verify_ShouldReturnFailed_WhenIterationsBelowMin()
     {
@@ -69,6 +91,9 @@ public class PasswordHasherTests
         PasswordHasher.Verify("secret!", hashString).Should().Be(PasswordVerificationResult.Failed);
     }
 
+    /// <summary>
+    /// Verify should return failed when iterations above max.
+    /// </summary>
     [Fact]
     public void Verify_ShouldReturnFailed_WhenIterationsAboveMax()
     {
@@ -78,6 +103,10 @@ public class PasswordHasherTests
         PasswordHasher.Verify("secret!", hashString).Should().Be(PasswordVerificationResult.Failed);
     }
 
+    /// <summary>
+    /// Verify should return failed when hash string malformed.
+    /// </summary>
+    /// <param name="hashString">The hash string parameter.</param>
     [Theory]
     [InlineData("")]
     [InlineData("not-a-hash")]
@@ -89,6 +118,9 @@ public class PasswordHasherTests
         PasswordHasher.Verify("secret!", hashString).Should().Be(PasswordVerificationResult.Failed);
     }
 
+    /// <summary>
+    /// Verify should return failed when hex invalid.
+    /// </summary>
     [Fact]
     public void Verify_ShouldReturnFailed_WhenHexInvalid()
     {
@@ -97,6 +129,9 @@ public class PasswordHasherTests
         PasswordHasher.Verify("secret!", hashString).Should().Be(PasswordVerificationResult.Failed);
     }
 
+    /// <summary>
+    /// Verify should return failed when salt length wrong.
+    /// </summary>
     [Fact]
     public void Verify_ShouldReturnFailed_WhenSaltLengthWrong()
     {
@@ -105,6 +140,9 @@ public class PasswordHasherTests
         PasswordHasher.Verify("secret!", hashString).Should().Be(PasswordVerificationResult.Failed);
     }
 
+    /// <summary>
+    /// Verify should return failed when hash length wrong.
+    /// </summary>
     [Fact]
     public void Verify_ShouldReturnFailed_WhenHashLengthWrong()
     {
@@ -113,6 +151,9 @@ public class PasswordHasherTests
         PasswordHasher.Verify("secret!", hashString).Should().Be(PasswordVerificationResult.Failed);
     }
 
+    /// <summary>
+    /// Verify should throw when arguments null.
+    /// </summary>
     [Fact]
     public void Verify_ShouldThrow_WhenArgumentsNull()
     {

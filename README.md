@@ -60,6 +60,7 @@ Rezepte.Tests.Browser/
                     Browser-/E2E-Tests mit Playwright
 Rezepte.Tests.PluginFixture/
                     Testfixture für Plugin-bezogene Tests
+.githooks/          Git-Hooks (pre-commit, pre-push) und Installationsskripte
 Docs/               Anforderungskatalog und Installationshinweise
 ```
 
@@ -71,6 +72,7 @@ Wichtige Bereiche in `Rezepte.Web`:
 - `Services`: Fachlogik und Infrastruktur.
 - `Services/Import`: Import-Orchestrierung, PluginManager, hostseitige Persistenz neutraler Importdaten und KI-Hostadapter.
 - `Data`, `Entities`, `Migrations`: EF-Core-Datenzugriff und Schemaentwicklung.
+- `Resources`: Shared-Resource-Dateien für die UI-Lokalisierung (`IStringLocalizer<UiStrings>`, `UiStrings.resx`).
 - `wwwroot`: statische Assets, CSS, JavaScript, Icons und Manifest.
 
 ## Import-Plugins
@@ -111,6 +113,28 @@ http://localhost:5220
 ```
 
 Beim ersten Start wird die SQLite-Datenbank automatisch vorbereitet. Sind EF-Core-Migrationen vorhanden, werden sie angewendet; andernfalls wird die Datenbank erstellt.
+
+## Git-Hooks und Entwicklungspraktiken
+
+Das Repository enthält unter `.githooks/` Git-Hooks, die automatisierte Qualitätsprüfungen vor jedem Commit und Push ausführen. Sie sperren direkte Änderungen auf `main` und `staging` und verhindern, dass unformatierter, unlokalisierter oder unzureichend dokumentierter Code eingecheckt wird.
+
+Aktivierung nach dem Klonen:
+
+```powershell
+# Windows
+install-hooks.cmd
+
+# Linux/macOS
+./install-hooks.sh
+```
+
+Das Skript führt `git config --local core.hooksPath .githooks` aus. Danach zeigt `git config --local core.hooksPath` auf `.githooks`.
+
+`pre-commit` prüft gestagte Dateien u. a. mit `translation-check.py`, `csproj-xmldoc-check.py`, `razor-l10n-check.py`, `dotnet format --verify-no-changes` und `check-encoding.ps1 -Staged`. `pre-push` läuft repo-weit mit `no-notimplemented-check.py --all --strict`, `razor-usage-check.py --all --strict` und `enum-coverage-check.py --all --strict`.
+
+Alle Projekte der Solution sind so konfiguriert, dass fehlende XML-Dokumentation öffentlicher Member als Build-Fehler behandelt wird (`<GenerateDocumentationFile>true</GenerateDocumentationFile>` und `<WarningsAsErrors>CS1591</WarningsAsErrors>`). UI-Texte in Razor-Komponenten werden über `IStringLocalizer<UiStrings>` aus `Rezepte.Web/Resources/UiStrings.resx` aufgelöst.
+
+Details stehen in [`Docs/help/git-hooks/index.md`](Docs/help/git-hooks/index.md).
 
 ## Tests
 
@@ -239,6 +263,7 @@ In Produktion sollten mindestens diese Punkte gesetzt bzw. geprüft werden:
 ## Weiterfuehrende Dokumentation
 
 - `Docs/Anforderungskatalog.md`: fachlicher Status und geplante Erweiterungen.
+- `Docs/help/git-hooks/index.md`: automatisierte Qualitätsprüfungen vor Commit und Push.
 - `Docs/dependencies.md`: Abhängigkeits- und Sicherheitsstrategie, inklusive dokumentierter Behandlung verbleibender NuGet-Sicherheitswarnungen.
 - `Docs/help/navigation.md`: Bedienhinweise zur Navigation, Einrichtung und zum Benutzermenü.
 - `Docs/help/user-accounts.md`: Bedienhinweise zu Registrierung, Profil und Admin-Benutzerverwaltung.

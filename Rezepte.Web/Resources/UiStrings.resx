@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppName" xml:space="preserve"><value>Rezepte</value></data>
+  <data name="ToggleNavigation" xml:space="preserve"><value>Navigation umschalten</value></data>
+  <data name="Cookbooks" xml:space="preserve"><value>Kochbücher</value></data>
+  <data name="Calendar" xml:space="preserve"><value>Kalender</value></data>
+  <data name="ShoppingList" xml:space="preserve"><value>Einkaufsliste</value></data>
+  <data name="SearchRecipesPlaceholder" xml:space="preserve"><value>Rezepte suchen...</value></data>
+  <data name="SearchRecipes" xml:space="preserve"><value>Suche Rezepte</value></data>
+  <data name="StartSearch" xml:space="preserve"><value>Suche starten</value></data>
+  <data name="Settings" xml:space="preserve"><value>Einrichtung</value></data>
+  <data name="OpenUserMenu" xml:space="preserve"><value>Benutzermenü öffnen</value></data>
+  <data name="MyCalendar" xml:space="preserve"><value>Mein Kalender</value></data>
+  <data name="HidePast" xml:space="preserve"><value>Vergangene verbergen</value></data>
+  <data name="ShowPast" xml:space="preserve"><value>Vergangene anzeigen</value></data>
+  <data name="CreateEvent" xml:space="preserve"><value>Termin erstellen</value></data>
+  <data name="CalendarLoadFailed" xml:space="preserve"><value>Der Kalender konnte nicht geladen werden.</value></data>
+  <data name="NoRecipesScheduled" xml:space="preserve"><value>Keine Rezepte eingeplant</value></data>
+  <data name="ViewRecipe" xml:space="preserve"><value>Rezept ansehen</value></data>
+  <data name="Edit" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="Delete" xml:space="preserve"><value>Löschen</value></data>
+  <data name="EditCookbook" xml:space="preserve"><value>Kochbuch bearbeiten</value></data>
+  <data name="Save" xml:space="preserve"><value>Speichern</value></data>
+  <data name="CookbookNotFound" xml:space="preserve"><value>Kochbuch nicht gefunden.</value></data>
+  <data name="AddRecipe" xml:space="preserve"><value>Rezept hinzufügen</value></data>
+  <data name="MultiSelect" xml:space="preserve"><value>Mehrfachauswahl</value></data>
+  <data name="NoRecipesYet" xml:space="preserve"><value>Noch keine Rezepte vorhanden.</value></data>
+  <data name="Select" xml:space="preserve"><value>Auswählen</value></data>
+  <data name="ImageFor" xml:space="preserve"><value>Bild zu</value></data>
+  <data name="AssignToCookbooks" xml:space="preserve"><value>Zu Kochbüchern zuweisen</value></data>
+  <data name="LoadRecipeFromUrl" xml:space="preserve"><value>Rezept von URL laden</value></data>
+  <data name="ImportUrlHelp" xml:space="preserve"><value>Gib die URL einer Datei oder eines unterstützten Imports ein. Der Server versucht, den Inhalt herunterzuladen und mit den vorhandenen Import-Handlern zu verarbeiten.</value></data>
+  <data name="Create" xml:space="preserve"><value>+ Anlegen</value></data>
+  <data name="NoCookbooksYet" xml:space="preserve"><value>Noch keine Kochbücher vorhanden.</value></data>
+  <data name="LastRecipeIn" xml:space="preserve"><value>Letztes Rezept in</value></data>
+  <data name="Move" xml:space="preserve"><value>Verschieben</value></data>
+  <data name="ErrorOccurred" xml:space="preserve"><value>Bei der Verarbeitung Ihrer Anfrage ist ein Fehler aufgetreten.</value></data>
+  <data name="RequestId" xml:space="preserve"><value>Request ID:</value></data>
+  <data name="DevelopmentMode" xml:space="preserve"><value>Entwicklungsmodus</value></data>
+  <data name="DevEnvironmentWarning" xml:space="preserve"><value>Die Entwicklungsumgebung sollte für bereitgestellte Anwendungen nicht aktiviert sein.</value></data>
+  <data name="CreateNewRecipe" xml:space="preserve"><value>Neues Rezept anlegen</value></data>
+  <data name="New" xml:space="preserve"><value>+ Neu</value></data>
+  <data name="ScheduleEvent" xml:space="preserve"><value>Termin planen</value></data>
+  <data name="AddIngredientsToShoppingList" xml:space="preserve"><value>Zutaten zur Einkaufsliste</value></data>
+  <data name="AssignRecipeToCookbooks" xml:space="preserve"><value>Zu Kochbüchern zuordnen</value></data>
+  <data name="OpenSource" xml:space="preserve"><value>Quelle aufrufen</value></data>
+  <data name="OpenSourceNewWindow" xml:space="preserve"><value>Quelle aufrufen (öffnet neues Fenster)</value></data>
+  <data name="RecipeNotFound" xml:space="preserve"><value>Rezept nicht gefunden.</value></data>
+  <data name="RecipePhoto" xml:space="preserve"><value>Rezeptfoto</value></data>
+  <data name="AddPhoto" xml:space="preserve"><value>Foto hinzufügen</value></data>
+  <data name="ShowAllImages" xml:space="preserve"><value>Alle Bilder anzeigen</value></data>
+  <data name="SettingsPageTitle" xml:space="preserve"><value>Rezepte - Einstellungen</value></data>
+  <data name="PleaseLogin" xml:space="preserve"><value>Bitte anmelden.</value></data>
+  <data name="Profile" xml:space="preserve"><value>Profil</value></data>
+  <data name="SettingsNavTitle" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="Users" xml:space="preserve"><value>Benutzer</value></data>
+  <data name="Plugins" xml:space="preserve"><value>Plugins</value></data>
+  <data name="Updates" xml:space="preserve"><value>Updates</value></data>
+  <data name="DataExport" xml:space="preserve"><value>Datenexport</value></data>
+  <data name="Backup" xml:space="preserve"><value>Sicherung</value></data>
+  <data name="UsageStatistics" xml:space="preserve"><value>Nutzungsstatistiken</value></data>
+  <data name="LoginPageTitle" xml:space="preserve"><value>Rezepte - Anmeldung</value></data>
+  <data name="RememberMe" xml:space="preserve"><value>Angemeldet bleiben</value></data>
+  <data name="InvalidUsernameOrPassword" xml:space="preserve"><value>Benutzername oder Passwort falsch.</value></data>
+  <data name="RegisterPageTitle" xml:space="preserve"><value>Rezepte - Ersteinrichtung</value></data>
+  <data name="EmailOptional" xml:space="preserve"><value>E-Mail (optional)</value></data>
+  <data name="RecipeSearchPageTitle" xml:space="preserve"><value>Rezepte – Suche</value></data>
+  <data name="SearchRecipeInputPlaceholder" xml:space="preserve"><value>Rezepte suchen (Titel, Zutaten, Tags)...</value></data>
+  <data name="SearchInProgress" xml:space="preserve"><value>Suche läuft…</value></data>
+  <data name="SearchFailed" xml:space="preserve"><value>Die Suche ist fehlgeschlagen. Bitte versuche es erneut.</value></data>
+  <data name="NoSearchResults" xml:space="preserve"><value>Keine Treffer.</value></data>
+  <data name="PageNavigation" xml:space="preserve"><value>Seitennavigation</value></data>
+  <data name="PreviousPage" xml:space="preserve"><value>Vorherige</value></data>
+  <data name="NextPage" xml:space="preserve"><value>Nächste</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="ManageImages" xml:space="preserve"><value>Bilder verwalten</value></data>
+  <data name="RecipeLoadFailed" xml:space="preserve"><value>Rezept konnte nicht geladen werden.</value></data>
+  <data name="SourceUrl" xml:space="preserve"><value>Quelle (URL)</value></data>
+  <data name="SideDishSearchPlaceholder" xml:space="preserve"><value>Rezept, Rezept-ID oder Rezept-URL als Beilage suchen...</value></data>
+  <data name="NoSideDishes" xml:space="preserve"><value>Keine Beilagen hinterlegt.</value></data>
+  <data name="StepTitleOptional" xml:space="preserve"><value>Titel (optional)</value></data>
+  <data name="PreparationDurationMinutes" xml:space="preserve"><value>Zubereitungsdauer (Minuten)</value></data>
+  <data name="OvernightRest" xml:space="preserve"><value>Ruhezeit über Nacht</value></data>
+  <data name="AddIngredient" xml:space="preserve"><value>Zutat hinzufügen</value></data>
+  <data name="AddPreparationStep" xml:space="preserve"><value>Neuen Zubereitungsschritt hinzufügen</value></data>
+  <data name="ScheduledRecipesTitle" xml:space="preserve"><value>🗓️ Geplante Rezepte</value></data>
+  <data name="OpenCalendar" xml:space="preserve"><value>Kalender öffnen</value></data>
+  <data name="NoScheduledRecipes" xml:space="preserve"><value>Keine geplanten Rezepte in den nächsten 3 Tagen.</value></data>
+  <data name="DisplayMode" xml:space="preserve"><value>Anzeigemodus</value></data>
+  <data name="View" xml:space="preserve"><value>Ansicht</value></data>
+  <data name="AddGroup" xml:space="preserve"><value>Gruppe hinzufügen</value></data>
+  <data name="GroupName" xml:space="preserve"><value>Gruppenname</value></data>
+  <data name="DeleteGroup" xml:space="preserve"><value>Gruppe löschen</value></data>
+  <data name="TakenFromRecipe" xml:space="preserve"><value>Aus Rezept übernommen</value></data>
+  <data name="NoIngredientsInGroup" xml:space="preserve"><value>Noch keine Zutaten in dieser Gruppe.</value></data>
+  <data name="QuantityAndUnit" xml:space="preserve"><value>Menge und Einheit</value></data>
+  <data name="Ingredient" xml:space="preserve"><value>Zutat</value></data>
+  <data name="DeleteIngredient" xml:space="preserve"><value>Zutat löschen</value></data>
+  <data name="Amount" xml:space="preserve"><value>Menge</value></data>
+  <data name="Unit" xml:space="preserve"><value>Einheit</value></data>
+  <data name="AiUsage" xml:space="preserve"><value>Nutzung von KI</value></data>
+  <data name="AiGlobalActiveAdmin" xml:space="preserve"><value>KI global aktiv (Admin)</value></data>
+  <data name="GoogleVisionGlobalActiveAdmin" xml:space="preserve"><value>Google Vision global aktiv (Admin)</value></data>
+  <data name="GeminiGlobalActiveAdmin" xml:space="preserve"><value>Gemini global aktiv (Admin)</value></data>
+  <data name="LimitSettings" xml:space="preserve"><value>Limit Einstellungen</value></data>
+  <data name="MaxRequestsPerHour" xml:space="preserve"><value>Max Anfragen pro Stunde</value></data>
+  <data name="MaxRequestsPerDay" xml:space="preserve"><value>Max Anfragen pro Tag</value></data>
+  <data name="DisableAiGloballyOnLimit" xml:space="preserve"><value>KI global deaktivieren, wenn Limit erreicht</value></data>
+  <data name="ZeroForUnlimitedRequests" xml:space="preserve"><value>Setzen Sie 0 für unbegrenzte Anfragen.</value></data>
+  <data name="EnableAiForMyAccount" xml:space="preserve"><value>KI für mein Konto aktivieren</value></data>
+  <data name="EnableGoogleVisionForMyAccount" xml:space="preserve"><value>Google Vision für mein Konto aktivieren</value></data>
+  <data name="Info" xml:space="preserve"><value>Info</value></data>
+  <data name="InfoGoogleVision" xml:space="preserve"><value>Info Google Vision</value></data>
+  <data name="EnableGeminiForMyAccount" xml:space="preserve"><value>Gemini für mein Konto aktivieren</value></data>
+  <data name="InfoGemini" xml:space="preserve"><value>Info Gemini</value></data>
+  <data name="RequestConfirmationBeforeAi" xml:space="preserve"><value>Bestätigung vor KI‑Nutzung anfordern</value></data>
+  <data name="InfoConfirmation" xml:space="preserve"><value>Info Bestätigung</value></data>
+  <data name="AiGloballyDisabledLocked" xml:space="preserve"><value>KI ist global deaktiviert — Ihre Einstellung ist gesperrt.</value></data>
+  <data name="GoogleVisionDisabledByAdminLocked" xml:space="preserve"><value>Google Vision ist vom Administrator deaktiviert — Ihre Einstellung ist gesperrt.</value></data>
+  <data name="GeminiDisabledByAdminLocked" xml:space="preserve"><value>Gemini ist vom Administrator deaktiviert — Ihre Einstellung ist gesperrt.</value></data>
+  <data name="GoogleVision" xml:space="preserve"><value>Google Vision</value></data>
+  <data name="AiConfirmationTitle" xml:space="preserve"><value>Bestätigung vor KI‑Nutzung</value></data>
+  <data name="GoogleVisionInfoText" xml:space="preserve"><value>Google Vision wird für die Erkennung von Text in Bilddateien verwendet. Bei Fotoerkennung werden GoogleVision und zusätzlich Gemini zur Extraktion von Rezeptinformationen eingesetzt.</value></data>
+  <data name="GeminiInfoText" xml:space="preserve"><value>Gemini wird für das Auslesen von Rezeptinformationen aus Texten benötigt. Beim Auslesen von Webseiten wird nur Gemini benötigt; bei Fotoerkennung wird Gemini zusammen mit Google Vision verwendet.</value></data>
+  <data name="AiConfirmationInfoText" xml:space="preserve"><value>Wenn diese Option aktiviert ist, erscheint vor jeder Aktion, die KI‑Dienste nutzt, eine kurze Bestätigungsabfrage. Das verhindert unbeabsichtigte KI‑Anfragen.</value></data>
+  <data name="LastChecked" xml:space="preserve"><value>Zuletzt geprüft</value></data>
+  <data name="CheckNow" xml:space="preserve"><value>Jetzt prüfen</value></data>
+  <data name="AcceptRcVersions" xml:space="preserve"><value>RC-Versionen akzeptieren</value></data>
+  <data name="LastResults" xml:space="preserve"><value>Letzte Ergebnisse</value></data>
+  <data name="BackupAdmin" xml:space="preserve"><value>Sicherung (Admin)</value></data>
+  <data name="BackupAdminDescription" xml:space="preserve"><value>Gesamtexport und Wiederherstellung der Anwendung (Admin).</value></data>
+  <data name="RestoreZipFile" xml:space="preserve"><value>Wiederherstellen (ZIP-Datei)</value></data>
+  <data name="OperationInProgress" xml:space="preserve"><value>Vorgang läuft...</value></data>
+  <data name="CleanupOldBackups" xml:space="preserve"><value>Bereinigung alter Sicherungen</value></data>
+  <data name="CleanupTimeLabel" xml:space="preserve"><value>Uhrzeit der Bereinigung</value></data>
+  <data name="CleanupNow" xml:space="preserve"><value>Jetzt bereinigen</value></data>
+  <data name="NoCleanupYet" xml:space="preserve"><value>Bisher wurde noch keine Bereinigung ausgeführt.</value></data>
+  <data name="ExportOwnRecipesInfo" xml:space="preserve"><value>Exportiere deine Rezepte. Der Export wird im Hintergrund vorbereitet.</value></data>
+  <data name="IncludeImages" xml:space="preserve"><value>Bilder einbeziehen</value></data>
+  <data name="PdfPerRecipe" xml:space="preserve"><value>PDF pro Rezept</value></data>
+  <data name="ExportInProgress" xml:space="preserve"><value>Export läuft...</value></data>
+  <data name="SavedExports" xml:space="preserve"><value>Gespeicherte Exporte</value></data>
+  <data name="NoExportFiles" xml:space="preserve"><value>Keine Exportdateien vorhanden.</value></data>
+  <data name="UpdatePat" xml:space="preserve"><value>PAT aktualisieren</value></data>
+  <data name="TrustThisSource" xml:space="preserve"><value>Ich vertraue dieser Quelle.</value></data>
+  <data name="NoGitHubPluginSources" xml:space="preserve"><value>Keine GitHub-Pluginquellen konfiguriert.</value></data>
+  <data name="NoImportPluginsFound" xml:space="preserve"><value>Keine Import-Plugins gefunden.</value></data>
+  <data name="LocalImportPlugins" xml:space="preserve"><value>Lokale Import-Plugins</value></data>
+  <data name="NotUsable" xml:space="preserve"><value>nicht nutzbar</value></data>
+  <data name="PluginOrder" xml:space="preserve"><value>Plugin-Reihenfolge</value></data>
+  <data name="MoveUp" xml:space="preserve"><value>Nach oben</value></data>
+  <data name="MoveDown" xml:space="preserve"><value>Nach unten</value></data>
+  <data name="SecurityTxtTitle" xml:space="preserve"><value>security.txt (RFC 9116)</value></data>
+  <data name="EnableSecurityTxt" xml:space="preserve"><value>security.txt aktivieren</value></data>
+  <data name="SecurityTxtContactLabel" xml:space="preserve"><value>Contact (ein URI oder E-Mail pro Zeile, Pflichtfeld)</value></data>
+  <data name="SecurityTxtExpiresLabel" xml:space="preserve"><value>Expires (Pflichtfeld)</value></data>
+  <data name="SecurityTxtAcknowledgmentsLabel" xml:space="preserve"><value>Acknowledgments (ein URI pro Zeile)</value></data>
+  <data name="SecurityTxtCanonicalLabel" xml:space="preserve"><value>Canonical (optional; wenn leer, wird die URL automatisch bestimmt)</value></data>
+  <data name="TimeSinceRegistration" xml:space="preserve"><value>Zeit seit Registrierung</value></data>
+  <data name="CookbookCount" xml:space="preserve"><value>Anzahl Kochbücher</value></data>
+  <data name="OwnRecipes" xml:space="preserve"><value>Eigene Rezepte</value></data>
+  <data name="LoadingUsers" xml:space="preserve"><value>Lade Benutzer…</value></data>
+  <data name="SearchPlaceholder" xml:space="preserve"><value>Suchen…</value></data>
+  <data name="Username" xml:space="preserve"><value>Benutzername</value></data>
+  <data name="Password" xml:space="preserve"><value>Passwort</value></data>
+  <data name="LoadingProfile" xml:space="preserve"><value>Lade Profil…</value></data>
+  <data name="ChangePassword" xml:space="preserve"><value>Passwort ändern</value></data>
+  <data name="CurrentPassword" xml:space="preserve"><value>Aktuelles Passwort</value></data>
+  <data name="NewPassword" xml:space="preserve"><value>Neues Passwort</value></data>
+  <data name="ConfirmNewPassword" xml:space="preserve"><value>Neues Passwort bestätigen</value></data>
+  <data name="LoginToManageProfile" xml:space="preserve"><value>Bitte anmelden, um das Profil zu verwalten.</value></data>
+  <data name="TakeOverIngredients" xml:space="preserve"><value>Zutaten übernehmen</value></data>
+  <data name="Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="LoadingIngredients" xml:space="preserve"><value>Lade Zutaten...</value></data>
+  <data name="RecipeHasNoIngredients" xml:space="preserve"><value>Dieses Rezept hat keine Zutaten.</value></data>
+  <data name="SideDishIngredientsNotPreselected" xml:space="preserve"><value>Zutaten der Beilagen sind nicht vorausgewählt.</value></data>
+  <data name="AssignToCookbooksTitle" xml:space="preserve"><value>Zuweisung zu Kochbüchern</value></data>
+  <data name="AssignToCookbooksDescription" xml:space="preserve"><value>Wähle aus, in welchen Kochbüchern dieses Rezept erscheinen soll.</value></data>
+  <data name="AssignToCookbooksMultiTitle" xml:space="preserve"><value>Zuweisung zu Kochbüchern (Mehrfachauswahl)</value></data>
+  <data name="AssignToCookbooksMultiDescription" xml:space="preserve"><value>Wähle die Kochbücher, in denen die ausgewählten Rezepte erscheinen sollen.</value></data>
+  <data name="NoCookbooksAvailable" xml:space="preserve"><value>Keine Kochbücher vorhanden.</value></data>
+  <data name="LoadingImages" xml:space="preserve"><value>Lade Bilder…</value></data>
+  <data name="NoImagesAvailable" xml:space="preserve"><value>Keine Bilder vorhanden.</value></data>
+  <data name="Photo" xml:space="preserve"><value>Foto</value></data>
+  <data name="DeleteImage" xml:space="preserve"><value>Bild löschen</value></data>
+  <data name="LargeView" xml:space="preserve"><value>Großansicht</value></data>
+  <data name="AddExistingRecipes" xml:space="preserve"><value>Vorhandene Rezepte hinzufügen</value></data>
+  <data name="RecipesLoadFailed" xml:space="preserve"><value>Rezepte konnten nicht geladen werden.</value></data>
+  <data name="NoMoreRecipesAvailable" xml:space="preserve"><value>Keine weiteren Rezepte verfügbar.</value></data>
+  <data name="LoadMore" xml:space="preserve"><value>Mehr laden…</value></data>
+  <data name="LoadingMore" xml:space="preserve"><value>Lade weitere…</value></data>
+  <data name="LoadingPreview" xml:space="preserve"><value>Lade Vorschau…</value></data>
+  <data name="SavingImage" xml:space="preserve"><value>Speichere Bild…</value></data>
+  <data name="CropAndSave" xml:space="preserve"><value>Zuschneiden &amp; Speichern</value></data>
+  <data name="LatestRecipesTitle" xml:space="preserve"><value>📥 Zuletzt hinzugefügte Rezepte</value></data>
+  <data name="RandomRecipesTitle" xml:space="preserve"><value>🎲 Zufallsrezepte aus Ihren Kochbüchern</value></data>
+  <data name="NoRecipeInCookbook" xml:space="preserve"><value>Kein Rezept in diesem Kochbuch.</value></data>
+  <data name="NewEvent" xml:space="preserve"><value>Neuer Termin</value></data>
+  <data name="EditEvent" xml:space="preserve"><value>Termin bearbeiten</value></data>
+  <data name="RecipeOptional" xml:space="preserve"><value>Rezept (optional)</value></data>
+  <data name="NoRecipeSelected" xml:space="preserve"><value>Kein Rezept ausgewählt</value></data>
+  <data name="ClickToSelectRecipe" xml:space="preserve"><value>Klicken, um ein Rezept auszuwählen</value></data>
+  <data name="RecipeIdOrSelectPlaceholder" xml:space="preserve"><value>Rezept‑Id oder per Auswahl wählen</value></data>
+  <data name="WeeklyOn" xml:space="preserve"><value>Wöchentlich an</value></data>
+  <data name="SearchRecipePlaceholder" xml:space="preserve"><value>Rezept suchen...</value></data>
+  <data name="Selected" xml:space="preserve"><value>Ausgewählt</value></data>
+  <data name="ChooseCreateMethod" xml:space="preserve"><value>Wähle, wie das neue Rezept angelegt werden soll:</value></data>
+  <data name="ImportRecipeFromFile" xml:space="preserve"><value>Rezept aus Datei importieren</value></data>
+  <data name="RecipeSelection" xml:space="preserve"><value>Rezeptauswahl</value></data>
+  <data name="SelectAll" xml:space="preserve"><value>Alle auswählen</value></data>
+  <data name="DeselectAll" xml:space="preserve"><value>Alle abwählen</value></data>
+  <data name="ChooseTargetCookbook" xml:space="preserve"><value>Zielkochbuch wählen</value></data>
+  <data name="SelectCookbook" xml:space="preserve"><value>Kochbuch auswählen</value></data>
+  <data name="RecipeCollection" xml:space="preserve"><value>Rezeptsammlung</value></data>
+  <data name="ApplyToSelection" xml:space="preserve"><value>Für Auswahl übernehmen</value></data>
+  <data name="ImportSelection" xml:space="preserve"><value>Auswahl importieren</value></data>
+  <data name="Confirmation" xml:space="preserve"><value>Bestätigung</value></data>
+</root>

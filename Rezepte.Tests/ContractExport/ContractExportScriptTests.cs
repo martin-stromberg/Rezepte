@@ -8,11 +8,17 @@ using Xunit;
 
 namespace Rezepte.Tests.ContractExport;
 
+/// <summary>
+/// Class representing the contract export script tests.
+/// </summary>
 public sealed class ContractExportScriptTests
 {
     private const string ContractVersion = "0.3.0";
     private const string SourceCommit = "0123456789abcdef0123456789abcdef01234567";
 
+    /// <summary>
+    /// Export creates manifest with safe relative paths and hashes.
+    /// </summary>
     [Fact]
     public void ExportCreatesManifestWithSafeRelativePathsAndHashes()
     {
@@ -59,6 +65,9 @@ public sealed class ContractExportScriptTests
         }
     }
 
+    /// <summary>
+    /// Export is reproducible for same sources and commit.
+    /// </summary>
     [Fact]
     public void ExportIsReproducibleForSameSourcesAndCommit()
     {
@@ -78,6 +87,9 @@ public sealed class ContractExportScriptTests
             .Should().Equal(File.ReadAllBytes(second.OutputDirectory.File("rezepte-import-contract-0.3.0.zip")));
     }
 
+    /// <summary>
+    /// Exported workspace builds outside repository.
+    /// </summary>
     [Fact]
     public void ExportedWorkspaceBuildsOutsideRepository()
     {
@@ -99,6 +111,9 @@ public sealed class ContractExportScriptTests
         }
     }
 
+    /// <summary>
+    /// Exported baseline assemblies use contract version.
+    /// </summary>
     [Fact]
     public void ExportedBaselineAssembliesUseContractVersion()
     {
@@ -116,6 +131,9 @@ public sealed class ContractExportScriptTests
         }
     }
 
+    /// <summary>
+    /// Export uses latest stored api compat baseline below current version.
+    /// </summary>
     [Fact]
     public void ExportUsesLatestStoredApiCompatBaselineBelowCurrentVersion()
     {
@@ -151,6 +169,9 @@ public sealed class ContractExportScriptTests
             $"{baselineRoot.File($"0.2.0/{assembly}.dll")}|{result.OutputDirectory.File($"_staging/export/baselines/0.3.0/{assembly}.dll")}"));
     }
 
+    /// <summary>
+    /// Export fails fast when required plugin sdk path is missing.
+    /// </summary>
     [Fact]
     public void ExportFailsFastWhenRequiredPluginSdkPathIsMissing()
     {
@@ -180,6 +201,9 @@ public sealed class ContractExportScriptTests
         result.Error.Should().Contain("required path is missing: Rezepte.Import.PluginSdk");
     }
 
+    /// <summary>
+    /// Export fails fast when directory build props is missing.
+    /// </summary>
     [Fact]
     public void ExportFailsFastWhenDirectoryBuildPropsIsMissing()
     {
@@ -196,6 +220,9 @@ public sealed class ContractExportScriptTests
         result.Error.Should().Contain("required path is missing: Directory.Build.props");
     }
 
+    /// <summary>
+    /// Export fails fast when unexpected contract file exists.
+    /// </summary>
     [Fact]
     public void ExportFailsFastWhenUnexpectedContractFileExists()
     {
@@ -211,6 +238,9 @@ public sealed class ContractExportScriptTests
         result.Error.Should().Contain("unexpected contract file is not allowed: Rezepte.Import.PluginSdk/notes.txt");
     }
 
+    /// <summary>
+    /// Export fails fast when sensitive contract file exists.
+    /// </summary>
     [Fact]
     public void ExportFailsFastWhenSensitiveContractFileExists()
     {
@@ -226,6 +256,9 @@ public sealed class ContractExportScriptTests
         result.Error.Should().Contain("sensitive contract file is not allowed: Rezepte.Import.Abstractions/signing-key.pfx");
     }
 
+    /// <summary>
+    /// Export ignores build artifacts in contract directories.
+    /// </summary>
     [Fact]
     public void ExportIgnoresBuildArtifactsInContractDirectories()
     {
@@ -247,6 +280,9 @@ public sealed class ContractExportScriptTests
             .Should().NotContain(path => path.Contains("/bin/", StringComparison.OrdinalIgnoreCase) || path.Contains("/obj/", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Export fails fast when parameter version differs from directory build props.
+    /// </summary>
     [Fact]
     public void ExportFailsFastWhenParameterVersionDiffersFromDirectoryBuildProps()
     {

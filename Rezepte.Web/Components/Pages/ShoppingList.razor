@@ -10,6 +10,7 @@
 @rendermode InteractiveServer
 @inject IShoppingListService ShoppingListService
 @inject ISettingsService SettingsService
+@inject IStringLocalizer<UiStrings> Localizer
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Einkaufsliste</PageTitle>
@@ -17,27 +18,27 @@
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <h2 class="h4 mb-0">Einkaufsliste</h2>
     <div class="d-flex flex-wrap align-items-center gap-2">
-        <div class="btn-group btn-group-sm" role="group" aria-label="Anzeigemodus">
+        <div class="btn-group btn-group-sm" role="group" aria-label="@Localizer["DisplayMode"]">
             <button type="button"
                     class="btn @(isEditMode ? "btn-outline-secondary" : "btn-secondary")"
                     aria-pressed="@(!isEditMode)"
-                    aria-label="Ansicht"
-                    title="Ansicht"
+                    aria-label="@Localizer["View"]"
+                    title="@Localizer["View"]"
                     @onclick="async () => await SetEditModeAsync(false)">
                 <span class="bi bi-eye" aria-hidden="true"></span>
             </button>
             <button type="button"
                     class="btn @(isEditMode ? "btn-secondary" : "btn-outline-secondary")"
                     aria-pressed="@isEditMode"
-                    aria-label="Bearbeiten"
-                    title="Bearbeiten"
+                    aria-label="@Localizer["Edit"]"
+                    title="@Localizer["Edit"]"
                     @onclick="async () => await SetEditModeAsync(true)">
                 <span class="bi bi-pencil" aria-hidden="true"></span>
             </button>
         </div>
         @if (isEditMode)
         {
-            <button type="button" class="btn btn-sm btn-primary" @onclick="AddGroupAsync" title="Gruppe hinzufügen">
+            <button type="button" class="btn btn-sm btn-primary" @onclick="AddGroupAsync" title="@Localizer["AddGroup"]">
                 <span class="bi bi-folder-plus" aria-hidden="true"></span>
                 <span class="ms-1">Gruppe</span>
             </button>
@@ -67,11 +68,11 @@ else
                         <input class="form-control form-control-sm shopping-group-title"
                                value="@group.Name"
                                @onchange="async e => await RenameGroupAsync(group, e.Value?.ToString() ?? string.Empty)"
-                               aria-label="Gruppenname" />
+                               aria-label="@Localizer["GroupName"]" />
                         <button type="button"
                                 class="btn btn-sm btn-outline-danger"
-                                title="Gruppe löschen"
-                                aria-label="Gruppe löschen"
+                                title="@Localizer["DeleteGroup"]"
+                                aria-label="@Localizer["DeleteGroup"]"
                                 @onclick="async () => await DeleteGroupAsync(group.Id)">
                             <span class="bi bi-trash" aria-hidden="true"></span>
                         </button>
@@ -84,12 +85,12 @@ else
 
                 @if (!string.IsNullOrWhiteSpace(group.RecipeId))
                 {
-                    <div class="small text-muted mb-2">Aus Rezept übernommen</div>
+                    <div class="small text-muted mb-2">@Localizer["TakenFromRecipe"]</div>
                 }
 
                 @if (group.Items.Count == 0)
                 {
-                    <div class="text-muted small py-3">Noch keine Zutaten in dieser Gruppe.</div>
+                    <div class="text-muted small py-3">@Localizer["NoIngredientsInGroup"]</div>
                 }
                 else
                 {
@@ -101,16 +102,16 @@ else
                                 {
                                     <input class="form-control form-control-sm shopping-item-quantity"
                                            value="@FormatQuantity(item)"
-                                           aria-label="Menge und Einheit"
+                                           aria-label="@Localizer["QuantityAndUnit"]"
                                            @onchange="async e => await UpdateItemQuantityAsync(item, e.Value?.ToString())" />
                                     <input class="form-control form-control-sm shopping-item-name"
                                            value="@item.Name"
-                                           aria-label="Zutat"
+                                           aria-label="@Localizer["Ingredient"]"
                                            @onchange="async e => await UpdateItemNameAsync(item, e.Value?.ToString() ?? string.Empty)" />
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"
-                                            title="Zutat löschen"
-                                            aria-label="Zutat löschen"
+                                            title="@Localizer["DeleteIngredient"]"
+                                            aria-label="@Localizer["DeleteIngredient"]"
                                             @onclick="async () => await DeleteItemAsync(item.Id)">
                                         <span class="bi bi-x-lg" aria-hidden="true"></span>
                                     </button>
@@ -137,18 +138,18 @@ else
                                type="number"
                                min="0"
                                step="0.01"
-                               placeholder="Menge"
-                               aria-label="Menge"
+                               placeholder="@Localizer["Amount"]"
+                               aria-label="@Localizer["Amount"]"
                                @bind="draft.AmountText" />
                         <input class="form-control form-control-sm"
-                               placeholder="Einheit"
-                               aria-label="Einheit"
+                               placeholder="@Localizer["Unit"]"
+                               aria-label="@Localizer["Unit"]"
                                @bind="draft.Unit" />
                         <input class="form-control form-control-sm"
-                               placeholder="Zutat hinzufügen"
-                               aria-label="Zutat hinzufügen"
+                               placeholder="@Localizer["AddIngredient"]"
+                               aria-label="@Localizer["AddIngredient"]"
                                @bind="draft.Name" />
-                        <button type="submit" class="btn btn-sm btn-success" title="Zutat hinzufügen" aria-label="Zutat hinzufügen">
+                        <button type="submit" class="btn btn-sm btn-success" title="@Localizer["AddIngredient"]" aria-label="@Localizer["AddIngredient"]">
                             <span class="bi bi-plus-lg" aria-hidden="true"></span>
                         </button>
                     </form>

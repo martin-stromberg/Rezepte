@@ -4,8 +4,15 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the shopping list quantity parser tests.
+/// </summary>
 public class ShoppingListQuantityParserTests
 {
+    /// <summary>
+    /// Quantity examples.
+    /// </summary>
+    /// <returns>The result.</returns>
     public static TheoryData<string?, decimal, string?> QuantityExamples => new()
     {
         { "2 kg", 2, "kg" },
@@ -17,6 +24,12 @@ public class ShoppingListQuantityParserTests
         { "-1 kg", 0, "kg" }
     };
 
+    /// <summary>
+    /// Parse quantity should split amount and unit.
+    /// </summary>
+    /// <param name="input">The input parameter.</param>
+    /// <param name="expectedAmount">The expected amount parameter.</param>
+    /// <param name="expectedUnit">The expected unit parameter.</param>
     [Theory]
     [MemberData(nameof(QuantityExamples))]
     public void ParseQuantity_ShouldSplitAmountAndUnit(string? input, decimal expectedAmount, string? expectedUnit)
@@ -27,6 +40,9 @@ public class ShoppingListQuantityParserTests
         result.Unit.Should().Be(expectedUnit);
     }
 
+    /// <summary>
+    /// Parse amount should clamp negative numbers to zero.
+    /// </summary>
     [Fact]
     public void ParseAmount_ShouldClampNegativeNumbersToZero()
     {

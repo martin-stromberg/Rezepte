@@ -10,8 +10,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Controllers;
 
+/// <summary>
+/// Class representing the auth controller tests.
+/// </summary>
 public class AuthControllerTests
 {
+    /// <summary>
+    /// Register should redirect form post with validation error when username is rejected.
+    /// </summary>
     [Fact]
     public async Task Register_ShouldRedirectFormPostWithValidationError_WhenUsernameIsRejected()
     {

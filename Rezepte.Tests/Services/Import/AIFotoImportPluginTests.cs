@@ -8,8 +8,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the aifoto import plugin tests.
+/// </summary>
 public sealed class AIFotoImportPluginTests
 {
+    /// <summary>
+    /// Check usability async should return usable when all global prerequisites met.
+    /// </summary>
     [Fact]
     public async Task CheckUsabilityAsync_ShouldReturnUsable_WhenAllGlobalPrerequisitesMet()
     {
@@ -28,6 +34,9 @@ public sealed class AIFotoImportPluginTests
         result.Issues.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Check usability async should report missing vision service account.
+    /// </summary>
     [Fact]
     public async Task CheckUsabilityAsync_ShouldReportMissingVisionServiceAccount()
     {
@@ -46,6 +55,9 @@ public sealed class AIFotoImportPluginTests
         result.Issues.Should().ContainSingle(i => i.Message == "Google Vision service account file is missing." && i.Hint != null);
     }
 
+    /// <summary>
+    /// Check usability async should report disabled global vision.
+    /// </summary>
     [Fact]
     public async Task CheckUsabilityAsync_ShouldReportDisabledGlobalVision()
     {

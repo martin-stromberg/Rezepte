@@ -4,8 +4,15 @@ using Xunit;
 
 namespace Rezepte.Tests.Security;
 
+/// <summary>
+/// Class representing the remote url guard tests.
+/// </summary>
 public class RemoteUrlGuardTests
 {
+    /// <summary>
+    /// Try validate async rejects internal addresses.
+    /// </summary>
+    /// <param name="url">The url parameter.</param>
     [Theory]
     [InlineData("http://127.0.0.1/recipe")]
     [InlineData("http://localhost/recipe")]
@@ -23,6 +30,10 @@ public class RemoteUrlGuardTests
         error.Should().NotBeNullOrWhiteSpace();
     }
 
+    /// <summary>
+    /// Try validate async rejects unsupported schemes.
+    /// </summary>
+    /// <param name="url">The url parameter.</param>
     [Theory]
     [InlineData("ftp://example.com/recipe")]
     [InlineData("file:///etc/passwd")]
@@ -37,6 +48,9 @@ public class RemoteUrlGuardTests
         uri.Should().BeNull();
     }
 
+    /// <summary>
+    /// Try validate async rejects non standard ports.
+    /// </summary>
     [Fact]
     public async Task TryValidateAsync_RejectsNonStandardPorts()
     {
@@ -45,6 +59,9 @@ public class RemoteUrlGuardTests
         ok.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Try validate async accepts public https address.
+    /// </summary>
     [Fact]
     public async Task TryValidateAsync_AcceptsPublicHttpsAddress()
     {

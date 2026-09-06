@@ -6,6 +6,9 @@ using Rezepte.Web.Services.BackgroundJobs;
 
 namespace Rezepte.Web.Controllers;
 
+/// <summary>
+/// Represents the exports controller class.
+/// </summary>
 [ApiController]
 [Route("api/exports")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -14,6 +17,11 @@ public class ExportsController : ApiControllerBase
     private readonly IBackgroundJobQueue _jobQueue;
     private readonly ILogger<ExportsController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExportsController"/> class.
+    /// </summary>
+    /// <param name="jobQueue">The job queue parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public ExportsController(IBackgroundJobQueue jobQueue, ILogger<ExportsController> logger)
     {
         _jobQueue = jobQueue;
@@ -25,6 +33,14 @@ public class ExportsController : ApiControllerBase
     /// Query: ?format=csv|json (default zip), ?includePdf=true|false, ?includeImages=true|false
     /// Startet einen Hintergrundjob und liefert dessen Job-ID zurück.
     /// </summary>
+    /// <param name="format">The format parameter.</param>
+    /// <param name="includeImages">The include images parameter.</param>
+    /// <param name="includePdf">The include pdf parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpGet("recipes")]
     public async Task<IActionResult> ExportMyRecipes([FromQuery] string format = "json", [FromQuery] bool includeImages = false, [FromQuery] bool includePdf = false, CancellationToken ct = default)
     {

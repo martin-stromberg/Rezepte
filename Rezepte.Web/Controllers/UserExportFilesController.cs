@@ -9,6 +9,9 @@ using Rezepte.Web.Services.BackgroundJobs;
 
 namespace Rezepte.Web.Controllers;
 
+/// <summary>
+/// Represents the user export files controller class.
+/// </summary>
 [ApiController]
 [Route("api/exports")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)]
@@ -18,6 +21,12 @@ public class UserExportFilesController : ApiControllerBase
     private readonly ExportJobFileStore _fileStore;
     private readonly ILogger<UserExportFilesController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UserExportFilesController"/> class.
+    /// </summary>
+    /// <param name="db">The db parameter.</param>
+    /// <param name="fileStore">The file store parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public UserExportFilesController(RezepteDbContext db, ExportJobFileStore fileStore, ILogger<UserExportFilesController> logger)
     {
         _db = db;
@@ -29,6 +38,11 @@ public class UserExportFilesController : ApiControllerBase
     /// List export files for the current user (admins can see all).
     /// GET /api/exports
     /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpGet]
     public async Task<IActionResult> GetMyFiles(CancellationToken ct = default)
     {
@@ -63,6 +77,12 @@ public class UserExportFilesController : ApiControllerBase
     /// Download a previously created export file.
     /// GET /api/exports/{id}/download
     /// </summary>
+    /// <param name="id">The id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpGet("{id}/download")]
     public async Task<IActionResult> Download(string id, CancellationToken ct = default)
     {
@@ -102,6 +122,12 @@ public class UserExportFilesController : ApiControllerBase
     /// Delete an export file (physical file and database row).
     /// DELETE /api/exports/{id}
     /// </summary>
+    /// <param name="id">The id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <returns>The result.</returns>
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id, CancellationToken ct = default)
     {

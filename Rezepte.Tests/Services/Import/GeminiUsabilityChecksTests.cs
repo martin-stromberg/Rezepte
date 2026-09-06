@@ -6,8 +6,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
 
+/// <summary>
+/// Class representing the gemini usability checks tests.
+/// </summary>
 public sealed class GeminiUsabilityChecksTests
 {
+    /// <summary>
+    /// Collect async should return no issues when all prerequisites met.
+    /// </summary>
     [Fact]
     public async Task CollectAsync_ShouldReturnNoIssues_WhenAllPrerequisitesMet()
     {
@@ -19,6 +25,9 @@ public sealed class GeminiUsabilityChecksTests
         issues.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Collect async should report disabled global ai.
+    /// </summary>
     [Fact]
     public async Task CollectAsync_ShouldReportDisabledGlobalAi()
     {
@@ -30,6 +39,9 @@ public sealed class GeminiUsabilityChecksTests
         issues.Should().ContainSingle(i => i.Message == "Global AI is disabled." && i.Hint != null);
     }
 
+    /// <summary>
+    /// Collect async should report missing gemini authentication.
+    /// </summary>
     [Fact]
     public async Task CollectAsync_ShouldReportMissingGeminiAuthentication()
     {
@@ -41,6 +53,9 @@ public sealed class GeminiUsabilityChecksTests
         issues.Should().ContainSingle(i => i.Message == "Gemini authentication is missing." && i.Hint != null);
     }
 
+    /// <summary>
+    /// Collect async should report disabled global gemini.
+    /// </summary>
     [Fact]
     public async Task CollectAsync_ShouldReportDisabledGlobalGemini()
     {

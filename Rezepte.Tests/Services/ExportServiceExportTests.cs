@@ -10,8 +10,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the export service export tests.
+/// </summary>
 public class ExportServiceExportTests
 {
+    /// <summary>
+    /// Export user async should return valid zip with image.
+    /// </summary>
     [Fact]
     public async Task ExportUserAsync_ShouldReturnValidZipWithImage()
     {

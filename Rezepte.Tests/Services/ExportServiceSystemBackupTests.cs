@@ -12,8 +12,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the export service system backup tests.
+/// </summary>
 public sealed class ExportServiceSystemBackupTests
 {
+    /// <summary>
+    /// Export all async should include system backup data and complete recipe fields.
+    /// </summary>
     [Fact]
     public async Task ExportAllAsync_ShouldIncludeSystemBackupDataAndCompleteRecipeFields()
     {
@@ -53,6 +59,9 @@ public sealed class ExportServiceSystemBackupTests
         root.SystemData.BackgroundJobs.Should().ContainSingle(j => j.Id == Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"));
     }
 
+    /// <summary>
+    /// Restore from zip async should roundtrip system backup data and complete recipe fields.
+    /// </summary>
     [Fact]
     public async Task RestoreFromZipAsync_ShouldRoundtripSystemBackupDataAndCompleteRecipeFields()
     {

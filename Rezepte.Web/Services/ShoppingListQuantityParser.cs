@@ -2,8 +2,16 @@ using System.Globalization;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Represents the shopping list quantity parser class.
+/// </summary>
 public static class ShoppingListQuantityParser
 {
+    /// <summary>
+    /// Parses the amount.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
+    /// <returns>The result.</returns>
     public static decimal ParseAmount(string? value)
     {
         var text = value?.Trim();
@@ -28,6 +36,13 @@ public static class ShoppingListQuantityParser
         return 0;
     }
 
+    /// <summary>
+    /// Represents the public class.
+    ///  Amount: The amount parameter.</summary>
+    /// <param name="value">The value parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
     public static (decimal Amount, string? Unit) ParseQuantity(string? value)
     {
         var text = value?.Trim() ?? string.Empty;

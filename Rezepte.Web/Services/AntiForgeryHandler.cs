@@ -3,15 +3,28 @@ using Microsoft.AspNetCore.Http;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Represents the anti forgery handler class.
+/// </summary>
 public class AntiForgeryHandler : DelegatingHandler
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AntiForgeryHandler"/> class.
+    /// </summary>
+    /// <param name="httpContextAccessor">The http context accessor parameter.</param>
     public AntiForgeryHandler(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
     }
 
+    /// <summary>
+    /// Sends the async.
+    /// </summary>
+    /// <param name="request">The request parameter.</param>
+    /// <param name="cancellationToken">The cancellation token parameter.</param>
+    /// <returns>The result.</returns>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         // Nur für mutierende Methoden (nicht GET/HEAD)

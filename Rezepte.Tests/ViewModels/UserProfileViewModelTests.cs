@@ -10,6 +10,9 @@ using Xunit;
 
 namespace Rezepte.Tests.ViewModels;
 
+/// <summary>
+/// Class representing the user profile view model tests.
+/// </summary>
 public class UserProfileViewModelTests
 {
     private const string ProfileJson = "{\"id\":\"user-1\",\"username\":\"alice\",\"email\":\"alice@example.com\"}";
@@ -24,6 +27,9 @@ public class UserProfileViewModelTests
         return (sut, factory, notifications);
     }
 
+    /// <summary>
+    /// Load async should populate profile.
+    /// </summary>
     [Fact]
     public async Task LoadAsync_ShouldPopulateProfile()
     {
@@ -42,6 +48,9 @@ public class UserProfileViewModelTests
         notifications.Should().NotBeEmpty();
     }
 
+    /// <summary>
+    /// Load async should report unauthorized.
+    /// </summary>
     [Fact]
     public async Task LoadAsync_ShouldReportUnauthorized()
     {
@@ -54,6 +63,9 @@ public class UserProfileViewModelTests
         sut.IsLoading.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Load async should fall back to generic message for server problem details.
+    /// </summary>
     [Fact]
     public async Task LoadAsync_ShouldFallBackToGenericMessageForServerProblemDetails()
     {
@@ -65,6 +77,9 @@ public class UserProfileViewModelTests
         sut.Message.Should().Be("Profile could not be loaded.");
     }
 
+    /// <summary>
+    /// Load async should fall back to generic message without server message.
+    /// </summary>
     [Fact]
     public async Task LoadAsync_ShouldFallBackToGenericMessageWithoutServerMessage()
     {
@@ -76,6 +91,9 @@ public class UserProfileViewModelTests
         sut.Message.Should().Be("Profile could not be loaded.");
     }
 
+    /// <summary>
+    /// Load async should report missing user for empty payload.
+    /// </summary>
     [Fact]
     public async Task LoadAsync_ShouldReportMissingUserForEmptyPayload()
     {
@@ -87,6 +105,9 @@ public class UserProfileViewModelTests
         sut.Message.Should().Be("User not found.");
     }
 
+    /// <summary>
+    /// Load async should handle transport failures.
+    /// </summary>
     [Fact]
     public async Task LoadAsync_ShouldHandleTransportFailures()
     {
@@ -99,6 +120,9 @@ public class UserProfileViewModelTests
         sut.IsLoading.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Save profile async should trim input and apply server response.
+    /// </summary>
     [Fact]
     public async Task SaveProfileAsync_ShouldTrimInputAndApplyServerResponse()
     {
@@ -120,6 +144,9 @@ public class UserProfileViewModelTests
         factory.Requests[0].RequestUri!.AbsolutePath.Should().Be("/api/users/me");
     }
 
+    /// <summary>
+    /// Save profile async should report server error.
+    /// </summary>
     [Fact]
     public async Task SaveProfileAsync_ShouldReportServerError()
     {
@@ -131,6 +158,9 @@ public class UserProfileViewModelTests
         sut.Message.Should().Be("Profile could not be saved.");
     }
 
+    /// <summary>
+    /// Save profile async should handle transport failures.
+    /// </summary>
     [Fact]
     public async Task SaveProfileAsync_ShouldHandleTransportFailures()
     {
@@ -143,6 +173,9 @@ public class UserProfileViewModelTests
         sut.IsBusy.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Change password async should reject mismatched confirmation without request.
+    /// </summary>
     [Fact]
     public async Task ChangePasswordAsync_ShouldRejectMismatchedConfirmationWithoutRequest()
     {
@@ -158,6 +191,9 @@ public class UserProfileViewModelTests
         factory.Requests.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Change password async should clear fields on success.
+    /// </summary>
     [Fact]
     public async Task ChangePasswordAsync_ShouldClearFieldsOnSuccess()
     {
@@ -178,6 +214,9 @@ public class UserProfileViewModelTests
         factory.Requests[0].RequestUri!.AbsolutePath.Should().Be("/api/users/me/change-password");
     }
 
+    /// <summary>
+    /// Change password async should keep fields on server error.
+    /// </summary>
     [Fact]
     public async Task ChangePasswordAsync_ShouldKeepFieldsOnServerError()
     {
@@ -193,6 +232,9 @@ public class UserProfileViewModelTests
         sut.Password.CurrentPassword.Should().Be("old-secret");
     }
 
+    /// <summary>
+    /// Change password async should handle transport failures.
+    /// </summary>
     [Fact]
     public async Task ChangePasswordAsync_ShouldHandleTransportFailures()
     {

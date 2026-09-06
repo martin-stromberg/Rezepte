@@ -2,13 +2,14 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Rezepte.Web.ViewModels
 @inject UserProfileViewModel Vm
+@inject IStringLocalizer<UiStrings> Localizer
 
 <CascadingAuthenticationState>
     <AuthorizeView>
         <Authorized Context="authState">
             @if (Vm.IsLoading)
             {
-                <div class="text-muted">Lade Profil…</div>
+                <div class="text-muted">@Localizer["LoadingProfile"]</div>
             }
             else
             {
@@ -58,7 +59,7 @@
                     <div class="col-12 col-lg-6">
                         <div class="card h-100">
                             <div class="card-header">
-                                <h6 class="mb-0">Passwort ändern</h6>
+                                <h6 class="mb-0">@Localizer["ChangePassword"]</h6>
                             </div>
                             <div class="card-body">
                                 <EditForm Model="@Vm.Password" OnValidSubmit="@(() => Vm.ChangePasswordAsync())" FormName="changePassword">
@@ -66,23 +67,23 @@
                                     <ValidationSummary />
 
                                     <div class="mb-3">
-                                        <label class="form-label">Aktuelles Passwort</label>
+                                        <label class="form-label">@Localizer["CurrentPassword"]</label>
                                         <InputText class="form-control" type="password" @bind-Value="Vm.Password.CurrentPassword" />
                                         <ValidationMessage For="@(() => Vm.Password.CurrentPassword)" />
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Neues Passwort</label>
+                                        <label class="form-label">@Localizer["NewPassword"]</label>
                                         <InputText class="form-control" type="password" @bind-Value="Vm.Password.NewPassword" />
                                         <ValidationMessage For="@(() => Vm.Password.NewPassword)" />
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Neues Passwort bestätigen</label>
+                                        <label class="form-label">@Localizer["ConfirmNewPassword"]</label>
                                         <InputText class="form-control" type="password" @bind-Value="Vm.Password.ConfirmPassword" />
                                         <ValidationMessage For="@(() => Vm.Password.ConfirmPassword)" />
                                     </div>
 
                                     <div class="d-grid">
-                                        <button class="btn btn-outline-primary" type="submit" disabled="@Vm.IsBusy">Passwort ändern</button>
+                                        <button class="btn btn-outline-primary" type="submit" disabled="@Vm.IsBusy">@Localizer["ChangePassword"]</button>
                                     </div>
                                 </EditForm>
                             </div>
@@ -92,7 +93,7 @@
             }
         </Authorized>
         <NotAuthorized>
-            <div class="alert alert-warning">Bitte anmelden, um das Profil zu verwalten.</div>
+            <div class="alert alert-warning">@Localizer["LoginToManageProfile"]</div>
         </NotAuthorized>
     </AuthorizeView>
 </CascadingAuthenticationState>

@@ -1,5 +1,6 @@
 @using Rezepte.Web.Services.Import.Plugins
 @inject IPluginSettingsService PluginSettingsService
+@inject IStringLocalizer<UiStrings> Localizer
 
 @if (isLoading)
 {
@@ -32,13 +33,13 @@ else
                     </div>
                 </div>
                 <div class="col-12 col-lg-3">
-                    <label class="form-label small" for="plugin-source-pat">PAT aktualisieren</label>
+                    <label class="form-label small" for="plugin-source-pat">@Localizer["UpdatePat"]</label>
                     <InputText id="plugin-source-pat" type="password" class="form-control form-control-sm" @bind-Value="sourceForm.PersonalAccessToken" autocomplete="off" />
                 </div>
                 <div class="col-12">
                     <div class="form-check">
                         <InputCheckbox id="plugin-source-trust" class="form-check-input" @bind-Value="sourceForm.TrustConfirmed" disabled="@(!string.IsNullOrWhiteSpace(sourceForm.Id))" />
-                        <label class="form-check-label small" for="plugin-source-trust">Ich vertraue dieser Quelle.</label>
+                        <label class="form-check-label small" for="plugin-source-trust">@Localizer["TrustThisSource"]</label>
                     </div>
                 </div>
                 <div class="col-12">
@@ -53,7 +54,7 @@ else
 
         @if (sources.Count == 0)
         {
-            <div class="text-muted small mt-3">Keine GitHub-Pluginquellen konfiguriert.</div>
+            <div class="text-muted small mt-3">@Localizer["NoGitHubPluginSources"]</div>
         }
         else
         {
@@ -114,11 +115,11 @@ else
 
     @if (plugins.Count == 0)
     {
-        <div class="text-muted">Keine Import-Plugins gefunden.</div>
+        <div class="text-muted">@Localizer["NoImportPluginsFound"]</div>
     }
     else
     {
-    <h3 class="h6">Lokale Import-Plugins</h3>
+    <h3 class="h6">@Localizer["LocalImportPlugins"]</h3>
     <div class="table-responsive">
         <table class="table table-sm align-middle">
             <thead>
@@ -161,7 +162,7 @@ else
                             <span class="@StatusClass(plugin.Status)">@plugin.Status</span>
                             @if (plugin.Usability is { IsUsable: false } usability)
                             {
-                                <span class="badge text-bg-warning ms-1">nicht nutzbar</span>
+                                <span class="badge text-bg-warning ms-1">@Localizer["NotUsable"]</span>
                                 <div class="mt-1">
                                     @foreach (var issue in usability.Issues)
                                     {
@@ -179,9 +180,9 @@ else
                             <div class="small text-muted">@plugin.TypeName</div>
                         </td>
                         <td class="text-end">
-                            <div class="btn-group btn-group-sm" role="group" aria-label="Plugin-Reihenfolge">
-                                <button class="btn btn-outline-secondary" title="Nach oben" disabled="@(isSaving || i == 0)" @onclick="() => MoveAsync(plugin.PluginId, -1)">↑</button>
-                                <button class="btn btn-outline-secondary" title="Nach unten" disabled="@(isSaving || i == plugins.Count - 1)" @onclick="() => MoveAsync(plugin.PluginId, 1)">↓</button>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="@Localizer["PluginOrder"]">
+                                <button class="btn btn-outline-secondary" title="@Localizer["MoveUp"]" disabled="@(isSaving || i == 0)" @onclick="() => MoveAsync(plugin.PluginId, -1)">↑</button>
+                                <button class="btn btn-outline-secondary" title="@Localizer["MoveDown"]" disabled="@(isSaving || i == plugins.Count - 1)" @onclick="() => MoveAsync(plugin.PluginId, 1)">↓</button>
                             </div>
                         </td>
                     </tr>

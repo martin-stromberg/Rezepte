@@ -11,6 +11,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Controllers;
 
+/// <summary>
+/// Class representing the admin export cleanup controller tests.
+/// </summary>
 public sealed class AdminExportCleanupControllerTests
 {
     private readonly Mock<IExportCleanupService> _cleanup = new();
@@ -25,6 +28,9 @@ public sealed class AdminExportCleanupControllerTests
         };
     }
 
+    /// <summary>
+    /// Get settings should return formatted time.
+    /// </summary>
     [Fact]
     public async Task GetSettings_ShouldReturnFormattedTime()
     {
@@ -39,6 +45,10 @@ public sealed class AdminExportCleanupControllerTests
         dto.LastRunAt.Should().BeNull();
     }
 
+    /// <summary>
+    /// Update settings should reject invalid time.
+    /// </summary>
+    /// <param name="value">The value parameter.</param>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -52,6 +62,9 @@ public sealed class AdminExportCleanupControllerTests
         _cleanup.Verify(c => c.SetCleanupTimeAsync(It.IsAny<TimeOnly>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    /// <summary>
+    /// Update settings should persist parsed time.
+    /// </summary>
     [Fact]
     public async Task UpdateSettings_ShouldPersistParsedTime()
     {
@@ -65,6 +78,9 @@ public sealed class AdminExportCleanupControllerTests
         dto.CleanupTime.Should().Be("23:45");
     }
 
+    /// <summary>
+    /// Run should trigger cleanup with current time.
+    /// </summary>
     [Fact]
     public async Task Run_ShouldTriggerCleanupWithCurrentTime()
     {

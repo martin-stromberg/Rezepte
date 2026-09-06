@@ -1,4 +1,4 @@
-﻿@page "/cookbooks"
+@page "/cookbooks"
 @using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
 @attribute [Authorize]
@@ -6,6 +6,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject ILogger<Rezepte.Web.Components.Pages.Cookbooks> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 <PageTitle>Kochbücher</PageTitle>
 <h4 class="mb-3">Kochbücher</h4>
@@ -31,13 +32,13 @@ else
                 <label class="form-label">Beschreibung</label>
                 <input class="form-control" @bind="newDescription" />
             </div>
-            <button class="btn btn-primary" @onclick="CreateAsync" disabled="@isBusy">+ Anlegen</button>
+            <button class="btn btn-primary" @onclick="CreateAsync" disabled="@isBusy">@Localizer["Create"]</button>
         </div>
     </div>
 
     @if (gridItems.Count == 0)
     {
-        <div class="alert alert-info">Noch keine Kochbücher vorhanden.</div>
+        <div class="alert alert-info">@Localizer["NoCookbooksYet"]</div>
     }
     else
     {
@@ -57,7 +58,7 @@ else
                        href="@($"/cookbooks/{item.Id}")" title="@item.Name">
                         @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                         {
-                            <img src="@item.ImageUrl" alt="Letztes Rezept in @item.Name" />
+                            <img src="@item.ImageUrl" alt="@Localizer["LastRecipeIn"] @item.Name" />
                         }
                         else
                         {
@@ -74,7 +75,7 @@ else
 
                     <button type="button"
                             class="drag-handle"
-                            title="Verschieben"
+                            title="@Localizer["Move"]"
                             tabindex="-1"> 
                         <i class="bi bi-arrows-move"></i>
                     </button>

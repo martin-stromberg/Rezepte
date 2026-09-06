@@ -1,5 +1,6 @@
 @inject ApiClient Api
 @inject ILogger<Rezepte.Web.Components.Shared.MultiAssignToCookbooksOverlay> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 @if (!Show)
 {
@@ -10,8 +11,8 @@ else
     <div class="overlay-backdrop" @onclick="OnCancelClick">
         <div class="overlay-content" @onclick:stopPropagation>
             <button class="btn btn-sm btn-danger overlay-close" @onclick="OnCancelClick">×</button>
-            <h5>Zuweisung zu Kochbüchern (Mehrfachauswahl)</h5>
-            <p class="text-muted">Wähle die Kochbücher, in denen die ausgewählten Rezepte erscheinen sollen.</p>
+            <h5>@Localizer["AssignToCookbooksMultiTitle"]</h5>
+            <p class="text-muted">@Localizer["AssignToCookbooksMultiDescription"]</p>
 
             @if (isLoading)
             {
@@ -22,7 +23,7 @@ else
                 <div class="mb-3" style="max-height:40vh; overflow:auto;">
                     @if (cookbooks is null or { Count: 0 })
                     {
-                        <div class="text-muted">Keine Kochbücher vorhanden.</div>
+                        <div class="text-muted">@Localizer["NoCookbooksAvailable"]</div>
                     }
                     else
                     {

@@ -10,6 +10,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the user service tests.
+/// </summary>
 public class UserServiceTests
 {
     private static RezepteDbContext CreateDb()
@@ -22,6 +25,9 @@ public class UserServiceTests
 
     private static UserService CreateSut(RezepteDbContext db) => new(db, new UsernameValidator());
 
+    /// <summary>
+    /// Register async should create first user as admin when no users exist.
+    /// </summary>
     [Fact]
     public async Task RegisterAsync_ShouldCreateFirstUserAsAdmin_WhenNoUsersExist()
     {
@@ -36,6 +42,9 @@ public class UserServiceTests
         user!.IsAdmin.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Register async should fail when username already exists.
+    /// </summary>
     [Fact]
     public async Task RegisterAsync_ShouldFail_WhenUsernameAlreadyExists()
     {
@@ -50,6 +59,9 @@ public class UserServiceTests
         user.Should().BeNull();
     }
 
+    /// <summary>
+    /// Login async should return user when password valid.
+    /// </summary>
     [Fact]
     public async Task LoginAsync_ShouldReturnUser_WhenPasswordValid()
     {
@@ -63,6 +75,9 @@ public class UserServiceTests
         user!.Username.Should().Be("carol");
     }
 
+    /// <summary>
+    /// Login async should return null when password invalid.
+    /// </summary>
     [Fact]
     public async Task LoginAsync_ShouldReturnNull_WhenPasswordInvalid()
     {
@@ -75,6 +90,9 @@ public class UserServiceTests
         user.Should().BeNull();
     }
 
+    /// <summary>
+    /// Update profile async should update username and email when valid.
+    /// </summary>
     [Fact]
     public async Task UpdateProfileAsync_ShouldUpdateUsernameAndEmail_WhenValid()
     {
@@ -91,6 +109,9 @@ public class UserServiceTests
         updated.Email.Should().Be("ed@example.com");
     }
 
+    /// <summary>
+    /// Register async should fail when username is reserved.
+    /// </summary>
     [Fact]
     public async Task RegisterAsync_ShouldFail_WhenUsernameIsReserved()
     {
@@ -104,6 +125,9 @@ public class UserServiceTests
         user.Should().BeNull();
     }
 
+    /// <summary>
+    /// Update profile async should fail when username is invalid.
+    /// </summary>
     [Fact]
     public async Task UpdateProfileAsync_ShouldFail_WhenUsernameIsInvalid()
     {
@@ -118,6 +142,9 @@ public class UserServiceTests
         updated.Should().BeNull();
     }
 
+    /// <summary>
+    /// Update user async should fail when username is invalid.
+    /// </summary>
     [Fact]
     public async Task UpdateUserAsync_ShouldFail_WhenUsernameIsInvalid()
     {
@@ -131,6 +158,9 @@ public class UserServiceTests
         error.Should().Be(UsernameValidator.IpOrDomainMessage);
     }
 
+    /// <summary>
+    /// Change password async should change when current password matches.
+    /// </summary>
     [Fact]
     public async Task ChangePasswordAsync_ShouldChange_WhenCurrentPasswordMatches()
     {
@@ -149,6 +179,9 @@ public class UserServiceTests
         badUser.Should().BeNull();
     }
 
+    /// <summary>
+    /// Login async should rehash password when stored hash outdated.
+    /// </summary>
     [Fact]
     public async Task LoginAsync_ShouldRehashPassword_WhenStoredHashOutdated()
     {
@@ -168,6 +201,9 @@ public class UserServiceTests
         reloaded.PasswordHash.Should().StartWith($"{PasswordHasher.CurrentIterations}.");
     }
 
+    /// <summary>
+    /// Login async should not rehash when stored hash current.
+    /// </summary>
     [Fact]
     public async Task LoginAsync_ShouldNotRehash_WhenStoredHashCurrent()
     {
@@ -183,6 +219,9 @@ public class UserServiceTests
         reloaded.PasswordHash.Should().Be(originalHash);
     }
 
+    /// <summary>
+    /// Login async should return null when stored hash violates policy.
+    /// </summary>
     [Fact]
     public async Task LoginAsync_ShouldReturnNull_WhenStoredHashViolatesPolicy()
     {
@@ -201,6 +240,9 @@ public class UserServiceTests
         user.Should().BeNull();
     }
 
+    /// <summary>
+    /// Change password async should return error when stored hash malformed.
+    /// </summary>
     [Fact]
     public async Task ChangePasswordAsync_ShouldReturnError_WhenStoredHashMalformed()
     {
@@ -218,6 +260,9 @@ public class UserServiceTests
         error.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Update user async should set admin flag.
+    /// </summary>
     [Fact]
     public async Task UpdateUserAsync_ShouldSetAdminFlag()
     {
@@ -233,6 +278,9 @@ public class UserServiceTests
         reloaded!.IsAdmin.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Delete async should remove user.
+    /// </summary>
     [Fact]
     public async Task DeleteAsync_ShouldRemoveUser()
     {

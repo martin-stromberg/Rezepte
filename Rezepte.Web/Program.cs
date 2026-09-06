@@ -53,6 +53,9 @@ builder.UseAutoUpdate(autoUpdate =>
     }
 });
 
+// Localization (IStringLocalizer for shared UI strings)
+builder.Services.AddLocalization();
+
 // Register all application services via project extension (DbContext, auth, DI, controllers, etc.)
 builder.Services.AddRezepteServices(builder.Configuration, builder.Environment);
 
@@ -109,4 +112,7 @@ app.UseRedirectToRegisterWhenNoUsers();
 // Run
 app.Run();
 
+/// <summary>
+/// Application entry point class (top-level statements generate the implicit Program implementation).
+/// </summary>
 public partial class Program;

@@ -10,6 +10,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the circuit auth handler tests.
+/// </summary>
 public class CircuitAuthHandlerTests
 {
     private static ClaimsPrincipal AuthenticatedUser(string userId, string username, bool isAdmin = false)
@@ -40,6 +43,9 @@ public class CircuitAuthHandlerTests
         return handler;
     }
 
+    /// <summary>
+    /// Sets authorization header from http context.
+    /// </summary>
     [Fact]
     public async Task Sets_authorization_header_from_http_context()
     {
@@ -62,6 +68,9 @@ public class CircuitAuthHandlerTests
         captured!.Headers.Authorization.Should().Be(new AuthenticationHeaderValue("Bearer", "cached-token"));
     }
 
+    /// <summary>
+    /// Falls back to authentication state provider when http context is null.
+    /// </summary>
     [Fact]
     public async Task Falls_back_to_authentication_state_provider_when_http_context_is_null()
     {
@@ -82,6 +91,9 @@ public class CircuitAuthHandlerTests
         captured!.Headers.Authorization.Should().Be(new AuthenticationHeaderValue("Bearer", "new-token"));
     }
 
+    /// <summary>
+    /// Does not set authorization for anonymous user.
+    /// </summary>
     [Fact]
     public async Task Does_not_set_authorization_for_anonymous_user()
     {
@@ -95,6 +107,9 @@ public class CircuitAuthHandlerTests
         captured!.Headers.Authorization.Should().BeNull();
     }
 
+    /// <summary>
+    /// Caches new token for authenticated user.
+    /// </summary>
     [Fact]
     public async Task Caches_new_token_for_authenticated_user()
     {

@@ -1,8 +1,9 @@
 @page "/register"
 @inject NavigationManager Nav
+@inject IStringLocalizer<UiStrings> Localizer
 @using Microsoft.AspNetCore.Components
 
-<PageTitle>Rezepte - Ersteinrichtung</PageTitle>
+<PageTitle>@Localizer["RegisterPageTitle"]</PageTitle>
 
 <div class="page-auth my-5">
     <div class="card shadow-soft">
@@ -18,7 +19,7 @@
                     <InputText class="form-control" @bind-Value="model.Username" @bind-Value:event="oninput" name="Username" autocomplete="username" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">E-Mail (optional)</label>
+                    <label class="form-label">@Localizer["EmailOptional"]</label>
                     <InputText class="form-control" @bind-Value="model.Email" @bind-Value:event="oninput" name="Email" autocomplete="email" />
                 </div>
                 <div class="mb-3">

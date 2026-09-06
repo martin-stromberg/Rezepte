@@ -1,12 +1,13 @@
-﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components
 @inject ApiClient Api
 @inject IJSRuntime JS
 @inject ILogger<Rezepte.Web.Components.Shared.LatestRecipes> Logger
+@inject IStringLocalizer<UiStrings> Localizer
 
 <div class="latest-recipes" id="@containerId">
     @if (isLoading)
     {
-        <h3>📥 Zuletzt hinzugefügte Rezepte</h3>
+        <h3>@Localizer["LatestRecipesTitle"]</h3>
         <div class="recipe-grid">
             @for (int i = 0; i < skeletonCount; i++)
             {
@@ -19,18 +20,18 @@
     }
     else if (recipes is null || recipes.Count == 0)
     {
-        <div class="alert alert-info">Noch keine Rezepte vorhanden.</div>
+        <div class="alert alert-info">@Localizer["NoRecipesYet"]</div>
     }
     else
     {
-        <h3>📥 Zuletzt hinzugefügte Rezepte</h3>
+        <h3>@Localizer["LatestRecipesTitle"]</h3>
         <div class="recipe-grid">
             @foreach (var recipe in recipes)
             {
                 <a class="recipe-card" href="@($"/recipes/{recipe.Id}")" title="@recipe.Title">
                     @if (!string.IsNullOrWhiteSpace(recipe.ImageUrl))
                     {
-                        <img src="@recipe.ImageUrl" alt="Bild zu @recipe.Title" />
+                        <img src="@recipe.ImageUrl" alt="@($"{Localizer["ImageFor"]} {recipe.Title}")" />
                     }
                     else
                     {

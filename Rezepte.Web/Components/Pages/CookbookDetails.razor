@@ -1,19 +1,20 @@
-﻿@page "/cookbooks/{Id}/edit"
+@page "/cookbooks/{Id}/edit"
 @using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject ApiClient Api
 @inject NavigationManager Nav
+@inject IStringLocalizer<UiStrings> Localizer
 
 <PageTitle>@(book?.Name ?? "Kochbuch")</PageTitle>
 
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
-    <span>Kochbuch bearbeiten</span>
+    <span>@Localizer["EditCookbook"]</span>
     @if (!isLoading && book is not null)
     {
         <div class="btn-group">
-            <button class="btn btn-sm btn-primary" @onclick="SaveAsync" disabled="@isBusy" title="Speichern">💾</button>
-            <button class="btn btn-sm btn-outline-danger" @onclick="DeleteAsync" disabled="@isBusy" title="Löschen">🗑️</button>
+            <button class="btn btn-sm btn-primary" @onclick="SaveAsync" disabled="@isBusy" title="@Localizer["Save"]">💾</button>
+            <button class="btn btn-sm btn-outline-danger" @onclick="DeleteAsync" disabled="@isBusy" title="@Localizer["Delete"]">🗑️</button>
         </div>
     }
 </h5>
@@ -24,7 +25,7 @@
 }
 else if (book is null)
 {
-    <div class="alert alert-warning">Kochbuch nicht gefunden.</div>
+    <div class="alert alert-warning">@Localizer["CookbookNotFound"]</div>
 }
 else
 {

@@ -4,6 +4,9 @@ using Rezepte.Web.Configuration;
 
 namespace Rezepte.Web.Services.Updates;
 
+/// <summary>
+/// Represents the application update hosted service class.
+/// </summary>
 public sealed class ApplicationUpdateHostedService : IHostedService
 {
     private readonly IAutoUpdateEventAggregator _events;
@@ -11,6 +14,13 @@ public sealed class ApplicationUpdateHostedService : IHostedService
     private readonly IOptions<ApplicationUpdateOptions> _options;
     private readonly ILogger<ApplicationUpdateHostedService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ApplicationUpdateHostedService"/> class.
+    /// </summary>
+    /// <param name="events">The events parameter.</param>
+    /// <param name="preInstallHandler">The pre install handler parameter.</param>
+    /// <param name="options">The options parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public ApplicationUpdateHostedService(
         IAutoUpdateEventAggregator events,
         IApplicationUpdatePreInstallHandler preInstallHandler,
@@ -23,6 +33,10 @@ public sealed class ApplicationUpdateHostedService : IHostedService
         _logger = logger;
     }
 
+    /// <summary>
+    /// starts the async.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token parameter.</param>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var options = _options.Value;
@@ -39,6 +53,10 @@ public sealed class ApplicationUpdateHostedService : IHostedService
         await Task.CompletedTask;
     }
 
+    /// <summary>
+    /// stops the async.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token parameter.</param>
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _events.BeforeCheckSource -= OnBeforeCheckSource;

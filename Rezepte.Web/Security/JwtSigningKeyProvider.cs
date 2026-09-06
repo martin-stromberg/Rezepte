@@ -33,6 +33,11 @@ public sealed class JwtSigningKeyProvider : IJwtSigningKeyProvider
     private const string DefaultIssuer = "rezepte";
     private const string DefaultAudience = "rezepte.api";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JwtSigningKeyProvider"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration parameter.</param>
+    /// <param name="environment">The environment parameter.</param>
     public JwtSigningKeyProvider(IConfiguration configuration, IHostEnvironment environment)
     {
         ArgumentNullException.ThrowIfNull(configuration);

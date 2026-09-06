@@ -13,6 +13,9 @@ using System.Security.Claims;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the recipe service step validation tests.
+/// </summary>
 public class RecipeServiceStepValidationTests
 {
     private const string UserA = "user-a";
@@ -45,6 +48,9 @@ public class RecipeServiceStepValidationTests
         return mock.Object;
     }
 
+    /// <summary>
+    /// Create async should fail when step description missing.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldFail_WhenStepDescriptionMissing()
     {
@@ -80,6 +86,9 @@ public class RecipeServiceStepValidationTests
         recipe.Should().BeNull();
     }
 
+    /// <summary>
+    /// Create async should fail when step duration negative.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldFail_WhenStepDurationNegative()
     {
@@ -115,6 +124,9 @@ public class RecipeServiceStepValidationTests
         recipe.Should().BeNull();
     }
 
+    /// <summary>
+    /// Create async should fail when ingredient name missing.
+    /// </summary>
     [Fact]
     public async Task CreateAsync_ShouldFail_WhenIngredientNameMissing()
     {

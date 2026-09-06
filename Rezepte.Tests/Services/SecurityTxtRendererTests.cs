@@ -5,6 +5,9 @@ using Xunit;
 
 namespace Rezepte.Tests.Services;
 
+/// <summary>
+/// Class representing the security txt renderer tests.
+/// </summary>
 public class SecurityTxtRendererTests
 {
     private static readonly SecurityTxtSettings FullSettings = new(
@@ -18,6 +21,9 @@ public class SecurityTxtRendererTests
         Policy: "https://example.com/policy",
         Hiring: "https://example.com/jobs");
 
+    /// <summary>
+    /// Render plain text should return rfc9116 format when all fields set.
+    /// </summary>
     [Fact]
     public void RenderPlainText_ShouldReturnRfc9116Format_WhenAllFieldsSet()
     {
@@ -34,6 +40,9 @@ public class SecurityTxtRendererTests
         result.Should().Contain("Acknowledgments: https://example.com/thanks");
     }
 
+    /// <summary>
+    /// Render plain text should repeat directive for multiline contact.
+    /// </summary>
     [Fact]
     public void RenderPlainText_ShouldRepeatDirective_ForMultilineContact()
     {
@@ -46,6 +55,9 @@ public class SecurityTxtRendererTests
         result.Should().Contain("Contact: mailto:b@example.com");
     }
 
+    /// <summary>
+    /// Render markdown should return section headers.
+    /// </summary>
     [Fact]
     public void RenderMarkdown_ShouldReturnSectionHeaders()
     {
@@ -58,6 +70,9 @@ public class SecurityTxtRendererTests
         result.Should().Contain("## Policy");
     }
 
+    /// <summary>
+    /// Render html should return h2 and paragraph.
+    /// </summary>
     [Fact]
     public void RenderHtml_ShouldReturnH2AndParagraph()
     {
@@ -71,6 +86,9 @@ public class SecurityTxtRendererTests
         result.Should().Contain("<p>");
     }
 
+    /// <summary>
+    /// Render html should return html document structure.
+    /// </summary>
     [Fact]
     public void RenderHtml_ShouldReturnHtmlDocumentStructure()
     {
@@ -84,6 +102,9 @@ public class SecurityTxtRendererTests
         result.Should().Contain("</html>");
     }
 
+    /// <summary>
+    /// Render html should render multiline values as separate paragraphs.
+    /// </summary>
     [Fact]
     public void RenderHtml_ShouldRenderMultilineValuesAsSeparateParagraphs()
     {
@@ -99,6 +120,9 @@ public class SecurityTxtRendererTests
         result.Should().Contain("<p>mailto:b@example.com</p>");
     }
 
+    /// <summary>
+    /// Render plain text should omit empty fields.
+    /// </summary>
     [Fact]
     public void RenderPlainText_ShouldOmitEmptyFields()
     {

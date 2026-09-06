@@ -3,13 +3,30 @@ using Rezepte.Web.Configuration;
 
 namespace Rezepte.Web.Services;
 
+/// <summary>
+/// Defines the iupdate backup service interface.
+/// </summary>
 public interface IUpdateBackupService
 {
+    /// <summary>
+    /// Creates the backup async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     Task<UpdateBackupResult> CreateBackupAsync(CancellationToken ct = default);
 }
 
+/// <summary>
+/// Updates the backup result.
+/// </summary>
+/// <param name="FilePath">The file path parameter.</param>
+/// <param name="SizeBytes">The size bytes parameter.</param>
+/// <returns>The result.</returns>
 public sealed record UpdateBackupResult(string FilePath, long SizeBytes);
 
+/// <summary>
+/// Represents the update backup service class.
+/// </summary>
 public sealed class UpdateBackupService : IUpdateBackupService
 {
     private const string BackupPrefix = "update-backup-";
@@ -19,6 +36,13 @@ public sealed class UpdateBackupService : IUpdateBackupService
     private readonly IHostEnvironment _environment;
     private readonly ILogger<UpdateBackupService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UpdateBackupService"/> class.
+    /// </summary>
+    /// <param name="exportService">The export service parameter.</param>
+    /// <param name="options">The options parameter.</param>
+    /// <param name="environment">The environment parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public UpdateBackupService(
         IExportService exportService,
         IOptions<UpdateBackupOptions> options,
@@ -31,6 +55,11 @@ public sealed class UpdateBackupService : IUpdateBackupService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Creates the backup async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<UpdateBackupResult> CreateBackupAsync(CancellationToken ct = default)
     {
         var options = ValidateOptions(_options.Value);

@@ -5,6 +5,9 @@ using Serilog.Events;
 
 namespace Rezepte.Web.Extensions;
 
+/// <summary>
+/// Represents the logging extensions class.
+/// </summary>
 public static class LoggingExtensions
 {
     /// <summary>
@@ -12,6 +15,10 @@ public static class LoggingExtensions
     /// - Console sink logs Errors (suitable for Linux service journalctl)
     /// - File sink logs Information+ to ./logs/app-.log (daily rolling), retained for 7 days
     /// </summary>
+    /// <param name="builder">The builder parameter.</param>
+    /// <param>...</param>
+    /// <param>...</param>
+    /// <param>...</param>
     public static void ConfigureSerilog(this WebApplicationBuilder builder)
     {
         var env = builder.Environment;

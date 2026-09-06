@@ -4,8 +4,14 @@ using Xunit;
 
 namespace Rezepte.Tests.Deployment;
 
+/// <summary>
+/// Class representing the csproj credential copy tests.
+/// </summary>
 public class CsprojCredentialCopyTests
 {
+    /// <summary>
+    /// Csproj does not copy credential files to output.
+    /// </summary>
     [Fact]
     public void Csproj_DoesNotCopyCredentialFiles_ToOutput()
     {

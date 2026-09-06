@@ -12,12 +12,18 @@ using Xunit;
 
 namespace Rezepte.Tests.Controllers;
 
+/// <summary>
+/// Class representing the settings credential availability tests.
+/// </summary>
 [Collection(GoogleCredentialsEnvironmentCollection.Name)]
 public class SettingsCredentialAvailabilityTests
 {
     private const string ServiceAccountEnvironmentVariable = EnvironmentVariableScope.ServiceAccountEnvironmentVariable;
     private const string GeminiApiKeyEnvironmentVariable = EnvironmentVariableScope.GeminiApiKeyEnvironmentVariable;
 
+    /// <summary>
+    /// Get my settings reports credentials available when provided via environment variable.
+    /// </summary>
     [Fact]
     public async Task GetMySettings_ReportsCredentialsAvailable_WhenProvidedViaEnvironmentVariable()
     {
@@ -42,6 +48,9 @@ public class SettingsCredentialAvailabilityTests
         }
     }
 
+    /// <summary>
+    /// Get my settings reports credentials unavailable when nothing configured.
+    /// </summary>
     [Fact]
     public async Task GetMySettings_ReportsCredentialsUnavailable_WhenNothingConfigured()
     {

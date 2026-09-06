@@ -1,26 +1,28 @@
-﻿@page "/settings"
+@page "/settings"
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Rezepte.Web.Components.Settings
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject Rezepte.Web.ViewModels.SettingsViewModel Vm
+@inject IStringLocalizer<UiStrings> Localizer
 
-<PageTitle>Rezepte - Einstellungen</PageTitle>
+<PageTitle>@Localizer["SettingsPageTitle"]</PageTitle>
 
 <CascadingAuthenticationState>
     <AuthorizeView>
         <Authorized>
-            @if (Vm.Items.Any())
+            @if (Items.Count > 0)
             {
                 @* Sidebar *@
                 <div class="row g-3">
                     <div class="col-12 col-md-3 col-lg-2">
                         <div class="list-group">
-                            @foreach (var item in Vm.Items.Where(item => item.Visible))
+                            @foreach (var item in Items.Where(item => item.Visible))
                             {
                                 <button type="button"
                                         class="list-group-item list-group-item-action @(ReferenceEquals(item, DisplayItem) ? "active" : "")"
-                                        @onclick="() => { Vm.Select(item); StateHasChanged(); }">
+                                        @onclick="() => { SelectedItem = item; StateHasChanged(); }">
                                     <span class="me-2">@item.Icon</span>@item.Title
                                 </button>
                             }
@@ -43,17 +45,36 @@
             }
         </Authorized>
         <NotAuthorized>
-            <div class="alert alert-warning">Bitte anmelden.</div>
+            <div class="alert alert-warning">@Localizer["PleaseLogin"]</div>
         </NotAuthorized>
     </AuthorizeView>
 </CascadingAuthenticationState>
 
 @code {
+    private List<Rezepte.Web.ViewModels.SettingsViewModel.Item> Items = new();
+    private Rezepte.Web.ViewModels.SettingsViewModel.Item? SelectedItem;
+
     protected override async Task OnInitializedAsync()
     {
         await Vm.InitializeAsync();
+        var isAdmin = Vm.IsAdmin;
+
+        Items = new List<Rezepte.Web.ViewModels.SettingsViewModel.Item>
+        {
+            new Rezepte.Web.ViewModels.SettingsViewModel.Item(Localizer["Profile"], "👤", true, typeof(UserProfile)),
+            new Rezepte.Web.ViewModels.SettingsViewModel.Item(Localizer["SettingsNavTitle"], "⚙️", true, typeof(AiSettings)),
+            new Rezepte.Web.ViewModels.SettingsViewModel.Item(Localizer["Users"], "👥", isAdmin, typeof(UserAdmin)),
+            new Rezepte.Web.ViewModels.SettingsViewModel.Item(Localizer["Plugins"], "🔌", isAdmin, typeof(PluginSettings)),
+            new Rezepte.Web.ViewModels.SettingsViewModel.Item(Localizer["Updates"], "⬆️", isAdmin, typeof(ApplicationUpdates)),
+            new Rezepte.Web.ViewModels.SettingsViewModel.Item("security.txt", "🔒", isAdmin, typeof(SecurityTxtSettings)),
+            new Rezepte.Web.ViewModels.SettingsViewModel.Item(Localizer["DataExport"], "📤", true, typeof(ExportData)),
+            new Rezepte.Web.ViewModels.SettingsViewModel.Item(Localizer["Backup"], "💾", isAdmin, typeof(BackupRestore)),
+            new Rezepte.Web.ViewModels.SettingsViewModel.Item(Localizer["UsageStatistics"], "📊", true, typeof(UsageStats))
+        };
+
+        SelectedItem = Items.First();
     }
 
     private Rezepte.Web.ViewModels.SettingsViewModel.Item? DisplayItem
-        => Vm.SelectedItem ?? Vm.Items.FirstOrDefault();
+        => SelectedItem ?? Items.FirstOrDefault();
 }

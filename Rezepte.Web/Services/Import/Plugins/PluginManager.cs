@@ -6,6 +6,9 @@ using System.Runtime.Loader;
 
 namespace Rezepte.Web.Services.Import.Plugins;
 
+/// <summary>
+/// Represents the plugin manager class.
+/// </summary>
 public sealed class PluginManager : IPluginManager
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -15,6 +18,12 @@ public sealed class PluginManager : IPluginManager
     private readonly SemaphoreSlim _lifecycleLock = new(1, 1);
     private IReadOnlyDictionary<string, ImportPluginDescriptor> _loadedPlugins = new Dictionary<string, ImportPluginDescriptor>();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PluginManager"/> class.
+    /// </summary>
+    /// <param name="scopeFactory">The scope factory parameter.</param>
+    /// <param name="environment">The environment parameter.</param>
+    /// <param name="logger">The logger parameter.</param>
     public PluginManager(IServiceScopeFactory scopeFactory, IHostEnvironment environment, ILogger<PluginManager> logger)
     {
         _scopeFactory = scopeFactory;
@@ -22,11 +31,19 @@ public sealed class PluginManager : IPluginManager
         _logger = logger;
     }
 
+    /// <summary>
+    /// Initializes the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
     public async Task InitializeAsync(CancellationToken ct = default)
     {
         await ReloadAsync(ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// reloads the async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
     public async Task ReloadAsync(CancellationToken ct = default)
     {
         await _lifecycleLock.WaitAsync(ct).ConfigureAwait(false);
@@ -45,6 +62,11 @@ public sealed class PluginManager : IPluginManager
         }
     }
 
+    /// <summary>
+    /// coordinates the reload async.
+    /// </summary>
+    /// <param name="replacePlugins">The replace plugins parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
     public async Task CoordinateReloadAsync(Func<CancellationToken, Task> replacePlugins, CancellationToken ct = default)
     {
         await _lifecycleLock.WaitAsync(ct).ConfigureAwait(false);
@@ -80,12 +102,24 @@ public sealed class PluginManager : IPluginManager
         await SynchronizeSettingsAsync(db, discovered, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Gets the active handlers async.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<IReadOnlyList<PluginImportHandler>> GetActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
     {
         await using var lease = await AcquireActiveHandlersAsync(serviceProvider, ct).ConfigureAwait(false);
         return lease.Handlers;
     }
 
+    /// <summary>
+    /// acquires the active handlers async.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<PluginHandlerLease> AcquireActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
     {
         await _lifecycleLock.WaitAsync(ct).ConfigureAwait(false);
@@ -145,6 +179,12 @@ public sealed class PluginManager : IPluginManager
         return handlers;
     }
 
+    /// <summary>
+    /// Gets the plugins usability async.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<IReadOnlyDictionary<string, PluginUsabilityResult>> GetPluginsUsabilityAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
     {
         IReadOnlyDictionary<string, ImportPluginDescriptor> loaded;
@@ -176,6 +216,12 @@ public sealed class PluginManager : IPluginManager
         return results;
     }
 
+    /// <summary>
+    /// discovers the from directory.
+    /// </summary>
+    /// <param name="pluginRoot">The plugin root parameter.</param>
+    /// <param name="unloadAfterDiscovery">The unload after discovery parameter.</param>
+    /// <returns>The result.</returns>
     public IReadOnlyList<ImportPluginDescriptor> DiscoverFromDirectory(string pluginRoot, bool unloadAfterDiscovery = false)
     {
         var fullRoot = Path.GetFullPath(pluginRoot);

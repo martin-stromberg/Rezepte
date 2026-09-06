@@ -3,6 +3,14 @@ using Rezepte.Web.Services.Import.Plugins;
 
 namespace Rezepte.Web.Services.Import;
 
+/// <summary>
+/// imports the service.
+/// </summary>
+/// <param name="pluginManager">The plugin manager parameter.</param>
+/// <param name="serviceProvider">The service provider parameter.</param>
+/// <param name="recipePersister">The recipe persister parameter.</param>
+/// <param name="logger">The logger parameter.</param>
+/// <returns>The result.</returns>
 public class ImportService(
     IPluginManager pluginManager,
     IServiceProvider serviceProvider,
@@ -13,6 +21,15 @@ public class ImportService(
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly ILogger<ImportService> _logger = logger;
 
+    /// <summary>
+    /// imports the async.
+    /// </summary>
+    /// <param name="stream">The stream parameter.</param>
+    /// <param name="fileName">The file name parameter.</param>
+    /// <param name="targetCookbookId">The target cookbook id parameter.</param>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
     public async Task<ImportResult> ImportAsync(Stream stream, string fileName, string? targetCookbookId, string userId, CancellationToken ct = default)
     {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
