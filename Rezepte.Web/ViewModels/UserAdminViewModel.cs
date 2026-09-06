@@ -40,8 +40,7 @@ public class UserAdminViewModel
     /// <summary>
     /// strings the value.
     /// </summary>
-    /// <param name="Query">The query parameter.</param>
-    /// <returns>The result.</returns>
+    /// <returns>The result. Query: The query parameter.</returns>
     public IEnumerable<UserRow> Filtered => string.IsNullOrWhiteSpace(Query)
         ? Users
         : Users.Where(u => (u.Username?.Contains(Query, StringComparison.OrdinalIgnoreCase) ?? false)

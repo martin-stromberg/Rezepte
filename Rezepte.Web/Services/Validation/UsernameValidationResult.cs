@@ -11,12 +11,10 @@ public sealed record UsernameValidationResult(bool IsValid, string? ErrorMessage
     /// <summary>
     /// Represents the public class.
     /// </summary>
-    /// <param name="true">The true parameter.</param>
-    /// <param name="null">The null parameter.</param>
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
+    /// <returns>The result. null: The null parameter. true: The true parameter.</returns>
     public static UsernameValidationResult Valid { get; } = new(true, null);
 
     /// <summary>

@@ -28,7 +28,8 @@ public sealed class FixedTimeProvider : TimeProvider
     public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
 
     /// <summary>
-    /// Advance.
+    /// Advances the current time by the specified amount.
     /// </summary>
+    /// <param name="delta">The time span to advance by.</param>
     public void Advance(TimeSpan delta) => _utcNow = _utcNow.Add(delta);
 }

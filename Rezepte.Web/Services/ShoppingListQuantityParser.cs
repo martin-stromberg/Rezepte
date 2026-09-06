@@ -38,8 +38,7 @@ public static class ShoppingListQuantityParser
 
     /// <summary>
     /// Represents the public class.
-    /// </summary>
-    /// <param name="Amount">The amount parameter.</param>
+    ///  Amount: The amount parameter.</summary>
     /// <param name="value">The value parameter.</param>
     /// <param>...</param>
     /// <param>...</param>

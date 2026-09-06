@@ -10,9 +10,6 @@ namespace Rezepte.Web.Contracts;
 /// <param name="Password">The password parameter.</param>
 /// <returns>The result.</returns>
 public record RegisterRequest(
-    /// <summary>
-    /// Represents the string class.
-    /// </summary>
     [param: EmailAddress] string? Email,
     [param: Required] string Username,
     [param: Required, MinLength(6)] string Password
@@ -25,9 +22,6 @@ public record RegisterRequest(
 /// <param name="Password">The password parameter.</param>
 /// <returns>The result.</returns>
 public record LoginRequest(
-    /// <summary>
-    /// Represents the string class.
-    /// </summary>
     [param: Required, MinLength(3)] string Username,
     [param: Required] string Password
 );

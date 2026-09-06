@@ -43,10 +43,7 @@ namespace Rezepte.Web.Services
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
-        /// <returns>The result.</returns>
-        /// <param name="ok">The ok parameter.</param>
-        /// <param name="error">The error parameter.</param>
-        /// <param name="ev">The ev parameter.</param>
+        /// <returns>The result. ev: The ev parameter. error: The error parameter. ok: The ok parameter.</returns>
         Task<(bool ok, string? error, CalendarEvent? ev)> CreateEventAsync(string userId, string? recipeId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct);
         /// <summary>
         /// Initializes a new instance of the <see cref="Task"/> class.
@@ -62,9 +59,7 @@ namespace Rezepte.Web.Services
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
-        /// <returns>The result.</returns>
-        /// <param name="ok">The ok parameter.</param>
-        /// <param name="error">The error parameter.</param>
+        /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
         Task<(bool ok, string? error)> UpdateEventAsync(string userId, string eventId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct);
         /// <summary>
         /// Initializes a new instance of the <see cref="Task"/> class.
@@ -75,9 +70,7 @@ namespace Rezepte.Web.Services
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
-        /// <returns>The result.</returns>
-        /// <param name="ok">The ok parameter.</param>
-        /// <param name="error">The error parameter.</param>
+        /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
         Task<(bool ok, string? error)> DeleteEventAsync(string userId, string eventId, CancellationToken ct);
 
         /// <summary>

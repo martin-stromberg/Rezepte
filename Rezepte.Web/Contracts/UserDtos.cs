@@ -22,9 +22,6 @@ public record UserProfileDto(
 /// <param name="Email">The email parameter.</param>
 /// <returns>The result.</returns>
 public record UpdateProfileRequest(
-    /// <summary>
-    /// Represents the string class.
-    /// </summary>
     [param: Required] string Username,
     [param: EmailAddress] string? Email
 );
@@ -36,9 +33,6 @@ public record UpdateProfileRequest(
 /// <param name="NewPassword">The new password parameter.</param>
 /// <returns>The result.</returns>
 public record ChangePasswordRequest(
-    /// <summary>
-    /// Represents the string class.
-    /// </summary>
     [param: Required] string CurrentPassword,
     [param: Required, MinLength(6)] string NewPassword
 );

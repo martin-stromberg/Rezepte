@@ -34,10 +34,7 @@ public interface ICookbookService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="cookbook">The cookbook parameter.</param>
+    /// <returns>The result. cookbook: The cookbook parameter. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error, Cookbook? cookbook)> CreateAsync(string userId, string name, string? description, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -50,9 +47,7 @@ public interface ICookbookService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string name, string? description, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -63,9 +58,7 @@ public interface ICookbookService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct);
 
     // Neue Methode: Reihenfolge persistieren (Liste von Cookbook-Ids in gewünschter Reihenfolge)
@@ -78,9 +71,7 @@ public interface ICookbookService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> ReorderAsync(string userId, List<string> orderedIds, CancellationToken ct);
 }
 
@@ -131,10 +122,7 @@ public class CookbookService(RezepteDbContext db) : ICookbookService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="cookbook">The cookbook parameter.</param>
+    /// <returns>The result. cookbook: The cookbook parameter. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error, Cookbook? cookbook)> CreateAsync(string userId, string name, string? description, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length < 3)
@@ -171,9 +159,7 @@ public class CookbookService(RezepteDbContext db) : ICookbookService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string name, string? description, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length < 3)
@@ -200,9 +186,7 @@ public class CookbookService(RezepteDbContext db) : ICookbookService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct)
     {
         var entity = await _db.Cookbooks.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId, ct);
@@ -225,9 +209,7 @@ public class CookbookService(RezepteDbContext db) : ICookbookService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> ReorderAsync(string userId, List<string> orderedIds, CancellationToken ct)
     {
         if (orderedIds == null || orderedIds.Count == 0)

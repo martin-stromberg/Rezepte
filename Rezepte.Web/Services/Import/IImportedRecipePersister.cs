@@ -27,9 +27,6 @@ public interface IImportedRecipePersister
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="Success">The success parameter.</param>
-    /// <param name="Error">The error parameter.</param>
-    /// <param name="RecipeId">The recipe id parameter.</param>
+    /// <returns>The result. RecipeId: The recipe id parameter. Error: The error parameter. Success: The success parameter.</returns>
     Task<(bool Success, string? Error, string? RecipeId)> PersistRecipeAsync(ImportedRecipe imported, string? targetCookbookId, string userId, CancellationToken ct = default);
 }

@@ -15,11 +15,10 @@ public sealed record ExportJobPayload(bool IncludeImages = false, bool IncludePd
     /// <summary>
     /// tos the json.
     /// </summary>
-    /// <param name="JsonOptions">The json options parameter.</param>
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
+    /// <returns>The result. JsonOptions: The json options parameter.</returns>
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 
     /// <summary>

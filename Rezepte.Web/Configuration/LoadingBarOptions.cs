@@ -49,10 +49,9 @@ public sealed class LoadingBarOptions
     /// <summary>
     /// The documented default color palette, used when <see cref="Colors"/> is empty or invalid.
     /// </summary>
-    /// <param name="DefaultColorsArray">The default colors array parameter.</param>
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
+    /// <returns>The result. DefaultColorsArray: The default colors array parameter.</returns>
     public static readonly IReadOnlyList<string> DefaultColors = new ReadOnlyCollection<string>(DefaultColorsArray);
 }

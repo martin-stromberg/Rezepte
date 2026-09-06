@@ -36,7 +36,6 @@ public class Cookbook
     /// <summary>
     /// lists the value.
     /// </summary>
-    /// <typeparam name="RecipeCookbook">The recipe cookbook type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeCookbook: The recipe cookbook type parameter.</returns>
     public ICollection<RecipeCookbook> RecipeCookbooks { get; set; } = new List<RecipeCookbook>();
 }

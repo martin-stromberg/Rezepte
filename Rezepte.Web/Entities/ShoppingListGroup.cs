@@ -42,7 +42,6 @@ public class ShoppingListGroup
     /// <summary>
     /// lists the value.
     /// </summary>
-    /// <typeparam name="ShoppingListItem">The shopping list item type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. ShoppingListItem: The shopping list item type parameter.</returns>
     public ICollection<ShoppingListItem> Items { get; set; } = new List<ShoppingListItem>();
 }

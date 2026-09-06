@@ -32,10 +32,7 @@ public interface IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="group">The group parameter.</param>
+    /// <returns>The result. group: The group parameter. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error, ShoppingListGroup? group)> AddGroupAsync(string userId, string? name, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -47,9 +44,7 @@ public interface IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> RenameGroupAsync(string userId, string groupId, string name, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -60,9 +55,7 @@ public interface IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> DeleteGroupAsync(string userId, string groupId, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -76,10 +69,7 @@ public interface IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="item">The item parameter.</param>
+    /// <returns>The result. item: The item parameter. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error, ShoppingListItem? item)> AddItemAsync(string userId, string groupId, decimal amount, string? unit, string name, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -93,9 +83,7 @@ public interface IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> UpdateItemAsync(string userId, string itemId, decimal amount, string? unit, string name, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -107,9 +95,7 @@ public interface IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> SetItemCheckedAsync(string userId, string itemId, bool isChecked, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -120,9 +106,7 @@ public interface IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> DeleteItemAsync(string userId, string itemId, CancellationToken ct);
     /// <summary>
     /// Gets the recipe ingredients async.
@@ -150,14 +134,11 @@ public interface IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="group">The group parameter.</param>
+    /// <returns>The result. group: The group parameter. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error, ShoppingListGroup? group)> AddRecipeIngredientsAsync(string userId, string recipeId, IReadOnlyCollection<string> ingredientIds, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
-    /// </summary>
+    ///  groups: The groups parameter. error: The error parameter. ok: The ok parameter.</summary>
     /// <param name="userId">The user id parameter.</param>
     /// <param name="recipeId">The recipe id parameter.</param>
     /// <param name="selections">The selections parameter.</param>
@@ -165,9 +146,6 @@ public interface IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="groups">The groups parameter.</param>
     Task<(bool ok, string? error, List<ShoppingListGroup> groups)> AddRecipeIngredientGroupsAsync(string userId, string recipeId, IReadOnlyCollection<ShoppingListRecipeIngredientSelection> selections, CancellationToken ct);
 }
 
@@ -269,10 +247,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="group">The group parameter.</param>
+    /// <returns>The result. group: The group parameter. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error, ShoppingListGroup? group)> AddGroupAsync(string userId, string? name, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(userId)) return (false, "Nicht angemeldet.", null);
@@ -302,9 +277,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> RenameGroupAsync(string userId, string groupId, string name, CancellationToken ct)
     {
         var group = await FindGroupAsync(userId, groupId, ct);
@@ -327,9 +300,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> DeleteGroupAsync(string userId, string groupId, CancellationToken ct)
     {
         var group = await _db.ShoppingListGroups
@@ -355,10 +326,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="item">The item parameter.</param>
+    /// <returns>The result. item: The item parameter. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error, ShoppingListItem? item)> AddItemAsync(string userId, string groupId, decimal amount, string? unit, string name, CancellationToken ct)
     {
         var group = await FindGroupAsync(userId, groupId, ct);
@@ -397,9 +365,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> UpdateItemAsync(string userId, string itemId, decimal amount, string? unit, string name, CancellationToken ct)
     {
         var item = await FindItemAsync(userId, itemId, ct);
@@ -430,9 +396,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> SetItemCheckedAsync(string userId, string itemId, bool isChecked, CancellationToken ct)
     {
         var item = await FindItemAsync(userId, itemId, ct);
@@ -453,9 +417,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> DeleteItemAsync(string userId, string itemId, CancellationToken ct)
     {
         var item = await FindItemAsync(userId, itemId, ct);
@@ -534,10 +496,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="group">The group parameter.</param>
+    /// <returns>The result. group: The group parameter. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error, ShoppingListGroup? group)> AddRecipeIngredientsAsync(string userId, string recipeId, IReadOnlyCollection<string> ingredientIds, CancellationToken ct)
     {
         if (ingredientIds.Count == 0) return (false, "Bitte mindestens eine Zutat auswählen.", null);
@@ -581,7 +540,7 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
-    /// </summary>
+    ///  groups: The groups parameter. error: The error parameter. ok: The ok parameter.</summary>
     /// <param name="userId">The user id parameter.</param>
     /// <param name="recipeId">The recipe id parameter.</param>
     /// <param name="selections">The selections parameter.</param>
@@ -589,9 +548,6 @@ public class ShoppingListService(RezepteDbContext db) : IShoppingListService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="groups">The groups parameter.</param>
     public async Task<(bool ok, string? error, List<ShoppingListGroup> groups)> AddRecipeIngredientGroupsAsync(string userId, string recipeId, IReadOnlyCollection<ShoppingListRecipeIngredientSelection> selections, CancellationToken ct)
     {
         if (selections.Count == 0) return (false, "Bitte mindestens eine Zutat auswählen.", new List<ShoppingListGroup>());

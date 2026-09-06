@@ -61,10 +61,7 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="recipe">The recipe parameter.</param>
+    /// <returns>The result. recipe: The recipe parameter. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string? cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -81,10 +78,7 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="recipe">The recipe parameter.</param>
+    /// <returns>The result. recipe: The recipe parameter. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string? cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -100,9 +94,7 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -119,9 +111,7 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -132,13 +122,11 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
-    /// </summary>
+    ///  created: The created parameter. error: The error parameter. ok: The ok parameter.</summary>
     /// <param name="userId">The user id parameter.</param>
     /// <param name="cookbookId">The cookbook id parameter.</param>
     /// <param name="recipeIds">The recipe ids parameter.</param>
@@ -146,9 +134,6 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="created">The created parameter.</param>
     Task<(bool ok, string? error, List<Recipe> created)> AddExistingToCookbookAsync(string userId, string cookbookId, IEnumerable<string> recipeIds, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -160,9 +145,7 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> RemoveFromCookbookAsync(string userId, string cookbookId, string recipeId, CancellationToken ct);
 
     /// <summary>
@@ -176,10 +159,7 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="imageId">The image id parameter.</param>
+    /// <returns>The result. imageId: The image id parameter. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error, string? imageId)> SetImageAsync(string userId, string recipeId, Stream imageStream, string fileName, CancellationToken ct);
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
@@ -193,10 +173,7 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="image">The image parameter.</param>
+    /// <returns>The result. image: The image parameter. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error, RecipeImage? image)> AddImageAsync(string userId, string recipeId, Stream imageStream, string fileName, string contentType, CancellationToken ct);
     /// <summary>
     /// Gets the image async.
@@ -231,9 +208,7 @@ public interface IRecipeService
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     Task<(bool ok, string? error)> DeleteImageAsync(string userId, string recipeId, string imageId, CancellationToken ct);
     /// <summary>
     /// Gets the latest async.
@@ -425,10 +400,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="recipe">The recipe parameter.</param>
+    /// <returns>The result. recipe: The recipe parameter. error: The error parameter. ok: The ok parameter.</returns>
     public Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string? cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
     {
         return CreateAsync(userId, cookbookId, title, description, uri, portions, steps, null, ct);
@@ -449,10 +421,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="recipe">The recipe parameter.</param>
+    /// <returns>The result. recipe: The recipe parameter. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error, Recipe? recipe)> CreateAsync(string userId, string? cookbookId, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3) return (false, "Der Titel muss mindestens 3 Zeichen haben.", null);
@@ -536,9 +505,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, CancellationToken ct)
     {
         return UpdateAsync(userId, id, title, description, uri, portions, steps, null, ct);
@@ -559,9 +526,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> UpdateAsync(string userId, string id, string title, string? description, string? uri, int? portions, IReadOnlyList<RecipeCreateStep> steps, IReadOnlyCollection<string>? sideDishRecipeIds, CancellationToken ct)
     {
         var recipe = await _db.Recipes
@@ -639,9 +604,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> DeleteAsync(string userId, string id, CancellationToken ct)
     {
         var recipe = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId, ct);
@@ -659,7 +622,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Task"/> class.
-    /// </summary>
+    ///  created: The created parameter. error: The error parameter. ok: The ok parameter.</summary>
     /// <param name="userId">The user id parameter.</param>
     /// <param name="cookbookId">The cookbook id parameter.</param>
     /// <param name="recipeIds">The recipe ids parameter.</param>
@@ -667,9 +630,6 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="created">The created parameter.</param>
     public async Task<(bool ok, string? error, List<Recipe> created)> AddExistingToCookbookAsync(string userId, string cookbookId, IEnumerable<string> recipeIds, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(cookbookId)) return (false, "CookbookId required.", new List<Recipe>());
@@ -708,9 +668,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> RemoveFromCookbookAsync(string userId, string cookbookId, string recipeId, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(userId)) return (false, "Unauthorized");
@@ -737,10 +695,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="imageId">The image id parameter.</param>
+    /// <returns>The result. imageId: The image id parameter. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error, string? imageId)> SetImageAsync(string userId, string recipeId, Stream imageStream, string fileName, CancellationToken ct)
     {
         var recipe = await _db.Recipes.Include(r => r.Images)
@@ -779,10 +734,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
-    /// <param name="image">The image parameter.</param>
+    /// <returns>The result. image: The image parameter. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error, RecipeImage? image)> AddImageAsync(string userId, string recipeId, Stream imageStream, string fileName, string contentType, CancellationToken ct)
     {
         var recipe = await _db.Recipes.Include(r => r.Images)
@@ -855,9 +807,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
-    /// <returns>The result.</returns>
-    /// <param name="ok">The ok parameter.</param>
-    /// <param name="error">The error parameter.</param>
+    /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
     public async Task<(bool ok, string? error)> DeleteImageAsync(string userId, string recipeId, string imageId, CancellationToken ct)
     {
         var recipe = await _db.Recipes
@@ -1012,11 +962,10 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
         /// <summary>
         /// arrays the value.
         /// </summary>
-        /// <typeparam name="SearchResultItem">The search result item type parameter.</typeparam>
         /// <typeparam>...</typeparam>
         /// <typeparam>...</typeparam>
         /// <typeparam>...</typeparam>
-        /// <returns>The result.</returns>
+        /// <returns>The result. SearchResultItem: The search result item type parameter.</returns>
         public IEnumerable<SearchResultItem> Items { get; set; } = Array.Empty<SearchResultItem>();
     }
     private static List<string> NormalizeRecipeIds(IReadOnlyCollection<string>? recipeIds)

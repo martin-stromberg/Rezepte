@@ -71,10 +71,7 @@ namespace Rezepte.Web.Services
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
-        /// <returns>The result.</returns>
-        /// <param name="ok">The ok parameter.</param>
-        /// <param name="error">The error parameter.</param>
-        /// <param name="ev">The ev parameter.</param>
+        /// <returns>The result. ev: The ev parameter. error: The error parameter. ok: The ok parameter.</returns>
         public async Task<(bool ok, string? error, CalendarEvent? ev)> CreateEventAsync(string userId, string? recipeId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(userId)) return (false, "Unauthorized", null);
@@ -119,9 +116,7 @@ namespace Rezepte.Web.Services
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
-        /// <returns>The result.</returns>
-        /// <param name="ok">The ok parameter.</param>
-        /// <param name="error">The error parameter.</param>
+        /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
         public async Task<(bool ok, string? error)> UpdateEventAsync(string userId, string eventId, DateTime startDate, TimeSpan timeOfDay, int portions, RecurrenceType recurrence, WeekDays recurrenceDays, CancellationToken ct)
         {
             var ev = await _db.Set<CalendarEvent>().FirstOrDefaultAsync(e => e.Id == eventId && e.UserId == userId, ct);
@@ -145,9 +140,7 @@ namespace Rezepte.Web.Services
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
-        /// <returns>The result.</returns>
-        /// <param name="ok">The ok parameter.</param>
-        /// <param name="error">The error parameter.</param>
+        /// <returns>The result. error: The error parameter. ok: The ok parameter.</returns>
         public async Task<(bool ok, string? error)> DeleteEventAsync(string userId, string eventId, CancellationToken ct)
         {
             var ev = await _db.Set<CalendarEvent>().FirstOrDefaultAsync(e => e.Id == eventId && e.UserId == userId, ct);
@@ -167,9 +160,7 @@ namespace Rezepte.Web.Services
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
-        /// <returns>The result.</returns>
-        /// <param name="Ev">The ev parameter.</param>
-        /// <param name="Occurrence">The occurrence parameter.</param>
+        /// <returns>The result. Occurrence: The occurrence parameter. Ev: The ev parameter.</returns>
         public async Task<IEnumerable<(CalendarEvent Ev, DateTime Occurrence)>> GetOccurrencesAsync(string userId, DateTime from, DateTime to, CancellationToken ct)
         {
             var events = await GetEventsForUserAsync(userId, from, to, ct);

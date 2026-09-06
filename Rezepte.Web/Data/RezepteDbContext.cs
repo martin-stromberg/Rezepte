@@ -15,44 +15,37 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="User">The user type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. User: The user type parameter.</returns>
     public DbSet<User> Users => Set<User>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="Cookbook">The cookbook type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. Cookbook: The cookbook type parameter.</returns>
     public DbSet<Cookbook> Cookbooks => Set<Cookbook>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="Recipe">The recipe type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. Recipe: The recipe type parameter.</returns>
     public DbSet<Recipe> Recipes => Set<Recipe>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="RecipeStep">The recipe step type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeStep: The recipe step type parameter.</returns>
     public DbSet<RecipeStep> RecipeSteps => Set<RecipeStep>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="RecipeCookbook">The recipe cookbook type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeCookbook: The recipe cookbook type parameter.</returns>
     public DbSet<RecipeCookbook> RecipeCookbooks => Set<RecipeCookbook>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="RecipeSideDish">The recipe side dish type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeSideDish: The recipe side dish type parameter.</returns>
     public DbSet<RecipeSideDish> RecipeSideDishes => Set<RecipeSideDish>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="RecipeIngredient">The recipe ingredient type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeIngredient: The recipe ingredient type parameter.</returns>
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     /// <summary>
     /// Represents the public class.
@@ -61,71 +54,60 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="AiRequestLog">The ai request log type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. AiRequestLog: The ai request log type parameter.</returns>
     public DbSet<AiRequestLog> AiRequestLogs => Set<AiRequestLog>();
 
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="UserSetting">The user setting type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. UserSetting: The user setting type parameter.</returns>
     public DbSet<UserSetting> UserSettings => Set<UserSetting>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="AppSetting">The app setting type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. AppSetting: The app setting type parameter.</returns>
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="PluginSetting">The plugin setting type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. PluginSetting: The plugin setting type parameter.</returns>
     public DbSet<PluginSetting> PluginSettings => Set<PluginSetting>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="PluginSource">The plugin source type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. PluginSource: The plugin source type parameter.</returns>
     public DbSet<PluginSource> PluginSources => Set<PluginSource>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="PluginSourceRelease">The plugin source release type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. PluginSourceRelease: The plugin source release type parameter.</returns>
     public DbSet<PluginSourceRelease> PluginSourceReleases => Set<PluginSourceRelease>();
 
     // Calendar events
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="CalendarEvent">The calendar event type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. CalendarEvent: The calendar event type parameter.</returns>
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="ShoppingListGroup">The shopping list group type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. ShoppingListGroup: The shopping list group type parameter.</returns>
     public DbSet<ShoppingListGroup> ShoppingListGroups => Set<ShoppingListGroup>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="ShoppingListItem">The shopping list item type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. ShoppingListItem: The shopping list item type parameter.</returns>
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="BackgroundJob">The background job type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. BackgroundJob: The background job type parameter.</returns>
     public DbSet<BackgroundJob> BackgroundJobs => Set<BackgroundJob>();
     /// <summary>
     /// Sets the value.
     /// </summary>
-    /// <typeparam name="UserExportFile">The user export file type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. UserExportFile: The user export file type parameter.</returns>
     public DbSet<UserExportFile> UserExportFiles => Set<UserExportFile>();
 
     /// <summary>

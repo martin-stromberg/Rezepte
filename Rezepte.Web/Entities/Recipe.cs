@@ -30,32 +30,27 @@ public class Recipe
     /// <summary>
     /// lists the value.
     /// </summary>
-    /// <typeparam name="RecipeStep">The recipe step type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeStep: The recipe step type parameter.</returns>
     public ICollection<RecipeStep> Steps { get; set; } = new List<RecipeStep>();
     /// <summary>
     /// lists the value.
     /// </summary>
-    /// <typeparam name="RecipeImage">The recipe image type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeImage: The recipe image type parameter.</returns>
     public ICollection<RecipeImage> Images { get; set; } = new List<RecipeImage>();
     /// <summary>
     /// lists the value.
     /// </summary>
-    /// <typeparam name="RecipeCookbook">The recipe cookbook type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeCookbook: The recipe cookbook type parameter.</returns>
     public ICollection<RecipeCookbook> RecipeCookbooks { get; set; } = new List<RecipeCookbook>();
     /// <summary>
     /// lists the value.
     /// </summary>
-    /// <typeparam name="RecipeSideDish">The recipe side dish type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeSideDish: The recipe side dish type parameter.</returns>
     public ICollection<RecipeSideDish> SideDishes { get; set; } = new List<RecipeSideDish>();
     /// <summary>
     /// lists the value.
     /// </summary>
-    /// <typeparam name="RecipeSideDish">The recipe side dish type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeSideDish: The recipe side dish type parameter.</returns>
     public ICollection<RecipeSideDish> UsedAsSideDishFor { get; set; } = new List<RecipeSideDish>();
     /// <summary>
     /// Represents the public class.

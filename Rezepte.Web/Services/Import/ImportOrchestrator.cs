@@ -83,13 +83,12 @@ public sealed class ImportOrchestrator
     /// <summary>
     /// Gets the session for user.
     /// </summary>
-    /// <param name="session">The session parameter.</param>
     /// <param>...</param>
     /// <param>...</param>
     /// <param>...</param>
     /// <param name="id">The id parameter.</param>
     /// <param name="userId">The user id parameter.</param>
-    /// <returns>The result.</returns>
+    /// <returns>The result. session: The session parameter.</returns>
     public ImportSession? GetSessionForUser(string id, string userId) => TryGetSessionForUser(id, userId, out var session) ? session : null;
 
     /// <summary>
@@ -561,32 +560,28 @@ public sealed class ImportOrchestrator
         /// <summary>
         /// accepteds the value.
         /// </summary>
-        /// <param name="false">The false parameter.</param>
-        /// <param name="null">The null parameter.</param>
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
-        /// <returns>The result.</returns>
+        /// <returns>The result. null: The null parameter. false: The false parameter.</returns>
         public static SelectionSubmitResult Accepted() => new(true, false, null);
         /// <summary>
         /// invalids the value.
         /// </summary>
-        /// <param name="false">The false parameter.</param>
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
         /// <param name="error">The error parameter.</param>
-        /// <returns>The result.</returns>
+        /// <returns>The result. false: The false parameter.</returns>
         public static SelectionSubmitResult Invalid(string error) => new(false, false, error);
         /// <summary>
         /// nots the found.
         /// </summary>
-        /// <param name="true">The true parameter.</param>
         /// <param>...</param>
         /// <param>...</param>
         /// <param>...</param>
         /// <param name="error">The error parameter.</param>
-        /// <returns>The result.</returns>
+        /// <returns>The result. true: The true parameter.</returns>
         public static SelectionSubmitResult NotFound(string error) => new(false, true, error);
     }
 

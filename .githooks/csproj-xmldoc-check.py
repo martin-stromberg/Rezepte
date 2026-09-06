@@ -175,13 +175,106 @@ def _simplify_generics(text):
     return text
 
 
+# Words that may precede '(' in a declaration without being the member name
+_NON_MEMBER_WORDS = {
+    'public', 'private', 'protected', 'internal', 'static', 'virtual',
+    'override', 'abstract', 'async', 'sealed', 'extern', 'partial', 'new',
+    'readonly', 'return', 'if', 'else', 'for', 'foreach', 'while', 'switch',
+    'catch', 'using', 'lock', 'typeof', 'nameof', 'sizeof', 'default',
+    'checked', 'unchecked', 'fixed', 'implicit', 'explicit', 'record',
+    'class', 'struct', 'interface', 'enum', 'delegate', 'operator', 'get',
+    'set', 'init', 'where', 'when', 'case', 'throw',
+}
+
+
+def _cut_decl_body(decl):
+    """
+    Removes expression-bodied tails ('=> ...') and initializers ('= ...')
+    that sit outside any parentheses, so call arguments in the body are not
+    mistaken for declaration parameters.
+    """
+    decl = decl.split('=>')[0]
+    depth = 0
+    for idx, ch in enumerate(decl):
+        if ch in '(<[{':
+            depth += 1
+        elif ch in ')>]}':
+            depth = max(0, depth - 1)
+        elif ch == '=' and depth == 0:
+            return decl[:idx]
+        elif ch == '{' and depth == 0:
+            return decl[:idx]
+    return decl
+
+
+def _member_signature(decl):
+    """
+    Locates the member's own parameter list in a declaration.
+
+    Returns (member_name, typeparams_text, params_text) where the latter two
+    may be None/'' when absent. Returns None when no parameter list belonging
+    to a member name exists (e.g. properties, fields).
+    """
+    for idx, ch in enumerate(decl):
+        if ch != '(':
+            continue
+        # walk back over whitespace
+        j = idx - 1
+        while j >= 0 and decl[j].isspace():
+            j -= 1
+        if j < 0:
+            continue
+        typeparams = ''
+        if decl[j] == '>':
+            # walk back over a balanced <...> group
+            depth = 0
+            k = j
+            while k >= 0:
+                if decl[k] == '>':
+                    depth += 1
+                elif decl[k] == '<':
+                    depth -= 1
+                    if depth == 0:
+                        break
+                k -= 1
+            if k < 0 or depth != 0:
+                continue
+            typeparams = decl[k + 1:j]
+            j = k - 1
+            while j >= 0 and decl[j].isspace():
+                j -= 1
+        # read the identifier before the '(' / '<...>('
+        end = j + 1
+        while j >= 0 and (decl[j].isalnum() or decl[j] in '_@'):
+            j -= 1
+        name = decl[j + 1:end].lstrip('@')
+        if not name or name in _NON_MEMBER_WORDS:
+            continue
+        # find the matching ')' starting at idx
+        depth = 0
+        k = idx
+        while k < len(decl):
+            if decl[k] == '(':
+                depth += 1
+            elif decl[k] == ')':
+                depth -= 1
+                if depth == 0:
+                    break
+            k += 1
+        if k >= len(decl):
+            return None
+        return name, typeparams, decl[idx + 1:k]
+    return None
+
+
 def extract_param_names(decl):
     """Extracts parameter names from a method or constructor declaration."""
-    simplified = _simplify_generics(decl)
-    m = re.search(r'\((.+)\)', simplified, re.DOTALL)
-    if not m:
+    decl = _cut_decl_body(decl)
+    sig = _member_signature(decl)
+    if sig is None:
         return []
-    params_str = m.group(1)
+    params_str = sig[2]
+    params_str = _simplify_generics(params_str)
     params_str = re.sub(r'\[[^\]]*\]', '', params_str)
     params_str = _simplify_generics(params_str)
 
@@ -204,15 +297,17 @@ def extract_type_param_names(decl):
     """
     Extracts generic type parameter names (T, TResult etc.) from the declaration.
     Only the member's own type parameters (MethodName<T>), not type arguments
-    in the return type.
+    in the return type or in call expressions of the member body.
     """
-    before_paren = decl.split('(')[0] if '(' in decl else decl
-    stripped = MODIFIER_RE.sub('', before_paren).strip()
-    m = re.search(r'\w+\s*<([^<>]+)>\s*$', stripped)
-    if not m:
+    decl = _cut_decl_body(decl)
+    sig = _member_signature(decl)
+    if sig is None:
+        return []
+    typeparams = sig[1]
+    if not typeparams:
         return []
     names = []
-    for tp in m.group(1).split(','):
+    for tp in typeparams.split(','):
         tp = tp.strip()
         if tp and re.match(r'^[A-Z]\w*$', tp):
             names.append(tp)
@@ -308,8 +403,8 @@ def parse_documented_members(content):
         limit = min(i + 15, n)
         j = i
         while j < limit:
-            line = lines[j].strip()
-            if not line or line.startswith('//'):
+            line = re.sub(r'//.*', '', lines[j]).strip()
+            if not line:
                 break
             decl_lines.append(line)
             open_p = line.count('(')

@@ -38,7 +38,6 @@ public class RecipeStep
     /// <summary>
     /// lists the value.
     /// </summary>
-    /// <typeparam name="RecipeIngredient">The recipe ingredient type parameter.</typeparam>
-    /// <returns>The result.</returns>
+    /// <returns>The result. RecipeIngredient: The recipe ingredient type parameter.</returns>
     public ICollection<RecipeIngredient> Ingredients { get; set; } = new List<RecipeIngredient>();
 }
