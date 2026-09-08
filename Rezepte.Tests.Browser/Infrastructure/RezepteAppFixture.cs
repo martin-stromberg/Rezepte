@@ -32,6 +32,7 @@ public class RezepteAppFixture : IAsyncLifetime
 
     private Process? _process;
     private string? _tempDirectory;
+    private string? _applicationDllPath;
 
     /// <summary>
     /// Gets the base URL of the started application.
@@ -61,13 +62,18 @@ public class RezepteAppFixture : IAsyncLifetime
             return;
         }
 
+        _applicationDllPath = applicationDllPath;
         var databasePath = CreateTemporaryDatabase();
         try
         {
             StartApplicationProcess(applicationDllPath, databasePath);
 
             await WaitUntilReadyAsync();
-            await RegisterTestUserAsync();
+            if (SeedSharedTestUser)
+            {
+                await RegisterTestUserAsync();
+            }
+
             ApplicationAvailable = true;
         }
         catch
@@ -78,10 +84,52 @@ public class RezepteAppFixture : IAsyncLifetime
     }
 
     /// <summary>
+    /// Gets a value indicating whether the shared test user (<see cref="TestUsername"/>) is
+    /// registered during <see cref="InitializeAsync"/>. Fixtures that need to exercise the
+    /// registration flow itself override this with <c>false</c>, because the application only
+    /// allows registration while no user exists.
+    /// </summary>
+    protected virtual bool SeedSharedTestUser => true;
+
+    /// <summary>
+    /// Stops the application process and restarts it against a newly created, empty database.
+    /// After the restart no user exists, so the registration page is reachable again.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous restart operation.</returns>
+    public async Task RestartWithEmptyDatabaseAsync()
+    {
+        var applicationDllPath = _applicationDllPath
+            ?? throw new InvalidOperationException("The application fixture has not been initialized.");
+
+        StopApplicationProcess();
+        DeleteTemporaryDatabase();
+
+        var databasePath = CreateTemporaryDatabase();
+        StartApplicationProcess(applicationDllPath, databasePath);
+        await WaitUntilReadyAsync();
+    }
+
+    /// <summary>
     /// Stops the application process and deletes the temporary database.
     /// </summary>
     /// <returns>A completed task.</returns>
     public Task DisposeAsync()
+    {
+        StopApplicationProcess();
+        DeleteTemporaryDatabase();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Returns the environment variables that should be added to the application process.
+    /// </summary>
+    /// <returns>A read-only dictionary of environment variable names and values.</returns>
+    protected virtual IReadOnlyDictionary<string, string?> GetEnvironmentOverrides()
+    {
+        return new Dictionary<string, string?>();
+    }
+
+    private void StopApplicationProcess()
     {
         try
         {
@@ -95,32 +143,24 @@ public class RezepteAppFixture : IAsyncLifetime
         {
             _process?.Dispose();
             _process = null;
-
-            if (_tempDirectory is not null && Directory.Exists(_tempDirectory))
-            {
-                try
-                {
-                    Directory.Delete(_tempDirectory, recursive: true);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                    // Best effort cleanup; a lingering temp file must not fail the test run.
-                }
-            }
-
-            _tempDirectory = null;
         }
-
-        return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Returns the environment variables that should be added to the application process.
-    /// </summary>
-    /// <returns>A read-only dictionary of environment variable names and values.</returns>
-    protected virtual IReadOnlyDictionary<string, string?> GetEnvironmentOverrides()
+    private void DeleteTemporaryDatabase()
     {
-        return new Dictionary<string, string?>();
+        if (_tempDirectory is not null && Directory.Exists(_tempDirectory))
+        {
+            try
+            {
+                Directory.Delete(_tempDirectory, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Best effort cleanup; a lingering temp file must not fail the test run.
+            }
+        }
+
+        _tempDirectory = null;
     }
 
     private string CreateTemporaryDatabase()

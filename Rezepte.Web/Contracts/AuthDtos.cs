@@ -8,11 +8,13 @@ namespace Rezepte.Web.Contracts;
 /// <param name="Email">The email parameter.</param>
 /// <param name="Username">The username parameter.</param>
 /// <param name="Password">The password parameter.</param>
+/// <param name="CreateDemoData">The create demo data parameter.</param>
 /// <returns>The result.</returns>
 public record RegisterRequest(
     [param: EmailAddress] string? Email,
     [param: Required] string Username,
-    [param: Required, MinLength(6)] string Password
+    [param: Required, MinLength(6)] string Password,
+    bool CreateDemoData = false
 );
 
 /// <summary>

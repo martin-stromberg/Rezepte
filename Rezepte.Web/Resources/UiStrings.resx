@@ -73,6 +73,8 @@
   <data name="InvalidUsernameOrPassword" xml:space="preserve"><value>Benutzername oder Passwort falsch.</value></data>
   <data name="RegisterPageTitle" xml:space="preserve"><value>Rezepte - Ersteinrichtung</value></data>
   <data name="EmailOptional" xml:space="preserve"><value>E-Mail (optional)</value></data>
+  <data name="CreateDemoData" xml:space="preserve"><value>Demo-Daten anlegen</value></data>
+  <data name="CreateDemoDataHelp" xml:space="preserve"><value>Legt automatisch fünf Beispiel-Kochbücher mit Rezepten, Terminen und Einkaufslisteneinträgen an.</value></data>
   <data name="RecipeSearchPageTitle" xml:space="preserve"><value>Rezepte – Suche</value></data>
   <data name="SearchRecipeInputPlaceholder" xml:space="preserve"><value>Rezepte suchen (Titel, Zutaten, Tags)...</value></data>
   <data name="SearchInProgress" xml:space="preserve"><value>Suche läuft…</value></data>
