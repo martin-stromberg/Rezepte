@@ -200,7 +200,7 @@ public class DemoDataSeedingJobHandlerTests
             It.IsAny<decimal>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.Exactly(5));
+            It.IsAny<CancellationToken>()), Times.Exactly(6));
     }
 
     /// <summary>
