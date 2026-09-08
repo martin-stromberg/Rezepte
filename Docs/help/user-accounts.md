@@ -25,6 +25,24 @@ Leerzeichen, Emojis, Domains, IP-Adressen und sonstige Sonderzeichen werden abge
 
 Wenn ein Benutzername nicht erlaubt ist oder bereits vergeben wurde, zeigt die Anwendung eine deutschsprachige Fehlermeldung an. Wählen Sie in diesem Fall einen anderen Namen.
 
+### Demo-Daten anlegen
+
+Auf der Registrierungsseite kann über die Checkbox **„Demo-Daten anlegen"** gewählt werden, ob das neue Konto mit Beispielinhalten vorbefüllt wird. Der Hinweistext erklärt: „Legt automatisch fünf Beispiel-Kochbücher mit Rezepten, Terminen und Einkaufslisteneinträgen an."
+
+Ist die Option aktiviert, stehen nach der ersten Anmeldung bereit:
+
+- **Fünf Kochbücher** („Frühstück", „Abendessen", „Snacks", „Weihnachtszeit", „Grillsaison") mit insgesamt 43 Rezepten.
+- **Fünf Kalendereinträge** aus dem Kochbuch „Abendessen" für die nächsten fünf Tage (jeweils um 18:00 Uhr).
+- **Einkaufslisteneinträge** mit den Zutaten des Rezepts, das für den nächsten Tag geplant ist.
+
+Das Anlegen erfolgt im Hintergrund und kann einen Moment dauern — die Inhalte erscheinen kurz nach der Anmeldung in den Übersichten. Die Demo-Daten sind ganz normale Einträge: Sie lassen sich wie selbst erfasste Daten bearbeiten oder einzeln löschen. Es gibt keine Funktion, um alle Demo-Daten auf einmal zu entfernen. Ist die Checkbox nicht aktiviert, startet das Konto leer.
+
+#### Technischer Hintergrund
+
+Das Seeding läuft als Hintergrundjob: `UserService.RegisterAsync` enqueut bei `createDemoData == true` einen Job vom Typ `seed-demo-data` (`DemoDataSeedingJobHandler.JobTypeName`) mit einem `DemoDataSeedPayload` (UserId) über `IBackgroundJobQueue`. `BackgroundJobHostedService` führt den `DemoDataSeedingJobHandler` aus, der nacheinander `ICookbookService.CreateAsync`, `IRecipeService.CreateAsync`, `ICalendarService.CreateEventAsync` (erste fünf Rezepte des Kochbuchs `DemoDataSource.CalendarCookbookName` = „Abendessen", `DateTime.Today.AddDays(1..5)`, 18:00 Uhr) sowie `IShoppingListService.EnsureDefaultGroupAsync`/`AddItemAsync` (Zutaten des ersten geplanten Rezepts) aufruft. Schlägt ein Service-Aufruf fehl oder existiert der Benutzer nicht, wirft der Handler eine Exception und der Job wird auf `Failed` gesetzt — ohne automatischen Retry. Die Datensätze stammen aus der statischen Klasse `DemoDataSource` (5 `DemoCookbook`-Einträge mit 43 `DemoRecipe`-Rezepten auf Basis von `RecipeCreateStep`/`RecipeCreateIngredient`).
+
+Die Steuerung erfolgt ausschließlich über das Registrierungsformular bzw. das JSON-Feld `RegisterRequest.CreateDemoData` (`POST api/auth/register`); `AuthController.Register` liest den Wert per `bool.TryParse` aus `Request.Form["createDemoData"]` (unlesbare/fehlende Werte gelten als `false`). Die Benutzeranlage durch Administratoren (`AdminUsersController`) ruft `RegisterAsync` grundsätzlich mit `createDemoData: false` auf. Eine zentrale Konfiguration gibt es nicht.
+
 ## Profil
 
 Im Profil kann der eigene Benutzername geändert werden. Für die Änderung gelten dieselben Regeln wie bei der Registrierung.

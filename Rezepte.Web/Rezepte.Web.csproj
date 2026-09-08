@@ -31,6 +31,14 @@
     </Content>
   </ItemGroup>
 
+  <!-- Demo images for the demo data seeding job: copy into build and publish output -->
+  <ItemGroup>
+    <Content Include="DemoData\demo-images.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
   <!-- Debug: kopiere nur ins Build-Output, nicht ins Publish-Verzeichnis -->
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <None Update="test.recipe-import.json">

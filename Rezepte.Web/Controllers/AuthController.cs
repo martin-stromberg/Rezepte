@@ -35,6 +35,7 @@ public class AuthController(IUserService userService) : ControllerBase
         string? username = null;
         string? password = null;
         string? email = null;
+        var createDemoData = false;
 
         if (Request.HasFormContentType)
         {
@@ -42,6 +43,7 @@ public class AuthController(IUserService userService) : ControllerBase
             username = form["Username"].FirstOrDefault();
             password = form["Password"].FirstOrDefault();
             email = form["Email"].FirstOrDefault();
+            _ = bool.TryParse(form["createDemoData"].FirstOrDefault(), out createDemoData);
         }
         else
         {
@@ -51,6 +53,7 @@ public class AuthController(IUserService userService) : ControllerBase
                 username = dto.Username;
                 password = dto.Password;
                 email = dto.Email;
+                createDemoData = dto.CreateDemoData;
             }
         }
 
@@ -73,7 +76,7 @@ public class AuthController(IUserService userService) : ControllerBase
             return BadRequest(new { message = passwordError });
         }
 
-        var (ok, error, user) = await _userService.RegisterAsync(username, password, ct);
+        var (ok, error, user) = await _userService.RegisterAsync(username, password, createDemoData, ct);
         if (!ok || user is null)
         {
             if (Request.HasFormContentType)
@@ -96,11 +99,9 @@ public class AuthController(IUserService userService) : ControllerBase
     /// <param name="Email">The email parameter.</param>
     /// <param name="Username">The username parameter.</param>
     /// <param name="Password">The password parameter.</param>
-    /// <param>...</param>
-    /// <param>...</param>
-    /// <param>...</param>
+    /// <param name="CreateDemoData">The create demo data parameter.</param>
     /// <returns>The result.</returns>
-    public record RegisterRequestForm(string? Email, string Username, string Password);
+    public record RegisterRequestForm(string? Email, string Username, string Password, bool CreateDemoData = false);
 
     private LocalRedirectResult RedirectToRegisterError(string message)
     {
