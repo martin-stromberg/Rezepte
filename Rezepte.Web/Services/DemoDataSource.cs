@@ -31,14 +31,14 @@ public static class DemoDataSource
     {
         var breakfast = new DemoRecipe[]
         {
-            new("Haferbrei", null, 2, "Frühstück", DefaultSteps),
-            new("Rührei", null, 2, "Frühstück", DefaultSteps),
-            new("Pancakes", null, 4, "Frühstück", DefaultSteps),
-            new("Obstsalat", null, 2, "Frühstück", DefaultSteps),
-            new("Vollkornbrot", null, 6, "Frühstück", DefaultSteps),
-            new("Joghurt", null, 1, "Frühstück", DefaultSteps),
-            new("Müsliriegel", null, 8, "Frühstück", DefaultSteps),
-            new("Smoothie", null, 1, "Frühstück", DefaultSteps)
+            new("Haferbrei", null, 2, DefaultSteps),
+            new("Rührei", null, 2, DefaultSteps),
+            new("Pancakes", null, 4, DefaultSteps),
+            new("Obstsalat", null, 2, DefaultSteps),
+            new("Vollkornbrot", null, 6, DefaultSteps),
+            new("Joghurt", null, 1, DefaultSteps),
+            new("Müsliriegel", null, 8, DefaultSteps),
+            new("Smoothie", null, 1, DefaultSteps)
         };
 
         var carbonaraSteps = new List<RecipeCreateStep>
@@ -56,53 +56,53 @@ public static class DemoDataSource
 
         var dinner = new DemoRecipe[]
         {
-            new("Spaghetti Carbonara", "Klassische italienische Carbonara", 4, CalendarCookbookName, carbonaraSteps),
-            new("Kartoffelgratin", null, 4, CalendarCookbookName, DefaultSteps),
-            new("Hähnchencurry", null, 4, CalendarCookbookName, DefaultSteps),
-            new("Gemüsepfanne", null, 2, CalendarCookbookName, DefaultSteps),
-            new("Lachsfilet", null, 2, CalendarCookbookName, DefaultSteps),
-            new("Pizza", null, 4, CalendarCookbookName, DefaultSteps),
-            new("Burger", null, 4, CalendarCookbookName, DefaultSteps),
-            new("Lasagne", null, 6, CalendarCookbookName, DefaultSteps),
-            new("Wraps", null, 2, CalendarCookbookName, DefaultSteps),
-            new("Eintopf", null, 6, CalendarCookbookName, DefaultSteps)
+            new("Spaghetti Carbonara", "Klassische italienische Carbonara", 4, carbonaraSteps),
+            new("Kartoffelgratin", null, 4, DefaultSteps),
+            new("Hähnchencurry", null, 4, DefaultSteps),
+            new("Gemüsepfanne", null, 2, DefaultSteps),
+            new("Lachsfilet", null, 2, DefaultSteps),
+            new("Pizza", null, 4, DefaultSteps),
+            new("Burger", null, 4, DefaultSteps),
+            new("Lasagne", null, 6, DefaultSteps),
+            new("Wraps", null, 2, DefaultSteps),
+            new("Eintopf", null, 6, DefaultSteps)
         };
 
         var snacks = new DemoRecipe[]
         {
-            new("Gemüsesticks", null, 4, "Snacks", DefaultSteps),
-            new("Nussmischung", null, 1, "Snacks", DefaultSteps),
-            new("Käseplatte", null, 4, "Snacks", DefaultSteps),
-            new("Hummus", null, 4, "Snacks", DefaultSteps),
-            new("Obstkorb", null, 2, "Snacks", DefaultSteps),
-            new("Crackers", null, 6, "Snacks", DefaultSteps),
-            new("Popcorn", null, 4, "Snacks", DefaultSteps),
-            new("Oliven", null, 2, "Snacks", DefaultSteps),
-            new("Schokoriegel", null, 1, "Snacks", DefaultSteps)
+            new("Gemüsesticks", null, 4, DefaultSteps),
+            new("Nussmischung", null, 1, DefaultSteps),
+            new("Käseplatte", null, 4, DefaultSteps),
+            new("Hummus", null, 4, DefaultSteps),
+            new("Obstkorb", null, 2, DefaultSteps),
+            new("Crackers", null, 6, DefaultSteps),
+            new("Popcorn", null, 4, DefaultSteps),
+            new("Oliven", null, 2, DefaultSteps),
+            new("Schokoriegel", null, 1, DefaultSteps)
         };
 
         var christmas = new DemoRecipe[]
         {
-            new("Plätzchen", null, 30, "Weihnachtszeit", DefaultSteps),
-            new("Stollen", null, 12, "Weihnachtszeit", DefaultSteps),
-            new("Lebkuchen", null, 20, "Weihnachtszeit", DefaultSteps),
-            new("Punsch", null, 4, "Weihnachtszeit", DefaultSteps),
-            new("Bratäpfel", null, 4, "Weihnachtszeit", DefaultSteps),
-            new("Zimtsterne", null, 25, "Weihnachtszeit", DefaultSteps),
-            new("Spekulatius", null, 18, "Weihnachtszeit", DefaultSteps),
-            new("Marzipan", null, 10, "Weihnachtszeit", DefaultSteps)
+            new("Plätzchen", null, 30, DefaultSteps),
+            new("Stollen", null, 12, DefaultSteps),
+            new("Lebkuchen", null, 20, DefaultSteps),
+            new("Punsch", null, 4, DefaultSteps),
+            new("Bratäpfel", null, 4, DefaultSteps),
+            new("Zimtsterne", null, 25, DefaultSteps),
+            new("Spekulatius", null, 18, DefaultSteps),
+            new("Marzipan", null, 10, DefaultSteps)
         };
 
         var grill = new DemoRecipe[]
         {
-            new("Bratwurst", null, 4, "Grillsaison", DefaultSteps),
-            new("Steak", null, 2, "Grillsaison", DefaultSteps),
-            new("Maiskolben", null, 4, "Grillsaison", DefaultSteps),
-            new("Schaschlik", null, 4, "Grillsaison", DefaultSteps),
-            new("Grillgemüse", null, 4, "Grillsaison", DefaultSteps),
-            new("Grill-Burger", null, 4, "Grillsaison", DefaultSteps),
-            new("Lachs", null, 2, "Grillsaison", DefaultSteps),
-            new("Kartoffelsalat", null, 8, "Grillsaison", DefaultSteps)
+            new("Bratwurst", null, 4, DefaultSteps),
+            new("Steak", null, 2, DefaultSteps),
+            new("Maiskolben", null, 4, DefaultSteps),
+            new("Schaschlik", null, 4, DefaultSteps),
+            new("Grillgemüse", null, 4, DefaultSteps),
+            new("Grill-Burger", null, 4, DefaultSteps),
+            new("Lachs", null, 2, DefaultSteps),
+            new("Kartoffelsalat", null, 8, DefaultSteps)
         };
 
         return new List<DemoCookbook>

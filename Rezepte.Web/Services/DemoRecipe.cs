@@ -6,7 +6,6 @@ namespace Rezepte.Web.Services;
 /// <param name="Title">The title of the demo recipe.</param>
 /// <param name="Description">The optional description of the demo recipe.</param>
 /// <param name="Portions">The number of portions the recipe yields.</param>
-/// <param name="CookbookName">The name of the demo cookbook the recipe belongs to.</param>
 /// <param name="Steps">The preparation steps and their ingredients.</param>
 /// <returns>The demo recipe definition.</returns>
-public sealed record DemoRecipe(string Title, string? Description, int Portions, string CookbookName, IReadOnlyList<RecipeCreateStep> Steps);
+public sealed record DemoRecipe(string Title, string? Description, int Portions, IReadOnlyList<RecipeCreateStep> Steps);

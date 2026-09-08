@@ -131,23 +131,6 @@ public sealed class RegisterPage : IAsyncDisposable
     }
 
     /// <summary>
-    /// Logs in with the supplied credentials.
-    /// </summary>
-    /// <param name="username">The user name.</param>
-    /// <param name="password">The password.</param>
-    /// <returns>A task that represents the asynchronous login operation.</returns>
-    public async Task LoginAsync(string username, string password)
-    {
-        await Page.GotoAsync($"{_baseAddress}/login");
-        await Page.FillAsync("#username", username);
-        await Page.FillAsync("#password", password);
-        await Page.ClickAsync("button.btn-accent[type='submit']");
-        await Page.WaitForURLAsync(
-            url => !url.Contains("/login", StringComparison.OrdinalIgnoreCase),
-            new PageWaitForURLOptions { Timeout = 10000 });
-    }
-
-    /// <summary>
     /// Stops Playwright tracing, saves the trace file, and closes the browser context.
     /// </summary>
     /// <returns>A task that represents the asynchronous dispose operation.</returns>

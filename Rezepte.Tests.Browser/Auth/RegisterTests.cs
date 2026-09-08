@@ -15,6 +15,11 @@ public class RegisterTests
     private const string Password = "DemoTest!123";
     private const int PollIntervalMilliseconds = 500;
     private const int DemoDataTimeoutMilliseconds = 15000;
+    private const int ExpectedCookbookCount = 5;
+    private const int ExpectedRecipeCount = 43;
+    private const int ExpectedCalendarEventCount = 5;
+    private const int MinExpectedShoppingListItems = 1;
+    private const int EmptyCount = 0;
 
     private readonly PlaywrightBrowserFixture _browserFixture;
     private readonly RegisterTestsAppFixture _appFixture;
@@ -58,13 +63,13 @@ public class RegisterTests
             url => url.Contains("/login", StringComparison.OrdinalIgnoreCase),
             new PageWaitForURLOptions { Timeout = 10000 });
 
-        await registerPage.LoginAsync(username, Password);
+        await new LoginPage(registerPage.Page, _appFixture.BaseAddress).LoginAsync(username, Password);
         await DemoDataWaitHelper.WaitForDemoDataAsync(registerPage.Page, expected: true, DemoDataTimeoutMilliseconds);
 
-        (await CountCookbooksAsync(registerPage.Page)).Should().Be(5);
-        (await CountRecipesAsync(registerPage.Page)).Should().Be(43);
-        (await CountCalendarEventsAsync(registerPage.Page)).Should().Be(5);
-        (await CountShoppingListItemsAsync(registerPage.Page)).Should().BeGreaterThan(0);
+        (await CountCookbooksAsync(registerPage.Page)).Should().Be(ExpectedCookbookCount);
+        (await CountRecipesAsync(registerPage.Page)).Should().Be(ExpectedRecipeCount);
+        (await CountCalendarEventsAsync(registerPage.Page)).Should().Be(ExpectedCalendarEventCount);
+        (await CountShoppingListItemsAsync(registerPage.Page)).Should().BeGreaterThan(EmptyCount);
     }
 
     /// <summary>
@@ -94,13 +99,13 @@ public class RegisterTests
             url => url.Contains("/login", StringComparison.OrdinalIgnoreCase),
             new PageWaitForURLOptions { Timeout = 10000 });
 
-        await registerPage.LoginAsync(username, Password);
+        await new LoginPage(registerPage.Page, _appFixture.BaseAddress).LoginAsync(username, Password);
         await DemoDataWaitHelper.WaitForDemoDataAsync(registerPage.Page, expected: false, 5000);
 
-        (await CountCookbooksAsync(registerPage.Page)).Should().Be(0);
-        (await CountRecipesAsync(registerPage.Page)).Should().Be(0);
-        (await CountCalendarEventsAsync(registerPage.Page)).Should().Be(0);
-        (await CountShoppingListItemsAsync(registerPage.Page)).Should().Be(0);
+        (await CountCookbooksAsync(registerPage.Page)).Should().Be(EmptyCount);
+        (await CountRecipesAsync(registerPage.Page)).Should().Be(EmptyCount);
+        (await CountCalendarEventsAsync(registerPage.Page)).Should().Be(EmptyCount);
+        (await CountShoppingListItemsAsync(registerPage.Page)).Should().Be(EmptyCount);
     }
 
     private static string GenerateUniqueUsername()
@@ -163,8 +168,8 @@ public class RegisterTests
                 last = $"cookbooks={cookbooks}, recipes={recipes}, calendar={calendar}, shopping={shopping}";
 
                 var actual = expected
-                    ? cookbooks >= 5 && recipes >= 43 && calendar >= 5 && shopping > 0
-                    : cookbooks == 0 && recipes == 0 && calendar == 0 && shopping == 0;
+                    ? cookbooks >= ExpectedCookbookCount && recipes >= ExpectedRecipeCount && calendar >= ExpectedCalendarEventCount && shopping >= MinExpectedShoppingListItems
+                    : cookbooks == EmptyCount && recipes == EmptyCount && calendar == EmptyCount && shopping == EmptyCount;
                 if (actual)
                 {
                     return;
