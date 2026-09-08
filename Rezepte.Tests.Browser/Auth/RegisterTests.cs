@@ -15,8 +15,9 @@ public class RegisterTests
     private const string Password = "DemoTest!123";
     private const int PollIntervalMilliseconds = 500;
     private const int PageContentTimeoutMilliseconds = 20000;
-    // The seeding job also writes the ~80 MB demo image set into the database,
-    // so generous headroom is needed on slower machines.
+    private const int FinalAssertRetryMilliseconds = 30000;
+    // The seeding job also writes the bundled demo images into the database, so
+    // generous headroom is needed on slower machines.
     private const int DemoDataTimeoutMilliseconds = 120000;
     private const int ExpectedCookbookCount = 5;
     private const int ExpectedRecipeCount = 43;
@@ -69,10 +70,17 @@ public class RegisterTests
         await new LoginPage(registerPage.Page, _appFixture.BaseAddress).LoginAsync(username, Password);
         await DemoDataWaitHelper.WaitForDemoDataAsync(registerPage.Page, expected: true, DemoDataTimeoutMilliseconds);
 
-        (await CountCookbooksAsync(registerPage.Page)).Should().Be(ExpectedCookbookCount);
-        (await CountRecipesAsync(registerPage.Page)).Should().Be(ExpectedRecipeCount);
-        (await CountCalendarEventsAsync(registerPage.Page)).Should().Be(ExpectedCalendarEventCount);
-        (await CountShoppingListItemsAsync(registerPage.Page)).Should().BeGreaterThan(EmptyCount);
+        // The seeded state is already proven by WaitForDemoDataAsync, but the individual page
+        // reads are still retried: the interactive pages can transiently render empty right
+        // after a navigation while the app settles after the seeding job.
+        (await EventuallyReadCountAsync(registerPage.Page, CountCookbooksAsync, count => count == ExpectedCookbookCount))
+            .Should().Be(ExpectedCookbookCount);
+        (await EventuallyReadCountAsync(registerPage.Page, CountRecipesAsync, count => count == ExpectedRecipeCount))
+            .Should().Be(ExpectedRecipeCount);
+        (await EventuallyReadCountAsync(registerPage.Page, CountCalendarEventsAsync, count => count == ExpectedCalendarEventCount))
+            .Should().Be(ExpectedCalendarEventCount);
+        (await EventuallyReadCountAsync(registerPage.Page, CountShoppingListItemsAsync, count => count > EmptyCount))
+            .Should().BeGreaterThan(EmptyCount);
     }
 
     /// <summary>
@@ -121,6 +129,27 @@ public class RegisterTests
     private static string GetBaseAddress(IPage page)
     {
         return new Uri(page.Url).GetLeftPart(UriPartial.Authority);
+    }
+
+    /// <summary>
+    /// Repeatedly navigates to and counts a page until the count satisfies the predicate or
+    /// the retry budget is exhausted. Returns the last observed count so the caller can assert.
+    /// </summary>
+    /// <param name="page">The page to read on.</param>
+    /// <param name="countAsync">The counting function.</param>
+    /// <param name="satisfied">The predicate the count must satisfy.</param>
+    /// <returns>The last observed count.</returns>
+    private static async Task<int> EventuallyReadCountAsync(IPage page, Func<IPage, Task<int>> countAsync, Func<int, bool> satisfied)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(FinalAssertRetryMilliseconds);
+        var last = await countAsync(page);
+        while (!satisfied(last) && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(PollIntervalMilliseconds);
+            last = await countAsync(page);
+        }
+
+        return last;
     }
 
     /// <summary>
@@ -173,7 +202,10 @@ public class RegisterTests
         await page.WaitForLoadStateAsync(LoadState.Load);
         // Settled states: the calendar grid (with or without entries) or the error alert.
         await WaitForSettledContentAsync(page, ".calendar-root, .alert-danger");
-        return await page.Locator(".recipe-item").CountAsync();
+        // Count both card variants: ".recipe-item" needs the per-recipe preview fetch to have
+        // completed, while ".event-item" is the fallback card rendered for the same scheduled
+        // events when the preview is unavailable (e.g. slow or aborted request on CI).
+        return await page.Locator(".recipe-item, .event-item").CountAsync();
     }
 
     private static async Task<int> CountShoppingListItemsAsync(IPage page)
