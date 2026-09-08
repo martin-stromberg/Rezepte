@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Microsoft.Extensions.Logging;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
@@ -30,6 +31,12 @@ public class DemoDataSeedingJobHandler : IBackgroundJobHandler
     /// </summary>
     private const int DinnerHour = 18;
 
+    /// <summary>
+    /// The path of the zip archive containing the demo recipe images, relative to the application base directory.
+    /// </summary>
+    /// <returns>The demo images path.</returns>
+    private static readonly string DemoImagesPath = Path.Combine(AppContext.BaseDirectory, "DemoData", "demo-images.zip");
+
     /// <inheritdoc />
     public string JobType => JobTypeName;
 
@@ -60,8 +67,10 @@ public class DemoDataSeedingJobHandler : IBackgroundJobHandler
 
         logger.LogInformation("Starting demo data seeding for user {UserId}", payload.UserId);
 
+        using var demoImages = OpenDemoImages(logger);
+
         var cookbookIds = await SeedCookbooksAsync(payload.UserId, cookbookService, ct).ConfigureAwait(false);
-        var calendarRecipes = await SeedRecipesAsync(payload.UserId, cookbookIds, recipeService, ct).ConfigureAwait(false);
+        var calendarRecipes = await SeedRecipesAsync(payload.UserId, cookbookIds, recipeService, demoImages, logger, ct).ConfigureAwait(false);
         var plannedRecipes = await SeedCalendarAsync(payload.UserId, calendarRecipes, calendarService, ct).ConfigureAwait(false);
         await SeedShoppingListAsync(payload.UserId, plannedRecipes, shoppingListService, ct).ConfigureAwait(false);
 
@@ -103,12 +112,16 @@ public class DemoDataSeedingJobHandler : IBackgroundJobHandler
     /// <param name="userId">The id of the user that owns the created recipes.</param>
     /// <param name="cookbookIds">Map from cookbook name to the created cookbook id.</param>
     /// <param name="recipeService">The recipe service.</param>
+    /// <param name="demoImages">The demo images archive, or null when it is not available.</param>
+    /// <param name="logger">The logger.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The demo/created recipe pairs of the calendar cookbook.</returns>
     private static async Task<List<SeededRecipe>> SeedRecipesAsync(
         string userId,
         IReadOnlyDictionary<string, string> cookbookIds,
         IRecipeService recipeService,
+        ZipArchive? demoImages,
+        ILogger logger,
         CancellationToken ct)
     {
         var calendarRecipes = new List<SeededRecipe>();
@@ -135,6 +148,8 @@ public class DemoDataSeedingJobHandler : IBackgroundJobHandler
                     throw new InvalidOperationException($"Failed to create recipe '{demoRecipe.Title}': {error}");
                 }
 
+                await AttachImageAsync(userId, recipe, demoRecipe, recipeService, demoImages, logger, ct).ConfigureAwait(false);
+
                 if (cookbook.Name == DemoDataSource.CalendarCookbookName)
                 {
                     calendarRecipes.Add(new SeededRecipe(demoRecipe, recipe));
@@ -144,6 +159,76 @@ public class DemoDataSeedingJobHandler : IBackgroundJobHandler
 
         return calendarRecipes;
     }
+
+    /// <summary>
+    /// Opens the demo images archive when it is present in the application output directory.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <returns>The open zip archive, or null when the archive does not exist.</returns>
+    private static ZipArchive? OpenDemoImages(ILogger logger)
+    {
+        if (!File.Exists(DemoImagesPath))
+        {
+            logger.LogWarning("Demo images archive '{Path}' not found; seeding recipes without images", DemoImagesPath);
+            return null;
+        }
+
+        return new ZipArchive(File.OpenRead(DemoImagesPath), ZipArchiveMode.Read);
+    }
+
+    /// <summary>
+    /// Attaches the demo image matching the recipe title to the created recipe, when present in the archive.
+    /// </summary>
+    /// <param name="userId">The id of the user that owns the recipe.</param>
+    /// <param name="recipe">The created recipe entity.</param>
+    /// <param name="demoRecipe">The demo recipe definition.</param>
+    /// <param name="recipeService">The recipe service.</param>
+    /// <param name="demoImages">The demo images archive, or null when it is not available.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    private static async Task AttachImageAsync(
+        string userId,
+        Recipe recipe,
+        DemoRecipe demoRecipe,
+        IRecipeService recipeService,
+        ZipArchive? demoImages,
+        ILogger logger,
+        CancellationToken ct)
+    {
+        var entry = demoImages?.Entries.FirstOrDefault(e =>
+            string.Equals(Path.GetFileNameWithoutExtension(e.Name), demoRecipe.Title, StringComparison.OrdinalIgnoreCase));
+        if (entry is null)
+        {
+            return;
+        }
+
+        await using var imageStream = entry.Open();
+        var (ok, error, _) = await recipeService.AddImageAsync(
+            userId,
+            recipe.Id,
+            imageStream,
+            entry.Name,
+            GetImageContentType(entry.Name),
+            ct).ConfigureAwait(false);
+        if (!ok)
+        {
+            logger.LogWarning("Failed to attach demo image '{FileName}' to recipe '{Title}': {Error}", entry.Name, demoRecipe.Title, error);
+        }
+    }
+
+    /// <summary>
+    /// Gets the content type for an image file name based on its extension.
+    /// </summary>
+    /// <param name="fileName">The image file name.</param>
+    /// <returns>The MIME content type.</returns>
+    private static string GetImageContentType(string fileName)
+        => Path.GetExtension(fileName).ToLowerInvariant() switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            _ => "application/octet-stream",
+        };
 
     /// <summary>
     /// Creates one demo calendar event per day for the next <see cref="CalendarEventCount"/> days

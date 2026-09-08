@@ -14,7 +14,10 @@ public class RegisterTests
 {
     private const string Password = "DemoTest!123";
     private const int PollIntervalMilliseconds = 500;
-    private const int DemoDataTimeoutMilliseconds = 15000;
+    private const int PageContentTimeoutMilliseconds = 20000;
+    // The seeding job also writes the ~80 MB demo image set into the database,
+    // so generous headroom is needed on slower machines.
+    private const int DemoDataTimeoutMilliseconds = 120000;
     private const int ExpectedCookbookCount = 5;
     private const int ExpectedRecipeCount = 43;
     private const int ExpectedCalendarEventCount = 5;
@@ -120,12 +123,34 @@ public class RegisterTests
         return new Uri(page.Url).GetLeftPart(UriPartial.Authority);
     }
 
+    /// <summary>
+    /// Waits until the given page has rendered either its content or its empty/error state.
+    /// The interactive server pages render a "Lade…" placeholder first and populate the
+    /// lists asynchronously via API calls, so counting without waiting races the render.
+    /// </summary>
+    /// <param name="page">The page to wait on.</param>
+    /// <param name="settledSelector">A selector that appears once the page has settled.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    private static async Task WaitForSettledContentAsync(IPage page, string settledSelector)
+    {
+        try
+        {
+            await page.WaitForSelectorAsync(settledSelector, new PageWaitForSelectorOptions { Timeout = PageContentTimeoutMilliseconds });
+        }
+        catch (TimeoutException)
+        {
+            // Fall through: the caller still counts whatever is currently rendered.
+        }
+    }
+
     private static async Task<int> CountCookbooksAsync(IPage page)
     {
         await page.GotoAsync($"{GetBaseAddress(page)}/cookbooks");
         // LoadState.Load suffices: the pages are prerendered, while NetworkIdle would hang on
         // the long-lived /_blazor connection opened by interactive server pages.
         await page.WaitForLoadStateAsync(LoadState.Load);
+        // Settled states: the grid with cards or the "no cookbooks" info alert.
+        await WaitForSettledContentAsync(page, ".cookbook-grid, .alert-info");
         return await page.Locator(".cookbook-card").CountAsync();
     }
 
@@ -135,6 +160,8 @@ public class RegisterTests
         // LoadState.Load suffices: the pages are prerendered, while NetworkIdle would hang on
         // the long-lived /_blazor connection opened by interactive server pages.
         await page.WaitForLoadStateAsync(LoadState.Load);
+        // Settled states: result items or the "no results"/error alert.
+        await WaitForSettledContentAsync(page, ".list-group-item, .alert");
         return await page.Locator(".list-group-item").CountAsync();
     }
 
@@ -144,6 +171,8 @@ public class RegisterTests
         // LoadState.Load suffices: the pages are prerendered, while NetworkIdle would hang on
         // the long-lived /_blazor connection opened by interactive server pages.
         await page.WaitForLoadStateAsync(LoadState.Load);
+        // Settled states: the calendar grid (with or without entries) or the error alert.
+        await WaitForSettledContentAsync(page, ".calendar-root, .alert-danger");
         return await page.Locator(".recipe-item").CountAsync();
     }
 
@@ -153,6 +182,8 @@ public class RegisterTests
         // LoadState.Load suffices: the pages are prerendered, while NetworkIdle would hang on
         // the long-lived /_blazor connection opened by interactive server pages.
         await page.WaitForLoadStateAsync(LoadState.Load);
+        // Settled state: the shopping list grid renders once loading is done, even when empty.
+        await WaitForSettledContentAsync(page, ".shopping-list-grid");
         return await page.Locator(".shopping-item").CountAsync();
     }
 
