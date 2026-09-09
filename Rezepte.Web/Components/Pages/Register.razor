@@ -15,16 +15,21 @@
                 <ValidationSummary />
 
                 <div class="mb-3">
-                    <label class="form-label">Benutzername</label>
-                    <InputText class="form-control" @bind-Value="model.Username" @bind-Value:event="oninput" name="Username" autocomplete="username" />
+                    <label class="form-label" for="register-username">Benutzername</label>
+                    <InputText id="register-username" class="form-control" @bind-Value="model.Username" @bind-Value:event="oninput" name="Username" autocomplete="username" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">@Localizer["EmailOptional"]</label>
-                    <InputText class="form-control" @bind-Value="model.Email" @bind-Value:event="oninput" name="Email" autocomplete="email" />
+                    <label class="form-label" for="register-email">@Localizer["EmailOptional"]</label>
+                    <InputText id="register-email" class="form-control" @bind-Value="model.Email" @bind-Value:event="oninput" name="Email" autocomplete="email" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Passwort</label>
-                    <InputText class="form-control" @bind-Value="model.Password" @bind-Value:event="oninput" type="password" name="Password" autocomplete="new-password" />
+                    <label class="form-label" for="register-password">Passwort</label>
+                    <InputText id="register-password" class="form-control" @bind-Value="model.Password" @bind-Value:event="oninput" type="password" name="Password" autocomplete="new-password" />
+                </div>
+                <div class="mb-3 form-check">
+                    <InputCheckbox id="register-create-demo-data" class="form-check-input" @bind-Value="model.CreateDemoData" name="createDemoData" />
+                    <label class="form-check-label" for="register-create-demo-data">@Localizer["CreateDemoData"]</label>
+                    <small class="form-text text-muted d-block">@Localizer["CreateDemoDataHelp"]</small>
                 </div>
                 <div class="d-grid">
                     <button class="btn btn-accent" type="submit">Registrieren</button>
@@ -50,5 +55,6 @@
         public string Username { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string Password { get; set; } = string.Empty;
+        public bool CreateDemoData { get; set; }
     }
 }

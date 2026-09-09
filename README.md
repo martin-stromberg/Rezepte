@@ -11,6 +11,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbüchern, 
 - Benutzerregistrierung, Login und Logout mit Cookie-Authentifizierung für die Weboberflaeche.
 - Serverseitige Username-Validierung für Registrierung, Profil und Admin-Benutzerverwaltung.
 - JWT-Authentifizierung für API-Aufrufe.
+- Optionale Demo-Daten bei der Registrierung: Über eine Checkbox im Registrierungsformular (oder das Feld `createDemoData` im JSON-Body von `POST /api/auth/register`) legt ein Hintergrundjob fünf vorbefüllte Kochbücher mit 43 Rezepten, fünf Kalendereinträge für die nächsten fünf Tage und die Zutaten des Rezepts für den nächsten Tag in der Einkaufsliste an.
 - Erster registrierter Benutzer wird automatisch Administrator.
 - Admin-Bereich für Benutzerverwaltung und globale Einstellungen.
 - Responsive Navigation mit kompaktem Benutzer- und Einstellungsbereich sowie visuellem Ladebalken bei Navigation.
@@ -29,6 +30,12 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbüchern, 
 - GitHub Actions für Pull-Request-Prüfungen auf `staging`, automatische Promotion- und Sync-PRs sowie automatisierte Release-Artefakte.
 - Nutzungs- und KI-Limits über Einstellungen und Protokollierung.
 - `security.txt` gemäss RFC 9116 unter `/security.txt` und `/.well-known/security.txt` mit optionalen Zusatzformaten (`/.well-known/security.md`, `/.well-known/security.html`); Konfiguration durch Administratoren im Einstellungsbereich (Canonical wird serverseitig je Ausgabeformat bestimmt); alle Endpunkte öffentlich erreichbar ohne Authentifizierung.
+
+## Screenshots
+
+Die folgenden Screenshots zeigen die Anwendung nach einer Erstregistrierung mit aktivierter Demodaten-Option:
+
+![Demo-GIF](Docs/screenshots/demo.gif)
 
 ## Tech-Stack
 

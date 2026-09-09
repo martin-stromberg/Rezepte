@@ -2,9 +2,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Rezepte.Web.Data;
 using Rezepte.Web.Security;
 using Rezepte.Web.Services;
+using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.Validation;
 using Xunit;
 
@@ -23,7 +25,11 @@ public class UserServiceTests
         return new RezepteDbContext(options);
     }
 
-    private static UserService CreateSut(RezepteDbContext db) => new(db, new UsernameValidator());
+    private static UserService CreateSut(RezepteDbContext db)
+    {
+        var queue = new Mock<IBackgroundJobQueue>();
+        return new UserService(db, new UsernameValidator(), queue.Object);
+    }
 
     /// <summary>
     /// Register async should create first user as admin when no users exist.
@@ -34,7 +40,7 @@ public class UserServiceTests
         using var db = CreateDb();
         var sut = CreateSut(db);
 
-        var (ok, error, user) = await sut.RegisterAsync("alice", "password123", CancellationToken.None);
+        var (ok, error, user) = await sut.RegisterAsync("alice", "password123", false, CancellationToken.None);
 
         ok.Should().BeTrue();
         error.Should().BeNull();
@@ -50,9 +56,9 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        await sut.RegisterAsync("bob", "pw1", CancellationToken.None);
+        await sut.RegisterAsync("bob", "pw1", false, CancellationToken.None);
 
-        var (ok, error, user) = await sut.RegisterAsync("bob", "pw2", CancellationToken.None);
+        var (ok, error, user) = await sut.RegisterAsync("bob", "pw2", false, CancellationToken.None);
 
         ok.Should().BeFalse();
         error.Should().NotBeNull();
@@ -67,7 +73,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        await sut.RegisterAsync("carol", "secret!", CancellationToken.None);
+        await sut.RegisterAsync("carol", "secret!", false, CancellationToken.None);
 
         var user = await sut.LoginAsync("carol", "secret!", CancellationToken.None);
 
@@ -83,7 +89,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        await sut.RegisterAsync("dave", "right", CancellationToken.None);
+        await sut.RegisterAsync("dave", "right", false, CancellationToken.None);
 
         var user = await sut.LoginAsync("dave", "wrong", CancellationToken.None);
 
@@ -98,7 +104,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        var (_, _, user) = await sut.RegisterAsync("edgar", "pw", CancellationToken.None);
+        var (_, _, user) = await sut.RegisterAsync("edgar", "pw", false, CancellationToken.None);
         user.Should().NotBeNull();
 
         var (ok, error, updated) = await sut.UpdateProfileAsync(user!.Id, "edward", "ed@example.com", CancellationToken.None);
@@ -118,7 +124,7 @@ public class UserServiceTests
         using var db = CreateDb();
         var sut = CreateSut(db);
 
-        var (ok, error, user) = await sut.RegisterAsync("admin", "password123", CancellationToken.None);
+        var (ok, error, user) = await sut.RegisterAsync("admin", "password123", false, CancellationToken.None);
 
         ok.Should().BeFalse();
         error.Should().Be(UsernameValidator.ReservedMessage);
@@ -133,7 +139,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        var (_, _, user) = await sut.RegisterAsync("profileUser", "pw", CancellationToken.None);
+        var (_, _, user) = await sut.RegisterAsync("profileUser", "pw", false, CancellationToken.None);
 
         var (ok, error, updated) = await sut.UpdateProfileAsync(user!.Id, "support_team", null, CancellationToken.None);
 
@@ -150,7 +156,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        var (_, _, user) = await sut.RegisterAsync("adminUser", "pw", CancellationToken.None);
+        var (_, _, user) = await sut.RegisterAsync("adminUser", "pw", false, CancellationToken.None);
 
         var (ok, error) = await sut.UpdateUserAsync(user!.Id, "example.com", null, false, CancellationToken.None);
 
@@ -166,7 +172,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        var (_, _, user) = await sut.RegisterAsync("frank", "oldpass", CancellationToken.None);
+        var (_, _, user) = await sut.RegisterAsync("frank", "oldpass", false, CancellationToken.None);
 
         var (ok, error) = await sut.ChangePasswordAsync(user!.Id, "oldpass", "newpass", CancellationToken.None);
 
@@ -187,7 +193,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        await sut.RegisterAsync("rehashUser", "secret!", CancellationToken.None);
+        await sut.RegisterAsync("rehashUser", "secret!", false, CancellationToken.None);
 
         // Simulate a legacy hash with the minimum accepted iteration count.
         var entity = await db.Users.SingleAsync(u => u.Username == "rehashUser");
@@ -209,7 +215,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        await sut.RegisterAsync("currentUser", "secret!", CancellationToken.None);
+        await sut.RegisterAsync("currentUser", "secret!", false, CancellationToken.None);
         var originalHash = (await db.Users.AsNoTracking().SingleAsync(u => u.Username == "currentUser")).PasswordHash;
 
         var user = await sut.LoginAsync("currentUser", "secret!", CancellationToken.None);
@@ -227,7 +233,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        await sut.RegisterAsync("weakHashUser", "secret!", CancellationToken.None);
+        await sut.RegisterAsync("weakHashUser", "secret!", false, CancellationToken.None);
 
         var entity = await db.Users.SingleAsync(u => u.Username == "weakHashUser");
         var salt = Convert.ToHexString(new byte[PasswordHasher.SaltLengthBytes]);
@@ -248,7 +254,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        var (_, _, user) = await sut.RegisterAsync("malformedUser", "oldpass", CancellationToken.None);
+        var (_, _, user) = await sut.RegisterAsync("malformedUser", "oldpass", false, CancellationToken.None);
 
         var entity = await db.Users.SingleAsync(u => u.Username == "malformedUser");
         entity.PasswordHash = "not-a-valid-hash";
@@ -268,7 +274,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        var (_, _, user) = await sut.RegisterAsync("gary", "pw", CancellationToken.None);
+        var (_, _, user) = await sut.RegisterAsync("gary", "pw", false, CancellationToken.None);
 
         var (ok, error) = await sut.UpdateUserAsync(user!.Id, user.Username, user.Email, true, CancellationToken.None);
 
@@ -286,7 +292,7 @@ public class UserServiceTests
     {
         using var db = CreateDb();
         var sut = CreateSut(db);
-        var (_, _, user) = await sut.RegisterAsync("henry", "pw", CancellationToken.None);
+        var (_, _, user) = await sut.RegisterAsync("henry", "pw", false, CancellationToken.None);
 
         var (ok, error) = await sut.DeleteAsync(user!.Id, CancellationToken.None);
 
@@ -294,5 +300,48 @@ public class UserServiceTests
         error.Should().BeNull();
         var any = await sut.HasAnyUsersAsync(CancellationToken.None);
         any.Should().BeFalse();
+    }
+
+    /// <summary>
+    /// Register async should enqueue demo data job when create demo data is true.
+    /// </summary>
+    [Fact]
+    public async Task RegisterAsync_ShouldEnqueueDemoDataJob_WhenCreateDemoDataIsTrue()
+    {
+        using var db = CreateDb();
+        var queue = new Mock<IBackgroundJobQueue>();
+        queue.Setup(q => q.EnqueueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
+        var sut = new UserService(db, new UsernameValidator(), queue.Object);
+
+        var (_, _, user) = await sut.RegisterAsync("demoUser", "password123", true, CancellationToken.None);
+
+        user.Should().NotBeNull();
+        queue.Verify(q => q.EnqueueAsync(
+            "seed-demo-data",
+            It.Is<string>(payload => payload.Contains(user!.Id, StringComparison.Ordinal)),
+            user.Id,
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Register async should not enqueue demo data job when create demo data is false.
+    /// </summary>
+    [Fact]
+    public async Task RegisterAsync_ShouldNotEnqueueDemoDataJob_WhenCreateDemoDataIsFalse()
+    {
+        using var db = CreateDb();
+        var queue = new Mock<IBackgroundJobQueue>();
+        var sut = new UserService(db, new UsernameValidator(), queue.Object);
+
+        await sut.RegisterAsync("plainUser", "password123", false, CancellationToken.None);
+
+        queue.Verify(q => q.EnqueueAsync(
+            "seed-demo-data",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

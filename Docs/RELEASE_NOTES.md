@@ -2,26 +2,22 @@
 
 ## Important Notes Before Update
 
-- Install the Git hooks after checkout by running `.githooks/install-hooks.cmd` (Windows) or `.githooks/install-hooks.sh` (Linux/macOS); pre-commit and pre-push checks are enforced locally.
-- Direct pushes to the `main` and `staging` branches are now blocked by the pre-push hook; use feature branches and pull requests.
+- There are no special notices.
 
 ## What's New
 
-- Adopted Git hooks from the Pattern-Collection repository (`pre-commit` and `pre-push` with branch protection for `main`/`staging` and checks for localization, XML documentation, stubs, enum coverage, formatting, and encoding).
-- Enforced complete XML documentation in all projects (CS1591 as error).
-- Localized all UI strings in 40 Razor files using `IStringLocalizer<UiStrings>` and `UiStrings.resx`.
-- Reworked throw-only test stubs to satisfy the no-throw-stub check.
-- Added and extended enum test coverage.
+- Registration form offers a new "Create demo data" checkbox (`createDemoData` in `POST /api/auth/register`).
+- When selected, a background job (`seed-demo-data`, `DemoDataSeedingJobHandler`) seeds the new account with 5 cookbooks containing 43 recipes in total.
+- One dinner recipe is scheduled in the calendar for each of the next 5 days (6:00 PM).
+- The ingredients of the recipe planned for the next day are added to the shopping list.
 
 ## Wichtige Hinweise vor dem Update
 
-- Git-Hooks nach dem Checkout installieren: `.githooks/install-hooks.cmd` (Windows) oder `.githooks/install-hooks.sh` (Linux/macOS); pre-commit- und pre-push-Pruefungen gelten lokal.
-- Direkte Pushes auf die `main`- und `staging`-Branches werden vom pre-push-Hook blockiert; Feature-Branches und Pull-Requests verwenden.
+- Es gibt keine besonderen Hinweise.
 
 ## Neuerungen
 
-- Git-Hooks aus dem Pattern-Collection-Repository uebernommen (`pre-commit` und `pre-push` mit Branch-Schutz fuer `main`/`staging` sowie Pruefungen fuer Lokalisierung, XML-Doku, Stubs, Enum-Abdeckung, Formatierung und Encoding).
-- Vollstaendige XML-Dokumentation in allen Projekten erzwungen (CS1591 als Fehler).
-- Alle UI-Strings in 40 Razor-Dateien ueber `IStringLocalizer<UiStrings>` und `UiStrings.resx` lokalisiert.
-- throw-only-Test-Stubs umgebaut, um den No-Throw-Stub-Check zu bestehen.
-- Enum-Testabdeckung ergaenzt und erweitert.
+- Registrierungsformular mit neuer Checkbox „Demo-Daten anlegen" (`createDemoData` in `POST /api/auth/register`).
+- Bei Auswahl legt ein Hintergrundjob (`seed-demo-data`, `DemoDataSeedingJobHandler`) für das neue Konto 5 Kochbücher mit insgesamt 43 Rezepten an.
+- Für die nächsten 5 Tage wird jeweils ein Abendessen-Rezept im Kalender eingetragen (18:00 Uhr).
+- Die Zutaten des für den nächsten Tag geplanten Rezepts werden in die Einkaufsliste übernommen.

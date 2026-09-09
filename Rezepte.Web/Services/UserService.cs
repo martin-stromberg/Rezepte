@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rezepte.Web.Contracts;
 using Rezepte.Web.Data;
 using Rezepte.Web.Security;
+using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.Validation;
 
 namespace Rezepte.Web.Services;
@@ -29,9 +30,10 @@ public interface IUserService
     /// </summary>
     /// <param name="username">Desired username.</param>
     /// <param name="password">Plain password to hash and store.</param>
+    /// <param name="createDemoData">Whether to seed demo data after registration.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Tuple with success flag, optional error and created user projection.</returns>
-    Task<(bool ok, string? error, User? user)> RegisterAsync(string username, string password, CancellationToken ct);
+    Task<(bool ok, string? error, User? user)> RegisterAsync(string username, string password, bool createDemoData, CancellationToken ct);
 
     /// <summary>
     /// Authenticates a user with credentials.
@@ -118,15 +120,17 @@ public interface IUserService
 /// </summary>
 /// <param name="db">The db parameter.</param>
 /// <param name="usernameValidator">The username validator parameter.</param>
+/// <param name="backgroundJobQueue">The background job queue parameter.</param>
 /// <returns>The result.</returns>
-public class UserService(RezepteDbContext db, IUsernameValidator usernameValidator) : BaseService, IUserService
+public class UserService(RezepteDbContext db, IUsernameValidator usernameValidator, IBackgroundJobQueue backgroundJobQueue) : BaseService, IUserService
 {
     private readonly RezepteDbContext _db = db;
     private readonly IUsernameValidator _usernameValidator = usernameValidator;
+    private readonly IBackgroundJobQueue _backgroundJobQueue = backgroundJobQueue;
 
 
     /// <inheritdoc />
-    public async Task<(bool ok, string? error, User? user)> RegisterAsync(string username, string password, CancellationToken ct)
+    public async Task<(bool ok, string? error, User? user)> RegisterAsync(string username, string password, bool createDemoData, CancellationToken ct)
     {
         var normalizedUsername = username?.Trim() ?? string.Empty;
         var validation = _usernameValidator.Validate(normalizedUsername);
@@ -146,6 +150,14 @@ public class UserService(RezepteDbContext db, IUsernameValidator usernameValidat
         _db.Users.Add(entity);
         await _db.SaveChangesAsync(ct);
         User user = MatchUser(entity);
+
+        if (createDemoData)
+        {
+            var payload = new DemoDataSeedPayload(user.Id);
+            await _backgroundJobQueue.EnqueueAsync(
+                BackgroundJobs.Handlers.DemoDataSeedingJobHandler.JobTypeName, payload.ToJson(), user.Id, ct).ConfigureAwait(false);
+        }
+
         return (true, null, user);
     }
 

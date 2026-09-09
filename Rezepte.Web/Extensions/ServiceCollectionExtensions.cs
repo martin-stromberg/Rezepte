@@ -196,6 +196,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<ExportCleanupHostedService>();
         services.AddScoped<IBackgroundJobHandler, ExportUserJobHandler>();
         services.AddScoped<IBackgroundJobHandler, ExportAllJobHandler>();
+        services.AddScoped<IBackgroundJobHandler, DemoDataSeedingJobHandler>();
         services.AddScoped<IPdfGenerator, PdfGenerator>();
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IRemoteContentFetcher, RemoteContentFetcher>();

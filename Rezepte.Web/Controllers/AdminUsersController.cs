@@ -50,7 +50,7 @@ public class AdminUsersController(IUserService users) : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
             return BadRequest(new { message = "The password must be at least 6 characters long." });
 
-        var (ok, error, user) = await _users.RegisterAsync(dto.Username, dto.Password, ct);
+        var (ok, error, user) = await _users.RegisterAsync(dto.Username, dto.Password, createDemoData: false, ct);
         if (!ok || user is null)
             return BadRequest(new { message = error ?? "Create failed." });
 
