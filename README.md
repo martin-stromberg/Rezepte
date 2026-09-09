@@ -65,6 +65,12 @@ dotnet test
 
 Details zu Testprojekten, Browser-Tests mit Playwright und dem NuGet-Sicherheitscheck findest du in [Docs/testing.md](Docs/testing.md).
 
+## Deployment
+
+[Docs/install.md](Docs/install.md) ist die verbindliche Schritt-für-Schritt-Anleitung für Publish, Runtime-Prüfung und systemd-Betrieb auf Linux.
+
+Bei einem framework-abhängigen Publish (`--self-contained false`) müssen auf dem Server die passenden .NET-10-Shared-Frameworks für `Microsoft.NETCore.App` und `Microsoft.AspNetCore.App` installiert sein. Wenn die Server-Runtime nicht verlässlich bereitsteht, sollte stattdessen die in `Docs/install.md` dokumentierte self-contained Alternative verwendet werden.
+
 ## Weitere Informationen
 
 - [Projektübersicht und Funktionsumfang](Docs/features.md)
