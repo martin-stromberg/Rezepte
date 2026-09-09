@@ -31,6 +31,12 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbüchern, 
 - Nutzungs- und KI-Limits über Einstellungen und Protokollierung.
 - `security.txt` gemäss RFC 9116 unter `/security.txt` und `/.well-known/security.txt` mit optionalen Zusatzformaten (`/.well-known/security.md`, `/.well-known/security.html`); Konfiguration durch Administratoren im Einstellungsbereich (Canonical wird serverseitig je Ausgabeformat bestimmt); alle Endpunkte öffentlich erreichbar ohne Authentifizierung.
 
+## Screenshots
+
+Die folgenden Screenshots zeigen die Anwendung nach einer Erstregistrierung mit aktivierter Demodaten-Option:
+
+![Demo-GIF](Docs/screenshots/demo.gif)
+
 ## Tech-Stack
 
 - .NET 10
