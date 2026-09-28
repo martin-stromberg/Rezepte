@@ -12,9 +12,9 @@ Das Repository enthält Workflows für den zweistufigen Staging-Flow.
 
 ## Pull-Request-Prüfung auf staging
 
-Der Workflow `.github/workflows/pr.yml` startet für Pull Requests gegen `staging`, wenn ein PR erstellt, wieder geöffnet oder durch neue Commits aktualisiert wird.
+Der Workflow `.github/workflows/pr-staging-ci.yml` startet für Pull Requests gegen `staging`, wenn ein PR erstellt, wieder geöffnet oder durch neue Commits aktualisiert wird.
 
-Reine Back-Merge-PRs (`main -> staging`) erkennt der Workflow an `github.head_ref == 'main'` und überspringen alle weiteren Checks.
+Reine Back-Merge-PRs (`main -> staging`) erkennt der Job `detect-backmerge` und alle weiteren Checks werden übersprungen. Solange ein automatisierter Back-Merge-PR `main -> staging` offen ist, schlägt der Job `no pending backmerge` für reguläre PRs fehl — der Back-Merge wird immer zuerst gemergt, damit er nicht durch einen dazwischengemergten Feature-PR veraltet oder konfliktbehaftet wird.
 
 Für alle anderen PRs fuehrt der Workflow auf `ubuntu-latest` mit .NET `10.0.x` diese Prüfungen aus:
 

@@ -33,11 +33,18 @@ public class RezepteAppFixture : IAsyncLifetime
     private Process? _process;
     private string? _tempDirectory;
     private string? _applicationDllPath;
+    private string? _databasePath;
 
     /// <summary>
     /// Gets the base URL of the started application.
     /// </summary>
     public string BaseAddress { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Gets the path of the SQLite database file the currently running application process
+    /// uses, or <see langword="null"/> when no database exists at the moment.
+    /// </summary>
+    public string? DatabasePath => _databasePath;
 
     /// <summary>
     /// Gets a value indicating whether the application process was started successfully.
@@ -161,12 +168,14 @@ public class RezepteAppFixture : IAsyncLifetime
         }
 
         _tempDirectory = null;
+        _databasePath = null;
     }
 
     private string CreateTemporaryDatabase()
     {
         _tempDirectory = Directory.CreateTempSubdirectory("rezepte-browser-tests-").FullName;
-        return Path.Combine(_tempDirectory, "rezepte-browser-test.db");
+        _databasePath = Path.Combine(_tempDirectory, "rezepte-browser-test.db");
+        return _databasePath;
     }
 
     private void StartApplicationProcess(string applicationDllPath, string databasePath)

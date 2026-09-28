@@ -1,7 +1,10 @@
 using FluentAssertions;
+using Microsoft.Data.Sqlite;
 using Microsoft.Playwright;
 using Rezepte.Tests.Browser.Auth;
 using Rezepte.Tests.Browser.Infrastructure;
+using Rezepte.Web.Services.BackgroundJobs;
+using Rezepte.Web.Services.BackgroundJobs.Handlers;
 using Xunit;
 
 namespace Rezepte.Tests.Browser;
@@ -68,7 +71,7 @@ public class RegisterTests
             new PageWaitForURLOptions { Timeout = 10000 });
 
         await new LoginPage(registerPage.Page, _appFixture.BaseAddress).LoginAsync(username, Password);
-        await DemoDataWaitHelper.WaitForDemoDataAsync(registerPage.Page, expected: true, DemoDataTimeoutMilliseconds);
+        await DemoDataWaitHelper.WaitForDemoDataAsync(registerPage.Page, expected: true, DemoDataTimeoutMilliseconds, _appFixture.DatabasePath);
 
         // The seeded state is already proven by WaitForDemoDataAsync, but the individual page
         // reads are still retried: the interactive pages can transiently render empty right
@@ -111,7 +114,7 @@ public class RegisterTests
             new PageWaitForURLOptions { Timeout = 10000 });
 
         await new LoginPage(registerPage.Page, _appFixture.BaseAddress).LoginAsync(username, Password);
-        await DemoDataWaitHelper.WaitForDemoDataAsync(registerPage.Page, expected: false, 5000);
+        await DemoDataWaitHelper.WaitForDemoDataAsync(registerPage.Page, expected: false, 5000, _appFixture.DatabasePath);
 
         (await CountCookbooksAsync(registerPage.Page)).Should().Be(EmptyCount);
         (await CountRecipesAsync(registerPage.Page)).Should().Be(EmptyCount);
@@ -205,7 +208,37 @@ public class RegisterTests
         // Count both card variants: ".recipe-item" needs the per-recipe preview fetch to have
         // completed, while ".event-item" is the fallback card rendered for the same scheduled
         // events when the preview is unavailable (e.g. slow or aborted request on CI).
-        return await page.Locator(".recipe-item, .event-item").CountAsync();
+        var count = await page.Locator(".recipe-item, .event-item").CountAsync();
+
+        // The demo seeding plans one event per day for the next five days, which can span a
+        // month boundary while the page renders a single month at a time - so the next month
+        // view is counted as well and both are summed.
+        var monthLabel = page.Locator("xpath=//button[normalize-space()='‹']/following-sibling::div[1]");
+        var previousLabel = await monthLabel.InnerTextAsync();
+        var responseTask = page.WaitForResponseAsync(
+            response => response.Url.Contains("/api/calendar", StringComparison.OrdinalIgnoreCase),
+            new PageWaitForResponseOptions { Timeout = PageContentTimeoutMilliseconds });
+        await page.Locator("button:has-text('›')").First.ClickAsync();
+        try
+        {
+            await responseTask;
+        }
+        catch (TimeoutException)
+        {
+            // A missing/failed reload still counts whatever the next month view renders.
+        }
+
+        // The label flips to the next month in the same render pass that drops the grid for
+        // the reload, so once it changed, a later-settled grid is guaranteed to show the new
+        // month and not a stale snapshot of the old one.
+        var labelDeadline = DateTime.UtcNow.AddMilliseconds(PageContentTimeoutMilliseconds);
+        while (await monthLabel.InnerTextAsync() == previousLabel && DateTime.UtcNow < labelDeadline)
+        {
+            await Task.Delay(PollIntervalMilliseconds);
+        }
+
+        await WaitForSettledContentAsync(page, ".calendar-root, .alert-danger");
+        return count + await page.Locator(".recipe-item, .event-item").CountAsync();
     }
 
     private static async Task<int> CountShoppingListItemsAsync(IPage page)
@@ -221,7 +254,19 @@ public class RegisterTests
 
     private static class DemoDataWaitHelper
     {
-        public static async Task WaitForDemoDataAsync(IPage page, bool expected, int timeoutMilliseconds)
+        /// <summary>
+        /// Polls the UI counts until they match the expected demo-data state or the timeout is
+        /// reached. When <paramref name="databasePath"/> is given, the newest seed job row is
+        /// watched alongside: a job that ended in <see cref="BackgroundJobStatus.Failed"/> or
+        /// <see cref="BackgroundJobStatus.Cancelled"/> fails the wait immediately with the
+        /// stored error instead of letting the poll run blind until the timeout.
+        /// </summary>
+        /// <param name="page">The page to read the counts on.</param>
+        /// <param name="expected">Whether the seeded counts are expected to appear.</param>
+        /// <param name="timeoutMilliseconds">The overall wait budget.</param>
+        /// <param name="databasePath">The SQLite database file of the app under test.</param>
+        /// <returns>A task that represents the asynchronous wait operation.</returns>
+        public static async Task WaitForDemoDataAsync(IPage page, bool expected, int timeoutMilliseconds, string? databasePath = null)
         {
             var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMilliseconds);
             var last = string.Empty;
@@ -238,11 +283,74 @@ public class RegisterTests
                     return;
                 }
 
+                var job = databasePath is null ? null : await ReadLatestSeedJobAsync(databasePath);
+                if (job?.Status is BackgroundJobStatus.Failed or BackgroundJobStatus.Cancelled)
+                {
+                    throw new InvalidOperationException(
+                        $"The demo data seeding job ended with status {job.Status}: {job.Error ?? "(no error message stored)"}");
+                }
+
                 await Task.Delay(PollIntervalMilliseconds);
             }
 
-            throw new TimeoutException($"Demo data state did not match expected value {expected} within {timeoutMilliseconds}ms. Last observed: {last} (page: {page.Url})");
+            var jobInfo = "seed job state unavailable";
+            if (databasePath is not null)
+            {
+                var job = await ReadLatestSeedJobAsync(databasePath);
+                jobInfo = job is null ? "seed job state unavailable"
+                    : !job.Found ? "no seed-demo-data job row exists (was it ever enqueued?)"
+                    : $"seed job status={job.Status}, error={job.Error ?? "(none)"}";
+            }
+
+            throw new TimeoutException($"Demo data state did not match expected value {expected} within {timeoutMilliseconds}ms. Last observed: {last}; {jobInfo} (page: {page.Url})");
         }
+
+        /// <summary>
+        /// Reads the newest <c>seed-demo-data</c> row from the BackgroundJobs table. Returns
+        /// <see langword="null"/> when the table cannot be read (database locked, schema not
+        /// migrated yet) - the wait must never fail because of its own diagnostics.
+        /// </summary>
+        /// <param name="databasePath">The SQLite database file of the app under test.</param>
+        /// <returns>The observed job row, or <see langword="null"/> when unreadable.</returns>
+        private static async Task<SeedJobObservation?> ReadLatestSeedJobAsync(string databasePath)
+        {
+            try
+            {
+                await using var connection = new SqliteConnection($"Data Source={databasePath};Mode=ReadOnly;Pooling=False");
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = """
+                    SELECT Status, Error
+                    FROM BackgroundJobs
+                    WHERE JobType = $type
+                    ORDER BY CreatedAt DESC
+                    LIMIT 1
+                    """;
+                command.Parameters.AddWithValue("$type", DemoDataSeedingJobHandler.JobTypeName);
+                await using var reader = await command.ExecuteReaderAsync();
+                if (!await reader.ReadAsync())
+                {
+                    return new SeedJobObservation(Found: false, Status: null, Error: null);
+                }
+
+                return new SeedJobObservation(
+                    Found: true,
+                    Status: (BackgroundJobStatus)reader.GetInt32(0),
+                    Error: reader.IsDBNull(1) ? null : reader.GetString(1));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The observed state of the newest demo data seeding job row.
+        /// </summary>
+        /// <param name="Found">Whether a job row exists at all.</param>
+        /// <param name="Status">The job status.</param>
+        /// <param name="Error">The stored job error.</param>
+        private sealed record SeedJobObservation(bool Found, BackgroundJobStatus? Status, string? Error);
 
         private static async Task<(int Cookbooks, int Recipes, int Calendar, int Shopping)> ReadCountsAsync(IPage page)
         {
