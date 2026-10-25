@@ -1,8 +1,14 @@
 @page "/recipes/search"
 @rendermode InteractiveServer
 @implements IDisposable
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components
-@inject ApiClient Client
+@using Microsoft.AspNetCore.Components.Authorization
+@using Rezepte.Web.Services
+@using System.Security.Claims
+@attribute [Authorize]
+@inject IRecipeService RecipeService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 @inject ILogger<Rezepte.Web.Components.Pages.RecipeSearch> Logger
 @inject IStringLocalizer<UiStrings> Localizer
@@ -114,7 +120,7 @@ else
     {
         cts?.Cancel();
         cts?.Dispose();
-        cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        cts = new CancellationTokenSource();
         var localCts = cts;
         var token = localCts.Token;
 
@@ -125,15 +131,23 @@ else
             results = Array.Empty<RecipeResult>();
             totalItems = 0;
 
-            var qParam = string.IsNullOrWhiteSpace(q) ? string.Empty : Uri.EscapeDataString(q);
-            var uri = $"api/recipes/search?q={qParam}&page={CurrentPage}&pageSize={CurrentPageSize}";
-
-            var resp = await Client.Http.GetFromJsonAsync<SearchResponseDto>(uri, token);
-            if (resp != null)
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
-                results = resp.Items ?? Array.Empty<RecipeResult>();
-                totalItems = resp.Total;
+                Logger.LogWarning("Recipe search for query {Query} skipped: no authenticated user", q);
+                searchFailed = true;
+                return;
             }
+
+            // Direct service call instead of an HTTP self-call: a request to the public base
+            // URI traverses the reverse proxy of the host and can stall on low-performance
+            // servers (e.g. NAS), which previously surfaced as "no results" or a timeout.
+            var search = await RecipeService.SearchAsync(userId, q, null, null, CurrentPage, CurrentPageSize, "newest", token);
+            results = search.Items
+                .Select(i => new RecipeResult(i.Id, i.Title, i.Snippet, i.PrimaryImageUrl, null, i.Tags, i.CreatedAt.ToString("yyyy-MM-dd")))
+                .ToArray();
+            totalItems = search.TotalCount;
         }
         catch (OperationCanceledException ex)
         {
@@ -184,7 +198,6 @@ else
         Nav.NavigateTo($"/recipes/search?q={Uri.EscapeDataString(q ?? string.Empty)}&page={newPage}&pageSize={CurrentPageSize}");
     }
 
-    // DTOs / view models used by the page (map from API response)
+    // view model used by the page (mapped from the service result)
     private sealed record RecipeResult(string Id, string Title, string Snippet, string? PrimaryImageUrl, string[]? Cookbooks, string[]? Tags, string? PublishedLabel = null);
-    private sealed record SearchResponseDto(RecipeResult[]? Items, int Total);
 }
