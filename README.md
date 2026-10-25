@@ -1,6 +1,6 @@
 # Rezepte
 
-[![Pull Request](https://img.shields.io/github/actions/workflow/status/martin-stromberg/Rezepte/pr.yml?label=Pull%20Request)](https://github.com/martin-stromberg/Rezepte/actions)
+[![PR CI for Staging](https://img.shields.io/github/actions/workflow/status/martin-stromberg/Rezepte/pr-staging-ci.yml?label=PR%20CI%20for%20Staging)](https://github.com/martin-stromberg/Rezepte/actions)
 [![License](https://img.shields.io/github/license/martin-stromberg/Rezepte)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com)
 

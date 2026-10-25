@@ -36,7 +36,7 @@
             </ul>
 
             <!-- Search box in title bar -->
-            <form class="nav-search-form d-flex w-100 my-2 my-lg-0 ms-lg-3 me-lg-2" role="search" @onsubmit="OnSubmitSearch" action="recipes/search">
+            <form class="nav-search-form d-flex w-100 my-2 my-lg-0 ms-lg-3 me-lg-2" role="search" @onsubmit="OnSubmitSearch" action="/recipes/search" method="get">
                 <InputText id="nav-search" name="q" class="form-control form-control-sm" placeholder="@Localizer["SearchRecipesPlaceholder"]" aria-label="@Localizer["SearchRecipes"]" @bind-Value="searchQuery" @bind-Value:event="oninput" />
                 <button type="submit" class="btn btn-sm btn-outline-light ms-2" aria-label="@Localizer["StartSearch"]">🔍</button>
             </form>
@@ -110,15 +110,10 @@
 
     private Task OnSubmitSearch()
     {
-        if (string.IsNullOrWhiteSpace(searchQuery))
-        {
-            Nav.NavigateTo("/recipes");
-        }
-        else
-        {
-            var q = Uri.EscapeDataString(searchQuery.Trim());
-            Nav.NavigateTo($"/recipes/search?q={q}");
-        }
+        // Submit to the same target as the form's native GET fallback (action="/recipes/search"),
+        // so an empty input behaves identically on both paths.
+        var q = Uri.EscapeDataString(searchQuery.Trim());
+        Nav.NavigateTo($"/recipes/search?q={q}");
 
         return Task.CompletedTask;
     }

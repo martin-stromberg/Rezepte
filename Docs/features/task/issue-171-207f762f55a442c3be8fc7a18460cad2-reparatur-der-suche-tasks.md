@@ -2,36 +2,37 @@
 
 | # | Bereich | Aufgabe | Status | Testnachweis |
 |---|---------|---------|--------|--------------|
-| 1 | UI | `@rendermode InteractiveServer` in `RecipeSearch.razor` ergänzen | Offen | — |
-| 2 | UI | `RunSearchAsync` in `RecipeSearch.razor`: Request-URI von absolut (`/api/recipes/search`) auf relativ (`api/recipes/search`) umstellen | Offen | — |
-| 3 | UI | `RunSearchAsync` in `RecipeSearch.razor`: `OperationCanceledException` in Supersede- vs. Timeout-Fall aufspalten (Timeout → `searchFailed = true`, `LogWarning`) | Offen | — |
-| 4 | UI | `CurrentPage`-Property (`pageNumber < 1 ? 1 : pageNumber`) in `RecipeSearch.razor` einführen und in URI-Aufbau, `ChangePage` und Paginierungsanzeige verwenden | Offen | — |
-| 5 | UI | `CurrentPageSize` in `RecipeSearch.razor` auf `pageSize < 1` erweitern (bisher nur `== 0`) | Offen | — |
-| 6 | UI | `MainLayout.razor`: Suchformular `action="recipes/search"` → `action="/recipes/search"` und `method="get"` ergänzen | Offen | — |
-| 7 | UI | `CalendarEventDialog.razor`: Request-URI von absolut auf relativ (`api/recipes/search`) umstellen | Offen | — |
-| 8 | UI | `CalendarEventDialog.razor`: `recipeSearchFailed`-Flag und `alert-danger`-Markup mit `Localizer["SearchFailed"]` im Picker-Ergebnisbereich ergänzen | Offen | — |
-| 9 | UI | `CalendarEventDialog.razor`: Fallback-Request in `TriggerRecipeSearchAsync` auf `JsonException`/`NotSupportedException` beschränken; andere Fehler inkl. Abbruch → `recipeSearchFailed = true` | Offen | — |
-| 10 | Tests | `RecipeServiceSearchSqliteTests` in `Rezepte.Tests/Services/` anlegen inkl. `CreateSqliteDb`-Helfer (`SqliteConnection("DataSource=:memory:")` + `UseSqlite` + `EnsureCreated`) | Offen | — |
-| 11 | Tests | `SearchAsync_ShouldFindByTitle_OnSqlite` schreiben (exakter Teilstring-Treffer über `Title`) | Offen | — |
-| 12 | Tests | `SearchAsync_ShouldBeCaseInsensitiveAscii_OnSqlite` schreiben (`honig` findet `Honig`) | Offen | — |
-| 13 | Tests | `SearchAsync_ShouldFindByStepDescription_OnSqlite` schreiben (Treffer über `RecipeStep.Description`) | Offen | — |
-| 14 | Tests | `SearchAsync_ShouldFindByIngredientName_OnSqlite` schreiben (Treffer über `RecipeIngredient.Name`) | Offen | — |
-| 15 | Tests | `SearchAsync_ShouldNotReturnForeignUserRecipes_OnSqlite` schreiben (`UserId`-Filter) | Offen | — |
-| 16 | Tests | `SearchAsync_ShouldPageAndCount_OnSqlite` schreiben (`TotalCount` + `Skip/Take`) | Offen | — |
-| 17 | Tests | `StubHttpMessageHandler`-Hilfsklasse anlegen (konfigurierbare JSON-Antwort oder Exception für `ApiClient`) | Offen | — |
-| 18 | Tests | `RecipeSearchComponentTests` (bUnit) in `Rezepte.Tests/Components/` anlegen (`AddLocalization()`, `FakeNavigationManager`, `ApiClient` mit `StubHttpMessageHandler`) | Offen | — |
-| 19 | Tests | `RunSearchAsync_WhenCancelled_ShowsSearchFailed` schreiben (Abbruch → `alert-danger`, nicht `alert-secondary`) | Offen | — |
-| 20 | Tests | `RunSearchAsync_WhenEmpty_ShowsNoSearchResults` schreiben | Offen | — |
-| 21 | Tests | `RunSearchAsync_WhenResults_RendersListItems` schreiben (inkl. relative Request-URI) | Offen | — |
-| 22 | Tests | `RecipesControllerSearchTests` in `Rezepte.Tests/Controllers/` anlegen (Moq `IRecipeService`, `IOptions<ImageOptions>`, `ClaimsPrincipal` mit `NameIdentifier`) | Offen | — |
-| 23 | Tests | `SearchAsync_ShouldClampPageAndPageSize` schreiben (`page`/`pageSize` → geclamped an Service) | Offen | — |
-| 24 | Tests | `SearchAsync_WithoutUserClaim_ReturnsUnauthorized` schreiben | Offen | — |
-| 25 | Tests | `SearchAsync_MapsToResponseDto` schreiben (`Total`, `PublishedLabel`-Format, Snippet-Kappung) | Offen | — |
-| 26 | E2E-Tests | `RecipeSeedHelper` in `Rezepte.Tests.Browser/Infrastructure/` anlegen (`page.Context.APIRequest` → `GET api/session/token` → `POST api/recipes` mit Bearer-JWT) | Offen | — |
-| 27 | E2E-Tests | `RecipeSearchBrowserTests` (Collection `BrowserTestCollection`) anlegen: Navbar-Suche → Trefferliste zeigt Rezept | Offen | — |
-| 28 | E2E-Tests | Direktaufruf `GET /recipes/search?q=…` zeigt Treffer (SSR-/Prerender-Pfad) | Offen | — |
-| 29 | E2E-Tests | Suche ohne Treffer → `alert-secondary` „Keine Treffer." (kein `SearchFailed`) | Offen | — |
-| 30 | E2E-Tests | Paginierung: > `pageSize` Rezepte seeden → „»"-Button → „Seite 2 von …" mit Resttreffern | Offen | — |
-| 31 | E2E-Tests | In-Page-Suche über `#search-q`-Formular aktualisiert Trefferliste | Offen | — |
-| 32 | Tests | `LoadingBarFormNavigationBrowserTests.SearchSubmit_ShowsLoadingBar` unter neuem Navigationsmechanismus (Enhanced Navigation) verifizieren und Inline-Kommentare aktualisieren | Offen | — |
-| 33 | Abschluss | Vollständiger Testlauf `dotnet test Rezepte.sln --configuration Release` (vorher `dotnet publish Rezepte.Web -c Release` für Browser-Tests) — alle Suiten grün | Offen | — |
+| 1 | UI | `@rendermode InteractiveServer` in `RecipeSearch.razor` ergänzen | Erledigt | `RecipeSearchBrowserTests.Pagination_NextPage_ShowsPageTwo` (greift nur mit Circuit) |
+| 2 | UI | `RunSearchAsync` in `RecipeSearch.razor`: Request-URI von absolut (`/api/recipes/search`) auf relativ (`api/recipes/search`) umstellen | Erledigt | `RecipeSearchComponentTests.RunSearchAsync_WhenResults_RendersListItems` (prüft `/sub/api/recipes/search`) |
+| 3 | UI | `RunSearchAsync` in `RecipeSearch.razor`: `OperationCanceledException` in Supersede- vs. Timeout-Fall aufspalten (Timeout → `searchFailed = true`, `LogWarning`) | Erledigt | `RecipeSearchComponentTests.RunSearchAsync_WhenCancelled_ShowsSearchFailed` |
+| 4 | UI | `CurrentPage`-Property (`pageNumber < 1 ? 1 : pageNumber`) in `RecipeSearch.razor` einführen und in URI-Aufbau, `ChangePage` und Paginierungsanzeige verwenden | Erledigt | `RecipeSearchBrowserTests.Pagination_NextPage_ShowsPageTwo` |
+| 5 | UI | `CurrentPageSize` in `RecipeSearch.razor` auf `pageSize < 1` erweitern (bisher nur `== 0`) | Erledigt | Kein direkter Test |
+| 6 | UI | `MainLayout.razor`: Suchformular `action="recipes/search"` → `action="/recipes/search"` und `method="get"` ergänzen | Erledigt | `LoadingBarFormNavigationBrowserTests.SearchSubmit_ShowsLoadingBar` (nativer Form-Fallback-Pfad) |
+| 7 | UI | `CalendarEventDialog.razor`: Request-URI von absolut auf relativ (`api/recipes/search`) umstellen | Erledigt | Kein direkter Test |
+| 8 | UI | `CalendarEventDialog.razor`: `recipeSearchFailed`-Flag und `alert-danger`-Markup mit `Localizer["SearchFailed"]` im Picker-Ergebnisbereich ergänzen | Erledigt | Kein direkter Test |
+| 9 | UI | `CalendarEventDialog.razor`: Fallback-Request in `TriggerRecipeSearchAsync` auf `JsonException`/`NotSupportedException` beschränken; andere Fehler inkl. Abbruch → `recipeSearchFailed = true` | Erledigt | Kein direkter Test |
+| 10 | Tests | `RecipeServiceSearchSqliteTests` in `Rezepte.Tests/Services/` anlegen inkl. `CreateSqliteDb`-Helfer (`SqliteConnection("DataSource=:memory:")` + `UseSqlite` + `EnsureCreated`) | Erledigt | `RecipeServiceSearchSqliteTests` (alle 6 Tests grün) |
+| 11 | Tests | `SearchAsync_ShouldFindByTitle_OnSqlite` schreiben (exakter Teilstring-Treffer über `Title`) | Erledigt | `RecipeServiceSearchSqliteTests.SearchAsync_ShouldFindByTitle_OnSqlite` |
+| 12 | Tests | `SearchAsync_ShouldBeCaseInsensitiveAscii_OnSqlite` schreiben (`honig` findet `Honig`) | Erledigt | `RecipeServiceSearchSqliteTests.SearchAsync_ShouldBeCaseInsensitiveAscii_OnSqlite` |
+| 13 | Tests | `SearchAsync_ShouldFindByStepDescription_OnSqlite` schreiben (Treffer über `RecipeStep.Description`) | Erledigt | `RecipeServiceSearchSqliteTests.SearchAsync_ShouldFindByStepDescription_OnSqlite` |
+| 14 | Tests | `SearchAsync_ShouldFindByIngredientName_OnSqlite` schreiben (Treffer über `RecipeIngredient.Name`) | Erledigt | `RecipeServiceSearchSqliteTests.SearchAsync_ShouldFindByIngredientName_OnSqlite` |
+| 15 | Tests | `SearchAsync_ShouldNotReturnForeignUserRecipes_OnSqlite` schreiben (`UserId`-Filter) | Erledigt | `RecipeServiceSearchSqliteTests.SearchAsync_ShouldNotReturnForeignUserRecipes_OnSqlite` |
+| 16 | Tests | `SearchAsync_ShouldPageAndCount_OnSqlite` schreiben (`TotalCount` + `Skip/Take`) | Erledigt | `RecipeServiceSearchSqliteTests.SearchAsync_ShouldPageAndCount_OnSqlite` |
+| 17 | Tests | `StubHttpMessageHandler`-Hilfsklasse anlegen (konfigurierbare JSON-Antwort oder Exception für `ApiClient`) | Erledigt | `RecipeSearchComponentTests` (alle Tests nutzen den Handler) |
+| 18 | Tests | `RecipeSearchComponentTests` (bUnit) in `Rezepte.Tests/Components/` anlegen (`AddLocalization()`, `FakeNavigationManager`, `ApiClient` mit `StubHttpMessageHandler`) | Erledigt | `RecipeSearchComponentTests` (alle 3 Tests grün) |
+| 19 | Tests | `RunSearchAsync_WhenCancelled_ShowsSearchFailed` schreiben (Abbruch → `alert-danger`, nicht `alert-secondary`) | Erledigt | `RecipeSearchComponentTests.RunSearchAsync_WhenCancelled_ShowsSearchFailed` |
+| 20 | Tests | `RunSearchAsync_WhenEmpty_ShowsNoSearchResults` schreiben | Erledigt | `RecipeSearchComponentTests.RunSearchAsync_WhenEmpty_ShowsNoSearchResults` |
+| 21 | Tests | `RunSearchAsync_WhenResults_RendersListItems` schreiben (inkl. relative Request-URI) | Erledigt | `RecipeSearchComponentTests.RunSearchAsync_WhenResults_RendersListItems` |
+| 22 | Tests | `RecipesControllerSearchTests` in `Rezepte.Tests/Controllers/` anlegen (Moq `IRecipeService`, `IOptions<ImageOptions>`, `ClaimsPrincipal` mit `NameIdentifier`) | Erledigt | `RecipesControllerSearchTests` (alle 3 Tests grün) |
+| 23 | Tests | `SearchAsync_ShouldClampPageAndPageSize` schreiben (`page`/`pageSize` → geclamped an Service) | Erledigt | `RecipesControllerSearchTests.SearchAsync_ShouldClampPageAndPageSize` |
+| 24 | Tests | `SearchAsync_WithoutUserClaim_ReturnsUnauthorized` schreiben | Erledigt | `RecipesControllerSearchTests.SearchAsync_WithoutUserClaim_ReturnsUnauthorized` |
+| 25 | Tests | `SearchAsync_MapsToResponseDto` schreiben (`Total`, `PublishedLabel`-Format, Snippet-Kappung) | Erledigt | `RecipesControllerSearchTests.SearchAsync_MapsToResponseDto` |
+| 26 | E2E-Tests | `RecipeSeedHelper` in `Rezepte.Tests.Browser/Infrastructure/` anlegen (`page.Context.APIRequest` → `GET api/session/token` → `POST api/recipes` mit Bearer-JWT) | Erledigt | `RecipeSearchBrowserTests.*` (nutzen `RecipeSeedHelper.SeedRecipesAsync`) |
+| 27 | E2E-Tests | `RecipeSearchBrowserTests` (Collection `BrowserTestCollection`) anlegen: Navbar-Suche → Trefferliste zeigt Rezept | Erledigt | `RecipeSearchBrowserTests.NavbarSearch_ShowsSeededRecipe` (grün) |
+| 28 | E2E-Tests | Direktaufruf `GET /recipes/search?q=…` zeigt Treffer (SSR-/Prerender-Pfad) | Erledigt | `RecipeSearchBrowserTests.DirectUrl_WithQuery_ShowsResults` (grün) |
+| 29 | E2E-Tests | Suche ohne Treffer → `alert-secondary` „Keine Treffer." (kein `SearchFailed`) | Erledigt | `RecipeSearchBrowserTests.Search_WithoutMatches_ShowsNoSearchResults` (grün) |
+| 30 | E2E-Tests | Paginierung: > `pageSize` Rezepte seeden → „»"-Button → „Seite 2 von …" mit Resttreffern | Erledigt | `RecipeSearchBrowserTests.Pagination_NextPage_ShowsPageTwo` (grün; beobachtet: gelegentlich Flake durch Prerender/Circuit-Doppellauf, siehe review.md) |
+| 31 | E2E-Tests | In-Page-Suche über `#search-q`-Formular aktualisiert Trefferliste | Erledigt | `RecipeSearchBrowserTests.InPageSearch_Submit_UpdatesResultList` (grün) |
+| 32 | Tests | `LoadingBarFormNavigationBrowserTests.SearchSubmit_ShowsLoadingBar` unter neuem Navigationsmechanismus (Enhanced Navigation) verifizieren und Inline-Kommentare aktualisieren | Erledigt | `LoadingBarFormNavigationBrowserTests.SearchSubmit_ShowsLoadingBar` (grün; Kommentare Z. 40–47 beschreiben beide Mechanismen) |
+| 33 | Abschluss | Vollständiger Testlauf `dotnet test Rezepte.sln --configuration Release` (vorher `dotnet publish Rezepte.Web -c Release` für Browser-Tests) — alle Suiten grün | Erledigt | `dotnet test Rezepte.sln --configuration Release` im Review der Iteration 2: 623/623 grün (Rezepte.Tests 603, Rezepte.Tests.Browser 20 — inkl. `InPageSearch_Submit_UpdatesResultList` und `Pagination_NextPage_ShowsPageTwo`) |
+| 34 | Abschluss | Produktiv-Verifikation des Fehlpfads (Plan-Schritt 10): Suche im Produktivsystem erneut ausführen; anhand `SearchFailed`-Meldung und Log-Einträgen den tatsächlichen Fehlpfad bestätigen | Nicht ausführbar — deploymentabhängig, erst nach Deployment des Fixes möglich | — |

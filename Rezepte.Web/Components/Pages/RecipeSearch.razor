@@ -1,4 +1,6 @@
 @page "/recipes/search"
+@rendermode InteractiveServer
+@implements IDisposable
 @using Microsoft.AspNetCore.Components
 @inject ApiClient Client
 @inject NavigationManager Nav
@@ -8,10 +10,15 @@
 <PageTitle>@Localizer["RecipeSearchPageTitle"]</PageTitle>
 
 <div class="mb-4 d-flex align-items-start gap-3">
-    <form class="d-flex flex-grow-1" @onsubmit="OnSubmitSearch" role="search">
+    @* Plain GET form without @onsubmit: the browser submits the live input value, so the
+       search keeps working even when the typed input events were lost before the
+       interactive circuit bound them. No action attribute - the form posts to the
+       current URL, which keeps any configured PathBase intact. *@
+    <form class="d-flex flex-grow-1" method="get" role="search">
         <input id="search-q" name="q" class="form-control" placeholder="@Localizer["SearchRecipeInputPlaceholder"]" aria-label="@Localizer["SearchRecipes"]"
                @bind="searchQuery" @bind:event="oninput" />
-        <button type="submit" class="btn btn-accent ms-2">Suchen</button>
+        <input type="hidden" name="pageSize" value="@CurrentPageSize" />
+        <button type="submit" class="btn btn-accent ms-2">@Localizer["SearchSubmit"]</button>
     </form>
 </div>
 
@@ -59,14 +66,14 @@ else
 
     <nav class="mt-3" aria-label="@Localizer["PageNavigation"]">
         <ul class="pagination justify-content-center">
-            <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
-                <button class="page-link" @onclick="() => ChangePage(pageNumber - 1)" aria-label="@Localizer["PreviousPage"]">«</button>
+            <li class="page-item @(CurrentPage <= 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="() => ChangePage(CurrentPage - 1)" aria-label="@Localizer["PreviousPage"]">«</button>
             </li>
             <li class="page-item disabled">
-                <span class="page-link">Seite @pageNumber von @TotalPages</span>
+                <span class="page-link">@Localizer["SearchPageOf", CurrentPage, TotalPages]</span>
             </li>
-            <li class="page-item @(pageNumber >= TotalPages ? "disabled" : "")">
-                <button class="page-link" @onclick="() => ChangePage(pageNumber + 1)" aria-label="@Localizer["NextPage"]">»</button>
+            <li class="page-item @(CurrentPage >= TotalPages ? "disabled" : "")">
+                <button class="page-link" @onclick="() => ChangePage(CurrentPage + 1)" aria-label="@Localizer["NextPage"]">»</button>
             </li>
         </ul>
     </nav>
@@ -92,7 +99,8 @@ else
     private RecipeResult[] results = Array.Empty<RecipeResult>();
     private int totalItems;
 
-    private int CurrentPageSize => pageSize == 0 ? 20 : pageSize;
+    private int CurrentPage => pageNumber < 1 ? 1 : pageNumber;
+    private int CurrentPageSize => pageSize < 1 ? 20 : pageSize;
     private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalItems / (double)CurrentPageSize));
 
     protected override async Task OnParametersSetAsync()
@@ -102,19 +110,13 @@ else
         await RunSearchAsync();
     }
 
-    private async Task OnSubmitSearch()
-    {
-        // navigate to first page with query -> URL changes and triggers OnParametersSetAsync
-        var query = string.IsNullOrWhiteSpace(searchQuery) ? string.Empty : Uri.EscapeDataString(searchQuery.Trim());
-        Nav.NavigateTo($"/recipes/search?q={query}&page=1&pageSize={pageSize}", forceLoad: false);
-        await Task.CompletedTask;
-    }
-
     private async Task RunSearchAsync()
     {
         cts?.Cancel();
+        cts?.Dispose();
         cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var token = cts.Token;
+        var localCts = cts;
+        var token = localCts.Token;
 
         try
         {
@@ -124,7 +126,7 @@ else
             totalItems = 0;
 
             var qParam = string.IsNullOrWhiteSpace(q) ? string.Empty : Uri.EscapeDataString(q);
-            var uri = $"/api/recipes/search?q={qParam}&page={pageNumber}&pageSize={CurrentPageSize}";
+            var uri = $"api/recipes/search?q={qParam}&page={CurrentPage}&pageSize={CurrentPageSize}";
 
             var resp = await Client.Http.GetFromJsonAsync<SearchResponseDto>(uri, token);
             if (resp != null)
@@ -135,7 +137,17 @@ else
         }
         catch (OperationCanceledException ex)
         {
-            Logger.LogInformation(ex, "Recipe search for query {Query} was cancelled or timed out", q);
+            if (ReferenceEquals(cts, localCts))
+            {
+                Logger.LogWarning(ex, "Recipe search for query {Query} was cancelled or timed out", q);
+                searchFailed = true;
+                results = Array.Empty<RecipeResult>();
+                totalItems = 0;
+            }
+            else
+            {
+                Logger.LogInformation(ex, "Recipe search for query {Query} was superseded by a newer search", q);
+            }
         }
         catch (Exception ex)
         {
@@ -146,16 +158,27 @@ else
         }
         finally
         {
-            isLoading = false;
-            StateHasChanged();
+            // a superseded search must not reset the loading state of the newer search
+            if (ReferenceEquals(cts, localCts))
+            {
+                isLoading = false;
+                StateHasChanged();
+            }
         }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        cts?.Cancel();
+        cts?.Dispose();
     }
 
     private void ChangePage(int newPage)
     {
         if (newPage < 1) newPage = 1;
         if (newPage > TotalPages) newPage = TotalPages;
-        Nav.NavigateTo($"/recipes/search?q={Uri.EscapeDataString(q ?? string.Empty)}&page={newPage}&pageSize={pageSize}");
+        Nav.NavigateTo($"/recipes/search?q={Uri.EscapeDataString(q ?? string.Empty)}&page={newPage}&pageSize={CurrentPageSize}");
     }
 
     // DTOs / view models used by the page (map from API response)
