@@ -172,6 +172,9 @@ else
     {
         cts?.Cancel();
         cts?.Dispose();
+        // null the field so an in-flight search aborted by this teardown is classified
+        // as superseded rather than as a cancellation/timeout failure
+        cts = null;
     }
 
     private void ChangePage(int newPage)

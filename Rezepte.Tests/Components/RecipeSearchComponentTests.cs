@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Rezepte.Web;
 using Rezepte.Web.Components.Pages;
+using System.Collections.Concurrent;
 using Xunit;
 
 namespace Rezepte.Tests.Components;
@@ -127,6 +128,48 @@ public sealed class RecipeSearchComponentTests : IDisposable
     }
 
     /// <summary>
+    /// Dispose logs an in-flight search aborted by the component teardown as superseded
+    /// instead of a cancellation/timeout failure, because a teardown abort is not a failed
+    /// search attempt and must not be misclassified in the diagnostic signal.
+    /// </summary>
+    [Fact]
+    public async Task Dispose_WhenSearchInFlight_LogsCancellationAsSuperseded()
+    {
+        var logger = new ListLogger<RecipeSearch>();
+        _context.Services.AddSingleton<ILogger<RecipeSearch>>(logger);
+
+        var requestStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new StubHttpMessageHandler(async (_, cancellationToken) =>
+        {
+            requestStarted.TrySetResult();
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        });
+        RegisterApiClient(handler);
+
+        var cut = _context.RenderComponent<RecipeSearch>();
+        await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Dispose the component directly so the teardown cancellation is triggered, then
+        // pump the renderer dispatcher so the faulted in-flight search continuation runs.
+        ((IDisposable)cut.Instance).Dispose();
+        await cut.InvokeAsync(() => Task.CompletedTask);
+
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (logger.Entries.IsEmpty && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(50);
+        }
+
+        logger.Entries.Should().NotContain(
+            e => e.Level >= LogLevel.Warning,
+            "a search aborted by component teardown is a superseded search, not a cancellation failure");
+        logger.Entries.Should().Contain(
+            e => e.Level == LogLevel.Information,
+            "a search aborted by component teardown is logged as superseded");
+    }
+
+    /// <summary>
     /// Dispose.
     /// </summary>
     public void Dispose()
@@ -145,6 +188,27 @@ public sealed class RecipeSearchComponentTests : IDisposable
         public PathBaseNavigationManager(string baseUri)
         {
             Initialize(baseUri, baseUri);
+        }
+    }
+
+    private sealed class ListLogger<T> : ILogger<T>
+    {
+        public ConcurrentQueue<(LogLevel Level, string Message)> Entries { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+        {
+            return null;
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return true;
+        }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Enqueue((logLevel, formatter(state, exception)));
         }
     }
 }

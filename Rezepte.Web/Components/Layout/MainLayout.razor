@@ -112,7 +112,7 @@
     {
         // Submit to the same target as the form's native GET fallback (action="/recipes/search"),
         // so an empty input behaves identically on both paths.
-        var q = Uri.EscapeDataString(searchQuery.Trim());
+        var q = Uri.EscapeDataString(searchQuery?.Trim() ?? string.Empty);
         Nav.NavigateTo($"/recipes/search?q={q}");
 
         return Task.CompletedTask;
