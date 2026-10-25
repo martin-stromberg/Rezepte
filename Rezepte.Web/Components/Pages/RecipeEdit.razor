@@ -442,7 +442,7 @@ else
             if (string.IsNullOrEmpty(userId)) return;
 
             // Direct service call instead of an HTTP self-call to stay robust on
-            // low-performance hosts behind a reverse proxy (see RecipeSearch page).
+            // low-performance hosts where the router round trip can stall (see RecipeSearch page).
             var search = await RecipeService.SearchAsync(userId, q, null, null, 1, 10, "newest", CancellationToken.None);
             sideDishSearchResults = search.Items
                 .Where(item => CanAddSideDish(item.Id))

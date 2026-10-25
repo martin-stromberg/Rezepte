@@ -106,7 +106,7 @@ else
     private int totalItems;
 
     private int CurrentPage => pageNumber < 1 ? 1 : pageNumber;
-    private int CurrentPageSize => pageSize < 1 ? 20 : pageSize;
+    private int CurrentPageSize => pageSize < 1 ? 20 : Math.Min(pageSize, IRecipeService.MaxSearchPageSize);
     private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalItems / (double)CurrentPageSize));
 
     protected override async Task OnParametersSetAsync()
@@ -141,11 +141,11 @@ else
             }
 
             // Direct service call instead of an HTTP self-call: a request to the public base
-            // URI traverses the reverse proxy of the host and can stall on low-performance
-            // servers (e.g. NAS), which previously surfaced as "no results" or a timeout.
+            // URI goes out through the router's port forwarding and back in, which can stall
+            // on low-performance hosts (e.g. NAS) and previously surfaced as a timeout.
             var search = await RecipeService.SearchAsync(userId, q, null, null, CurrentPage, CurrentPageSize, "newest", token);
             results = search.Items
-                .Select(i => new RecipeResult(i.Id, i.Title, i.Snippet, i.PrimaryImageUrl, null, i.Tags, i.CreatedAt.ToString("yyyy-MM-dd")))
+                .Select(i => new RecipeResult(i.Id, i.Title, i.Snippet, i.PrimaryImageUrl, null, i.Tags, i.PublishedLabel))
                 .ToArray();
             totalItems = search.TotalCount;
         }

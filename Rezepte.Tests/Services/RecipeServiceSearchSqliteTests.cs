@@ -187,4 +187,42 @@ public class RecipeServiceSearchSqliteTests : IDisposable
         result.Items.Should().ContainSingle()
             .Which.Title.Should().Be("Eintrag C");
     }
+
+    /// <summary>
+    /// Search async should clamp out-of-range paging values so all callers share the
+    /// same bound as the API endpoint.
+    /// </summary>
+    [Fact]
+    public async Task SearchAsync_ShouldClampOutOfRangePaging_OnSqlite()
+    {
+        await using var db = CreateSqliteDb();
+        db.Recipes.Add(new Recipe { UserId = UserA, Title = "Eintrag A" });
+        db.Recipes.Add(new Recipe { UserId = UserA, Title = "Eintrag B" });
+        await db.SaveChangesAsync();
+        var sut = CreateService(db);
+
+        var result = await sut.SearchAsync(UserA, "Eintrag", tags: null, cookbookId: null, page: 0, pageSize: 0, sort: "title", ct: CancellationToken.None);
+
+        result.TotalCount.Should().Be(2);
+        result.Items.Should().ContainSingle()
+            .Which.Title.Should().Be("Eintrag A", "page 0 is clamped to 1 and pageSize 0 is clamped to 1");
+    }
+
+    /// <summary>
+    /// Search async should provide the formatted published label so UI and API render
+    /// the same value.
+    /// </summary>
+    [Fact]
+    public async Task SearchAsync_ShouldPopulatePublishedLabel_OnSqlite()
+    {
+        await using var db = CreateSqliteDb();
+        db.Recipes.Add(new Recipe { UserId = UserA, Title = "Honigbrot", CreatedAt = new DateTime(2024, 3, 5) });
+        await db.SaveChangesAsync();
+        var sut = CreateService(db);
+
+        var result = await sut.SearchAsync(UserA, "Honig", tags: null, cookbookId: null, page: 1, pageSize: 10, sort: "relevance", ct: CancellationToken.None);
+
+        result.Items.Should().ContainSingle()
+            .Which.PublishedLabel.Should().Be("2024-03-05");
+    }
 }
