@@ -94,6 +94,7 @@ public class RecipesControllerSearchTests
                         Id = "recipe-1",
                         Title = "Honigkuchen",
                         CreatedAt = new DateTime(2024, 3, 5),
+                        PublishedLabel = "2024-03-05",
                         Snippet = longSnippet,
                         PrimaryImageUrl = null,
                         Tags = new[] { "dessert" }

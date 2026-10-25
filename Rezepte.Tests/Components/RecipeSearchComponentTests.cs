@@ -131,7 +131,8 @@ public sealed class RecipeSearchComponentTests : IDisposable
                         Id = "recipe-1",
                         Title = "Honigkuchen",
                         Snippet = "Schnell gemacht",
-                        CreatedAt = new DateTime(2024, 1, 1)
+                        CreatedAt = new DateTime(2024, 1, 1),
+                        PublishedLabel = "2024-01-01"
                     }
                 },
                 TotalCount = 1

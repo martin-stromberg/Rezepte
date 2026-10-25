@@ -25,7 +25,6 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
 {
     private readonly IRecipeService _recipes = recipes;
     private readonly ImageOptions _imageOptions = imageOptions.Value;
-    private const int MaxPageSize = 100;
 
     /// <summary>
     /// Gets the by cookbook.
@@ -577,7 +576,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
         if (userId is null) return Unauthorized();
 
         if (page < 1) page = 1;
-        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        pageSize = Math.Clamp(pageSize, 1, IRecipeService.MaxSearchPageSize);
 
         var recipes = await _recipes.SearchAsync(userId, q, tags, cookbookId, page, pageSize, sort, ct);
 
@@ -589,7 +588,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
             Snippet: (i.Snippet ?? string.Empty).Length <= 200 ? (i.Snippet ?? string.Empty) : (i.Snippet ?? string.Empty).Substring(0, 200) + "...",
             PrimaryImageUrl: i.PrimaryImageUrl,
             Tags: i.Tags ?? Array.Empty<string>(),
-            PublishedLabel: i.CreatedAt.ToString("yyyy-MM-dd")
+            PublishedLabel: i.PublishedLabel
         )).ToArray();
 
         var result = new RecipeSearchResponseDto(items, recipes.TotalCount);

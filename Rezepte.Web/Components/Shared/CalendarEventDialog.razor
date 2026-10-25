@@ -515,7 +515,7 @@ else
             }
 
             // Direct service call instead of an HTTP self-call to stay robust on
-            // low-performance hosts behind a reverse proxy (see RecipeSearch page).
+            // low-performance hosts where the router round trip can stall (see RecipeSearch page).
             var search = await RecipeService.SearchAsync(userId, q, null, null, 1, 12, "newest", CancellationToken.None);
             recipeResults = search.Items
                 .Select(i => new RecipeSearchResultDto(i.Id, i.Title, i.Snippet, i.PrimaryImageUrl, null))

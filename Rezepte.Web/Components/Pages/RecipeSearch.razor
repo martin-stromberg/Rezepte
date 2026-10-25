@@ -16,13 +16,14 @@
 <PageTitle>@Localizer["RecipeSearchPageTitle"]</PageTitle>
 
 <div class="mb-4 d-flex align-items-start gap-3">
-    @* Plain GET form without @onsubmit: the browser submits the live input value, so the
-       search keeps working even when the typed input events were lost before the
-       interactive circuit bound them. No action attribute - the form posts to the
-       current URL, which keeps any configured PathBase intact. *@
+    @* Plain GET form without @onsubmit or @bind: the browser submits the live input
+       value, so the search works before/without the interactive circuit and the typed
+       text can never be overwritten by a re-render of a controlled two-way binding.
+       No action attribute - the form posts to the current URL, which keeps any
+       configured PathBase intact. *@
     <form class="d-flex flex-grow-1" method="get" role="search">
         <input id="search-q" name="q" class="form-control" placeholder="@Localizer["SearchRecipeInputPlaceholder"]" aria-label="@Localizer["SearchRecipes"]"
-               @bind="searchQuery" @bind:event="oninput" />
+               value="@(q ?? string.Empty)" />
         <input type="hidden" name="pageSize" value="@CurrentPageSize" />
         <button type="submit" class="btn btn-accent ms-2">@Localizer["SearchSubmit"]</button>
     </form>
@@ -98,7 +99,6 @@ else
     [SupplyParameterFromQuery(Name = "pageSize")]
     public int pageSize { get; set; } = 10;
 
-    private string searchQuery = string.Empty;
     private bool isLoading;
     private bool searchFailed;
     private CancellationTokenSource? cts;
@@ -106,13 +106,11 @@ else
     private int totalItems;
 
     private int CurrentPage => pageNumber < 1 ? 1 : pageNumber;
-    private int CurrentPageSize => pageSize < 1 ? 20 : pageSize;
+    private int CurrentPageSize => pageSize < 1 ? 20 : Math.Min(pageSize, IRecipeService.MaxSearchPageSize);
     private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalItems / (double)CurrentPageSize));
 
     protected override async Task OnParametersSetAsync()
     {
-        // keep UI input in sync with query param
-        searchQuery = q ?? string.Empty;
         await RunSearchAsync();
     }
 
@@ -141,11 +139,11 @@ else
             }
 
             // Direct service call instead of an HTTP self-call: a request to the public base
-            // URI traverses the reverse proxy of the host and can stall on low-performance
-            // servers (e.g. NAS), which previously surfaced as "no results" or a timeout.
+            // URI goes out through the router's port forwarding and back in, which can stall
+            // on low-performance hosts (e.g. NAS) and previously surfaced as a timeout.
             var search = await RecipeService.SearchAsync(userId, q, null, null, CurrentPage, CurrentPageSize, "newest", token);
             results = search.Items
-                .Select(i => new RecipeResult(i.Id, i.Title, i.Snippet, i.PrimaryImageUrl, null, i.Tags, i.CreatedAt.ToString("yyyy-MM-dd")))
+                .Select(i => new RecipeResult(i.Id, i.Title, i.Snippet, i.PrimaryImageUrl, null, i.Tags, i.PublishedLabel))
                 .ToArray();
             totalItems = search.TotalCount;
         }
