@@ -16,13 +16,14 @@
 <PageTitle>@Localizer["RecipeSearchPageTitle"]</PageTitle>
 
 <div class="mb-4 d-flex align-items-start gap-3">
-    @* Plain GET form without @onsubmit: the browser submits the live input value, so the
-       search keeps working even when the typed input events were lost before the
-       interactive circuit bound them. No action attribute - the form posts to the
-       current URL, which keeps any configured PathBase intact. *@
+    @* Plain GET form without @onsubmit or @bind: the browser submits the live input
+       value, so the search works before/without the interactive circuit and the typed
+       text can never be overwritten by a re-render of a controlled two-way binding.
+       No action attribute - the form posts to the current URL, which keeps any
+       configured PathBase intact. *@
     <form class="d-flex flex-grow-1" method="get" role="search">
         <input id="search-q" name="q" class="form-control" placeholder="@Localizer["SearchRecipeInputPlaceholder"]" aria-label="@Localizer["SearchRecipes"]"
-               @bind="searchQuery" @bind:event="oninput" />
+               value="@(q ?? string.Empty)" />
         <input type="hidden" name="pageSize" value="@CurrentPageSize" />
         <button type="submit" class="btn btn-accent ms-2">@Localizer["SearchSubmit"]</button>
     </form>
@@ -98,7 +99,6 @@ else
     [SupplyParameterFromQuery(Name = "pageSize")]
     public int pageSize { get; set; } = 10;
 
-    private string searchQuery = string.Empty;
     private bool isLoading;
     private bool searchFailed;
     private CancellationTokenSource? cts;
@@ -111,8 +111,6 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        // keep UI input in sync with query param
-        searchQuery = q ?? string.Empty;
         await RunSearchAsync();
     }
 

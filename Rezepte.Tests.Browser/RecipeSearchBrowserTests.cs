@@ -163,7 +163,16 @@ public class RecipeSearchBrowserTests
             .WaitForAsync(new LocatorWaitForOptions { Timeout = PageContentTimeoutMilliseconds });
 
         await pageObject.Page.FillAsync("#search-q", title);
+        await Assertions.Expect(pageObject.Page.Locator("#search-q")).ToHaveValueAsync(
+            title,
+            new LocatorAssertionsToHaveValueOptions { Timeout = PageContentTimeoutMilliseconds });
         await pageObject.Page.ClickAsync("form:has(#search-q) button[type='submit']");
+
+        // First prove the GET form actually navigated before waiting on the result list —
+        // otherwise a swallowed submit and a failed search are indistinguishable.
+        await pageObject.Page.WaitForURLAsync(
+            $"**/recipes/search?q={Uri.EscapeDataString(title)}*",
+            new PageWaitForURLOptions { Timeout = PageContentTimeoutMilliseconds });
 
         await pageObject.Page
             .Locator($".list-group-item:has-text('{title}')")
