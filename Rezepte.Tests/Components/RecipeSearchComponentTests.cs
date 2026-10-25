@@ -1,12 +1,15 @@
 using Bunit;
+using Bunit.TestDoubles;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Rezepte.Web;
+using Moq;
 using Rezepte.Web.Components.Pages;
+using Rezepte.Web.Services;
 using System.Collections.Concurrent;
+using System.Security.Claims;
 using Xunit;
 
 namespace Rezepte.Tests.Components;
@@ -30,14 +33,16 @@ public sealed class RecipeSearchComponentTests : IDisposable
     }
 
     /// <summary>
-    /// Run search async shows the search failed alert when the self-call is cancelled while the
+    /// Run search async shows the search failed alert when the search is cancelled while the
     /// search is still the active one.
     /// </summary>
     [Fact]
     public void RunSearchAsync_WhenCancelled_ShowsSearchFailed()
     {
-        var handler = StubHttpMessageHandler.Throwing(new OperationCanceledException("boom-cancelled"));
-        RegisterApiClient(handler);
+        Authorize();
+        var service = RegisterRecipeService();
+        service.Setup(SearchAsyncSetup())
+            .ThrowsAsync(new OperationCanceledException("boom-cancelled"));
 
         var cut = _context.RenderComponent<RecipeSearch>();
 
@@ -49,14 +54,16 @@ public sealed class RecipeSearchComponentTests : IDisposable
     }
 
     /// <summary>
-    /// Run search async shows the search failed alert when the self-call fails with a
+    /// Run search async shows the search failed alert when the search fails with a
     /// non-cancellation exception.
     /// </summary>
     [Fact]
     public void RunSearchAsync_WhenRequestFails_ShowsSearchFailed()
     {
-        var handler = StubHttpMessageHandler.Throwing(new HttpRequestException("boom-request"));
-        RegisterApiClient(handler);
+        Authorize();
+        var service = RegisterRecipeService();
+        service.Setup(SearchAsyncSetup())
+            .ThrowsAsync(new InvalidOperationException("boom-request"));
 
         var cut = _context.RenderComponent<RecipeSearch>();
 
@@ -65,6 +72,24 @@ public sealed class RecipeSearchComponentTests : IDisposable
             cut.Find(".alert-danger").InnerHtml.Should().Contain("Die Suche ist fehlgeschlagen.");
         });
         cut.FindAll(".alert-secondary").Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Run search async shows the search failed alert when there is no authenticated user.
+    /// </summary>
+    [Fact]
+    public void RunSearchAsync_WhenUnauthenticated_ShowsSearchFailed()
+    {
+        _context.AddTestAuthorization().SetNotAuthorized();
+        var service = RegisterRecipeService();
+
+        var cut = _context.RenderComponent<RecipeSearch>();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find(".alert-danger").InnerHtml.Should().Contain("Die Suche ist fehlgeschlagen.");
+        });
+        service.Verify(SearchAsyncSetup(), Times.Never);
     }
 
     /// <summary>
@@ -73,12 +98,10 @@ public sealed class RecipeSearchComponentTests : IDisposable
     [Fact]
     public void RunSearchAsync_WhenEmpty_ShowsNoSearchResults()
     {
-        var handler = StubHttpMessageHandler.WithJson(new
-        {
-            items = Array.Empty<object>(),
-            total = 0
-        });
-        RegisterApiClient(handler);
+        Authorize();
+        var service = RegisterRecipeService();
+        service.Setup(SearchAsyncSetup())
+            .ReturnsAsync(new RecipeService.SearchResult { Items = Array.Empty<RecipeService.SearchResultItem>(), TotalCount = 0 });
 
         var cut = _context.RenderComponent<RecipeSearch>();
 
@@ -90,30 +113,29 @@ public sealed class RecipeSearchComponentTests : IDisposable
     }
 
     /// <summary>
-    /// Run search async renders the returned items and sends the request with a relative URI so the
-    /// configured base address path is preserved.
+    /// Run search async renders the returned items and queries the service with the
+    /// authenticated user id and the current paging values.
     /// </summary>
     [Fact]
     public void RunSearchAsync_WhenResults_RendersListItems()
     {
-        var handler = StubHttpMessageHandler.WithJson(new
-        {
-            items = new[]
+        Authorize();
+        var service = RegisterRecipeService();
+        service.Setup(SearchAsyncSetup())
+            .ReturnsAsync(new RecipeService.SearchResult
             {
-                new
+                Items = new[]
                 {
-                    id = "recipe-1",
-                    title = "Honigkuchen",
-                    snippet = "Schnell gemacht",
-                    primaryImageUrl = (string?)null,
-                    cookbooks = (string[]?)null,
-                    tags = (string[]?)null,
-                    publishedLabel = "2024-01-01"
-                }
-            },
-            total = 1
-        });
-        RegisterApiClient(handler);
+                    new RecipeService.SearchResultItem
+                    {
+                        Id = "recipe-1",
+                        Title = "Honigkuchen",
+                        Snippet = "Schnell gemacht",
+                        CreatedAt = new DateTime(2024, 1, 1)
+                    }
+                },
+                TotalCount = 1
+            });
 
         var cut = _context.RenderComponent<RecipeSearch>();
 
@@ -122,33 +144,41 @@ public sealed class RecipeSearchComponentTests : IDisposable
             cut.Find(".list-group-item").InnerHtml.Should().Contain("Honigkuchen");
         });
 
-        handler.LastRequest.Should().NotBeNull();
-        handler.LastRequest!.RequestUri.Should().NotBeNull();
-        handler.LastRequest.RequestUri!.AbsolutePath.Should().Be("/sub/api/recipes/search");
+        service.Verify(s => s.SearchAsync(
+            "user-1",
+            It.IsAny<string?>(),
+            null,
+            null,
+            1,
+            20,
+            "newest",
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     /// <summary>
     /// Dispose logs an in-flight search aborted by the component teardown as superseded
-    /// instead of a cancellation/timeout failure, because a teardown abort is not a failed
+    /// instead of a cancellation failure, because a teardown abort is not a failed
     /// search attempt and must not be misclassified in the diagnostic signal.
     /// </summary>
     [Fact]
     public async Task Dispose_WhenSearchInFlight_LogsCancellationAsSuperseded()
     {
+        Authorize();
         var logger = new ListLogger<RecipeSearch>();
         _context.Services.AddSingleton<ILogger<RecipeSearch>>(logger);
 
-        var requestStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var handler = new StubHttpMessageHandler(async (_, cancellationToken) =>
-        {
-            requestStarted.TrySetResult();
-            await Task.Delay(Timeout.Infinite, cancellationToken);
-            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
-        });
-        RegisterApiClient(handler);
+        var searchStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var service = RegisterRecipeService();
+        service.Setup(SearchAsyncSetup())
+            .Returns<string, string?, string?, string?, int, int, string, CancellationToken>(async (_, _, _, _, _, _, _, ct) =>
+            {
+                searchStarted.TrySetResult();
+                await Task.Delay(Timeout.Infinite, ct);
+                return new RecipeService.SearchResult();
+            });
 
         var cut = _context.RenderComponent<RecipeSearch>();
-        await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await searchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         // Dispose the component directly so the teardown cancellation is triggered, then
         // pump the renderer dispatcher so the faulted in-flight search continuation runs.
@@ -177,10 +207,31 @@ public sealed class RecipeSearchComponentTests : IDisposable
         _context.Dispose();
     }
 
-    private void RegisterApiClient(StubHttpMessageHandler handler)
+    private void Authorize()
     {
-        var httpClient = new HttpClient(handler);
-        _context.Services.AddSingleton(new ApiClient(httpClient, _navigationManager));
+        var auth = _context.AddTestAuthorization();
+        auth.SetAuthorized("testuser");
+        auth.SetClaims(new Claim(ClaimTypes.NameIdentifier, "user-1"));
+    }
+
+    private Mock<IRecipeService> RegisterRecipeService()
+    {
+        var service = new Mock<IRecipeService>();
+        _context.Services.AddSingleton(service.Object);
+        return service;
+    }
+
+    private static System.Linq.Expressions.Expression<Func<IRecipeService, Task<RecipeService.SearchResult>>> SearchAsyncSetup()
+    {
+        return s => s.SearchAsync(
+            It.IsAny<string>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>());
     }
 
     private sealed class PathBaseNavigationManager : NavigationManager

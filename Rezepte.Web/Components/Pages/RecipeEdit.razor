@@ -1,11 +1,16 @@
 @page "/recipes/{Id}/edit"
 @page "/recipes/new"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Rezepte.Web.Components.Shared
+@using Rezepte.Web.Services
+@using System.Security.Claims
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject NavigationManager Nav
 @inject ApiClient Api
+@inject IRecipeService RecipeService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 @inject ILogger<Rezepte.Web.Components.Pages.RecipeEdit> Logger
 @inject IStringLocalizer<UiStrings> Localizer
@@ -432,11 +437,17 @@ else
                 return;
             }
 
-            var url = $"api/recipes/search?q={Uri.EscapeDataString(q)}&page=1&pageSize=10";
-            var response = await Api.Http.GetFromJsonAsync<RecipeSearchResponseDto>(url);
-            sideDishSearchResults = response?.Items?
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return;
+
+            // Direct service call instead of an HTTP self-call to stay robust on
+            // low-performance hosts behind a reverse proxy (see RecipeSearch page).
+            var search = await RecipeService.SearchAsync(userId, q, null, null, 1, 10, "newest", CancellationToken.None);
+            sideDishSearchResults = search.Items
                 .Where(item => CanAddSideDish(item.Id))
-                .ToList() ?? new List<RecipeSearchResultDto>();
+                .Select(i => new RecipeSearchResultDto(i.Id, i.Title, i.Snippet, i.PrimaryImageUrl, null))
+                .ToList();
         }
         finally
         {
@@ -448,12 +459,17 @@ else
     {
         try
         {
-            var dto = await Api.Http.GetFromJsonAsync<RecipeDto>($"api/recipes/{Uri.EscapeDataString(recipeId)}");
-            return dto is null
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return null;
+
+            var recipe = await RecipeService.GetByIdAsync(userId, recipeId, CancellationToken.None);
+            return recipe is null
                 ? null
-                : new RecipeSearchResultDto(dto.Id, dto.Title, dto.Description, dto.ImageUrl, dto.NumberOfPortions);
+                : new RecipeSearchResultDto(recipe.Id, recipe.Title, recipe.Description,
+                    recipe.Images?.OrderByDescending(i => i.CreatedAt).Select(i => i.Url).FirstOrDefault(), recipe.Portions);
         }
-        catch (HttpRequestException)
+        catch (Exception)
         {
             return null;
         }
@@ -510,7 +526,7 @@ else
     private record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
     private record SideDishDto(string Id, string Title, string? Description, string? ImageUrl, int Portions);
     private record SideDishModel(string Id, string Title, string? Description, string? ImageUrl, int Portions);
-    private record RecipeSearchResponseDto(List<RecipeSearchResultDto> Items, int Total);
+
     private record RecipeSearchResultDto(string Id, string Title, string? Snippet, string? PrimaryImageUrl, int? DefaultPortions);
 
     private class StepModel

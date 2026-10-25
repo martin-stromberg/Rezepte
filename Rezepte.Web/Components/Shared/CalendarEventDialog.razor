@@ -1,7 +1,12 @@
 @namespace Rezepte.Web.Components.Shared
 @using Rezepte.Web.Entities
+@using Rezepte.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using System.Security.Claims
 @inject ApiClient Client
+@inject IRecipeService RecipeService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<Rezepte.Web.Components.Shared.CalendarEventDialog> Logger
 @inject IStringLocalizer<UiStrings> Localizer
 
@@ -285,7 +290,6 @@ else
 
     // DTOs / local types
     private record RecipeSearchResultDto(string Id, string Title, string? Snippet, string? PrimaryImageUrl, int? DefaultPortions);
-    private record RecipeSearchResponseDto(RecipeSearchResultDto[] Items, int Total);
     private record RecipeSideDishDto(string Id, string Title, string? Description, string? ImageUrl, int Portions);
 
     private record CreateDto(string? RecipeId, DateTime StartDate, TimeSpan TimeOfDay, Int32 Portions, RecurrenceType Recurrence, WeekDays RecurrenceDays);
@@ -501,31 +505,21 @@ else
         await InvokeAsync(StateHasChanged);
         try
         {
-            var url = $"api/recipes/search?q={Uri.EscapeDataString(q)}&page=1&pageSize=12";
-            RecipeSearchResponseDto? resp = null;
-            try
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
-                resp = await Client.Http.GetFromJsonAsync<RecipeSearchResponseDto>(url);
-            }
-            catch (Exception ex) when (ex is System.Text.Json.JsonException or NotSupportedException)
-            {
-                Logger.LogDebug(ex, "Paged recipe search response could not be read; falling back to a plain list");
-                try
-                {
-                    var list = await Client.Http.GetFromJsonAsync<List<RecipeSearchResultDto>>(url);
-                    recipeResults = list ?? new List<RecipeSearchResultDto>();
-                    return;
-                }
-                catch (Exception fallbackEx)
-                {
-                    Logger.LogError(fallbackEx, "Recipe search for query {Query} failed", q);
-                    recipeResults = new List<RecipeSearchResultDto>();
-                    recipeSearchFailed = true;
-                    return;
-                }
+                recipeResults = new List<RecipeSearchResultDto>();
+                recipeSearchFailed = true;
+                return;
             }
 
-            recipeResults = resp?.Items?.ToList() ?? new List<RecipeSearchResultDto>();
+            // Direct service call instead of an HTTP self-call to stay robust on
+            // low-performance hosts behind a reverse proxy (see RecipeSearch page).
+            var search = await RecipeService.SearchAsync(userId, q, null, null, 1, 12, "newest", CancellationToken.None);
+            recipeResults = search.Items
+                .Select(i => new RecipeSearchResultDto(i.Id, i.Title, i.Snippet, i.PrimaryImageUrl, null))
+                .ToList();
         }
         catch (Exception ex)
         {
