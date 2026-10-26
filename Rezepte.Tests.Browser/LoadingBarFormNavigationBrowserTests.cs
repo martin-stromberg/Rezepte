@@ -33,19 +33,18 @@ public class LoadingBarFormNavigationBrowserTests
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
 
-        // Delay the search navigation so the old document stays alive long enough for the assertion
-        // below to observe the loading bar while the request is still in flight.
+        // Delay the search navigation so the request stays in flight long enough for the
+        // assertion below to observe the active loading bar.
         await pageObject.DelayRouteAsync(LoadingBarPageObject.SearchRouteGlob, 1500);
 
-        // This search submit performs a genuine full-page navigation (NavigationManager.NavigateTo()
-        // from the server-side handler), unlike an enhanced-navigation link click. Starting the wait
-        // BEFORE triggering the submit (instead of after) is essential here, not just style: once the
-        // submit is in flight, Playwright's WaitForFunctionAsync call would bind to whatever document
-        // is current *at the moment it is issued*. Issued after the click, on a fast enough navigation
-        // it can lose the race and bind to the *new*, already-loaded (and therefore inactive) document,
-        // producing a timeout no matter how large - the assertion would then be observing the wrong
-        // page entirely. Starting the wait first guarantees it binds to the old document, where the
-        // 'beforeunload'-triggered activation actually happens.
+        // The search submit reaches /recipes/search in one of two ways: once the interactive
+        // circuit is up, NavigationManager.NavigateTo() runs as a Blazor enhanced navigation
+        // ('enhancednavigationstart' activates the bar); if the circuit is not connected yet,
+        // the form's native action="/recipes/search" fallback performs a real navigation
+        // ('beforeunload' activates the bar). Either way the request matches the delayed route
+        // above and the bar must activate while it is in flight. Starting the wait BEFORE the
+        // submit is kept on purpose: it guarantees the assertion observes the bar's activation
+        // regardless of which of the two mechanisms fires.
         var loadingBarActiveTask = pageObject.WaitUntilLoadingBarActiveAsync(timeoutMilliseconds: 5000);
         await pageObject.SubmitNavigationSearchAsync("Suppe");
         await loadingBarActiveTask;

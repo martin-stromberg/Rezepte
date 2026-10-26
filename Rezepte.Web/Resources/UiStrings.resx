@@ -83,6 +83,8 @@
   <data name="PageNavigation" xml:space="preserve"><value>Seitennavigation</value></data>
   <data name="PreviousPage" xml:space="preserve"><value>Vorherige</value></data>
   <data name="NextPage" xml:space="preserve"><value>Nächste</value></data>
+  <data name="SearchPageOf" xml:space="preserve"><value>Seite {0} von {1}</value></data>
+  <data name="SearchSubmit" xml:space="preserve"><value>Suchen</value></data>
   <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
   <data name="ManageImages" xml:space="preserve"><value>Bilder verwalten</value></data>
   <data name="RecipeLoadFailed" xml:space="preserve"><value>Rezept konnte nicht geladen werden.</value></data>

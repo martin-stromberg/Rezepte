@@ -1,7 +1,12 @@
 @namespace Rezepte.Web.Components.Shared
 @using Rezepte.Web.Entities
+@using Rezepte.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using System.Security.Claims
 @inject ApiClient Client
+@inject IRecipeService RecipeService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<Rezepte.Web.Components.Shared.CalendarEventDialog> Logger
 @inject IStringLocalizer<UiStrings> Localizer
 
@@ -208,7 +213,11 @@ else
                 <div class="mb-2">suche…</div>
             }
 
-            @if (recipeResults?.Any() == true)
+            @if (recipeSearchFailed)
+            {
+                <div class="alert alert-danger">@Localizer["SearchFailed"]</div>
+            }
+            else if (recipeResults?.Any() == true)
             {
                 <div class="list-group mb-2" style="max-height:360px;overflow:auto;">
                     @foreach (var r in recipeResults)
@@ -265,6 +274,7 @@ else
     private string recipeSearchQuery = string.Empty;
     private List<RecipeSearchResultDto>? recipeResults;
     private bool isSearching;
+    private bool recipeSearchFailed;
     private CancellationTokenSource? recipeSearchCts;
     private ElementReference recipeSearchInputRef;
 
@@ -280,7 +290,6 @@ else
 
     // DTOs / local types
     private record RecipeSearchResultDto(string Id, string Title, string? Snippet, string? PrimaryImageUrl, int? DefaultPortions);
-    private record RecipeSearchResponseDto(RecipeSearchResultDto[] Items, int Total);
     private record RecipeSideDishDto(string Id, string Title, string? Description, string? ImageUrl, int Portions);
 
     private record CreateDto(string? RecipeId, DateTime StartDate, TimeSpan TimeOfDay, Int32 Portions, RecurrenceType Recurrence, WeekDays RecurrenceDays);
@@ -318,7 +327,7 @@ else
             {
                 try
                 {
-                    var dto = await Client.Http.GetFromJsonAsync<RecipePreviewDto>($"/api/recipes/{form.RecipeId}");
+                    var dto = await Client.Http.GetFromJsonAsync<RecipePreviewDto>($"api/recipes/{form.RecipeId}");
                     if (dto != null)
                     {
                         selectedRecipeTitle = dto.Title;
@@ -374,7 +383,7 @@ else
                 if (!mainCalendarEventCreated)
                 {
                     var dto = new CreateDto(form.RecipeId, form.StartDate, form.TimeOfDay, form.Portions, form.Recurrence, form.RecurrenceDays);
-                    var resp = await Client.Http.PostAsJsonAsync("/api/calendar", dto);
+                    var resp = await Client.Http.PostAsJsonAsync("api/calendar", dto);
                     resp.EnsureSuccessStatusCode();
                     mainCalendarEventCreated = true;
                 }
@@ -382,7 +391,7 @@ else
                 foreach (var sideDishId in selectedSideDishIds.Where(id => !createdSideDishIds.Contains(id)).ToList())
                 {
                     var sideDishDto = new CreateDto(sideDishId, form.StartDate, form.TimeOfDay, form.Portions, form.Recurrence, form.RecurrenceDays);
-                    var sideDishResp = await Client.Http.PostAsJsonAsync("/api/calendar", sideDishDto);
+                    var sideDishResp = await Client.Http.PostAsJsonAsync("api/calendar", sideDishDto);
                     sideDishResp.EnsureSuccessStatusCode();
                     createdSideDishIds.Add(sideDishId);
                 }
@@ -390,7 +399,7 @@ else
             else
             {
                 var dto = new UpdateDto(form.StartDate, form.TimeOfDay, form.Portions, form.Recurrence, form.RecurrenceDays);
-                var resp = await Client.Http.PutAsJsonAsync($"/api/calendar/{EditingId}", dto);
+                var resp = await Client.Http.PutAsJsonAsync($"api/calendar/{EditingId}", dto);
                 resp.EnsureSuccessStatusCode();
             }
 
@@ -429,6 +438,7 @@ else
         showRecipePicker = true;
         recipeSearchQuery = string.Empty;
         recipeResults = null;
+        recipeSearchFailed = false;
         StateHasChanged();
 
         _ = InvokeAsync(async () =>
@@ -452,6 +462,7 @@ else
         showRecipePicker = false;
         recipeSearchQuery = string.Empty;
         recipeResults = null;
+        recipeSearchFailed = false;
     }
 
     private void OnRecipeSearchInput(ChangeEventArgs e)
@@ -484,43 +495,37 @@ else
         if (string.IsNullOrWhiteSpace(q))
         {
             recipeResults = null;
+            recipeSearchFailed = false;
             await InvokeAsync(StateHasChanged);
             return;
         }
 
         isSearching = true;
+        recipeSearchFailed = false;
         await InvokeAsync(StateHasChanged);
         try
         {
-            var url = $"/api/recipes/search?q={Uri.EscapeDataString(q)}&page=1&pageSize=12";
-            RecipeSearchResponseDto? resp = null;
-            try
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
             {
-                resp = await Client.Http.GetFromJsonAsync<RecipeSearchResponseDto>(url);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogDebug(ex, "Paged recipe search response could not be read; falling back to a plain list");
-                try
-                {
-                    var list = await Client.Http.GetFromJsonAsync<List<RecipeSearchResultDto>>(url);
-                    recipeResults = list ?? new List<RecipeSearchResultDto>();
-                    return;
-                }
-                catch (Exception fallbackEx)
-                {
-                    Logger.LogError(fallbackEx, "Recipe search for query {Query} failed", q);
-                    recipeResults = new List<RecipeSearchResultDto>();
-                    return;
-                }
+                recipeResults = new List<RecipeSearchResultDto>();
+                recipeSearchFailed = true;
+                return;
             }
 
-            recipeResults = resp?.Items?.ToList() ?? new List<RecipeSearchResultDto>();
+            // Direct service call instead of an HTTP self-call to stay robust on
+            // low-performance hosts where the router round trip can stall (see RecipeSearch page).
+            var search = await RecipeService.SearchAsync(userId, q, null, null, 1, 12, "newest", CancellationToken.None);
+            recipeResults = search.Items
+                .Select(i => new RecipeSearchResultDto(i.Id, i.Title, i.Snippet, i.PrimaryImageUrl, null))
+                .ToList();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Recipe search for query {Query} failed", q);
             recipeResults = new List<RecipeSearchResultDto>();
+            recipeSearchFailed = true;
         }
         finally
         {
@@ -568,7 +573,7 @@ else
 
         try
         {
-            sideDishSuggestions = await Client.Http.GetFromJsonAsync<List<RecipeSideDishDto>>($"/api/recipes/{recipeId}/side-dishes") ?? new List<RecipeSideDishDto>();
+            sideDishSuggestions = await Client.Http.GetFromJsonAsync<List<RecipeSideDishDto>>($"api/recipes/{recipeId}/side-dishes") ?? new List<RecipeSideDishDto>();
             selectedSideDishIds = sideDishSuggestions.Select(sd => sd.Id).ToHashSet();
         }
         catch (Exception ex)

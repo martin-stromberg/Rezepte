@@ -16,6 +16,12 @@ namespace Rezepte.Web.Services;
 public interface IRecipeService
 {
     /// <summary>
+    /// Maximum accepted page size for <see cref="SearchAsync"/>. The implementation clamps
+    /// callers to this limit so UI and API consumers share the same bound.
+    /// </summary>
+    public const int MaxSearchPageSize = 100;
+
+    /// <summary>
     /// Gets the by id async.
     /// </summary>
     /// <param name="userId">The user id parameter.</param>
@@ -875,6 +881,9 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
     /// <returns>The result.</returns>
     public async Task<SearchResult> SearchAsync(string userId, string? q, string? tags, string? cookbookId, int page, int pageSize, string sort, CancellationToken ct)
     {
+        if (page < 1) page = 1;
+        pageSize = Math.Clamp(pageSize, 1, IRecipeService.MaxSearchPageSize);
+
         // Base query: include steps + ingredients and images; RecipeCookbooks needed for cookbook filter
         IQueryable<Recipe> query = _db.Recipes
             .AsNoTracking()
@@ -925,6 +934,7 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
                 Id = r.Id,
                 Title = r.Title,
                 CreatedAt = r.CreatedAt,
+                PublishedLabel = r.CreatedAt.ToString("yyyy-MM-dd"),
                 PrimaryImageUrl = r.Images.OrderByDescending(i => i.CreatedAt).Select(i => i.Url).FirstOrDefault(),
                 // Create a short snippet: prefer first step description, then ingredient names, then recipe description
                 Snippet = (r.Steps
@@ -1037,6 +1047,10 @@ public class RecipeService(RezepteDbContext db, IWebHostEnvironment env, IHttpCo
         /// Represents the public class.
         /// </summary>
         public string Snippet { get; set; } = string.Empty;
+        /// <summary>
+        /// Gets or sets the formatted creation date shown to users (shared by UI and API).
+        /// </summary>
+        public string? PublishedLabel { get; set; }
         /// <summary>
         /// arrays the value.
         /// </summary>
