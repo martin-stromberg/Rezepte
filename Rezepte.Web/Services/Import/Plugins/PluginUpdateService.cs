@@ -65,17 +65,17 @@ public sealed class PluginUpdateService(
             var source = await db.PluginSources.FindAsync([sourceId], ct).ConfigureAwait(false);
             if (source is null)
             {
-                return PluginUpdateCheckResult.Failed("Plugin source was not found.");
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.SourceNotFound);
             }
 
             if (!source.Enabled)
             {
-                return PluginUpdateCheckResult.Failed("Plugin source is disabled.");
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.SourceDisabled);
             }
 
             if (!source.TrustConfirmed)
             {
-                return PluginUpdateCheckResult.Failed("Plugin source is not confirmed as trusted.");
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.SourceNotTrusted);
             }
 
             return await ProcessSourceAsync(source, ct).ConfigureAwait(false);
@@ -101,22 +101,22 @@ public sealed class PluginUpdateService(
                 : null;
             if (source.IsPrivate && string.IsNullOrWhiteSpace(token))
             {
-                await MarkSourceFailureAsync(source, "Private source has no stored PAT.", ct).ConfigureAwait(false);
-                return PluginUpdateCheckResult.Failed("Private source has no stored PAT.");
+                await MarkSourceFailureAsync(source, PluginUpdateCheckErrors.PrivateSourceNoPat, ct).ConfigureAwait(false);
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.PrivateSourceNoPat);
             }
 
             var release = await gitHubReleaseClient.GetLatestReleaseAsync(repository, token, ct).ConfigureAwait(false);
             if (release is null || string.IsNullOrWhiteSpace(release.TagName))
             {
-                await MarkSourceFailureAsync(source, "No published GitHub release was found.", ct).ConfigureAwait(false);
-                return PluginUpdateCheckResult.Failed("No published GitHub release was found.");
+                await MarkSourceFailureAsync(source, PluginUpdateCheckErrors.NoPublishedRelease, ct).ConfigureAwait(false);
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.NoPublishedRelease);
             }
 
             var asset = release.FindZipAsset();
             if (asset is null)
             {
-                await UpsertReleaseFailureAsync(source, release, 0, string.Empty, PluginSourceReleaseStatus.ValidationFailed, "Latest release has no ZIP asset.", ct).ConfigureAwait(false);
-                return PluginUpdateCheckResult.Failed("Latest release has no ZIP asset.", release.TagName);
+                await UpsertReleaseFailureAsync(source, release, 0, string.Empty, PluginSourceReleaseStatus.ValidationFailed, PluginUpdateCheckErrors.NoZipAsset, ct).ConfigureAwait(false);
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.NoZipAsset, release.TagName);
             }
 
             var existing = await db.PluginSourceReleases
@@ -186,7 +186,7 @@ public sealed class PluginUpdateService(
             {
                 record.Status = PluginSourceReleaseStatus.ValidationFailed;
                 record.Error = validation.Error;
-                var error = validation.Error ?? "Plugin package validation failed.";
+                var error = validation.Error ?? PluginUpdateCheckErrors.ValidationFailed;
                 await MarkSourceFailureAsync(source, error, ct).ConfigureAwait(false);
                 return PluginUpdateCheckResult.Failed(error, record.ReleaseTag);
             }

@@ -110,7 +110,7 @@ public sealed class GitHubReleaseClient(HttpClient httpClient, IOptions<PluginUp
         if (IsRateLimited(retryResponse, out retryAfter))
         {
             retryResponse.Dispose();
-            throw new GitHubRateLimitException("GitHub rate limit reached.", retryAfter);
+            throw new GitHubRateLimitException(PluginUpdateCheckErrors.RateLimited, retryAfter);
         }
 
         return retryResponse;
@@ -146,7 +146,7 @@ public sealed class GitHubReleaseClient(HttpClient httpClient, IOptions<PluginUp
     {
         if (IsRateLimited(response, out var retryAfter))
         {
-            throw new GitHubRateLimitException("GitHub rate limit reached.", retryAfter);
+            throw new GitHubRateLimitException(PluginUpdateCheckErrors.RateLimited, retryAfter);
         }
 
         if (response.IsSuccessStatusCode)

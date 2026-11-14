@@ -120,7 +120,7 @@ public class RezepteAppFixture : IAsyncLifetime
     /// Stops the application process and deletes the temporary database.
     /// </summary>
     /// <returns>A completed task.</returns>
-    public Task DisposeAsync()
+    public virtual Task DisposeAsync()
     {
         StopApplicationProcess();
         DeleteTemporaryDatabase();
