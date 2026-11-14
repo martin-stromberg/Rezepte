@@ -62,11 +62,7 @@ public sealed class PluginSettingsAppFixture : RezepteAppFixture
         long assetId,
         string assetName = "plugin.zip")
     {
-        var databasePath = DatabasePath
-            ?? throw new InvalidOperationException("The application fixture does not expose a database path yet.");
-
-        await using var connection = new SqliteConnection($"Data Source={databasePath};Default Timeout=10");
-        await connection.OpenAsync();
+        await using var connection = await OpenDatabaseConnectionAsync();
 
         string? sourceId;
         await using (var find = connection.CreateCommand())
@@ -83,7 +79,7 @@ public sealed class PluginSettingsAppFixture : RezepteAppFixture
                 $"No plugin source '{owner}/{repository}' exists in the test database. Create it through the UI first.");
         }
 
-        var now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fffffff", CultureInfo.InvariantCulture);
+        var now = UtcTimestamp();
         await using var insert = connection.CreateCommand();
         insert.CommandText = """
             INSERT INTO PluginSourceReleases
@@ -103,5 +99,61 @@ public sealed class PluginSettingsAppFixture : RezepteAppFixture
         insert.Parameters.AddWithValue("$reloadStatus", PluginSourceReleaseStatus.Installed);
         insert.Parameters.AddWithValue("$now", now);
         await insert.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// Inserts a <c>PluginSettings</c> row with status <c>Missing</c> directly into the
+    /// application's SQLite database, so the plugin table renders a removable entry for a
+    /// plugin that is registered but no longer present on disk. The row is appended at the
+    /// end of the plugin order.
+    /// </summary>
+    /// <param name="pluginId">The plugin id to seed; must be unique within the test database.</param>
+    /// <param name="displayName">The display name rendered in the plugin row.</param>
+    /// <returns>A task that represents the asynchronous seed operation.</returns>
+    public async Task SeedMissingPluginAsync(string pluginId, string displayName)
+    {
+        await using var connection = await OpenDatabaseConnectionAsync();
+
+        var now = UtcTimestamp();
+        await using var insert = connection.CreateCommand();
+        insert.CommandText = """
+            INSERT INTO PluginSettings
+                (PluginId, DisplayName, Description, AssemblyName, TypeName, Enabled,
+                 OrderIndex, Status, Error, DiscoveredAt, LastSeenAt)
+            VALUES
+                ($pluginId, $displayName, NULL, $assemblyName, $typeName, 1,
+                 COALESCE((SELECT MAX(OrderIndex) FROM PluginSettings), -1) + 1,
+                 $status, NULL, $now, $now)
+            """;
+        insert.Parameters.AddWithValue("$pluginId", pluginId);
+        insert.Parameters.AddWithValue("$displayName", displayName);
+        insert.Parameters.AddWithValue("$assemblyName", $"{pluginId}.dll");
+        insert.Parameters.AddWithValue("$typeName", $"{pluginId}.Handler");
+        insert.Parameters.AddWithValue("$status", PluginStatus.Missing);
+        insert.Parameters.AddWithValue("$now", now);
+        await insert.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// Opens a connection to the SQLite database of the currently running application process.
+    /// </summary>
+    /// <returns>A task that resolves to the opened database connection.</returns>
+    private async Task<SqliteConnection> OpenDatabaseConnectionAsync()
+    {
+        var databasePath = DatabasePath
+            ?? throw new InvalidOperationException("The application fixture does not expose a database path yet.");
+
+        var connection = new SqliteConnection($"Data Source={databasePath};Default Timeout=10");
+        await connection.OpenAsync();
+        return connection;
+    }
+
+    /// <summary>
+    /// Formats the current UTC time the way the application stores timestamps in SQLite.
+    /// </summary>
+    /// <returns>The formatted UTC timestamp.</returns>
+    private static string UtcTimestamp()
+    {
+        return DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fffffff", CultureInfo.InvariantCulture);
     }
 }

@@ -252,6 +252,86 @@ public sealed class PluginSettingsComponentTests : IDisposable
     }
 
     /// <summary>
+    /// The remove button is only rendered for rows whose status is <see cref="PluginStatus.Missing"/>;
+    /// a loaded plugin row does not show a trash button.
+    /// </summary>
+    [Fact]
+    public void RemoveButton_OnlyForMissingStatus()
+    {
+        WithSources();
+        WithPlugins(
+            Plugin("p-loaded", status: PluginStatus.Loaded, displayName: "Loaded Plugin"),
+            Plugin("p-missing", displayName: "Missing Plugin"));
+        var cut = Render();
+
+        var trashIcon = cut.FindAll("i.bi-trash").Should().ContainSingle().Which;
+        trashIcon.Closest("button")!.GetAttribute("aria-label")
+            .Should().Be("Plugin-Eintrag Missing Plugin entfernen");
+    }
+
+    /// <summary>
+    /// The remove button carries the parameterized localized text in title, aria-label, and the
+    /// tooltip wrapper's title.
+    /// </summary>
+    [Fact]
+    public void RemoveButton_HasLocalizedTooltipAndAriaLabel()
+    {
+        WithSources();
+        WithPlugins(Plugin("p-missing", displayName: "Missing Plugin"));
+        var cut = Render();
+
+        AssertIconButton(cut, "bi-trash", "Plugin-Eintrag Missing Plugin entfernen");
+    }
+
+    /// <summary>
+    /// Clicking the remove button calls the service with the plugin id, reloads the plugin list,
+    /// shows the localized success alert, and the removed row disappears.
+    /// </summary>
+    [Fact]
+    public void RemovePluginAsync_CallsService_AndReloads()
+    {
+        WithSources();
+        WithPlugins(Plugin("p-missing", displayName: "Missing Plugin"));
+        var cut = Render();
+
+        // The reload after the removal must no longer return the entry.
+        WithPlugins();
+        cut.Find("button[aria-label='Plugin-Eintrag Missing Plugin entfernen']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find(".alert-success").TextContent.Should().Contain("Plugin-Eintrag entfernt.");
+            cut.Markup.Should().NotContain("Missing Plugin");
+        });
+        _service.Verify(s => s.RemovePluginAsync("p-missing", It.IsAny<CancellationToken>()), Times.Once);
+        _service.Verify(s => s.GetPluginsAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    /// <summary>
+    /// When the service throws because the entry no longer exists or is no longer missing, the
+    /// localized danger alert is shown and the row stays visible.
+    /// </summary>
+    [Fact]
+    public void RemovePluginAsync_WhenServiceThrows_ShowsDangerAlert()
+    {
+        WithSources();
+        WithPlugins(Plugin("p-missing", displayName: "Missing Plugin"));
+        _service.Setup(s => s.RemovePluginAsync("p-missing", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("stale entry"));
+        var cut = Render();
+
+        cut.Find("button[aria-label='Plugin-Eintrag Missing Plugin entfernen']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var alert = cut.Find(".alert-danger").TextContent;
+            alert.Should().Contain("Plugin-Eintrag konnte nicht entfernt werden:");
+            alert.Should().Contain("stale entry");
+        });
+        cut.FindAll("i.bi-trash").Should().HaveCount(1);
+    }
+
+    /// <summary>
     /// The status cell renders the LastErrorAt timestamp when present.
     /// </summary>
     [Fact]
@@ -277,6 +357,12 @@ public sealed class PluginSettingsComponentTests : IDisposable
     {
         _service.Setup(s => s.GetSourcesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(sources);
+    }
+
+    private void WithPlugins(params PluginSettingsItem[] plugins)
+    {
+        _service.Setup(s => s.GetPluginsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(plugins);
     }
 
     private IRenderedComponent<PluginSettings> Render()
@@ -324,5 +410,26 @@ public sealed class PluginSettingsComponentTests : IDisposable
             lastError,
             lastCheckedAt,
             lastErrorAt);
+    }
+
+    private static PluginSettingsItem Plugin(
+        string pluginId,
+        string status = PluginStatus.Missing,
+        string? displayName = null,
+        int orderIndex = 0)
+    {
+        var timestamp = new DateTime(2026, 8, 1, 12, 0, 0, DateTimeKind.Utc);
+        return new PluginSettingsItem(
+            pluginId,
+            displayName ?? pluginId,
+            null,
+            "Rezepte.TestPlugin.dll",
+            "Rezepte.TestPlugin.Handler",
+            true,
+            orderIndex,
+            status,
+            null,
+            timestamp,
+            timestamp);
     }
 }
