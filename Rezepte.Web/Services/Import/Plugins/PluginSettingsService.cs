@@ -248,17 +248,40 @@ public sealed class PluginSettingsService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Removes the plugin async.
+    /// </summary>
+    /// <param name="pluginId">The plugin id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    public async Task RemovePluginAsync(string pluginId, CancellationToken ct = default)
+    {
+        EnsureAdmin();
+        var plugin = await db.PluginSettings.FindAsync([pluginId], ct).ConfigureAwait(false);
+        if (plugin is null)
+        {
+            throw new InvalidOperationException($"Plugin '{pluginId}' was not found.");
+        }
+
+        if (plugin.Status != PluginStatus.Missing)
+        {
+            throw new InvalidOperationException($"Plugin '{pluginId}' cannot be removed because its status is '{plugin.Status}'.");
+        }
+
+        db.PluginSettings.Remove(plugin);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     private void EnsureAdmin()
     {
         var user = httpContextAccessor?.HttpContext?.User;
         if (user?.Identity?.IsAuthenticated != true)
         {
-            throw new UnauthorizedAccessException("Nur Administratoren dürfen Pluginquellen verwalten.");
+            throw new UnauthorizedAccessException("Only administrators may manage plugin settings.");
         }
 
         if (!(user.IsInRole("Admin") || user.HasClaim("IsAdmin", "true")))
         {
-            throw new UnauthorizedAccessException("Nur Administratoren dürfen Pluginquellen verwalten.");
+            throw new UnauthorizedAccessException("Only administrators may manage plugin settings.");
         }
     }
 }

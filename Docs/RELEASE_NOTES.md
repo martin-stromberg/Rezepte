@@ -12,6 +12,7 @@
 - Plugins removed from a source's new release are marked for deletion and shown as `Missing` in plugin management.
 - Plugins shipped with the application (`plugins/<ProjectName>/`) and loose DLLs placed directly in `plugins` remain unaffected.
 - Preparation: the update check can now also be run for a single plugin source (service level only, admin-restricted); a UI action will follow.
+- Preparation: plugins marked as `Missing` can now be permanently removed from plugin management (service level only, admin-restricted); a UI action will follow.
 
 ## Wichtige Hinweise vor dem Update
 
@@ -25,3 +26,4 @@
 - Plugins, die im neuen Release einer Quelle nicht mehr enthalten sind, werden zum Löschen markiert und in der Pluginverwaltung als `Missing` angezeigt.
 - Mit der Anwendung veröffentlichte Plugins (`plugins/<Projektname>/`) und direkt in `plugins` abgelegte DLL-Dateien bleiben unverändert.
 - Vorbereitung: Die Update-Prüfung kann nun auch gezielt für eine einzelne Pluginquelle ausgeführt werden (bislang nur intern auf Service-Ebene, nur für Administratoren); eine Schaltfläche in der Oberfläche folgt.
+- Vorbereitung: Als `Missing` markierte Plugins können nun dauerhaft aus der Pluginverwaltung entfernt werden (bislang nur intern auf Service-Ebene, nur für Administratoren); eine Schaltfläche in der Oberfläche folgt.

@@ -354,6 +354,44 @@ public sealed class PluginManagerTests
     }
 
     /// <summary>
+    /// Initialize async should recreate plugin setting after removal.
+    /// </summary>
+    [Fact]
+    public async Task InitializeAsync_ShouldRecreatePluginSettingAfterRemoval()
+    {
+        using var workspace = PluginWorkspace.Create();
+        workspace.CopyFixturePlugin(workspace.PluginRoot);
+        var provider = CreateServices(workspace.ContentRoot, out var sut);
+
+        await sut.InitializeAsync();
+
+        await using (var removalScope = provider.CreateAsyncScope())
+        {
+            var db = removalScope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+            var plugin = await db.PluginSettings.FindAsync("external-test-plugin");
+            plugin.Should().NotBeNull();
+            db.PluginSettings.Remove(plugin!);
+            db.PluginSettings.Add(CreateSetting("remaining-plugin", 10, PluginStatus.Loaded));
+            await db.SaveChangesAsync();
+        }
+
+        var beforeRediscovery = DateTime.UtcNow;
+        await sut.InitializeAsync();
+
+        await using var verifyScope = provider.CreateAsyncScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+        var recreated = await verifyDb.PluginSettings.FindAsync("external-test-plugin");
+        recreated.Should().NotBeNull();
+        recreated!.Status.Should().Be(PluginStatus.Loaded);
+        recreated.Enabled.Should().BeTrue();
+        recreated.DiscoveredAt.Should().BeOnOrAfter(beforeRediscovery);
+        var maxOtherOrderIndex = await verifyDb.PluginSettings
+            .Where(p => p.PluginId != "external-test-plugin")
+            .MaxAsync(p => (int?)p.OrderIndex);
+        recreated.OrderIndex.Should().BeGreaterThan(maxOtherOrderIndex ?? -1);
+    }
+
+    /// <summary>
     /// Initialize async should exclude directories marked for deletion.
     /// </summary>
     [Fact]
