@@ -4,7 +4,7 @@ Branch: `task/issue-179-783283f76acc4581b81051a26394df02-aktualisierung-der-plug
 
 | # | Titel | Abhängigkeiten | Branch | Status |
 |---|-------|-----------------|--------|--------|
-| 1 | Versionsbezogene Pluginverzeichnisse und Löschmarkierung für Altbestände | Keine | `task/issue-179-783283f76acc4581b81051a26394df02-aktualisierung-der-plugins-schritt-1-versionsverzeichnisse` | Offen |
+| 1 | Versionsbezogene Pluginverzeichnisse und Löschmarkierung für Altbestände | Keine | `task/issue-179-783283f76acc4581b81051a26394df02-aktualisierung-der-plugins-schritt-1-versionsverzeichnisse` | In Arbeit |
 | 2 | Manuelle Update-Prüfung für eine einzelne Pluginquelle | 1 | `task/issue-179-783283f76acc4581b81051a26394df02-aktualisierung-der-plugins-schritt-2-einzelquellen-check` | Offen |
 | 3 | Vermisste Plugins aus der Verwaltung entfernen | Keine | `task/issue-179-783283f76acc4581b81051a26394df02-aktualisierung-der-plugins-schritt-3-missing-entfernen` | Offen |
 | 4 | Pluginverwaltung — Update-Prüfung je Quelle auslösen und Prüfprinzip transparent machen | 2 | `task/issue-179-783283f76acc4581b81051a26394df02-aktualisierung-der-plugins-schritt-4-update-check-ui` | Offen |
