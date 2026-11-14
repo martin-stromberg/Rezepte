@@ -11,6 +11,7 @@
 - Marked and superseded plugin directories are excluded from plugin discovery at startup.
 - Plugins removed from a source's new release are marked for deletion and shown as `Missing` in plugin management.
 - Plugins shipped with the application (`plugins/<ProjectName>/`) and loose DLLs placed directly in `plugins` remain unaffected.
+- Preparation: the update check can now also be run for a single plugin source (service level only, admin-restricted); a UI action will follow.
 
 ## Wichtige Hinweise vor dem Update
 
@@ -23,3 +24,4 @@
 - Markierte und überholte Plugin-Verzeichnisse werden bei der Plugin-Erkennung beim Start übersprungen.
 - Plugins, die im neuen Release einer Quelle nicht mehr enthalten sind, werden zum Löschen markiert und in der Pluginverwaltung als `Missing` angezeigt.
 - Mit der Anwendung veröffentlichte Plugins (`plugins/<Projektname>/`) und direkt in `plugins` abgelegte DLL-Dateien bleiben unverändert.
+- Vorbereitung: Die Update-Prüfung kann nun auch gezielt für eine einzelne Pluginquelle ausgeführt werden (bislang nur intern auf Service-Ebene, nur für Administratoren); eine Schaltfläche in der Oberfläche folgt.
