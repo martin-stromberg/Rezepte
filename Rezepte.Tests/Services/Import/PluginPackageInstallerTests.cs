@@ -238,19 +238,35 @@ public sealed class PluginPackageInstallerTests : PluginDirectoryRegistryTestsBa
         var incomingPlugin = Directory.CreateDirectory(Path.Combine(workspace.Root, "incoming", "PluginA")).FullName;
         await File.WriteAllTextAsync(Path.Combine(incomingPlugin, "PluginA.dll"), "replacement");
         await using var lockedStream = new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (!OperatingSystem.IsWindows())
+        {
+            // POSIX allows deleting open files; removing write permission on the
+            // directory blocks the delete the same way the share mode does on Windows.
+            File.SetUnixFileMode(existing, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        }
         var recordingRegistry = new RecordingDirectoryRegistry(registry);
         var sut = CreateInstaller(workspace, new SuccessfulPluginManager(), recordingRegistry);
 
         var act = () => sut.InstallAsync([incomingPlugin], new PluginPackageInstallOptions("v1.0", "src"));
 
-        var error = await act.Should().ThrowAsync<PluginPackageInstallException>();
-        error.Which.Status.Should().Be(PluginSourceReleaseStatus.InstallFailed);
-        recordingRegistry.SavedStates.Should().NotContain(saved =>
-            saved.PendingDeletes.Any(pending => saved.Installs.Any(e => string.Equals(e.DirectoryName, pending, StringComparison.OrdinalIgnoreCase))),
-            "a registered effective installation must never be persisted as pending deletion");
-        var persisted = registry.LoadState();
-        persisted.Installs.Should().ContainSingle(e => e.BaseName == "PluginA" && e.DirectoryName == "PluginA@v1.0");
-        persisted.PendingDeletes.Should().NotContain("PluginA@v1.0");
+        try
+        {
+            var error = await act.Should().ThrowAsync<PluginPackageInstallException>();
+            error.Which.Status.Should().Be(PluginSourceReleaseStatus.InstallFailed);
+            recordingRegistry.SavedStates.Should().NotContain(saved =>
+                saved.PendingDeletes.Any(pending => saved.Installs.Any(e => string.Equals(e.DirectoryName, pending, StringComparison.OrdinalIgnoreCase))),
+                "a registered effective installation must never be persisted as pending deletion");
+            var persisted = registry.LoadState();
+            persisted.Installs.Should().ContainSingle(e => e.BaseName == "PluginA" && e.DirectoryName == "PluginA@v1.0");
+            persisted.PendingDeletes.Should().NotContain("PluginA@v1.0");
+        }
+        finally
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(existing, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
+        }
     }
 
     /// <summary>

@@ -41,17 +41,33 @@ public sealed class PluginDirectoryRegistryTests_PendingDeletes : PluginDirector
         var lockedFile = Path.Combine(lockedDirectory, "file.txt");
         await File.WriteAllTextAsync(lockedFile, "content");
         await using var lockedStream = new FileStream(lockedFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        if (!OperatingSystem.IsWindows())
+        {
+            // POSIX allows deleting open files; removing write permission on the
+            // directory blocks the recursive delete the same way the file lock does on Windows.
+            File.SetUnixFileMode(lockedDirectory, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        }
         var sut = CreateRegistry(workspace);
         var state = new PluginInstallState
         {
             PendingDeletes = ["Locked@v0.8"]
         };
 
-        sut.CleanupMarkedDirectories(state);
+        try
+        {
+            sut.CleanupMarkedDirectories(state);
 
-        Directory.Exists(lockedDirectory).Should().BeTrue();
-        state.PendingDeletes.Should().ContainSingle().Which.Should().Be("Locked@v0.8");
-        sut.LoadState().PendingDeletes.Should().ContainSingle().Which.Should().Be("Locked@v0.8");
+            Directory.Exists(lockedDirectory).Should().BeTrue();
+            state.PendingDeletes.Should().ContainSingle().Which.Should().Be("Locked@v0.8");
+            sut.LoadState().PendingDeletes.Should().ContainSingle().Which.Should().Be("Locked@v0.8");
+        }
+        finally
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(lockedDirectory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
+        }
     }
 
     /// <summary>
