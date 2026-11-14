@@ -57,4 +57,10 @@ public interface IPluginSettingsService
     /// <param name="direction">The direction parameter.</param>
     /// <param name="ct">The ct parameter.</param>
     Task MoveAsync(string pluginId, int direction, CancellationToken ct = default);
+    /// <summary>
+    /// Removes the plugin async.
+    /// </summary>
+    /// <param name="pluginId">The plugin id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    Task RemovePluginAsync(string pluginId, CancellationToken ct = default);
 }
