@@ -354,6 +354,103 @@ public sealed class PluginManagerTests
     }
 
     /// <summary>
+    /// Initialize async should exclude directories marked for deletion.
+    /// </summary>
+    [Fact]
+    public async Task InitializeAsync_ShouldExcludePendingDeleteDirectories()
+    {
+        using var workspace = PluginWorkspace.Create();
+        var markedDirectory = Directory.CreateDirectory(Path.Combine(workspace.PluginRoot, "Marked@v1")).FullName;
+        File.WriteAllText(Path.Combine(markedDirectory, "Marked.dll"), "not a managed assembly");
+        var registry = CreateRegistry(workspace.ContentRoot);
+        var state = registry.LoadState();
+        state.PendingDeletes.Add("Marked@v1");
+        registry.SaveState(state);
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+
+        await sut.InitializeAsync();
+
+        var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+        (await db.PluginSettings.FindAsync("loadfailed:Marked")).Should().BeNull("the directory marked for deletion must be excluded from discovery");
+    }
+
+    /// <summary>
+    /// Initialize async should select the current versioned directory.
+    /// </summary>
+    [Fact]
+    public async Task InitializeAsync_ShouldSelectCurrentVersionedDirectory()
+    {
+        using var workspace = PluginWorkspace.Create();
+        var currentDirectory = Directory.CreateDirectory(Path.Combine(workspace.PluginRoot, "Rezepte.Tests.PluginFixture@v0.9")).FullName;
+        workspace.CopyFixturePlugin(currentDirectory);
+        var newerDirectory = Directory.CreateDirectory(Path.Combine(workspace.PluginRoot, "Rezepte.Tests.PluginFixture@v2.0")).FullName;
+        workspace.CopyFixturePlugin(newerDirectory);
+        File.WriteAllText(Path.Combine(newerDirectory, "Broken.dll"), "not a managed assembly");
+        var registry = CreateRegistry(workspace.ContentRoot);
+        var state = registry.LoadState();
+        state.Installs.Add(new PluginInstallEntry
+        {
+            BaseName = "Rezepte.Tests.PluginFixture",
+            DirectoryName = "Rezepte.Tests.PluginFixture@v0.9",
+            ReleaseTag = "v0.9",
+            SourceKey = "source-1"
+        });
+        registry.SaveState(state);
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+
+        await sut.InitializeAsync();
+
+        var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+        var plugin = await db.PluginSettings.FindAsync("external-test-plugin");
+        plugin.Should().NotBeNull();
+        plugin!.Status.Should().Be(PluginStatus.Loaded);
+        (await db.PluginSettings.FindAsync("loadfailed:Broken")).Should().BeNull("the non-current versioned directory must be excluded from discovery");
+    }
+
+    /// <summary>
+    /// Initialize async should shadow the flat directory when a versioned directory exists.
+    /// </summary>
+    [Fact]
+    public async Task InitializeAsync_ShouldShadowFlatDirectory_WhenVersionedExists()
+    {
+        using var workspace = PluginWorkspace.Create();
+        var flatDirectory = Directory.CreateDirectory(Path.Combine(workspace.PluginRoot, "Rezepte.Tests.PluginFixture")).FullName;
+        File.WriteAllText(Path.Combine(flatDirectory, "Rezepte.Tests.PluginFixture.dll"), "not a managed assembly");
+        var versionedDirectory = Directory.CreateDirectory(Path.Combine(workspace.PluginRoot, "Rezepte.Tests.PluginFixture@v1")).FullName;
+        workspace.CopyFixturePlugin(versionedDirectory);
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+
+        await sut.InitializeAsync();
+
+        var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+        var plugin = await db.PluginSettings.FindAsync("external-test-plugin");
+        plugin.Should().NotBeNull();
+        plugin!.Status.Should().Be(PluginStatus.Loaded);
+        (await db.PluginSettings.FindAsync("loadfailed:Rezepte.Tests.PluginFixture")).Should().BeNull("the shadowed flat directory must be excluded from discovery");
+    }
+
+    /// <summary>
+    /// Initialize async should clean pending directories on a successful initialization.
+    /// </summary>
+    [Fact]
+    public async Task InitializeAsync_ShouldCleanPendingDirectoriesOnSuccessfulInit()
+    {
+        using var workspace = PluginWorkspace.Create();
+        var markedDirectory = Directory.CreateDirectory(Path.Combine(workspace.PluginRoot, "Old@v0.9")).FullName;
+        File.WriteAllText(Path.Combine(markedDirectory, "Old.dll"), "content");
+        var registry = CreateRegistry(workspace.ContentRoot);
+        var state = registry.LoadState();
+        state.PendingDeletes.Add("Old@v0.9");
+        registry.SaveState(state);
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+
+        await sut.InitializeAsync();
+
+        Directory.Exists(markedDirectory).Should().BeFalse();
+        registry.LoadState().PendingDeletes.Should().BeEmpty();
+    }
+
+    /// <summary>
     /// Discover from directory should not keep assemblies loaded from temporary directory.
     /// </summary>
     [Fact]
@@ -475,17 +572,22 @@ public sealed class PluginManagerTests
         var databaseName = Guid.NewGuid().ToString();
         var services = new ServiceCollection();
         services.AddDbContext<RezepteDbContext>(options => options.UseInMemoryDatabase(databaseName));
-        services.AddSingleton<IHostEnvironment>(new TestHostEnvironment(contentRoot));
+        var environment = new TestHostEnvironment(contentRoot);
+        services.AddSingleton<IHostEnvironment>(environment);
         services.AddLogging();
         services.AddSingleton<PluginManager>();
 
         var provider = services.BuildServiceProvider();
         manager = new PluginManager(
             provider.GetRequiredService<IServiceScopeFactory>(),
-            provider.GetRequiredService<IHostEnvironment>(),
+            environment,
+            new PluginDirectoryRegistry(environment, NullLogger<PluginDirectoryRegistry>.Instance),
             NullLogger<PluginManager>.Instance);
         return provider;
     }
+
+    private static PluginDirectoryRegistry CreateRegistry(string contentRoot)
+        => new(new TestHostEnvironment(contentRoot), NullLogger<PluginDirectoryRegistry>.Instance);
 
     private static PluginSetting CreateSetting(string pluginId, int orderIndex, string status)
     {
