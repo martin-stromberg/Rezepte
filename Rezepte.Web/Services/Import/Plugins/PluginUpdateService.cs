@@ -147,7 +147,7 @@ public sealed class PluginUpdateService(
             record.ValidatedAt = DateTime.UtcNow;
             record.Status = PluginSourceReleaseStatus.Installing;
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
-            await packageInstaller.InstallWithReloadTrackingAsync(validation.PluginDirectories, async token =>
+            await packageInstaller.InstallWithReloadTrackingAsync(validation.PluginDirectories, new PluginPackageInstallOptions(record.ReleaseTag, source.Id), async token =>
             {
                 record.Status = PluginSourceReleaseStatus.Reloading;
                 record.ReloadStatus = PluginSourceReleaseStatus.Reloading;

@@ -108,6 +108,34 @@ public sealed class PluginUpdateServiceTests
         record.InstalledAt.Should().BeNull();
     }
 
+    /// <summary>
+    /// Check for updates async should pass the release tag and source key to the installer.
+    /// </summary>
+    [Fact]
+    public async Task CheckForUpdatesAsync_ShouldPassReleaseTagAndSourceKey()
+    {
+        using var db = CreateDb();
+        db.PluginSources.Add(new PluginSource
+        {
+            Id = "source-1",
+            RepositoryUrl = "https://github.com/owner/repo",
+            Owner = "owner",
+            Repository = "repo",
+            Enabled = true,
+            TrustConfirmed = true
+        });
+        await db.SaveChangesAsync();
+        var github = new FakeGitHubReleaseClient(new GitHubReleaseInfo(1, "v9.9", [new GitHubReleaseAsset(2, "plugin.zip", "https://example.invalid/plugin.zip")]));
+        var installer = new FakePackageInstaller();
+        var sut = CreateSut(db, github, installer);
+
+        await sut.CheckForUpdatesAsync();
+
+        installer.LastOptions.Should().NotBeNull();
+        installer.LastOptions!.ReleaseTag.Should().Be("v9.9");
+        installer.LastOptions.SourceKey.Should().Be("source-1");
+    }
+
     private static RezepteDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<RezepteDbContext>()
@@ -164,12 +192,18 @@ public sealed class PluginUpdateServiceTests
 
     private sealed class FakePackageInstaller : IPluginPackageInstaller
     {
-        public Task InstallAsync(IReadOnlyList<string> pluginDirectories, CancellationToken ct = default) => Task.CompletedTask;
+        public PluginPackageInstallOptions? LastOptions { get; private set; }
+
+        public Task InstallAsync(IReadOnlyList<string> pluginDirectories, PluginPackageInstallOptions options, CancellationToken ct = default)
+        {
+            LastOptions = options;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FailingPackageInstaller(string status) : IPluginPackageInstaller
     {
-        public Task InstallAsync(IReadOnlyList<string> pluginDirectories, CancellationToken ct = default)
+        public Task InstallAsync(IReadOnlyList<string> pluginDirectories, PluginPackageInstallOptions options, CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(pluginDirectories);
             throw new PluginPackageInstallException(status, "reload failed", new InvalidOperationException("reload failed"));

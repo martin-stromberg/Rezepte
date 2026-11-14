@@ -202,6 +202,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRemoteContentFetcher, RemoteContentFetcher>();
         services.AddScoped<IImportedRecipePersister, ImportedRecipePersister>();
         services.AddSingleton<IPluginManager, PluginManager>();
+        services.AddSingleton<IPluginDirectoryRegistry, PluginDirectoryRegistry>();
         services.AddHostedService<PluginStartupService>();
         services.AddHostedService<PluginUpdateHostedService>();
         services.AddSingleton<IApplicationUpdatePreInstallHandler, ApplicationUpdatePreInstallHandler>();

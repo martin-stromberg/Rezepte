@@ -18,6 +18,14 @@ Aktivierte und bestätigte Quellen werden einmalig beim Start der Anwendung gepr
 
 Das Paket wird vor der Installation in einem temporaeren Verzeichnis geprüft. Nur erkannte Plugin-Unterverzeichnisse und zulässige Inhalte werden übernommen. Austausch und produktiver Reload laufen koordiniert: neue Imports werden währenddessen gesperrt, laufende Handler werden nicht parallel zum Dateiaustausch unterbrochen, und nachfolgende Imports sehen erst den neu initialisierten Pluginbestand. Bei Kopier-, Installations- oder Reloadfehlern wird der bisherige Pluginbestand wiederhergestellt. Der Status der Quelle zeigt den letzten erfolgreichen Release, den letzten Fehler und den Zeitpunkt der letzten Prüfung; Reloadstatus, Reloadzeitpunkt und Reloadfehler bleiben in der Releasehistorie nachvollziehbar.
 
+### Versionsverzeichnisse quelleninstallierter Plugins
+
+Installationen aus GitHub-Pluginquellen ersetzen den bisherigen Plugin-Ordner nicht mehr an Ort und Stelle. Jede installierte Release-Version liegt in einem eigenen Verzeichnis unter `plugins`, dessen Name aus dem Plugin-Verzeichnisnamen und dem Release-Tag gebildet wird: `plugins/<Name>@<ReleaseTag>/`. Pro Plugin lädt die Erkennung nur die jeweils wirksame Version; Verzeichnisse älterer Versionen werden beim koordinierten Austausch entfernt.
+
+Kann ein Altverzeichnis nicht gelöscht werden (z. B. weil eine Assembly noch geladen ist), wird es in der Zustandsdatei `plugins/.install-state.json` als zu löschen vermerkt und von der Erkennung ausgeschlossen. Der Löschversuch wird beim nächsten Anwendungsstart und beim nächsten Austausch wiederholt. Im neuen Release nicht mehr enthaltene Plugins verlieren damit ihre wirksame Version und erscheinen in der Verwaltung mit dem Status `Missing`.
+
+Ausgenommen sind die mit der Anwendung veröffentlichten Plugins unter `plugins/<Projektname>/` sowie direkt unter `plugins` abgelegte DLL-Dateien — sie werden weder versioniert noch gelöscht. Verzeichnisse ohne Versionsmuster werden ebenfalls nie entfernt; existiert zu ihrem Namen ein Versionsverzeichnis, bleiben sie allerdings unwirksam.
+
 Beim Import werden nur aktivierte Plugins mit Status `Loaded` berücksichtigt. Deaktivierte, fehlende oder fehlerhafte Plugins werden nicht angesprochen.
 
 ## Nutzbarkeit und Konfigurationsvalidierung
@@ -64,7 +72,7 @@ Die Nutzbarkeitsprüfung läuft ohne Netzwerk-Zugriffe ab — sie validiert nur 
 
 ## Erkennung und Reihenfolge
 
-Beim Programmstart sucht die Anwendung im Programmverzeichnis unter `plugins` nach Plugin-DLLs. Unterstuetzt werden DLLs direkt im Ordner `plugins` sowie DLLs in direkten Unterordnern von `plugins`.
+Beim Programmstart sucht die Anwendung im Programmverzeichnis unter `plugins` nach Plugin-DLLs. Unterstuetzt werden DLLs direkt im Ordner `plugins` sowie DLLs in direkten Unterordnern von `plugins`. Als zu löschen markierte und nicht wirksame Versionsverzeichnisse (siehe „Versionsverzeichnisse quelleninstallierter Plugins") werden dabei übersprungen.
 
 Beim Build und Publish der Web-Anwendung werden die drei produktiven Plugins des Hauptrepositorys automatisch gebaut und nach `plugins/<Projektname>/` in das Ausgabe- bzw. Publish-Verzeichnis kopiert.
 

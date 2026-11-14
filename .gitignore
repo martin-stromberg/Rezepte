@@ -412,3 +412,6 @@ Rezepte.Web/google.gemini.api-key.json
 /.external/
 /.agents/*
 /AGENTS.md
+
+# Runtime plugin install state managed by PluginDirectoryRegistry
+/Rezepte.Web/plugins/
