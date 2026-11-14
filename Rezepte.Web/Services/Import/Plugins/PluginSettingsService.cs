@@ -10,6 +10,7 @@ namespace Rezepte.Web.Services.Import.Plugins;
 /// <param name="db">The db parameter.</param>
 /// <param name="pluginManager">The plugin manager parameter.</param>
 /// <param name="serviceProvider">The service provider parameter.</param>
+/// <param name="pluginUpdateService">The plugin update service parameter.</param>
 /// <param name="httpContextAccessor">The http context accessor parameter.</param>
 /// <param name="secretStore">The secret store parameter.</param>
 /// <returns>The result.</returns>
@@ -17,6 +18,7 @@ public sealed class PluginSettingsService(
     RezepteDbContext db,
     IPluginManager pluginManager,
     IServiceProvider serviceProvider,
+    IPluginUpdateService pluginUpdateService,
     IHttpContextAccessor? httpContextAccessor = null,
     ISystemSecretStore? secretStore = null) : IPluginSettingsService
 {
@@ -179,6 +181,18 @@ public sealed class PluginSettingsService(
 
         db.PluginSources.Remove(source);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Checks a single plugin source for updates.
+    /// </summary>
+    /// <param name="sourceId">The source id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    public async Task<PluginUpdateCheckResult> CheckSourceForUpdatesAsync(string sourceId, CancellationToken ct = default)
+    {
+        EnsureAdmin();
+        return await pluginUpdateService.CheckSourceForUpdatesAsync(sourceId, ct).ConfigureAwait(false);
     }
 
     /// <summary>
