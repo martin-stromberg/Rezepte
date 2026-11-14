@@ -185,11 +185,14 @@
   <data name="PluginCheckSourceNotFound" xml:space="preserve"><value>Quelle wurde nicht gefunden.</value></data>
   <data name="PluginCheckSourceNotTrusted" xml:space="preserve"><value>Vertrauen ist nicht bestätigt.</value></data>
   <data name="PluginCheckValidationFailed" xml:space="preserve"><value>Die Plugin-Paketprüfung ist fehlgeschlagen.</value></data>
+  <data name="PluginRemoved" xml:space="preserve"><value>Plugin-Eintrag entfernt.</value></data>
+  <data name="PluginRemoveFailed" xml:space="preserve"><value>Plugin-Eintrag konnte nicht entfernt werden: {0}</value></data>
   <data name="PluginSaveFailed" xml:space="preserve"><value>Plugin konnte nicht gespeichert werden: {0}</value></data>
   <data name="PluginSourcesInfo" xml:space="preserve"><value>Pluginquellen werden beim App-Start automatisch auf Updates geprüft (nur aktivierte und vertrauenswürdige Quellen). Jede Quelle kann zusätzlich manuell geprüft werden.</value></data>
   <data name="PluginsLoadFailed" xml:space="preserve"><value>Plugins konnten nicht geladen werden: {0}</value></data>
   <data name="Private" xml:space="preserve"><value>Privat</value></data>
   <data name="Public" xml:space="preserve"><value>Öffentlich</value></data>
+  <data name="RemovePluginFor" xml:space="preserve"><value>Plugin-Eintrag {0} entfernen</value></data>
   <data name="RepositoryUrl" xml:space="preserve"><value>Repository-URL</value></data>
   <data name="SecretMissing" xml:space="preserve"><value>Secret: nicht hinterlegt</value></data>
   <data name="SecretStored" xml:space="preserve"><value>Secret: hinterlegt</value></data>

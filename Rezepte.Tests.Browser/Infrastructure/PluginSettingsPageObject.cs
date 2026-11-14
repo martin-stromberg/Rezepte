@@ -15,8 +15,10 @@ public sealed class PluginSettingsPageObject : IAsyncDisposable
     private const string SourceTrustSelector = "#plugin-source-trust";
     private const string SourceSubmitSelector = "form:has(#plugin-source-url) button[type=submit]";
     private const string CheckButtonIconSelector = "i.bi-arrow-repeat";
+    private const string RemoveButtonIconSelector = "i.bi-trash";
     private const string SuccessAlertSelector = ".alert-success";
     private const string DangerAlertSelector = ".alert-danger";
+    private const string PluginTableSelector = "h3:has-text('Lokale Import-Plugins') + .table-responsive";
 
     private readonly IBrowserContext _context;
     private readonly string _baseAddress;
@@ -204,6 +206,52 @@ public sealed class PluginSettingsPageObject : IAsyncDisposable
     }
 
     /// <summary>
+    /// Waits until the plugin row with the given display name is rendered in the plugin table.
+    /// </summary>
+    /// <param name="displayName">The display name rendered in the plugin row.</param>
+    /// <returns>A task that represents the asynchronous wait operation.</returns>
+    public async Task WaitForPluginRowAsync(string displayName)
+    {
+        await PluginRow(displayName).WaitForAsync(new LocatorWaitForOptions { Timeout = 15000 });
+    }
+
+    /// <summary>
+    /// Clicks the remove button of the plugin row and waits for a result alert to appear.
+    /// </summary>
+    /// <param name="displayName">The display name rendered in the plugin row.</param>
+    /// <returns>A task that represents the asynchronous click operation.</returns>
+    public async Task RemovePluginRowAsync(string displayName)
+    {
+        await PluginRow(displayName).Locator($"button:has({RemoveButtonIconSelector})").ClickAsync();
+        await Page.WaitForSelectorAsync(
+            $"{SuccessAlertSelector}, {DangerAlertSelector}",
+            new PageWaitForSelectorOptions { Timeout = 15000 });
+    }
+
+    /// <summary>
+    /// Determines whether a plugin row with the given display name is rendered in the plugin
+    /// table.
+    /// </summary>
+    /// <param name="displayName">The display name rendered in the plugin row.</param>
+    /// <returns>A task that resolves to <c>true</c> when the plugin row is visible.</returns>
+    public async Task<bool> IsPluginRowVisibleAsync(string displayName)
+    {
+        return await PluginRow(displayName).CountAsync() > 0;
+    }
+
+    /// <summary>
+    /// Gets the title attribute of the remove button of the plugin row.
+    /// </summary>
+    /// <param name="displayName">The display name rendered in the plugin row.</param>
+    /// <returns>A task that resolves to the title text, or <c>null</c> when absent.</returns>
+    public async Task<string?> GetPluginRemoveButtonTitleAsync(string displayName)
+    {
+        return await PluginRow(displayName)
+            .Locator($"button:has({RemoveButtonIconSelector})")
+            .GetAttributeAsync("title");
+    }
+
+    /// <summary>
     /// Determines whether the localized explanation text is rendered in the sources section.
     /// </summary>
     /// <returns>A task that resolves to <c>true</c> when the info text is visible.</returns>
@@ -229,6 +277,11 @@ public sealed class PluginSettingsPageObject : IAsyncDisposable
     private ILocator SourceRow(string displayName)
     {
         return Page.Locator($"tr:has-text('{displayName}')").First;
+    }
+
+    private ILocator PluginRow(string displayName)
+    {
+        return Page.Locator(PluginTableSelector).Locator($"tr:has-text('{displayName}')").First;
     }
 
     private ILocator CheckButton(string displayName)

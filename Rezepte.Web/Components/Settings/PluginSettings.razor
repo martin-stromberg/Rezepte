@@ -171,7 +171,7 @@ else
                     <th>@Localizer["Name"]</th>
                     <th>@Localizer["Status"]</th>
                     <th>@Localizer["Assembly"]</th>
-                    <th class="text-end" style="width: 112px;">@Localizer["PluginOrder"]</th>
+                    <th class="text-end" style="width: 160px;">@Localizer["PluginOrder"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -227,6 +227,19 @@ else
                                 <button class="btn btn-outline-secondary" title="@Localizer["MoveUp"]" aria-label="@Localizer["MoveUp"]" disabled="@(isSaving || i == 0)" @onclick="() => MoveAsync(plugin.PluginId, -1)">↑</button>
                                 <button class="btn btn-outline-secondary" title="@Localizer["MoveDown"]" aria-label="@Localizer["MoveDown"]" disabled="@(isSaving || i == plugins.Count - 1)" @onclick="() => MoveAsync(plugin.PluginId, 1)">↓</button>
                             </div>
+                            @if (plugin.Status == PluginStatus.Missing)
+                            {
+                                <span class="d-inline-block ms-1" title="@RemoveButtonTitle(plugin)">
+                                    <button class="btn btn-outline-danger"
+                                            type="button"
+                                            title="@RemoveButtonTitle(plugin)"
+                                            aria-label="@RemoveButtonTitle(plugin)"
+                                            disabled="@isSaving"
+                                            @onclick="() => RemovePluginEntryAsync(plugin)">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    </button>
+                                </span>
+                            }
                         </td>
                     </tr>
                 }
@@ -492,6 +505,49 @@ else
         {
             isSaving = false;
         }
+    }
+
+    private async Task RemovePluginEntryAsync(PluginSettingsItem plugin)
+    {
+        if (isSaving || plugin.Status != PluginStatus.Missing)
+        {
+            return;
+        }
+
+        isSaving = true;
+        message = null;
+        try
+        {
+            await PluginSettingsService.RemovePluginAsync(plugin.PluginId);
+            await LoadAsync();
+
+            // LoadAsync clears the message at its start, so the success message can only be
+            // assigned after the reload. A reload failure sets PluginsLoadFailed itself —
+            // that error must win over the success message and keep the danger styling.
+            if (message is null)
+            {
+                messageClass = "alert alert-success py-2";
+                message = Localizer["PluginRemoved"];
+            }
+            else
+            {
+                messageClass = "alert alert-danger py-2";
+            }
+        }
+        catch (Exception ex)
+        {
+            messageClass = "alert alert-danger py-2";
+            message = Localizer["PluginRemoveFailed", ex.Message];
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private string RemoveButtonTitle(PluginSettingsItem plugin)
+    {
+        return isSaving ? Localizer["PluginCheckBusyTooltip"] : Localizer["RemovePluginFor", plugin.DisplayName];
     }
 
     private async Task MoveAsync(string pluginId, int direction)

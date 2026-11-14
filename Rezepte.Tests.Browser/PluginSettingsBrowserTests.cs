@@ -133,4 +133,34 @@ public class PluginSettingsBrowserTests
         _appFixture.GitHubStub.RequestCount.Should().BeGreaterThan(0,
             "the update check must have queried the local GitHub stub instead of the real API");
     }
+
+    /// <summary>
+    /// Verifies that a plugin entry with status Missing shows a remove button with a localized
+    /// tooltip and that clicking it removes the row and shows the localized success alert.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
+    [SkippableFact]
+    public async Task MissingPlugin_CanBeRemoved()
+    {
+        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+
+        const string PluginId = "e2e.missing-plugin";
+        const string DisplayName = "E2E Missing Plugin";
+        await _appFixture.SeedMissingPluginAsync(PluginId, DisplayName);
+
+        await using var pageObject = await PluginSettingsPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
+        await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
+        await pageObject.NavigateToPluginSettingsAsync();
+        await pageObject.WaitForPluginRowAsync(DisplayName);
+
+        (await pageObject.GetPluginRemoveButtonTitleAsync(DisplayName))
+            .Should().Be($"Plugin-Eintrag {DisplayName} entfernen");
+
+        await pageObject.RemovePluginRowAsync(DisplayName);
+
+        var alertText = await pageObject.GetAlertTextAsync();
+        alertText.Should().Contain("Plugin-Eintrag entfernt.");
+        (await pageObject.IsPluginRowVisibleAsync(DisplayName)).Should().BeFalse();
+    }
 }
