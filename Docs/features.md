@@ -40,7 +40,7 @@ Details zur Einkaufsliste stehen in [Docs/help/shopping-list.md](help/shopping-l
 
 - Import von Rezepten aus Backups, Dateien, URLs und unterstützten Webseiten.
 - Plugin-Framework für Rezeptimporte mit aktivierbarer Reihenfolge in den Admin-Einstellungen.
-- Globale GitHub-Pluginquellen in den Admin-Einstellungen mit automatischer Prüfung beim Anwendungsstart.
+- Globale GitHub-Pluginquellen in den Admin-Einstellungen mit automatischer Prüfung beim Anwendungsstart und manueller Prüfung je Quelle; installierte Plugin-Updates werden ohne Anwendungsneustart wirksam.
 - Optionale KI-Importe über Gemini für URL-Quellen sowie Google Vision und Gemini für Fotoimporte.
 - Export- und Sicherungsfunktionen inklusive Fortschrittsanzeige für Datenexporte sowie validierte Wiederherstellung aus ZIP-Archiven mit Ressourcenlimits.
 - Programmupdates über `msTools.Updater` mit Status, Prüfung, Download und Installation in den Admin-Einstellungen sowie Pre-Install-Update-Backups.
