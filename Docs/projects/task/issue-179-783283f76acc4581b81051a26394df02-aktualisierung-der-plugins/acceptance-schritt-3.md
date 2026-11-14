@@ -1,0 +1,24 @@
+# Abnahmeprüfung – Entwicklungsschritt 3
+
+## Ergebnis
+
+**Status:** Anforderung vollständig erfüllt
+
+## Abweichungen
+
+Keine.
+
+## Hinweise
+
+- **Nur `Missing`, Admin-only:** `PluginSettingsService.RemovePluginAsync` (`Rezepte.Web/Services/Import/Plugins/PluginSettingsService.cs:256-272`) ruft zuerst `EnsureAdmin()` (Z. 258) — `UnauthorizedAccessException` bei nicht authentifiziertem Aufruf oder fehlender Admin-Rolle (Z. 274-286). Erst danach wird der Datensatz geladen; `Status !== PluginStatus.Missing` ⇒ `InvalidOperationException` (Z. 265-268), unbekannte `pluginId` ebenfalls `InvalidOperationException` (Z. 260-263). Reihenfolge korrekt: Nicht-Admins erhalten keine Existenz-Information. Ablauf identisch zum `DeleteSourceAsync`-Muster (Z. 172-184).
+- **Nur Verwaltungseintrag, keine Dateisystemoperationen:** Die Methode arbeitet ausschließlich auf `RezepteDbContext` (`FindAsync` → `Remove` → `SaveChangesAsync`). Kein Zugriff auf das Pluginverzeichnis, kein `pluginManager`-Aufruf, keine Dateioperation — der Commit berührt auch sonst keinen Dateisystem-Code.
+- **Wiederentdeckung = neues Plugin:** Bestehender Pfad in `PluginManager.SynchronizeSettingsAsync` (`PluginManager.cs:449-465`) legt unbekannte `pluginId`s frisch an mit `DiscoveredAt = now` und `OrderIndex = nextOrder++` (hinter dem aktuellen Maximum). Nach dem Löschen ist die `pluginId` unbekannt, also greift genau dieser Zweig. Der Test `PluginManagerTests.InitializeAsync_ShouldRecreatePluginSettingAfterRemoval` (`Rezepte.Tests/Services/Import/PluginManagerTests.cs:360-393`) löscht den Eintrag direkt auf der DB (Service-Pfad separat abgedeckt), legt einen zweiten Eintrag mit `OrderIndex = 10` an und prüft nach erneutem `InitializeAsync`: `Status = Loaded`, `Enabled = true`, `DiscoveredAt ≥ Zeitpunkt vor der Wiederentdeckung`, `OrderIndex` größer als das Maximum aller übrigen Einträge — frischer Zeitpunkt und Position am Ende belegt.
+- **`Missing` + `Enabled == true` wird ohne Rückfrage gelöscht:** Offene Frage aus der Umsetzungsplanung wie dort angenommen entschieden (vermisst = faktisch inaktiv, `Enabled` wirkungslos); Test `RemovePluginAsync_ShouldRemoveMissingEnabledPlugin` belegt es.
+- **Export-Verhalten unverändert:** `ExportService` wurde vom Commit nicht berührt — `PluginSettings` bleibt Teil des Systemexports (`ExportService.cs:459`) und wird beim Wiederherstellen weiterhin angelegt, sofern die `pluginId` nicht bereits existiert (Z. 978-983). Ein wiederhergestelltes Backup kann entfernte Einträge zurückbringen — wie im Plan festgehalten bleibt das unverändert.
+- **Interface:** `IPluginSettingsService.RemovePluginAsync(string pluginId, CancellationToken ct = default)` (`IPluginSettingsService.cs:65`). Einzige Implementierung ist `PluginSettingsService` (DI: `ServiceCollectionExtensions.cs:219`); die Oberfläche ruft die Methode noch nicht auf — die Entfernen-Aktion ist Schritt 5.
+- **Nebenbefund im Commit:** `EnsureAdmin()` wirft nun englische Meldungen ("Only administrators may manage plugin settings.") statt deutscher — betrifft auch die bestehenden Quellen-Methoden, ist aber regelkonform (nicht lokalisierte Exception-Meldungen auf Englisch) und verhaltensgleich. Andere, ältere `InvalidOperationException`-Meldungen in `SaveSourceAsync`/`DeleteSourceAsync` bleiben deutsch — Bestand, außerhalb dieses Schritts.
+- **Folge-Beobachtung (außerhalb dieses Befunds):** `SetEnabledAsync`/`MoveAsync` rufen weiterhin kein `EnsureAdmin` — in der Umsetzungsplanung bereits als eigene Beobachtung notiert, nicht Teil dieses Schritts.
+- **Tests:** Neue Testklasse `PluginSettingsServiceTests_RemovePlugin` (`Rezepte.Tests/Services/Import/PluginSettingsServiceTests_RemovePlugin.cs`) — 6 Methoden / 9 Fälle: Entfernen eines `Missing`-Eintrags inkl. Liste aktualisiert und andere Einträge unberührt; Nicht-Admin abgelehnt; fehlender HttpContext abgelehnt; `[Theory]` über alle vier Nicht-`Missing`-Status (`Loaded`/`Incompatible`/`LoadFailed`/`RuntimeFailed`) mit Meldungsprüfung; unbekannte `pluginId` abgelehnt; `Missing` + `Enabled` gelöscht. Plus der Wiederentdeckungs-Test in `PluginManagerTests`. Alle Ablehnungs-Tests prüfen zusätzlich, dass der Datensatz erhalten bleibt.
+- **Verifikation:** `dotnet build Rezepte.sln` — 0 Warnungen, 0 Fehler. `dotnet test Rezepte.Tests --filter "FullyQualifiedName~Plugin"` — 127/127 bestanden; `dotnet test Rezepte.Tests` — 687/687 bestanden (Ausgangszähler 677 + 10 neue Fälle).
+- Die Arbeitsdokumente des Schritts unter `Docs/features/task/…schritt-3-missing-entfernen*/` wurden im Commit entfernt; `Docs/RELEASE_NOTES.md` wurde ergänzt (Entfernen bislang nur auf Service-Ebene, Admin-beschränkt, UI folgt).
+- Nachfolgeaktion außerhalb dieses Befunds: `steps.md` führt Schritt 3 noch als „In Arbeit" — auf „Fertig" setzen und Schritt-Tracking-Commit durchführen.
