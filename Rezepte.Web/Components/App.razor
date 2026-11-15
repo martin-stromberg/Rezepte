@@ -49,6 +49,12 @@
                 element.click();
             }
         };
+        window.rezepteSetInputValueIfEmpty = (id, value) => {
+            const el = document.getElementById(id);
+            if (el && el.value === '') {
+                el.value = value;
+            }
+        };
     </script>
 </body>
 
