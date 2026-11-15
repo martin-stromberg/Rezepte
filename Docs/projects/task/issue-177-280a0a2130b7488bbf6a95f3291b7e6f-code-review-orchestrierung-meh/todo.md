@@ -15,8 +15,8 @@ Issue: #177
 | [x] | Planprüfung | Plan gegen Anforderung prüfen (Unteragent) — **vollständig** | `project-plan-check.md` |
 | [x] | Planungscommit | Projektartefakte committen + steps.md | `steps.md`, `status.html` |
 | [x] | Entwicklungsschritt 1 | Import-Pfad-Konsolidierung (Lifecycle) — abgenommen, gemergt (665b58e) | Schritt-Branch, review-abnahme.md |
-| [~] | Entwicklungsschritt 2 | DemoDataSeeder-Service (Lifecycle) | Schritt-Branch |
-| [ ] | Entwicklungsschleife | Abnahme + Merge je Schritt | `acceptance-schritt-{n}.md` |
-| [ ] | Aufräumen | Projektartefakte entfernen, Abschluss | – |
+| [x] | Entwicklungsschritt 2 | DemoDataSeeder-Service (Lifecycle) — abgenommen, gemergt (9dfde99) | Schritt-Branch, review-abnahme.md |
+| [x] | Entwicklungsschleife | Abnahme + Merge je Schritt | review-abnahme.md je Feature |
+| [~] | Aufräumen | Artefakte bleiben bis E2E-Abnahme-Entscheid (Anwender) | – |
 | [ ] | Abschlusscommit | Abschluss des Projekts | – |
 | [ ] | Pull Request | PR gegen `staging` mit Closing-Tag #177 | PR-Nummer |
