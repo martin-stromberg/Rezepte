@@ -321,6 +321,99 @@ public sealed class ImportOrchestratorTests
         session.Status.Should().Be("Cancelled");
     }
 
+    /// <summary>
+    /// Start import async should pass the source uri through to the handler and the persister.
+    /// </summary>
+    [Fact]
+    public async Task StartImportAsync_ShouldPassUriToHandler()
+    {
+        var handler = new RecordingHandler("handler", canHandle: true);
+        var persister = new PassthroughPersister();
+        var sut = CreateOrchestrator(persister, handler);
+
+        var sessionId = await sut.StartImportAsync(new MemoryStream([1]), "recipe.fixture", "https://example.test/r", "cookbook-1", OwnerUserId);
+
+        var session = await WaitForResultAsync(sut, sessionId);
+        session.Result!.Success.Should().BeTrue();
+        handler.ReceivedUri.Should().Be("https://example.test/r");
+        persister.ReceivedSourceUris.Should().Equal("https://example.test/r");
+    }
+
+    /// <summary>
+    /// Import and wait async should return the persisted result when a handler succeeds.
+    /// </summary>
+    [Fact]
+    public async Task ImportAndWaitAsync_ShouldReturnResult_WhenHandlerSucceeds()
+    {
+        var handler = new RecordingHandler("handler", canHandle: true);
+        var sut = CreateOrchestrator(handler);
+
+        var result = await sut.ImportAndWaitAsync(new MemoryStream([1]), "recipe.fixture", "https://example.test/r", "cookbook-1", OwnerUserId);
+
+        result.Success.Should().BeTrue();
+        result.CreatedRecipeIds.Should().Equal("handler-created");
+        handler.ReceivedUri.Should().Be("https://example.test/r");
+    }
+
+    /// <summary>
+    /// Import and wait async should return the same error as the session path when no plugin can handle the input.
+    /// </summary>
+    [Fact]
+    public async Task ImportAndWaitAsync_ShouldReturnError_WhenNoPluginCanHandle()
+    {
+        var sut = CreateOrchestrator(new RecordingHandler("handler", canHandle: false));
+
+        var result = await sut.ImportAndWaitAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", OwnerUserId);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("No suitable import plugin found for this file or URL.");
+    }
+
+    /// <summary>
+    /// Import and wait async should abort the session and return an interaction error when a confirmation is required.
+    /// </summary>
+    [Fact]
+    public async Task ImportAndWaitAsync_ShouldAbortAndReturnInteractionError_WhenConfirmationRequired()
+    {
+        var sut = CreateOrchestrator(new InteractiveRecordingHandler("interactive", canHandle: true));
+
+        var result = await sut.ImportAndWaitAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", OwnerUserId);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Contain("import-session");
+    }
+
+    /// <summary>
+    /// Import and wait async should abort the session and return an interaction error when a collection selection is required.
+    /// </summary>
+    [Fact]
+    public async Task ImportAndWaitAsync_ShouldAbortAndReturnInteractionError_WhenSelectionRequired()
+    {
+        var collection = new CollectionRecordingHandler();
+        var sut = CreateOrchestrator(collection);
+
+        var result = await sut.ImportAndWaitAsync(new MemoryStream([1]), "collection.html", "https://example.test/collection", "cookbook-1", OwnerUserId);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Contain("import-session");
+        collection.ImportedItemIds.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Import and wait async should honor cancellation of the request token.
+    /// </summary>
+    [Fact]
+    public async Task ImportAndWaitAsync_ShouldHonorCancellation()
+    {
+        var sut = CreateOrchestrator(new RecordingHandler("handler", canHandle: true));
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var act = () => sut.ImportAndWaitAsync(new MemoryStream([1]), "recipe.fixture", null, "cookbook-1", OwnerUserId, cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
     private static ImportOrchestrator CreateOrchestrator(params IImportHandler[] handlers)
     {
         return CreateOrchestrator(new PassthroughPersister(), handlers);
@@ -357,8 +450,15 @@ public sealed class ImportOrchestratorTests
     {
         public List<string?> TargetCookbookIds { get; } = [];
 
+        public List<string?> ReceivedSourceUris { get; } = [];
+
         public Task<ImportResult> PersistAsync(ImportResult result, string? targetCookbookId, string userId, CancellationToken ct = default)
         {
+            if (result.ImportedRecipes is not null)
+            {
+                ReceivedSourceUris.AddRange(result.ImportedRecipes.Select(r => r.SourceUri));
+            }
+
             return Task.FromResult(result);
         }
 
@@ -418,6 +518,7 @@ public sealed class ImportOrchestratorTests
 
         public int CanHandleCalls { get; private set; }
         public int HandleCalls { get; private set; }
+        public string? ReceivedUri { get; private set; }
         public string UserId { private get; set; } = string.Empty;
 
         public Task<bool> CanHandleAsync(Stream stream, string fileName, CancellationToken ct = default)
@@ -429,7 +530,12 @@ public sealed class ImportOrchestratorTests
         public virtual Task<ImportResult> HandleAsync(Stream stream, string fileName, string? uri, string targetCookbookId, string userId, CancellationToken ct = default)
         {
             HandleCalls++;
-            return Task.FromResult(new ImportResult(true, null, [$"{name}-created"]));
+            ReceivedUri = uri;
+            return Task.FromResult(new ImportResult(
+                true,
+                null,
+                [$"{name}-created"],
+                [new ImportedRecipe { Title = name, SourceUri = uri }]));
         }
     }
 

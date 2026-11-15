@@ -1,0 +1,20 @@
+  Wiederherzustellende Projekte werden ermittelt...
+  "D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" wiederhergestellt (in 55 ms.).
+  "D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Web\Rezepte.Web.csproj" wiederhergestellt (in 195 ms.).
+  6 von 8 Projekten sind für die Wiederherstellung auf dem neuesten Stand.
+  Rezepte.Import.Abstractions -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Abstractions\bin\Debug\net10.0\Rezepte.Import.Abstractions.dll
+  Rezepte.Tests.PluginFixture -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Tests.PluginFixture\bin\Debug\net10.0\Rezepte.Tests.PluginFixture.dll
+  Rezepte.Import.Plugins.AIUrl -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Plugins.AIUrl\bin\Debug\net10.0\Rezepte.Import.Plugins.AIUrl.dll
+  Rezepte.Import.PluginSdk -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.PluginSdk\bin\Debug\net10.0\Rezepte.Import.PluginSdk.dll
+  Rezepte.Import.Plugins.AIFoto -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Plugins.AIFoto\bin\Debug\net10.0\Rezepte.Import.Plugins.AIFoto.dll
+  Rezepte.Import.Plugins.Backup -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Plugins.Backup\bin\Debug\net10.0\Rezepte.Import.Plugins.Backup.dll
+  Rezepte.Web -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Web\bin\Debug\net10.0\Rezepte.Web.dll
+  Rezepte.Import.Abstractions -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Abstractions\bin\Debug\net10.0\Rezepte.Import.Abstractions.dll
+  Rezepte.Import.Plugins.Backup -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Plugins.Backup\bin\Debug\net10.0\Rezepte.Import.Plugins.Backup.dll
+  Rezepte.Import.Plugins.AIFoto -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Plugins.AIFoto\bin\Debug\net10.0\Rezepte.Import.Plugins.AIFoto.dll
+  Rezepte.Import.Plugins.AIUrl -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Plugins.AIUrl\bin\Debug\net10.0\Rezepte.Import.Plugins.AIUrl.dll
+  Rezepte.Tests -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Tests\bin\Debug\net10.0\Rezepte.Tests.dll
+Testlauf für "D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Tests\bin\Debug\net10.0\Rezepte.Tests.dll" (.NETCoreApp,Version=v10.0)
+Insgesamt 1 Testdateien stimmten mit dem angegebenen Muster überein.
+
+Bestanden!   : Fehler:     0, erfolgreich:   707, übersprungen:     0, gesamt:   707, Dauer: 29 s - Rezepte.Tests.dll (net10.0)

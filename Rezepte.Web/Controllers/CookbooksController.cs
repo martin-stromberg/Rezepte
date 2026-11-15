@@ -159,11 +159,11 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     /// </summary>
     /// <param name="cookbookId">The cookbook id parameter.</param>
     /// <param name="file">The file parameter.</param>
-    /// <param name="importService">The import service parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
     /// <param name="ct">The ct parameter.</param>
     /// <returns>The result.</returns>
     [HttpPost("{cookbookId}/import")]
-    public async Task<IActionResult> ImportFromFile(string cookbookId, IFormFile file, [FromServices] IImportService importService, CancellationToken ct)
+    public async Task<IActionResult> ImportFromFile(string cookbookId, IFormFile file, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
@@ -177,7 +177,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         {
             await using var ms = await file.ReadToMemoryStreamAsync(ct);
 
-            var result = await importService.ImportAsync(ms, file.FileName, cookbookId, userId, ct).ConfigureAwait(false);
+            var result = await orchestrator.ImportAndWaitAsync(ms, file.FileName, null, cookbookId, userId, ct).ConfigureAwait(false);
             if (!result.Success)
                 return BadRequest(new { message = result.Error });
 
@@ -199,11 +199,11 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     /// </summary>
     /// <param name="cookbookId">The cookbook id parameter.</param>
     /// <param name="request">The request parameter.</param>
-    /// <param name="importService">The import service parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
     /// <param name="ct">The ct parameter.</param>
     /// <returns>The result.</returns>
     [HttpPost("{cookbookId}/import-url")]
-    public async Task<IActionResult> ImportFromUrl(string cookbookId, [FromBody] ImportUrlRequest request, [FromServices] IImportService importService, CancellationToken ct)
+    public async Task<IActionResult> ImportFromUrl(string cookbookId, [FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
@@ -213,21 +213,21 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         var cookbook = await _cookbooks.GetByIdAsync(userId, cookbookId, ct);
         if (cookbook is null) return NotFound(new { message = "Cookbook not found." });
 
-        return await ImportFromUrlAsync(request.Url, cookbookId, importService, userId, ct);
+        return await ImportFromUrlAsync(request.Url, cookbookId, orchestrator, userId, ct);
     }
 
     /// <summary>
     /// imports the from file.
     /// </summary>
     /// <param name="file">The file parameter.</param>
-    /// <param name="importService">The import service parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
     /// <param name="ct">The ct parameter.</param>
     /// <returns>The result.</returns>
     /// <response code="500">The 500 response.</response>
     [HttpPost("import")]
     [RequestSizeLimit(524288000)] // 500 MB limit, anpassen nach Bedarf
     [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
-    public async Task<IActionResult> ImportFromFile(IFormFile file, [FromServices] IImportService importService, CancellationToken ct)
+    public async Task<IActionResult> ImportFromFile(IFormFile file, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
@@ -237,7 +237,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
         {
             await using var ms = await file.ReadToMemoryStreamAsync(ct);
 
-            var result = await importService.ImportAsync(ms, file.FileName, null, userId, ct).ConfigureAwait(false);
+            var result = await orchestrator.ImportAndWaitAsync(ms, file.FileName, null, null, userId, ct).ConfigureAwait(false);
             if (!result.Success)
                 return BadRequest(new { message = result.Error });
 
@@ -258,17 +258,17 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     /// imports the from url.
     /// </summary>
     /// <param name="request">The request parameter.</param>
-    /// <param name="importService">The import service parameter.</param>
+    /// <param name="orchestrator">The orchestrator parameter.</param>
     /// <param name="ct">The ct parameter.</param>
     /// <returns>The result.</returns>
     [HttpPost("import-url")]
-    public async Task<IActionResult> ImportFromUrl([FromBody] ImportUrlRequest request, [FromServices] IImportService importService, CancellationToken ct)
+    public async Task<IActionResult> ImportFromUrl([FromBody] ImportUrlRequest request, [FromServices] ImportOrchestrator orchestrator, CancellationToken ct)
     {
         var userId = GetUserId();
         if (userId is null) return Unauthorized();
         if (request == null || string.IsNullOrWhiteSpace(request.Url)) return BadRequest(new { message = "No URL provided." });
 
-        return await ImportFromUrlAsync(request.Url, null, importService, userId, ct);
+        return await ImportFromUrlAsync(request.Url, null, orchestrator, userId, ct);
     }
 
     /// <summary>
@@ -572,7 +572,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
     }
 
     // private helper that centralizes importing the content behind a remote URL
-    private async Task<IActionResult> ImportFromUrlAsync(string url, string? cookbookId, IImportService importService, string userId, CancellationToken ct)
+    private async Task<IActionResult> ImportFromUrlAsync(string url, string? cookbookId, ImportOrchestrator orchestrator, string userId, CancellationToken ct)
     {
         var (urlAllowed, urlError, uri) = await RemoteUrlGuard.TryValidateAsync(url, ct);
         if (!urlAllowed || uri is null)
@@ -585,7 +585,7 @@ public class CookbooksController(ICookbookService cookbooks, IRecipeService reci
                 return BadRequest(new { message = $"Remote request failed: {fetched.StatusCode}" });
 
             await using var ms = fetched.Content!;
-            var result = await importService.ImportAsync(ms, fetched.FileName, cookbookId, userId, ct).ConfigureAwait(false);
+            var result = await orchestrator.ImportAndWaitAsync(ms, fetched.FileName, uri.ToString(), cookbookId, userId, ct).ConfigureAwait(false);
             if (!result.Success)
                 return BadRequest(new { message = result.Error });
 

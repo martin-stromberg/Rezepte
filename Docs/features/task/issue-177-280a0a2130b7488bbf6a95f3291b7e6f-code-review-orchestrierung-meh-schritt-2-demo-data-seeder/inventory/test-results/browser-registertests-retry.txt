@@ -1,0 +1,22 @@
+  Wiederherzustellende Projekte werden ermittelt...
+  Alle Projekte sind für die Wiederherstellung auf dem neuesten Stand.
+  Rezepte.Import.Abstractions -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Abstractions\bin\Debug\net10.0\Rezepte.Import.Abstractions.dll
+  Rezepte.Web -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Web\bin\Debug\net10.0\Rezepte.Web.dll
+  Rezepte.Import.Abstractions -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Abstractions\bin\Debug\net10.0\Rezepte.Import.Abstractions.dll
+  Rezepte.Import.Plugins.Backup -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Plugins.Backup\bin\Debug\net10.0\Rezepte.Import.Plugins.Backup.dll
+  Rezepte.Import.Plugins.AIFoto -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Plugins.AIFoto\bin\Debug\net10.0\Rezepte.Import.Plugins.AIFoto.dll
+  Rezepte.Import.Plugins.AIUrl -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Import.Plugins.AIUrl\bin\Debug\net10.0\Rezepte.Import.Plugins.AIUrl.dll
+  Rezepte.Tests.Browser -> D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Tests.Browser\bin\Debug\net10.0\Rezepte.Tests.Browser.dll
+Testlauf für "D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Tests.Browser\bin\Debug\net10.0\Rezepte.Tests.Browser.dll" (.NETCoreApp,Version=v10.0)
+Insgesamt 1 Testdateien stimmten mit dem angegebenen Muster überein.
+[xUnit.net 00:02:10.06]     Rezepte.Tests.Browser.RegisterTests.Register_WithDemoData_CreatesDemoData [FAIL]
+  Fehler Rezepte.Tests.Browser.RegisterTests.Register_WithDemoData_CreatesDemoData [2 m 8 s]
+  Fehlermeldung:
+   System.TimeoutException : Demo data state did not match expected value True within 120000ms. Last observed: cookbooks=5, recipes=43, calendar=0, shopping=6; seed job status=Succeeded, error=(none) (page: http://127.0.0.1:60672/shopping-list)
+  Stapelverfolgung:
+     at Rezepte.Tests.Browser.RegisterTests.DemoDataWaitHelper.WaitForDemoDataAsync(IPage page, Boolean expected, Int32 timeoutMilliseconds, String databasePath) in D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Tests.Browser\Auth\RegisterTests.cs:line 305
+   at Rezepte.Tests.Browser.RegisterTests.Register_WithDemoData_CreatesDemoData() in D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Tests.Browser\Auth\RegisterTests.cs:line 74
+   at Rezepte.Tests.Browser.RegisterTests.Register_WithDemoData_CreatesDemoData() in D:\Repositories\softwareschmiede\280a0a21-30b7-488b-bf6a-95f3291b7e6f\Rezepte.Tests.Browser\Auth\RegisterTests.cs:line 85
+--- End of stack trace from previous location ---
+
+Fehler!      : Fehler:     1, erfolgreich:     0, übersprungen:     0, gesamt:     1, Dauer: 2 m 8 s - Rezepte.Tests.Browser.dll (net10.0)

@@ -194,11 +194,11 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<IExportCleanupService, ExportCleanupService>();
         services.AddHostedService<ExportCleanupHostedService>();
+        services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
         services.AddScoped<IBackgroundJobHandler, ExportUserJobHandler>();
         services.AddScoped<IBackgroundJobHandler, ExportAllJobHandler>();
         services.AddScoped<IBackgroundJobHandler, DemoDataSeedingJobHandler>();
         services.AddScoped<IPdfGenerator, PdfGenerator>();
-        services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IRemoteContentFetcher, RemoteContentFetcher>();
         services.AddScoped<IImportedRecipePersister, ImportedRecipePersister>();
         services.AddSingleton<IPluginManager, PluginManager>();

@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Rezepte.Web.Entities;
 using Rezepte.Web.Services;
 using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.BackgroundJobs.Handlers;
@@ -14,38 +13,13 @@ namespace Rezepte.Tests.Services.BackgroundJobs;
 /// </summary>
 public class DemoDataSeedingJobHandlerTests
 {
-    /// <summary>
-    /// Holds the mocks used by the happy-path tests so each test only wires its own verification.
-    /// </summary>
-    /// <param name="UserService">The user service mock.</param>
-    /// <param name="CookbookService">The cookbook service mock.</param>
-    /// <param name="RecipeService">The recipe service mock.</param>
-    /// <param name="CalendarService">The calendar service mock.</param>
-    /// <param name="ShoppingListService">The shopping list service mock.</param>
-    /// <param name="Provider">The service provider containing all mocked services.</param>
-    /// <returns>The happy path mocks.</returns>
-    private sealed record HappyPathMocks(
-        Mock<IUserService> UserService,
-        Mock<ICookbookService> CookbookService,
-        Mock<IRecipeService> RecipeService,
-        Mock<ICalendarService> CalendarService,
-        Mock<IShoppingListService> ShoppingListService,
-        IServiceProvider Provider);
-
     private static IServiceProvider BuildProvider(
         Mock<IUserService>? userService = null,
-        Mock<ICookbookService>? cookbookService = null,
-        Mock<IRecipeService>? recipeService = null,
-        Mock<ICalendarService>? calendarService = null,
-        Mock<IShoppingListService>? shoppingListService = null)
+        Mock<IDemoDataSeeder>? demoDataSeeder = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton(userService?.Object ?? new Mock<IUserService>().Object);
-        services.AddSingleton(cookbookService?.Object ?? new Mock<ICookbookService>().Object);
-        services.AddSingleton(recipeService?.Object ?? new Mock<IRecipeService>().Object);
-        services.AddSingleton(calendarService?.Object ?? new Mock<ICalendarService>().Object);
-        services.AddSingleton(shoppingListService?.Object ?? new Mock<IShoppingListService>().Object);
-        services.AddSingleton(new Mock<Microsoft.Extensions.Logging.ILogger<DemoDataSeedingJobHandler>>().Object);
+        services.AddSingleton(demoDataSeeder?.Object ?? new Mock<IDemoDataSeeder>().Object);
         return services.BuildServiceProvider();
     }
 
@@ -58,192 +32,80 @@ public class DemoDataSeedingJobHandlerTests
     }
 
     /// <summary>
-    /// Creates mocks for all services involved in the happy path of the seeding job:
-    /// the user exists and every service call succeeds.
+    /// Handle async should call seed for user async with the payload user id.
     /// </summary>
-    /// <param name="userId">The id of the existing user returned by the user service mock.</param>
-    /// <returns>The configured mocks together with the service provider.</returns>
-    private static HappyPathMocks CreateHappyPathMocks(string userId)
+    [Fact]
+    public async Task HandleAsync_WithValidJob_CallsSeedForUserAsync()
     {
+        const string userId = "user1";
         var userService = new Mock<IUserService>();
         userService.Setup(s => s.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Rezepte.Web.Services.User(userId, "test", string.Empty, string.Empty, false, DateTime.UtcNow));
+        var demoDataSeeder = new Mock<IDemoDataSeeder>();
 
-        var cookbookService = new Mock<ICookbookService>();
-        var cookbookId = 0;
-        cookbookService.Setup(s => s.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback(() => cookbookId++)
-            .ReturnsAsync(() => (true, null, new Cookbook { Id = cookbookId.ToString(), Name = "Demo" }));
-
-        var recipeService = new Mock<IRecipeService>();
-        var lastTitle = string.Empty;
-        recipeService.Setup(s => s.CreateAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<int?>(),
-                It.IsAny<IReadOnlyList<RecipeCreateStep>>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<string, string?, string, string?, string?, int?, IReadOnlyList<RecipeCreateStep>, CancellationToken>((u, c, t, d, r, p, st, ct) => lastTitle = t)
-            .ReturnsAsync(() => (true, null, new Recipe { Id = "1", Title = lastTitle, Portions = 4 }));
-
-        var calendarService = new Mock<ICalendarService>();
-        calendarService.Setup(s => s.CreateEventAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<DateTime>(),
-                It.IsAny<TimeSpan>(),
-                It.IsAny<int>(),
-                It.IsAny<RecurrenceType>(),
-                It.IsAny<WeekDays>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((true, null, new CalendarEvent()));
-
-        var shoppingListService = new Mock<IShoppingListService>();
-        shoppingListService.Setup(s => s.EnsureDefaultGroupAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ShoppingListGroup { Id = "1", Name = "Einkaufsliste" });
-        shoppingListService.Setup(s => s.AddItemAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<decimal>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((true, null, new ShoppingListItem()));
-
-        var provider = BuildProvider(userService, cookbookService, recipeService, calendarService, shoppingListService);
-        return new HappyPathMocks(userService, cookbookService, recipeService, calendarService, shoppingListService, provider);
-    }
-
-    /// <summary>
-    /// Handle async should create five cookbooks.
-    /// </summary>
-    [Fact]
-    public async Task HandleAsync_ShouldCreateFiveCookbooks()
-    {
-        const string userId = "user1";
-        var mocks = CreateHappyPathMocks(userId);
+        var provider = BuildProvider(userService, demoDataSeeder);
         var handler = new DemoDataSeedingJobHandler();
 
-        await handler.HandleAsync(CreateJob(userId), mocks.Provider, CancellationToken.None);
+        await handler.HandleAsync(CreateJob(userId), provider, CancellationToken.None);
 
-        mocks.CookbookService.Verify(s => s.CreateAsync(userId, It.IsAny<string>(), null, It.IsAny<CancellationToken>()), Times.Exactly(5));
+        demoDataSeeder.Verify(s => s.SeedForUserAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     /// <summary>
-    /// Handle async should create forty three recipes.
+    /// Handle async should throw when user does not exist and not call the seeder.
     /// </summary>
     [Fact]
-    public async Task HandleAsync_ShouldCreateFortyThreeRecipes()
+    public async Task HandleAsync_WhenUserDoesNotExist_ThrowsInvalidOperationException()
     {
         const string userId = "user2";
-        var mocks = CreateHappyPathMocks(userId);
-        var handler = new DemoDataSeedingJobHandler();
-
-        await handler.HandleAsync(CreateJob(userId), mocks.Provider, CancellationToken.None);
-
-        mocks.RecipeService.Verify(s => s.CreateAsync(
-            userId,
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            null,
-            It.IsAny<int?>(),
-            It.IsAny<IReadOnlyList<RecipeCreateStep>>(),
-            It.IsAny<CancellationToken>()), Times.Exactly(43));
-    }
-
-    /// <summary>
-    /// Handle async should create five calendar events.
-    /// </summary>
-    [Fact]
-    public async Task HandleAsync_ShouldCreateFiveCalendarEvents()
-    {
-        const string userId = "user3";
-        var mocks = CreateHappyPathMocks(userId);
-        var handler = new DemoDataSeedingJobHandler();
-
-        await handler.HandleAsync(CreateJob(userId), mocks.Provider, CancellationToken.None);
-
-        for (var i = 1; i <= 5; i++)
-        {
-            var day = DateTime.Today.AddDays(i);
-            mocks.CalendarService.Verify(s => s.CreateEventAsync(
-                userId,
-                It.IsAny<string>(),
-                day,
-                TimeSpan.FromHours(18),
-                It.IsAny<int>(),
-                RecurrenceType.None,
-                WeekDays.None,
-                It.IsAny<CancellationToken>()), Times.Once);
-        }
-    }
-
-    /// <summary>
-    /// Handle async should add ingredients to default shopping list.
-    /// </summary>
-    [Fact]
-    public async Task HandleAsync_ShouldAddIngredientsToDefaultShoppingList()
-    {
-        const string userId = "user4";
-        var mocks = CreateHappyPathMocks(userId);
-        var handler = new DemoDataSeedingJobHandler();
-
-        await handler.HandleAsync(CreateJob(userId), mocks.Provider, CancellationToken.None);
-
-        mocks.ShoppingListService.Verify(s => s.AddItemAsync(
-            userId,
-            "1",
-            It.IsAny<decimal>(),
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<CancellationToken>()), Times.Exactly(6));
-    }
-
-    /// <summary>
-    /// Handle async should throw when user does not exist.
-    /// </summary>
-    [Fact]
-    public async Task HandleAsync_ShouldThrow_WhenUserDoesNotExist()
-    {
-        const string userId = "user5";
         var userService = new Mock<IUserService>();
         userService.Setup(s => s.GetByIdAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync((Rezepte.Web.Services.User?)null);
+        var demoDataSeeder = new Mock<IDemoDataSeeder>();
 
-        var provider = BuildProvider(userService);
+        var provider = BuildProvider(userService, demoDataSeeder);
         var handler = new DemoDataSeedingJobHandler();
 
         var action = () => handler.HandleAsync(CreateJob(userId), provider, CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidOperationException>();
+        demoDataSeeder.Verify(s => s.SeedForUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     /// <summary>
-    /// Handle async should throw when any service operation fails.
+    /// Handle async should throw when the payload has no user id and not call the seeder.
     /// </summary>
     [Fact]
-    public async Task HandleAsync_ShouldThrow_WhenAnyServiceOperationFails()
+    public async Task HandleAsync_WhenUserIdEmpty_ThrowsInvalidOperationException()
     {
-        const string userId = "user6";
+        var demoDataSeeder = new Mock<IDemoDataSeeder>();
+        var provider = BuildProvider(demoDataSeeder: demoDataSeeder);
+        var handler = new DemoDataSeedingJobHandler();
+
+        var action = () => handler.HandleAsync(CreateJob(string.Empty), provider, CancellationToken.None);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+        demoDataSeeder.Verify(s => s.SeedForUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    /// <summary>
+    /// Handle async should propagate the exception thrown by the seeder.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_WhenSeederThrows_PropagatesException()
+    {
+        const string userId = "user3";
         var userService = new Mock<IUserService>();
-        userService.Setup(s => s.GetByIdAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(new Rezepte.Web.Services.User(userId, "test", string.Empty, string.Empty, false, DateTime.UtcNow));
+        userService.Setup(s => s.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Rezepte.Web.Services.User(userId, "test", string.Empty, string.Empty, false, DateTime.UtcNow));
+        var demoDataSeeder = new Mock<IDemoDataSeeder>();
+        demoDataSeeder.Setup(s => s.SeedForUserAsync(userId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Seeding failed."));
 
-        var cookbookService = new Mock<ICookbookService>();
-        var callCount = 0;
-        cookbookService.Setup(s => s.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback(() => callCount++)
-            .ReturnsAsync(() => callCount == 2
-                ? (false, "Cookbook creation failed.", (Cookbook?)null)
-                : (true, null, new Cookbook { Id = callCount.ToString(), Name = "Demo" }));
-
-        var provider = BuildProvider(userService, cookbookService);
+        var provider = BuildProvider(userService, demoDataSeeder);
         var handler = new DemoDataSeedingJobHandler();
 
         var action = () => handler.HandleAsync(CreateJob(userId), provider, CancellationToken.None);
 
-        await action.Should().ThrowAsync<InvalidOperationException>();
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Seeding failed.");
     }
 }
