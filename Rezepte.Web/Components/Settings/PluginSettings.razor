@@ -4,32 +4,34 @@
 
 @if (isLoading)
 {
-    <div>Lade...</div>
-}
-else if (!string.IsNullOrWhiteSpace(message))
-{
-    <div class="alert alert-danger py-2">@message</div>
+    <div>@Localizer["Loading"]</div>
 }
 else
 {
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="@messageClass">@message</div>
+    }
+
     <section class="mb-4">
-        <h3 class="h6">GitHub-Pluginquellen</h3>
+        <h3 class="h6">@Localizer["GitHubPluginSources"]</h3>
+        <div class="text-muted small mb-2">@Localizer["PluginSourcesInfo"]</div>
         <EditForm Model="sourceForm" OnValidSubmit="SaveSourceAsync">
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-lg-5">
-                    <label class="form-label small" for="plugin-source-url">Repository-URL</label>
+                    <label class="form-label small" for="plugin-source-url">@Localizer["RepositoryUrl"]</label>
                     <InputText id="plugin-source-url" class="form-control form-control-sm" @bind-Value="sourceForm.RepositoryUrl" />
                 </div>
                 <div class="col-6 col-lg-2">
                     <div class="form-check">
                         <InputCheckbox id="plugin-source-private" class="form-check-input" @bind-Value="sourceForm.IsPrivate" />
-                        <label class="form-check-label small" for="plugin-source-private">Privat</label>
+                        <label class="form-check-label small" for="plugin-source-private">@Localizer["Private"]</label>
                     </div>
                 </div>
                 <div class="col-6 col-lg-2">
                     <div class="form-check">
                         <InputCheckbox id="plugin-source-enabled" class="form-check-input" @bind-Value="sourceForm.Enabled" />
-                        <label class="form-check-label small" for="plugin-source-enabled">Aktiv</label>
+                        <label class="form-check-label small" for="plugin-source-enabled">@Localizer["Active"]</label>
                     </div>
                 </div>
                 <div class="col-12 col-lg-3">
@@ -43,10 +45,10 @@ else
                     </div>
                 </div>
                 <div class="col-12">
-                    <button class="btn btn-primary btn-sm" type="submit" disabled="@isSaving">Speichern</button>
+                    <button class="btn btn-primary btn-sm" type="submit" disabled="@isSaving">@Localizer["Save"]</button>
                     @if (!string.IsNullOrWhiteSpace(sourceForm.Id))
                     {
-                        <button class="btn btn-outline-secondary btn-sm ms-2" type="button" disabled="@isSaving" @onclick="ResetSourceForm">Abbrechen</button>
+                        <button class="btn btn-outline-secondary btn-sm ms-2" type="button" disabled="@isSaving" @onclick="ResetSourceForm">@Localizer["Cancel"]</button>
                     }
                 </div>
             </div>
@@ -62,10 +64,10 @@ else
                 <table class="table table-sm align-middle">
                     <thead>
                         <tr>
-                            <th style="width: 72px;">Aktiv</th>
-                            <th>Quelle</th>
-                            <th>Status</th>
-                            <th class="text-end" style="width: 160px;">Aktionen</th>
+                            <th style="width: 72px;">@Localizer["Active"]</th>
+                            <th>@Localizer["Source"]</th>
+                            <th>@Localizer["Status"]</th>
+                            <th class="text-end" style="width: 160px;">@Localizer["Actions"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -77,15 +79,15 @@ else
                                         <input class="form-check-input"
                                                type="checkbox"
                                                checked="@source.Enabled"
-                                               disabled="@isSaving"
-                                               aria-label="@($"Quelle {source.RepositoryUrl} aktivieren")"
+                                               disabled="@(isSaving || checkingSourceId is not null)"
+                                               aria-label="@Localizer["EnableSourceFor", source.RepositoryUrl]"
                                                @onchange="args => SetSourceEnabledAsync(source.Id, args)" />
                                     </div>
                                 </td>
                                 <td>
                                     <div class="fw-semibold">@source.Owner/@source.Repository</div>
                                     <div class="small text-muted">@source.RepositoryUrl</div>
-                                    <div class="small">@(source.IsPrivate ? "Privat" : "Öffentlich") · Secret: @(source.HasSecret ? "hinterlegt" : "nicht hinterlegt")</div>
+                                    <div class="small">@(source.IsPrivate ? Localizer["Private"].Value : Localizer["Public"].Value) · @(source.HasSecret ? Localizer["SecretStored"].Value : Localizer["SecretMissing"].Value)</div>
                                 </td>
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(source.LastSuccessfulReleaseTag))
@@ -96,14 +98,55 @@ else
                                     {
                                         <div class="small text-danger">@source.LastError</div>
                                     }
+                                    @if (source.LastErrorAt is not null)
+                                    {
+                                        <div class="small text-muted">@Localizer["SourceLastErrorAt", source.LastErrorAt.Value.ToLocalTime().ToString("g")]</div>
+                                    }
                                     @if (source.LastCheckedAt is not null)
                                     {
-                                        <div class="small text-muted">Geprüft: @source.LastCheckedAt.Value.ToLocalTime().ToString("g")</div>
+                                        <div class="small text-muted">@Localizer["SourceLastCheckedAt", source.LastCheckedAt.Value.ToLocalTime().ToString("g")]</div>
                                     }
                                 </td>
                                 <td class="text-end">
-                                    <button class="btn btn-outline-secondary btn-sm" disabled="@isSaving" @onclick="() => EditSource(source)">Bearbeiten</button>
-                                    <button class="btn btn-outline-danger btn-sm ms-1" disabled="@isSaving" @onclick="() => DeleteSourceAsync(source.Id)">Löschen</button>
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="@Localizer["Actions"]">
+                                        <span class="d-inline-block" title="@CheckButtonTitle(source)">
+                                            <button class="btn btn-outline-secondary"
+                                                    type="button"
+                                                    title="@CheckButtonTitle(source)"
+                                                    aria-label="@CheckButtonTitle(source)"
+                                                    disabled="@(isSaving || checkingSourceId is not null || !source.Enabled || !source.TrustConfirmed)"
+                                                    @onclick="() => CheckSourceAsync(source)">
+                                                @if (checkingSourceId == source.Id)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                                                }
+                                            </button>
+                                        </span>
+                                        <span class="d-inline-block" title="@EditButtonTitle()">
+                                            <button class="btn btn-outline-secondary"
+                                                    type="button"
+                                                    title="@EditButtonTitle()"
+                                                    aria-label="@EditButtonTitle()"
+                                                    disabled="@(isSaving || checkingSourceId is not null)"
+                                                    @onclick="() => EditSource(source)">
+                                                <i class="bi bi-pencil" aria-hidden="true"></i>
+                                            </button>
+                                        </span>
+                                        <span class="d-inline-block" title="@DeleteButtonTitle()">
+                                            <button class="btn btn-outline-danger"
+                                                    type="button"
+                                                    title="@DeleteButtonTitle()"
+                                                    aria-label="@DeleteButtonTitle()"
+                                                    disabled="@(isSaving || checkingSourceId is not null)"
+                                                    @onclick="() => DeleteSourceAsync(source.Id)">
+                                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                            </button>
+                                        </span>
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -124,11 +167,11 @@ else
         <table class="table table-sm align-middle">
             <thead>
                 <tr>
-                    <th style="width: 72px;">Aktiv</th>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Assembly</th>
-                    <th class="text-end" style="width: 112px;">Reihenfolge</th>
+                    <th style="width: 72px;">@Localizer["Active"]</th>
+                    <th>@Localizer["Name"]</th>
+                    <th>@Localizer["Status"]</th>
+                    <th>@Localizer["Assembly"]</th>
+                    <th class="text-end" style="width: 160px;">@Localizer["PluginOrder"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -142,7 +185,7 @@ else
                                        type="checkbox"
                                        checked="@plugin.Enabled"
                                        disabled="@isSaving"
-                                       aria-label="@($"Plugin {plugin.DisplayName} aktivieren")"
+                                       aria-label="@Localizer["EnablePluginFor", plugin.DisplayName]"
                                        @onchange="args => SetEnabledAsync(plugin.PluginId, args)" />
                             </div>
                         </td>
@@ -181,9 +224,22 @@ else
                         </td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm" role="group" aria-label="@Localizer["PluginOrder"]">
-                                <button class="btn btn-outline-secondary" title="@Localizer["MoveUp"]" disabled="@(isSaving || i == 0)" @onclick="() => MoveAsync(plugin.PluginId, -1)">↑</button>
-                                <button class="btn btn-outline-secondary" title="@Localizer["MoveDown"]" disabled="@(isSaving || i == plugins.Count - 1)" @onclick="() => MoveAsync(plugin.PluginId, 1)">↓</button>
+                                <button class="btn btn-outline-secondary" title="@Localizer["MoveUp"]" aria-label="@Localizer["MoveUp"]" disabled="@(isSaving || i == 0)" @onclick="() => MoveAsync(plugin.PluginId, -1)">↑</button>
+                                <button class="btn btn-outline-secondary" title="@Localizer["MoveDown"]" aria-label="@Localizer["MoveDown"]" disabled="@(isSaving || i == plugins.Count - 1)" @onclick="() => MoveAsync(plugin.PluginId, 1)">↓</button>
                             </div>
+                            @if (plugin.Status == PluginStatus.Missing)
+                            {
+                                <span class="d-inline-block ms-1" title="@RemoveButtonTitle(plugin)">
+                                    <button class="btn btn-outline-danger"
+                                            type="button"
+                                            title="@RemoveButtonTitle(plugin)"
+                                            aria-label="@RemoveButtonTitle(plugin)"
+                                            disabled="@isSaving"
+                                            @onclick="() => RemovePluginEntryAsync(plugin)">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    </button>
+                                </span>
+                            }
                         </td>
                     </tr>
                 }
@@ -199,7 +255,9 @@ else
     private SourceForm sourceForm = new();
     private bool isLoading = true;
     private bool isSaving;
+    private string? checkingSourceId;
     private string? message;
+    private string messageClass = "alert alert-danger py-2";
 
     protected override async Task OnInitializedAsync()
     {
@@ -213,16 +271,136 @@ else
         try
         {
             plugins = (await PluginSettingsService.GetPluginsAsync()).ToList();
-            sources = (await PluginSettingsService.GetSourcesAsync()).ToList();
+            await ReloadSourcesAsync();
         }
         catch (Exception ex)
         {
-            message = $"Plugins konnten nicht geladen werden: {ex.Message}";
+            message = Localizer["PluginsLoadFailed", ex.Message];
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private async Task ReloadSourcesAsync()
+    {
+        sources = (await PluginSettingsService.GetSourcesAsync()).ToList();
+    }
+
+    private async Task CheckSourceAsync(PluginSourceSettingsItem source)
+    {
+        if (isSaving || checkingSourceId is not null || !source.Enabled || !source.TrustConfirmed)
+        {
+            return;
+        }
+
+        checkingSourceId = source.Id;
+        message = null;
+        PluginUpdateCheckResult? result = null;
+        string? failure = null;
+        string? reloadError = null;
+        try
+        {
+            result = await PluginSettingsService.CheckSourceForUpdatesAsync(source.Id);
+        }
+        catch (Exception ex)
+        {
+            failure = ex.Message;
+        }
+        finally
+        {
+            checkingSourceId = null;
+            try
+            {
+                // Refresh only the sources list so the status column updates without
+                // collapsing the whole panel into the loading state.
+                await ReloadSourcesAsync();
+            }
+            catch (Exception ex)
+            {
+                reloadError = ex.Message;
+            }
+        }
+
+        // The check outcome wins over a reload failure: the result message is set first and a
+        // reload error is only shown when the check itself produced no message to keep.
+        if (failure is not null)
+        {
+            messageClass = "alert alert-danger py-2";
+            message = $"{Localizer["PluginCheckFailed"]} ({failure})";
+        }
+        else
+        {
+            switch (result!.Outcome)
+            {
+                case PluginUpdateCheckOutcome.Installed:
+                    messageClass = "alert alert-success py-2";
+                    message = Localizer["PluginCheckInstalled", result.ReleaseTag ?? string.Empty];
+                    break;
+                case PluginUpdateCheckOutcome.Failed:
+                    messageClass = "alert alert-danger py-2";
+                    message = MapCheckError(result.Error);
+                    break;
+                default:
+                    messageClass = "alert alert-success py-2";
+                    message = Localizer["PluginCheckNoUpdate"];
+                    break;
+            }
+        }
+
+        if (message is null && reloadError is not null)
+        {
+            messageClass = "alert alert-danger py-2";
+            message = Localizer["PluginsLoadFailed", reloadError];
+        }
+    }
+
+    private string CheckButtonTitle(PluginSourceSettingsItem source)
+    {
+        if (checkingSourceId is not null || isSaving)
+        {
+            return Localizer["PluginCheckBusyTooltip"];
+        }
+
+        if (!source.Enabled)
+        {
+            return Localizer["PluginCheckSourceDisabled"];
+        }
+
+        if (!source.TrustConfirmed)
+        {
+            return Localizer["PluginCheckSourceNotTrusted"];
+        }
+
+        return Localizer["CheckForUpdates"];
+    }
+
+    private string EditButtonTitle()
+    {
+        return checkingSourceId is not null || isSaving ? Localizer["PluginCheckBusyTooltip"] : Localizer["Edit"];
+    }
+
+    private string DeleteButtonTitle()
+    {
+        return checkingSourceId is not null || isSaving ? Localizer["PluginCheckBusyTooltip"] : Localizer["Delete"];
+    }
+
+    private string MapCheckError(string? error)
+    {
+        return error switch
+        {
+            PluginUpdateCheckErrors.SourceNotFound => Localizer["PluginCheckSourceNotFound"],
+            PluginUpdateCheckErrors.SourceDisabled => Localizer["PluginCheckSourceDisabled"],
+            PluginUpdateCheckErrors.SourceNotTrusted => Localizer["PluginCheckSourceNotTrusted"],
+            PluginUpdateCheckErrors.PrivateSourceNoPat => Localizer["PluginCheckNoPat"],
+            PluginUpdateCheckErrors.NoPublishedRelease => Localizer["PluginCheckNoRelease"],
+            PluginUpdateCheckErrors.NoZipAsset => Localizer["PluginCheckNoZipAsset"],
+            PluginUpdateCheckErrors.ValidationFailed => Localizer["PluginCheckValidationFailed"],
+            PluginUpdateCheckErrors.RateLimited => Localizer["PluginCheckRateLimited"],
+            not null => $"{Localizer["PluginCheckFailed"]} ({error})",
+            _ => Localizer["PluginCheckFailed"]
+        };
     }
 
     private async Task SaveSourceAsync()
@@ -243,7 +421,7 @@ else
         }
         catch (Exception ex)
         {
-            message = $"Quelle konnte nicht gespeichert werden: {ex.Message}";
+            message = Localizer["SourceSaveFailed", ex.Message];
         }
         finally
         {
@@ -263,7 +441,7 @@ else
         }
         catch (Exception ex)
         {
-            message = $"Quelle konnte nicht gespeichert werden: {ex.Message}";
+            message = Localizer["SourceSaveFailed", ex.Message];
         }
         finally
         {
@@ -283,7 +461,7 @@ else
         }
         catch (Exception ex)
         {
-            message = $"Quelle konnte nicht gelöscht werden: {ex.Message}";
+            message = Localizer["SourceDeleteFailed", ex.Message];
         }
         finally
         {
@@ -321,12 +499,55 @@ else
         }
         catch (Exception ex)
         {
-            message = $"Plugin konnte nicht gespeichert werden: {ex.Message}";
+            message = Localizer["PluginSaveFailed", ex.Message];
         }
         finally
         {
             isSaving = false;
         }
+    }
+
+    private async Task RemovePluginEntryAsync(PluginSettingsItem plugin)
+    {
+        if (isSaving || plugin.Status != PluginStatus.Missing)
+        {
+            return;
+        }
+
+        isSaving = true;
+        message = null;
+        try
+        {
+            await PluginSettingsService.RemovePluginAsync(plugin.PluginId);
+            await LoadAsync();
+
+            // LoadAsync clears the message at its start, so the success message can only be
+            // assigned after the reload. A reload failure sets PluginsLoadFailed itself —
+            // that error must win over the success message and keep the danger styling.
+            if (message is null)
+            {
+                messageClass = "alert alert-success py-2";
+                message = Localizer["PluginRemoved"];
+            }
+            else
+            {
+                messageClass = "alert alert-danger py-2";
+            }
+        }
+        catch (Exception ex)
+        {
+            messageClass = "alert alert-danger py-2";
+            message = Localizer["PluginRemoveFailed", ex.Message];
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private string RemoveButtonTitle(PluginSettingsItem plugin)
+    {
+        return isSaving ? Localizer["PluginCheckBusyTooltip"] : Localizer["RemovePluginFor", plugin.DisplayName];
     }
 
     private async Task MoveAsync(string pluginId, int direction)
@@ -340,7 +561,7 @@ else
         }
         catch (Exception ex)
         {
-            message = $"Reihenfolge konnte nicht gespeichert werden: {ex.Message}";
+            message = Localizer["OrderSaveFailed", ex.Message];
         }
         finally
         {

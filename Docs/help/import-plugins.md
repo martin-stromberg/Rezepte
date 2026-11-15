@@ -6,7 +6,7 @@ Die Anwendung verwendet für Rezeptimporte ein Plugin-Framework. Der Import auf 
 
 Administratoren finden die Pluginverwaltung in den Einstellungen unter `Plugins`.
 
-Die Liste zeigt jedes bekannte Plugin mit Name, Plugin-ID, Status, Assembly und Handler-Typ. Plugins können dort aktiviert oder deaktiviert werden. Die Reihenfolge wird über die Pfeile nach oben und unten geändert und dauerhaft gespeichert.
+Die Liste zeigt jedes bekannte Plugin mit Name, Plugin-ID, Status, Assembly und Handler-Typ. Plugins können dort aktiviert oder deaktiviert werden. Die Reihenfolge wird über die Pfeile nach oben und unten geändert und dauerhaft gespeichert. Plugins mit dem Status `Missing` — bei der Erkennung nicht mehr gefundene Plugins — können zusätzlich über den Entfernen-Symbolbutton aus der Verwaltung gelöscht werden. Dabei wird nur der Verwaltungseintrag entfernt, keine Datei im `plugins`-Verzeichnis. Wird das Plugin bei einer späteren Erkennung wieder gefunden, erscheint es als neuer Eintrag am Ende der Liste.
 
 ### GitHub-Pluginquellen
 
@@ -14,9 +14,21 @@ Administratoren können unter `Plugins` globale GitHub-Repositorys als Pluginque
 
 Für private Repositorys kann ein Personal Access Token (PAT) hinterlegt oder über das Feld `PAT aktualisieren` erneuert werden. Der Token wird serverseitig geschuetzt verwaltet und weder in der Pluginliste angezeigt noch an den Browser übertragen. Bei öffentlichen Quellen ist kein Token erforderlich.
 
-Aktivierte und bestätigte Quellen werden einmalig beim Start der Anwendung geprüft. Es gibt derzeit keinen regelmaessigen Hintergrundlauf und keinen manuellen Update-Button; Änderungen an Quellen oder Tokens werden beim naechsten Anwendungsstart wirksam. Aus dem neuesten veröffentlichten GitHub-Release wird ein ZIP-Asset geladen. Der Assetname kann variieren, sofern es sich um ein geeignetes ZIP-Asset handelt. GitHub-Rate-Limits werden erkannt und als eigener Status gespeichert; ein `Retry-After`-Hinweis wird kontrolliert berücksichtigt.
+Die Prüfung auf neue Plugin-Versionen erfolgt auf zwei Wegen: Beim Start der Anwendung prüft ein Hintergrunddienst einmalig automatisch alle aktivierten und als vertrauenswürdig bestätigten Quellen. Zusätzlich kann ein Administrator jede Quelle einzeln über den Symbolbutton `Auf Updates prüfen` in ihrer Aktionsleiste prüfen. Der Button ist nur verfügbar, wenn die Quelle aktiviert und bestätigt ist; für private Quellen muss ein PAT hinterlegt sein. Es gibt keinen regelmäßigen Hintergrundlauf — zwischen den Startprüfungen werden neue Release-Versionen nur über die manuelle Prüfung übernommen.
+
+Das Ergebnis einer manuellen Prüfung wird direkt als Meldung angezeigt: kein Update gefunden, die installierte Version oder der aufgetretene Fehler. Ein gefundenes Update wird installiert und ohne Anwendungsneustart wirksam. In der Statusspalte der Quelle bleiben der letzte erfolgreiche Release-Tag, der letzte Fehler mit Zeitpunkt und der Zeitpunkt der letzten Prüfung sichtbar.
+
+Aus dem neuesten veröffentlichten GitHub-Release wird ein ZIP-Asset geladen. Der Assetname kann variieren, sofern es sich um ein geeignetes ZIP-Asset handelt. GitHub-Rate-Limits werden erkannt und als eigener Status gespeichert; ein `Retry-After`-Hinweis wird kontrolliert berücksichtigt.
 
 Das Paket wird vor der Installation in einem temporaeren Verzeichnis geprüft. Nur erkannte Plugin-Unterverzeichnisse und zulässige Inhalte werden übernommen. Austausch und produktiver Reload laufen koordiniert: neue Imports werden währenddessen gesperrt, laufende Handler werden nicht parallel zum Dateiaustausch unterbrochen, und nachfolgende Imports sehen erst den neu initialisierten Pluginbestand. Bei Kopier-, Installations- oder Reloadfehlern wird der bisherige Pluginbestand wiederhergestellt. Der Status der Quelle zeigt den letzten erfolgreichen Release, den letzten Fehler und den Zeitpunkt der letzten Prüfung; Reloadstatus, Reloadzeitpunkt und Reloadfehler bleiben in der Releasehistorie nachvollziehbar.
+
+### Versionsverzeichnisse quelleninstallierter Plugins
+
+Installationen aus GitHub-Pluginquellen ersetzen den bisherigen Plugin-Ordner nicht mehr an Ort und Stelle. Jede installierte Release-Version liegt in einem eigenen Verzeichnis unter `plugins`, dessen Name aus dem Plugin-Verzeichnisnamen und dem Release-Tag gebildet wird: `plugins/<Name>@<ReleaseTag>/`. Pro Plugin lädt die Erkennung nur die jeweils wirksame Version; Verzeichnisse älterer Versionen werden beim koordinierten Austausch entfernt.
+
+Kann ein Altverzeichnis nicht gelöscht werden (z. B. weil eine Assembly noch geladen ist), wird es in der Zustandsdatei `plugins/.install-state.json` als zu löschen vermerkt und von der Erkennung ausgeschlossen. Der Löschversuch wird beim nächsten Anwendungsstart und beim nächsten Austausch wiederholt. Im neuen Release nicht mehr enthaltene Plugins verlieren damit ihre wirksame Version und erscheinen in der Verwaltung mit dem Status `Missing`.
+
+Ausgenommen sind die mit der Anwendung veröffentlichten Plugins unter `plugins/<Projektname>/` sowie direkt unter `plugins` abgelegte DLL-Dateien — sie werden weder versioniert noch gelöscht. Verzeichnisse ohne Versionsmuster werden ebenfalls nie entfernt; existiert zu ihrem Namen ein Versionsverzeichnis, bleiben sie allerdings unwirksam.
 
 Beim Import werden nur aktivierte Plugins mit Status `Loaded` berücksichtigt. Deaktivierte, fehlende oder fehlerhafte Plugins werden nicht angesprochen.
 
@@ -64,7 +76,7 @@ Die Nutzbarkeitsprüfung läuft ohne Netzwerk-Zugriffe ab — sie validiert nur 
 
 ## Erkennung und Reihenfolge
 
-Beim Programmstart sucht die Anwendung im Programmverzeichnis unter `plugins` nach Plugin-DLLs. Unterstuetzt werden DLLs direkt im Ordner `plugins` sowie DLLs in direkten Unterordnern von `plugins`.
+Beim Programmstart sucht die Anwendung im Programmverzeichnis unter `plugins` nach Plugin-DLLs. Unterstuetzt werden DLLs direkt im Ordner `plugins` sowie DLLs in direkten Unterordnern von `plugins`. Als zu löschen markierte und nicht wirksame Versionsverzeichnisse (siehe „Versionsverzeichnisse quelleninstallierter Plugins") werden dabei übersprungen.
 
 Beim Build und Publish der Web-Anwendung werden die drei produktiven Plugins des Hauptrepositorys automatisch gebaut und nach `plugins/<Projektname>/` in das Ausgabe- bzw. Publish-Verzeichnis kopiert.
 

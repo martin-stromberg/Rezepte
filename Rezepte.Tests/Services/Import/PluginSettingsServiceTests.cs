@@ -1,12 +1,8 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Rezepte.Import.Abstractions;
-using Rezepte.Web.Data;
-using Rezepte.Web.Entities;
 using Rezepte.Web.Services.Import.Plugins;
-using System.Security.Claims;
 using Xunit;
 
 namespace Rezepte.Tests.Services.Import;
@@ -14,16 +10,8 @@ namespace Rezepte.Tests.Services.Import;
 /// <summary>
 /// Class representing the plugin settings service tests.
 /// </summary>
-public class PluginSettingsServiceTests
+public sealed class PluginSettingsServiceTests : PluginSettingsServiceTestsBase
 {
-    private static RezepteDbContext CreateDb()
-    {
-        var options = new DbContextOptionsBuilder<RezepteDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        return new RezepteDbContext(options);
-    }
-
     /// <summary>
     /// Set enabled async should persist activation.
     /// </summary>
@@ -33,7 +21,7 @@ public class PluginSettingsServiceTests
         using var db = CreateDb();
         db.PluginSettings.Add(CreateSetting("plugin-a", 0, true));
         await db.SaveChangesAsync();
-        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider());
+        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), new FakePluginUpdateService());
 
         await sut.SetEnabledAsync("plugin-a", false);
 
@@ -51,7 +39,7 @@ public class PluginSettingsServiceTests
         db.PluginSettings.Add(CreateSetting("plugin-a", 0, true));
         db.PluginSettings.Add(CreateSetting("plugin-b", 1, true));
         await db.SaveChangesAsync();
-        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider());
+        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), new FakePluginUpdateService());
 
         await sut.MoveAsync("plugin-b", -1);
 
@@ -67,7 +55,7 @@ public class PluginSettingsServiceTests
     {
         using var db = CreateDb();
         var secrets = new FakeSecretStore();
-        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), CreateHttpContextAccessor(isAdmin: true), secrets);
+        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), new FakePluginUpdateService(), CreateHttpContextAccessor(isAdmin: true), secrets);
 
         await sut.SaveSourceAsync(new PluginSourceSaveRequest(
             null,
@@ -97,7 +85,7 @@ public class PluginSettingsServiceTests
     public async Task SaveSourceAsync_ShouldRequireTrustConfirmationForNewSource()
     {
         using var db = CreateDb();
-        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), CreateHttpContextAccessor(isAdmin: true), new FakeSecretStore());
+        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), new FakePluginUpdateService(), CreateHttpContextAccessor(isAdmin: true), new FakeSecretStore());
 
         var act = () => sut.SaveSourceAsync(new PluginSourceSaveRequest(
             null,
@@ -117,7 +105,7 @@ public class PluginSettingsServiceTests
     public async Task SaveSourceAsync_ShouldRejectNonAdminUsers()
     {
         using var db = CreateDb();
-        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), CreateHttpContextAccessor(isAdmin: false), new FakeSecretStore());
+        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), new FakePluginUpdateService(), CreateHttpContextAccessor(isAdmin: false), new FakeSecretStore());
 
         var act = () => sut.SaveSourceAsync(new PluginSourceSaveRequest(
             null,
@@ -137,7 +125,7 @@ public class PluginSettingsServiceTests
     public async Task SaveSourceAsync_ShouldRejectMissingHttpContext()
     {
         using var db = CreateDb();
-        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), new HttpContextAccessor(), new FakeSecretStore());
+        var sut = new PluginSettingsService(db, new FakePluginManager(), CreateServiceProvider(), new FakePluginUpdateService(), new HttpContextAccessor(), new FakeSecretStore());
 
         var act = () => sut.SaveSourceAsync(new PluginSourceSaveRequest(
             null,
@@ -160,7 +148,7 @@ public class PluginSettingsServiceTests
         db.PluginSettings.Add(CreateSetting("plugin-a", 0, true));
         await db.SaveChangesAsync();
         var usability = PluginUsabilityResult.Usable;
-        var sut = new PluginSettingsService(db, new FakePluginManager(new Dictionary<string, PluginUsabilityResult> { ["plugin-a"] = usability }), CreateServiceProvider());
+        var sut = new PluginSettingsService(db, new FakePluginManager(new Dictionary<string, PluginUsabilityResult> { ["plugin-a"] = usability }), CreateServiceProvider(), new FakePluginUpdateService());
 
         var items = await sut.GetPluginsAsync();
 
@@ -177,7 +165,7 @@ public class PluginSettingsServiceTests
         db.PluginSettings.Add(CreateSetting("ai-url", 0, true));
         await db.SaveChangesAsync();
         var issues = new PluginUsabilityResult(false, [new PluginUsabilityIssue("Gemini authentication is missing.", "Configure a Gemini API key.")]);
-        var sut = new PluginSettingsService(db, new FakePluginManager(new Dictionary<string, PluginUsabilityResult> { ["ai-url"] = issues }), CreateServiceProvider());
+        var sut = new PluginSettingsService(db, new FakePluginManager(new Dictionary<string, PluginUsabilityResult> { ["ai-url"] = issues }), CreateServiceProvider(), new FakePluginUpdateService());
 
         var items = await sut.GetPluginsAsync();
 
@@ -195,75 +183,12 @@ public class PluginSettingsServiceTests
         using var db = CreateDb();
         db.PluginSettings.Add(CreateSetting("ai-url", 0, true));
         await db.SaveChangesAsync();
-        var sut = new PluginSettingsService(db, new FakePluginManager(new Dictionary<string, PluginUsabilityResult> { ["ai-url"] = PluginUsabilityResult.Usable }), CreateServiceProvider());
+        var sut = new PluginSettingsService(db, new FakePluginManager(new Dictionary<string, PluginUsabilityResult> { ["ai-url"] = PluginUsabilityResult.Usable }), CreateServiceProvider(), new FakePluginUpdateService());
 
         var items = await sut.GetPluginsAsync();
 
         var item = items.Single(p => p.PluginId == "ai-url");
         item.Usability!.IsUsable.Should().BeTrue();
         item.Usability.Issues.Should().BeEmpty();
-    }
-
-    private static PluginSetting CreateSetting(string pluginId, int orderIndex, bool enabled)
-    {
-        return new PluginSetting
-        {
-            PluginId = pluginId,
-            DisplayName = pluginId,
-            AssemblyName = "TestAssembly",
-            TypeName = "TestHandler",
-            Enabled = enabled,
-            OrderIndex = orderIndex,
-            Status = PluginStatus.Loaded,
-            DiscoveredAt = DateTime.UtcNow,
-            LastSeenAt = DateTime.UtcNow
-        };
-    }
-
-    private static IHttpContextAccessor CreateHttpContextAccessor(bool isAdmin)
-    {
-        var claims = isAdmin
-            ? new[] { new Claim(ClaimTypes.Role, "Admin") }
-            : Array.Empty<Claim>();
-        return new HttpContextAccessor
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"))
-            }
-        };
-    }
-
-    private static IServiceProvider CreateServiceProvider() => new ServiceCollection().BuildServiceProvider();
-
-    private sealed class FakeSecretStore : ISystemSecretStore
-    {
-        public Dictionary<string, string> Values { get; } = [];
-
-        public Task StoreAsync(string name, string secret, CancellationToken ct = default)
-        {
-            Values[name] = secret;
-            return Task.CompletedTask;
-        }
-
-        public Task<string?> GetAsync(string name, CancellationToken ct = default)
-            => Task.FromResult(Values.GetValueOrDefault(name));
-
-        public Task DeleteAsync(string name, CancellationToken ct = default)
-        {
-            Values.Remove(name);
-            return Task.CompletedTask;
-        }
-    }
-
-    private sealed class FakePluginManager(IReadOnlyDictionary<string, PluginUsabilityResult>? usability = null) : IPluginManager
-    {
-        public Task InitializeAsync(CancellationToken ct = default) => Task.CompletedTask;
-
-        public Task<IReadOnlyList<PluginImportHandler>> GetActiveHandlersAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyList<PluginImportHandler>>([]);
-
-        public Task<IReadOnlyDictionary<string, PluginUsabilityResult>> GetPluginsUsabilityAsync(IServiceProvider serviceProvider, CancellationToken ct = default)
-            => Task.FromResult(usability ?? new Dictionary<string, PluginUsabilityResult>());
     }
 }

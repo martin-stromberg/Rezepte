@@ -22,26 +22,71 @@ public sealed class PluginUpdateService(
     IPluginPackageInstaller packageInstaller,
     ILogger<PluginUpdateService> logger) : IPluginUpdateService
 {
+    private static readonly SemaphoreSlim CheckGate = new(1, 1);
+
     /// <summary>
     /// Checks the for updates async.
     /// </summary>
     /// <param name="ct">The ct parameter.</param>
     public async Task CheckForUpdatesAsync(CancellationToken ct = default)
     {
-        var sources = await db.PluginSources
-            .Where(s => s.Enabled && s.TrustConfirmed)
-            .OrderBy(s => s.Owner)
-            .ThenBy(s => s.Repository)
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
-
-        foreach (var source in sources)
+        await CheckGate.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            await ProcessSourceAsync(source, ct).ConfigureAwait(false);
+            var sources = await db.PluginSources
+                .Where(s => s.Enabled && s.TrustConfirmed)
+                .OrderBy(s => s.Owner)
+                .ThenBy(s => s.Repository)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+
+            foreach (var source in sources)
+            {
+                await ProcessSourceAsync(source, ct).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            CheckGate.Release();
         }
     }
 
-    private async Task ProcessSourceAsync(PluginSource source, CancellationToken ct)
+    /// <summary>
+    /// Checks a single plugin source for updates.
+    /// </summary>
+    /// <param name="sourceId">The source id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    public async Task<PluginUpdateCheckResult> CheckSourceForUpdatesAsync(string sourceId, CancellationToken ct = default)
+    {
+        await CheckGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var source = await db.PluginSources.FindAsync([sourceId], ct).ConfigureAwait(false);
+            if (source is null)
+            {
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.SourceNotFound);
+            }
+
+            if (!source.Enabled)
+            {
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.SourceDisabled);
+            }
+
+            if (!source.TrustConfirmed)
+            {
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.SourceNotTrusted);
+            }
+
+            return await ProcessSourceAsync(source, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            CheckGate.Release();
+        }
+    }
+
+    private async Task<PluginUpdateCheckResult> ProcessSourceAsync(PluginSource source, CancellationToken ct)
     {
         source.LastCheckedAt = DateTime.UtcNow;
         source.LastError = null;
@@ -56,22 +101,22 @@ public sealed class PluginUpdateService(
                 : null;
             if (source.IsPrivate && string.IsNullOrWhiteSpace(token))
             {
-                await MarkSourceFailureAsync(source, "Private source has no stored PAT.", ct).ConfigureAwait(false);
-                return;
+                await MarkSourceFailureAsync(source, PluginUpdateCheckErrors.PrivateSourceNoPat, ct).ConfigureAwait(false);
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.PrivateSourceNoPat);
             }
 
             var release = await gitHubReleaseClient.GetLatestReleaseAsync(repository, token, ct).ConfigureAwait(false);
             if (release is null || string.IsNullOrWhiteSpace(release.TagName))
             {
-                await MarkSourceFailureAsync(source, "No published GitHub release was found.", ct).ConfigureAwait(false);
-                return;
+                await MarkSourceFailureAsync(source, PluginUpdateCheckErrors.NoPublishedRelease, ct).ConfigureAwait(false);
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.NoPublishedRelease);
             }
 
             var asset = release.FindZipAsset();
             if (asset is null)
             {
-                await UpsertReleaseFailureAsync(source, release, 0, string.Empty, PluginSourceReleaseStatus.ValidationFailed, "Latest release has no ZIP asset.", ct).ConfigureAwait(false);
-                return;
+                await UpsertReleaseFailureAsync(source, release, 0, string.Empty, PluginSourceReleaseStatus.ValidationFailed, PluginUpdateCheckErrors.NoZipAsset, ct).ConfigureAwait(false);
+                return PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.NoZipAsset, release.TagName);
             }
 
             var existing = await db.PluginSourceReleases
@@ -80,7 +125,7 @@ public sealed class PluginUpdateService(
             if (existing is not null && existing.Status == PluginSourceReleaseStatus.Installed)
             {
                 logger.LogInformation("Skipping plugin source {Owner}/{Repository} release {ReleaseTag} because status is {Status}", source.Owner, source.Repository, release.TagName, existing.Status);
-                return;
+                return PluginUpdateCheckResult.NoUpdate(release.TagName, alreadyInstalled: true);
             }
 
             var record = existing ?? new PluginSourceRelease
@@ -107,7 +152,7 @@ public sealed class PluginUpdateService(
             }
 
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
-            await DownloadValidateInstallAsync(source, record, asset, token, ct).ConfigureAwait(false);
+            return await DownloadValidateInstallAsync(source, record, asset, token, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -117,10 +162,11 @@ public sealed class PluginUpdateService(
         {
             logger.LogError(ex, "Plugin source {Owner}/{Repository} failed", source.Owner, source.Repository);
             await MarkSourceFailureAsync(source, ex.Message, CancellationToken.None).ConfigureAwait(false);
+            return PluginUpdateCheckResult.Failed(ex.Message);
         }
     }
 
-    private async Task DownloadValidateInstallAsync(PluginSource source, PluginSourceRelease record, GitHubReleaseAsset asset, string? token, CancellationToken ct)
+    private async Task<PluginUpdateCheckResult> DownloadValidateInstallAsync(PluginSource source, PluginSourceRelease record, GitHubReleaseAsset asset, string? token, CancellationToken ct)
     {
         var workRoot = Path.Combine(Path.GetTempPath(), "rezepte-plugin-download", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(workRoot);
@@ -140,14 +186,15 @@ public sealed class PluginUpdateService(
             {
                 record.Status = PluginSourceReleaseStatus.ValidationFailed;
                 record.Error = validation.Error;
-                await MarkSourceFailureAsync(source, validation.Error ?? "Plugin package validation failed.", ct).ConfigureAwait(false);
-                return;
+                var error = validation.Error ?? PluginUpdateCheckErrors.ValidationFailed;
+                await MarkSourceFailureAsync(source, error, ct).ConfigureAwait(false);
+                return PluginUpdateCheckResult.Failed(error, record.ReleaseTag);
             }
 
             record.ValidatedAt = DateTime.UtcNow;
             record.Status = PluginSourceReleaseStatus.Installing;
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
-            await packageInstaller.InstallWithReloadTrackingAsync(validation.PluginDirectories, async token =>
+            await packageInstaller.InstallWithReloadTrackingAsync(validation.PluginDirectories, new PluginPackageInstallOptions(record.ReleaseTag, source.Id), async token =>
             {
                 record.Status = PluginSourceReleaseStatus.Reloading;
                 record.ReloadStatus = PluginSourceReleaseStatus.Reloading;
@@ -164,6 +211,7 @@ public sealed class PluginUpdateService(
             source.LastError = null;
             source.LastErrorAt = null;
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            return PluginUpdateCheckResult.Installed(record.ReleaseTag);
         }
         catch (OperationCanceledException)
         {
@@ -192,6 +240,7 @@ public sealed class PluginUpdateService(
 
             record.Error = ex.Message;
             await MarkSourceFailureAsync(source, ex.Message, CancellationToken.None).ConfigureAwait(false);
+            return PluginUpdateCheckResult.Failed(ex.Message, record.ReleaseTag);
         }
         finally
         {

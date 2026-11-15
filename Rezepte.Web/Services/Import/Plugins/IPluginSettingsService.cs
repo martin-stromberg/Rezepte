@@ -37,6 +37,13 @@ public interface IPluginSettingsService
     /// <param name="ct">The ct parameter.</param>
     Task DeleteSourceAsync(string sourceId, CancellationToken ct = default);
     /// <summary>
+    /// Checks a single plugin source for updates.
+    /// </summary>
+    /// <param name="sourceId">The source id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    Task<PluginUpdateCheckResult> CheckSourceForUpdatesAsync(string sourceId, CancellationToken ct = default);
+    /// <summary>
     /// Sets the enabled async.
     /// </summary>
     /// <param name="pluginId">The plugin id parameter.</param>
@@ -50,4 +57,10 @@ public interface IPluginSettingsService
     /// <param name="direction">The direction parameter.</param>
     /// <param name="ct">The ct parameter.</param>
     Task MoveAsync(string pluginId, int direction, CancellationToken ct = default);
+    /// <summary>
+    /// Removes the plugin async.
+    /// </summary>
+    /// <param name="pluginId">The plugin id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    Task RemovePluginAsync(string pluginId, CancellationToken ct = default);
 }
