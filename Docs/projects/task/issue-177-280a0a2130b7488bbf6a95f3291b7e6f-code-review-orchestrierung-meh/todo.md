@@ -14,8 +14,8 @@ Issue: #177
 | [x] | Offene Punkte | Geklärt: Interaktionsabbruch + kein Transaktions-Umbau | `project-plan.md` |
 | [x] | Planprüfung | Plan gegen Anforderung prüfen (Unteragent) — **vollständig** | `project-plan-check.md` |
 | [x] | Planungscommit | Projektartefakte committen + steps.md | `steps.md`, `status.html` |
-| [ ] | Entwicklungsschritt 1 | Import-Pfad-Konsolidierung (Lifecycle) | Schritt-Branch |
-| [ ] | Entwicklungsschritt 2 | DemoDataSeeder-Service (Lifecycle) | Schritt-Branch |
+| [x] | Entwicklungsschritt 1 | Import-Pfad-Konsolidierung (Lifecycle) — abgenommen, gemergt (665b58e) | Schritt-Branch, review-abnahme.md |
+| [~] | Entwicklungsschritt 2 | DemoDataSeeder-Service (Lifecycle) | Schritt-Branch |
 | [ ] | Entwicklungsschleife | Abnahme + Merge je Schritt | `acceptance-schritt-{n}.md` |
 | [ ] | Aufräumen | Projektartefakte entfernen, Abschluss | – |
 | [ ] | Abschlusscommit | Abschluss des Projekts | – |
