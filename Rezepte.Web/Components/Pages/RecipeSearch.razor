@@ -19,18 +19,21 @@
 <div class="mb-4 d-flex align-items-start gap-3">
     @* Plain GET form without @onsubmit or @bind: the browser submits the live input
        value, so the search works before/without the interactive circuit and the typed
-       text can never be overwritten by a re-render of a controlled two-way binding.
-       The value attribute is only emitted when q actually changes relative to the
-       query the DOM input is believed to show, so interactive re-renders - including
-       the circuit start after prerendering - never write a stale query back over text
-       the user already typed. Mounts that insert a fresh input element (enhanced-
-       navigation remounts) would otherwise leave it empty, so OnAfterRenderAsync
-       fills a still-empty field with the current query via rezepteSetInputValueIfEmpty.
-       No action attribute - the form posts to the current URL, which keeps any
-       configured PathBase intact. *@
+       text can never be overwritten by a controlled two-way binding. No action
+       attribute - the form posts to the current URL, which keeps any configured
+       PathBase intact.
+       The value attribute always emits the current q. Interactive re-renders whose
+       emitted value is unchanged produce no DOM write at all, so they leave typed
+       text alone. The only frame that can clobber it is the prerender->circuit
+       attach, which may write the attribute or replace the element entirely with
+       text the server never saw. OnAfterRenderAsync therefore calls
+       rezepteSyncSearchInput (App.razor): a document-level input listener snapshots
+       the live value before the circuit exists, and the first sync call restores it
+       over whatever the attach did. Remounts in the same document only fill a
+       still-empty field with the current query. *@
     <form class="d-flex flex-grow-1" method="get" role="search">
         <input id="search-q" name="q" class="form-control" placeholder="@Localizer["SearchRecipeInputPlaceholder"]" aria-label="@Localizer["SearchRecipes"]"
-               value="@(emitSearchValue ? (q ?? string.Empty) : null)" />
+               value="@(q ?? string.Empty)" />
         <input type="hidden" name="pageSize" value="@CurrentPageSize" />
         <button type="submit" class="btn btn-accent ms-2">@Localizer["SearchSubmit"]</button>
     </form>
@@ -106,16 +109,8 @@ else
     [SupplyParameterFromQuery(Name = "pageSize")]
     public int pageSize { get; set; } = 10;
 
-    // Carries the query rendered during prerendering into the interactive component
-    // instance, so the first interactive render knows which query the input already shows.
-    [PersistentState]
-    public string? PrerenderedSearchQuery { get; set; }
-
     private bool isLoading;
     private bool searchFailed;
-    private bool searchFieldPrimed;
-    private bool emitSearchValue;
-    private string? syncedSearchQuery;
     private CancellationTokenSource? cts;
     private RecipeResult[] results = Array.Empty<RecipeResult>();
     private int totalItems;
@@ -124,44 +119,25 @@ else
     private int CurrentPageSize => pageSize < 1 ? 20 : Math.Min(pageSize, IRecipeService.MaxSearchPageSize);
     private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalItems / (double)CurrentPageSize));
 
-    protected override void OnParametersSet()
-    {
-        if (!searchFieldPrimed)
-        {
-            // After a prerender→interactive handover the restored value is the query
-            // the input already displays. On other mounts it may match the current q
-            // as well (enhanced-navigation remounts restore the freshly persisted
-            // value), so the emit suppression alone cannot tell whether the DOM input
-            // really shows q - the empty-field backstop in OnAfterRenderAsync covers
-            // the freshly inserted case.
-            syncedSearchQuery = PrerenderedSearchQuery;
-            searchFieldPrimed = true;
-        }
-
-        emitSearchValue = !string.Equals(q, syncedSearchQuery, StringComparison.Ordinal);
-        syncedSearchQuery = q;
-        PrerenderedSearchQuery = q;
-    }
-
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // The suppression of the value attribute is only safe when the DOM input
-        // already shows the query (the attach mount keeps the prerendered element,
-        // which holds the query or typed text). An input that ends up empty after
-        // the first render - a fresh element inserted by a remount in the same
-        // circuit - must receive the query once, or it would stay blank forever.
-        // A non-empty field is never touched: it holds the query or the user's text.
+        // The attach batch can drop text typed while prerendered: it may write the
+        // value attribute over it or replace the input element entirely, and the
+        // server never saw the typed text. rezepteSyncSearchInput restores the
+        // client-side snapshot on this first call and, on remounts within the same
+        // document, only fills a still-empty element with the current query - a
+        // field already showing the query or user text is never touched.
         if (firstRender)
         {
             try
             {
-                await JS.InvokeVoidAsync("rezepteSetInputValueIfEmpty", "search-q", q ?? string.Empty);
+                await JS.InvokeVoidAsync("rezepteSyncSearchInput", "search-q", q ?? string.Empty);
             }
             catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
             {
-                // cosmetic assist only - a lost call leaves the field empty, never corrupts it
-                Logger.LogDebug(ex, "Search field backfill skipped: JS interop unavailable");
+                // cosmetic assist only - a lost call leaves whatever the frame wrote, never corrupts it
+                Logger.LogDebug(ex, "Search field sync skipped: JS interop unavailable");
             }
         }
     }

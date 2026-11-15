@@ -31,7 +31,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
         _context.Services.AddLocalization();
         _context.Services.AddSingleton<ILogger<RecipeSearch>>(NullLogger<RecipeSearch>.Instance);
         _context.Services.AddSingleton<NavigationManager>(_navigationManager);
-        // The component calls rezepteSetInputValueIfEmpty on first render; without an
+        // The component calls rezepteSyncSearchInput on first render; without an
         // explicit setup, loose mode accepts any invocation.
         _context.JSInterop.Mode = JSRuntimeMode.Loose;
     }
@@ -190,14 +190,15 @@ public sealed class RecipeSearchComponentTests : IDisposable
     }
 
     /// <summary>
-    /// OnParametersSet removes the value attribute when the query parameter is unchanged
-    /// on the same component instance (here via an in-circuit page change), so an
-    /// interactive re-render leaves the live input value untouched. This suppression is
-    /// what keeps a typed term from being written back by the prerender→circuit
-    /// transition and later isLoading re-renders.
+    /// The value attribute always reflects the query parameter, including on
+    /// re-renders of the same instance where q is unchanged (here via an
+    /// in-circuit page change). Emitting it unconditionally is safe because an
+    /// unchanged emitted value produces no DOM write, and the client-side
+    /// rezepteSyncSearchInput restore - not attribute suppression - protects
+    /// text typed before the circuit attach.
     /// </summary>
     [Fact]
-    public void SearchField_WhenQueryParameterUnchanged_SuppressesValueAttribute()
+    public void SearchField_WhenQueryParameterUnchanged_KeepsValueAttribute()
     {
         Authorize();
         var service = RegisterRecipeService();
@@ -216,17 +217,17 @@ public sealed class RecipeSearchComponentTests : IDisposable
 
         cut.WaitForAssertion(() =>
         {
-            cut.Find("#search-q").GetAttribute("value").Should().BeNull();
+            cut.Find("#search-q").GetAttribute("value").Should().Be("a");
         });
     }
 
     /// <summary>
-    /// OnAfterRenderAsync asks the JS backstop to fill a still-empty search input
-    /// with the current query once per mount, so an input freshly inserted by a
-    /// remount does not stay blank.
+    /// OnAfterRenderAsync asks the JS sync to reconcile the search input once
+    /// per mount: it restores a typed value snapshot over whatever the circuit
+    /// attach did, and fills a still-empty field with the current query.
     /// </summary>
     [Fact]
-    public void SearchField_OnFirstRender_CallsJsBackstopWithCurrentQuery()
+    public void SearchField_OnFirstRender_CallsJsSyncWithCurrentQuery()
     {
         Authorize();
         var service = RegisterRecipeService();
@@ -236,7 +237,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
         _navigationManager.NavigateTo("recipes/search?q=abc");
         _context.RenderComponent<RecipeSearch>();
 
-        _context.JSInterop.VerifyInvoke("rezepteSetInputValueIfEmpty")
+        _context.JSInterop.VerifyInvoke("rezepteSyncSearchInput")
             .Arguments.Should().Equal("search-q", "abc");
     }
 
