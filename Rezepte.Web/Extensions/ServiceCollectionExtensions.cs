@@ -194,6 +194,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<IExportCleanupService, ExportCleanupService>();
         services.AddHostedService<ExportCleanupHostedService>();
+        services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
         services.AddScoped<IBackgroundJobHandler, ExportUserJobHandler>();
         services.AddScoped<IBackgroundJobHandler, ExportAllJobHandler>();
         services.AddScoped<IBackgroundJobHandler, DemoDataSeedingJobHandler>();
