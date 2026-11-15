@@ -1,0 +1,12 @@
+# Tasks: Stabilisierung des Browser-E2E-Tests `InPageSearch_Submit_UpdatesResultList` (Issue #185)
+
+| # | Bereich | Aufgabe | Status | Testnachweis |
+|---|---------|---------|--------|--------------|
+| 1 | App-Fix | `RecipeSearch.razor`: `[PersistentState]`-Property `PrerenderedSearchQuery` plus Felder `_syncedSearchQuery`/`_searchFieldPrimed`/`_emitSearchValue` anlegen und synchrones `OnParametersSet()`-Override ergänzen (Priming, Emit-Entscheidung `q != _syncedSearchQuery`, Nachziehen der Sync- und Persistenzwerte) | Offen | — |
+| 2 | App-Fix | `RecipeSearch.razor`: `value`-Attribut von `#search-q` auf `value="@(_emitSearchValue ? (q ?? string.Empty) : null)"` konditionieren und den „plain GET form"-Kommentar um die Begründung der konditionierten Emission ergänzen; Take-Semantik des Persistent-State-Mechanismus kurz verifizieren | Offen | — |
+| 3 | E2E-Tests | `InPageSearch_Submit_UpdatesResultList` in `RecipeSearchBrowserTests.cs`: lineare Sequenz `FillAsync` → `Expect(...).ToHaveValueAsync` → `ClickAsync` → `WaitForURLAsync` in eine Deadline-Retry-Schleife umwandeln (Budget `InteractionRetryTimeoutMilliseconds`, innere Timeouts ~5 s, Vorab-Abbruchcheck auf `q=<title>` in `Page.Url`, Assertion-Timeouts nur innerhalb der Deadline auffangen) | Offen | — |
+| 4 | E2E-Tests | Erklärenden Inline-Kommentar zur Retry-Schleife ergänzen (Prerender/Circuit-Doppellauf; analog den Kommentaren in `DirectUrl_WithQuery_ShowsResults`/`Pagination_NextPage_ShowsPageTwo`) | Offen | — |
+| 5 | E2E-Tests | Neuen Test `InPageSearch_TypedValue_SurvivesInteractiveCircuit` in `RecipeSearchBrowserTests.cs` anlegen: `GotoAsync` mit geseedetem Titel als `q` → `FillAsync("#search-q", …)` → `.list-group-item`-Warte → `Expect(#search-q).ToHaveValueAsync(typedValue)` (Funktionsnachweis des App-Fixes) | Offen | — |
+| 6 | Abschluss | Lokale Wiederholungsverifikation: Release-Build + ≥10 gefilterte Läufe `dotnet test Rezepte.Tests.Browser -c Release --no-build --filter "FullyQualifiedName~RecipeSearchBrowserTests"` — alle grün | Offen | — |
+| 7 | Abschluss | Vollständiger Testlauf `dotnet test Rezepte.sln --configuration Release --no-build` — grün (inkl. `RecipeSearchComponentTests` als Regression-Check; eventueller `Register_WithDemoData_CreatesDemoData`-Vorbefund dokumentieren) | Offen | — |
+| 8 | Abschluss | Pre-Release-Verifikation: ein grüner `build & test`-Lauf nach Merge auf `staging` als Mindestnachweis der Flake-Behebung | Offen | — |
