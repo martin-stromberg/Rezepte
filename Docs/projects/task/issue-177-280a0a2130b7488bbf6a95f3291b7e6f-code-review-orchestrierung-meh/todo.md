@@ -18,5 +18,5 @@ Issue: #177
 | [x] | Entwicklungsschritt 2 | DemoDataSeeder-Service (Lifecycle) — abgenommen, gemergt (9dfde99) | Schritt-Branch, review-abnahme.md |
 | [x] | Entwicklungsschleife | Abnahme + Merge je Schritt | review-abnahme.md je Feature |
 | [~] | Aufräumen | Artefakte bleiben bis E2E-Abnahme-Entscheid (Anwender) | – |
-| [ ] | Abschlusscommit | Abschluss des Projekts | – |
-| [ ] | Pull Request | PR gegen `staging` mit Closing-Tag #177 | PR-Nummer |
+| [x] | Abschlusscommit | Abschluss des Projekts | – |
+| [x] | Pull Request | PR gegen `staging` mit Closing-Tag #177 — Checks grün | PR #183 |
