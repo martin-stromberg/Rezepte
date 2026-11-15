@@ -38,6 +38,8 @@ public sealed class ImportOrchestrator
     public record ImportSession(string Id, string InitiatorUserId)
     {
         internal object SyncRoot { get; } = new();
+        internal TaskCompletionSource<ImportResult> CompletionSource { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource InteractionRequiredSource { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         /// <summary>
         /// Represents the public class.
         /// </summary>
@@ -77,7 +79,20 @@ public sealed class ImportOrchestrator
         /// <summary>
         /// Represents the public class.
         /// </summary>
-        public ImportResult? Result { get; set; }
+        public ImportResult? Result
+        {
+            get => _result;
+            set
+            {
+                _result = value;
+                if (value is not null)
+                {
+                    CompletionSource.TrySetResult(value);
+                }
+            }
+        }
+
+        private ImportResult? _result;
     }
 
     /// <summary>
@@ -277,6 +292,54 @@ public sealed class ImportOrchestrator
         return sessionId;
     }
 
+    /// <summary>
+    /// Starts an import session and waits synchronously for its terminal result.
+    /// If the session requires user interaction (collection selection or confirmation),
+    /// the session is aborted and a failure result pointing to the interactive
+    /// <c>import-session/*</c> endpoints is returned instead.
+    /// </summary>
+    /// <param name="stream">The stream parameter.</param>
+    /// <param name="fileName">The file name parameter.</param>
+    /// <param name="uri">The uri parameter.</param>
+    /// <param name="targetCookbookId">The target cookbook id parameter.</param>
+    /// <param name="userId">The user id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    public async Task<ImportResult> ImportAndWaitAsync(Stream stream, string fileName, string? uri, string? targetCookbookId, string userId, CancellationToken ct = default)
+    {
+        var sessionId = await StartImportAsync(stream, fileName, uri, targetCookbookId, userId, ct).ConfigureAwait(false);
+        var session = _sessions[sessionId];
+
+        await Task.WhenAny(session.CompletionSource.Task, session.InteractionRequiredSource.Task)
+            .WaitAsync(ct)
+            .ConfigureAwait(false);
+
+        if (session.Result is { } result)
+        {
+            return result;
+        }
+
+        AbortInteractiveSession(session);
+        // Wait for the aborted session to reach its terminal state so no import work
+        // is still in flight when the caller receives the failure result.
+        await session.CompletionSource.Task.WaitAsync(ct).ConfigureAwait(false);
+        return new ImportResult(false, InteractionRequiredMessage, []);
+    }
+
+    // Error message returned by ImportAndWaitAsync when an import requires user interaction.
+    private const string InteractionRequiredMessage =
+        "This import requires user interaction (collection selection or confirmation). Use the interactive import endpoints under 'import-session/*' instead.";
+
+    private static void AbortInteractiveSession(ImportSession session)
+    {
+        lock (session.SyncRoot)
+        {
+            session.ReadOnly = true;
+            session.SelectionTcs?.TrySetCanceled();
+            session.ConfirmationTcs?.TrySetCanceled();
+        }
+    }
+
     // Called by UI to confirm a waiting session
     /// <summary>
     /// confirms the value.
@@ -425,6 +488,7 @@ public sealed class ImportOrchestrator
         session.SelectionTcs = new TaskCompletionSource<ImportCollectionSelection>(TaskCreationOptions.RunContinuationsAsynchronously);
         session.Status = "Auswahl erforderlich";
         session.State = "SelectionRequired";
+        session.InteractionRequiredSource.TrySetResult();
 
         if (ct.CanBeCanceled)
         {
@@ -606,6 +670,7 @@ public sealed class ImportOrchestrator
             _session.ConfirmationPrompt = prompt;
             _session.WaitingForConfirmation = true;
             _session.ConfirmationTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _session.InteractionRequiredSource.TrySetResult();
 
             // optionally: register cancellation to set TCS canceled
             if (ct.CanBeCanceled)
