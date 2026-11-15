@@ -12,7 +12,7 @@
 
 | Lauf | Befehl inkl. Filter | Arbeitsverzeichnis | Exit-Code | Erfolgreich | Fehlgeschlagen | Übersprungen | Nachweis |
 |------|--------------------|--------------------|-----------|-------------|----------------|--------------|----------|
-| Baseline | `dotnet test Rezepte.Tests/Rezepte.Tests.csproj --nologo` | Repo-Root | 0 | 707 | 0 | 0 | [baseline-rezepte-tests.log](test-results/baseline-rezepte-tests.log) |
+| Baseline | `dotnet test Rezepte.Tests/Rezepte.Tests.csproj --nologo` | Repo-Root | 0 | 707 | 0 | 0 | [baseline-rezepte-tests.txt](test-results/baseline-rezepte-tests.txt) |
 
 ### Nachgewiesene bestehende Testfehler
 
