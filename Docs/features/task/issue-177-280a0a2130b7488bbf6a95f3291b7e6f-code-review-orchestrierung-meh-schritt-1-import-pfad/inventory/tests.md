@@ -13,7 +13,7 @@
 
 | Lauf | Befehl inkl. Filter | Arbeitsverzeichnis | Exit-Code | Erfolgreich | Fehlgeschlagen | Übersprungen | Nachweis |
 |------|--------------------|--------------------|-----------|-------------|----------------|--------------|----------|
-| 1 | `dotnet test Rezepte.Tests/Rezepte.Tests.csproj --no-build --logger "console;verbosity=normal"` | Repo-Root | 0 | 703 | 0 | 0 | [baseline-dotnet-test.log](test-results/baseline-dotnet-test.log) |
+| 1 | `dotnet test Rezepte.Tests/Rezepte.Tests.csproj --no-build --logger "console;verbosity=normal"` | Repo-Root | 0 | 703 | 0 | 0 | [baseline-dotnet-test.txt](test-results/baseline-dotnet-test.txt) |
 
 ### Nachgewiesene bestehende Testfehler
 
