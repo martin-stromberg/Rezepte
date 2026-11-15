@@ -163,6 +163,45 @@
   <data name="PluginOrder" xml:space="preserve"><value>Plugin-Reihenfolge</value></data>
   <data name="MoveUp" xml:space="preserve"><value>Nach oben</value></data>
   <data name="MoveDown" xml:space="preserve"><value>Nach unten</value></data>
+  <data name="Actions" xml:space="preserve"><value>Aktionen</value></data>
+  <data name="Active" xml:space="preserve"><value>Aktiv</value></data>
+  <data name="Assembly" xml:space="preserve"><value>Assembly</value></data>
+  <data name="CheckForUpdates" xml:space="preserve"><value>Auf Updates prüfen</value></data>
+  <data name="EnablePluginFor" xml:space="preserve"><value>Plugin {0} aktivieren</value></data>
+  <data name="EnableSourceFor" xml:space="preserve"><value>Quelle {0} aktivieren</value></data>
+  <data name="GitHubPluginSources" xml:space="preserve"><value>GitHub-Pluginquellen</value></data>
+  <data name="Loading" xml:space="preserve"><value>Laden…</value></data>
+  <data name="Name" xml:space="preserve"><value>Name</value></data>
+  <data name="OrderSaveFailed" xml:space="preserve"><value>Reihenfolge konnte nicht gespeichert werden: {0}</value></data>
+  <data name="PluginCheckBusyTooltip" xml:space="preserve"><value>Ein Vorgang läuft gerade.</value></data>
+  <data name="PluginCheckFailed" xml:space="preserve"><value>Prüfung fehlgeschlagen.</value></data>
+  <data name="PluginCheckInstalled" xml:space="preserve"><value>Version {0} installiert.</value></data>
+  <data name="PluginCheckNoPat" xml:space="preserve"><value>Für die private Quelle ist kein PAT hinterlegt.</value></data>
+  <data name="PluginCheckNoRelease" xml:space="preserve"><value>Kein veröffentlichtes GitHub-Release gefunden.</value></data>
+  <data name="PluginCheckNoUpdate" xml:space="preserve"><value>Kein Update gefunden.</value></data>
+  <data name="PluginCheckNoZipAsset" xml:space="preserve"><value>Das neueste Release enthält kein ZIP-Paket.</value></data>
+  <data name="PluginCheckRateLimited" xml:space="preserve"><value>Das GitHub-Rate-Limit wurde erreicht.</value></data>
+  <data name="PluginCheckSourceDisabled" xml:space="preserve"><value>Quelle ist deaktiviert.</value></data>
+  <data name="PluginCheckSourceNotFound" xml:space="preserve"><value>Quelle wurde nicht gefunden.</value></data>
+  <data name="PluginCheckSourceNotTrusted" xml:space="preserve"><value>Vertrauen ist nicht bestätigt.</value></data>
+  <data name="PluginCheckValidationFailed" xml:space="preserve"><value>Die Plugin-Paketprüfung ist fehlgeschlagen.</value></data>
+  <data name="PluginRemoved" xml:space="preserve"><value>Plugin-Eintrag entfernt.</value></data>
+  <data name="PluginRemoveFailed" xml:space="preserve"><value>Plugin-Eintrag konnte nicht entfernt werden: {0}</value></data>
+  <data name="PluginSaveFailed" xml:space="preserve"><value>Plugin konnte nicht gespeichert werden: {0}</value></data>
+  <data name="PluginSourcesInfo" xml:space="preserve"><value>Pluginquellen werden beim App-Start automatisch auf Updates geprüft (nur aktivierte und vertrauenswürdige Quellen). Jede Quelle kann zusätzlich manuell geprüft werden.</value></data>
+  <data name="PluginsLoadFailed" xml:space="preserve"><value>Plugins konnten nicht geladen werden: {0}</value></data>
+  <data name="Private" xml:space="preserve"><value>Privat</value></data>
+  <data name="Public" xml:space="preserve"><value>Öffentlich</value></data>
+  <data name="RemovePluginFor" xml:space="preserve"><value>Plugin-Eintrag {0} entfernen</value></data>
+  <data name="RepositoryUrl" xml:space="preserve"><value>Repository-URL</value></data>
+  <data name="SecretMissing" xml:space="preserve"><value>Secret: nicht hinterlegt</value></data>
+  <data name="SecretStored" xml:space="preserve"><value>Secret: hinterlegt</value></data>
+  <data name="Source" xml:space="preserve"><value>Quelle</value></data>
+  <data name="SourceDeleteFailed" xml:space="preserve"><value>Quelle konnte nicht gelöscht werden: {0}</value></data>
+  <data name="SourceLastCheckedAt" xml:space="preserve"><value>Zuletzt geprüft: {0}</value></data>
+  <data name="SourceLastErrorAt" xml:space="preserve"><value>Letzter Fehler: {0}</value></data>
+  <data name="SourceSaveFailed" xml:space="preserve"><value>Quelle konnte nicht gespeichert werden: {0}</value></data>
+  <data name="Status" xml:space="preserve"><value>Status</value></data>
   <data name="SecurityTxtTitle" xml:space="preserve"><value>security.txt (RFC 9116)</value></data>
   <data name="EnableSecurityTxt" xml:space="preserve"><value>security.txt aktivieren</value></data>
   <data name="SecurityTxtContactLabel" xml:space="preserve"><value>Contact (ein URI oder E-Mail pro Zeile, Pflichtfeld)</value></data>

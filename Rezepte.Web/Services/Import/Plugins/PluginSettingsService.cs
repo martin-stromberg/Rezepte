@@ -10,6 +10,7 @@ namespace Rezepte.Web.Services.Import.Plugins;
 /// <param name="db">The db parameter.</param>
 /// <param name="pluginManager">The plugin manager parameter.</param>
 /// <param name="serviceProvider">The service provider parameter.</param>
+/// <param name="pluginUpdateService">The plugin update service parameter.</param>
 /// <param name="httpContextAccessor">The http context accessor parameter.</param>
 /// <param name="secretStore">The secret store parameter.</param>
 /// <returns>The result.</returns>
@@ -17,6 +18,7 @@ public sealed class PluginSettingsService(
     RezepteDbContext db,
     IPluginManager pluginManager,
     IServiceProvider serviceProvider,
+    IPluginUpdateService pluginUpdateService,
     IHttpContextAccessor? httpContextAccessor = null,
     ISystemSecretStore? secretStore = null) : IPluginSettingsService
 {
@@ -182,6 +184,18 @@ public sealed class PluginSettingsService(
     }
 
     /// <summary>
+    /// Checks a single plugin source for updates.
+    /// </summary>
+    /// <param name="sourceId">The source id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    public async Task<PluginUpdateCheckResult> CheckSourceForUpdatesAsync(string sourceId, CancellationToken ct = default)
+    {
+        EnsureAdmin();
+        return await pluginUpdateService.CheckSourceForUpdatesAsync(sourceId, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Sets the enabled async.
     /// </summary>
     /// <param name="pluginId">The plugin id parameter.</param>
@@ -234,17 +248,40 @@ public sealed class PluginSettingsService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Removes the plugin async.
+    /// </summary>
+    /// <param name="pluginId">The plugin id parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    public async Task RemovePluginAsync(string pluginId, CancellationToken ct = default)
+    {
+        EnsureAdmin();
+        var plugin = await db.PluginSettings.FindAsync([pluginId], ct).ConfigureAwait(false);
+        if (plugin is null)
+        {
+            throw new InvalidOperationException($"Plugin '{pluginId}' was not found.");
+        }
+
+        if (plugin.Status != PluginStatus.Missing)
+        {
+            throw new InvalidOperationException($"Plugin '{pluginId}' cannot be removed because its status is '{plugin.Status}'.");
+        }
+
+        db.PluginSettings.Remove(plugin);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     private void EnsureAdmin()
     {
         var user = httpContextAccessor?.HttpContext?.User;
         if (user?.Identity?.IsAuthenticated != true)
         {
-            throw new UnauthorizedAccessException("Nur Administratoren dürfen Pluginquellen verwalten.");
+            throw new UnauthorizedAccessException("Only administrators may manage plugin settings.");
         }
 
         if (!(user.IsInRole("Admin") || user.HasClaim("IsAdmin", "true")))
         {
-            throw new UnauthorizedAccessException("Nur Administratoren dürfen Pluginquellen verwalten.");
+            throw new UnauthorizedAccessException("Only administrators may manage plugin settings.");
         }
     }
 }

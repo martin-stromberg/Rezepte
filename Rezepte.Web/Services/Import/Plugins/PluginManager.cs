@@ -13,6 +13,7 @@ public sealed class PluginManager : IPluginManager
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHostEnvironment _environment;
+    private readonly IPluginDirectoryRegistry _directoryRegistry;
     private readonly ILogger<PluginManager> _logger;
     private readonly object _syncRoot = new();
     private readonly SemaphoreSlim _lifecycleLock = new(1, 1);
@@ -23,11 +24,13 @@ public sealed class PluginManager : IPluginManager
     /// </summary>
     /// <param name="scopeFactory">The scope factory parameter.</param>
     /// <param name="environment">The environment parameter.</param>
+    /// <param name="directoryRegistry">The directory registry parameter.</param>
     /// <param name="logger">The logger parameter.</param>
-    public PluginManager(IServiceScopeFactory scopeFactory, IHostEnvironment environment, ILogger<PluginManager> logger)
+    public PluginManager(IServiceScopeFactory scopeFactory, IHostEnvironment environment, IPluginDirectoryRegistry directoryRegistry, ILogger<PluginManager> logger)
     {
         _scopeFactory = scopeFactory;
         _environment = environment;
+        _directoryRegistry = directoryRegistry;
         _logger = logger;
     }
 
@@ -100,6 +103,19 @@ public sealed class PluginManager : IPluginManager
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
         await SynchronizeSettingsAsync(db, discovered, ct).ConfigureAwait(false);
+        CleanupPendingDirectories();
+    }
+
+    private void CleanupPendingDirectories()
+    {
+        try
+        {
+            _directoryRegistry.CleanupMarkedDirectories(_directoryRegistry.LoadState());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not clean up plugin directories marked for deletion.");
+        }
     }
 
     /// <summary>
@@ -245,7 +261,7 @@ public sealed class PluginManager : IPluginManager
     {
         var dlls = pluginRoots
             .SelectMany(pluginRoot => Directory.EnumerateFiles(pluginRoot, "*.dll", SearchOption.TopDirectoryOnly)
-                .Concat(Directory.EnumerateDirectories(pluginRoot).SelectMany(GetPluginAssemblyCandidates)))
+                .Concat(GetPluginDirectories(pluginRoot).SelectMany(GetPluginAssemblyCandidates)))
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
         var discovered = new List<ImportPluginDescriptor>();
@@ -255,6 +271,19 @@ public sealed class PluginManager : IPluginManager
         }
 
         return discovered;
+    }
+
+    private IEnumerable<string> GetPluginDirectories(string pluginRoot)
+    {
+        var directories = Directory.EnumerateDirectories(pluginRoot);
+        if (!_directoryRegistry.IsManagedRoot(pluginRoot))
+        {
+            return directories;
+        }
+
+        var state = _directoryRegistry.LoadState();
+        var excluded = _directoryRegistry.GetExcludedDirectoryNames(pluginRoot, state);
+        return directories.Where(directory => !excluded.Contains(Path.GetFileName(directory) ?? string.Empty));
     }
 
     private IEnumerable<string> GetPluginRoots()

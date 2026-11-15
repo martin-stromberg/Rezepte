@@ -2,22 +2,28 @@
 
 ## Important Notes Before Update
 
-- There are no special notices.
+- Plugins installed from plugin sources are now stored in versioned directories `plugins/<Name>@<ReleaseTag>/`; previously installed, non-versioned plugin folders become ineffective once a versioned directory exists and can be removed manually.
 
 ## What's New
 
-- Registration form offers a new "Create demo data" checkbox (`createDemoData` in `POST /api/auth/register`).
-- When selected, a background job (`seed-demo-data`, `DemoDataSeedingJobHandler`) seeds the new account with 5 cookbooks containing 43 recipes in total.
-- One dinner recipe is scheduled in the calendar for each of the next 5 days (6:00 PM).
-- The ingredients of the recipe planned for the next day are added to the shopping list.
+- Source-installed plugins are installed into versioned directories `plugins/<Name>@<ReleaseTag>/` instead of replacing the previous plugin folder in place.
+- New install state file `plugins/.install-state.json` tracks the effective plugin version per plugin; directories that cannot be deleted (e.g. locked assemblies) are marked and retried at startup and on the next update.
+- Marked and superseded plugin directories are excluded from plugin discovery at startup.
+- Plugins removed from a source's new release are marked for deletion and shown as `Missing` in plugin management.
+- Plugins shipped with the application (`plugins/<ProjectName>/`) and loose DLLs placed directly in `plugins` remain unaffected.
+- Each configured plugin source now has a “Check for updates” action in plugin management (administrators only) that runs the update check for that source immediately — same preconditions as the startup check — and reports the result right away.
+- Plugins marked as `Missing` now have a remove action in plugin management (administrators only) that permanently deletes the management entry; if the plugin is discovered again later it is added like a new plugin.
 
 ## Wichtige Hinweise vor dem Update
 
-- Es gibt keine besonderen Hinweise.
+- Aus Pluginquellen installierte Plugins liegen nun in versionsbezogenen Verzeichnissen `plugins/<Name>@<ReleaseTag>/`; bisherige, nicht versionierte Plugin-Ordner werden unwirksam, sobald ein Versionsverzeichnis existiert, und können manuell entfernt werden.
 
 ## Neuerungen
 
-- Registrierungsformular mit neuer Checkbox „Demo-Daten anlegen" (`createDemoData` in `POST /api/auth/register`).
-- Bei Auswahl legt ein Hintergrundjob (`seed-demo-data`, `DemoDataSeedingJobHandler`) für das neue Konto 5 Kochbücher mit insgesamt 43 Rezepten an.
-- Für die nächsten 5 Tage wird jeweils ein Abendessen-Rezept im Kalender eingetragen (18:00 Uhr).
-- Die Zutaten des für den nächsten Tag geplanten Rezepts werden in die Einkaufsliste übernommen.
+- Quelleninstallierte Plugins werden in versionsbezogene Verzeichnisse `plugins/<Name>@<ReleaseTag>/` installiert, statt den bisherigen Plugin-Ordner an Ort und Stelle zu ersetzen.
+- Neue Zustandsdatei `plugins/.install-state.json` führt die wirksame Plugin-Version je Plugin; nicht löschbare Verzeichnisse (z. B. gesperrte Assemblies) werden markiert und beim Start sowie beim nächsten Update erneut versucht.
+- Markierte und überholte Plugin-Verzeichnisse werden bei der Plugin-Erkennung beim Start übersprungen.
+- Plugins, die im neuen Release einer Quelle nicht mehr enthalten sind, werden zum Löschen markiert und in der Pluginverwaltung als `Missing` angezeigt.
+- Mit der Anwendung veröffentlichte Plugins (`plugins/<Projektname>/`) und direkt in `plugins` abgelegte DLL-Dateien bleiben unverändert.
+- Jede konfigurierte Pluginquelle erhält in der Pluginverwaltung eine Aktion „Auf Updates prüfen“ (nur für Administratoren), die die Update-Prüfung für genau diese Quelle sofort ausführt — unter denselben Vorbedingungen wie die Start-Prüfung — und das Ergebnis unmittelbar meldet.
+- Als `Missing` markierte Plugins erhalten in der Pluginverwaltung eine Entfernen-Aktion (nur für Administratoren), die den Verwaltungseintrag dauerhaft löscht; wird das Plugin später wieder entdeckt, wird es wie ein neues Plugin aufgenommen.
