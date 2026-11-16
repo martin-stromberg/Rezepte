@@ -17,6 +17,9 @@ public class RegisterTests
 {
     private const string Password = "DemoTest!123";
     private const int PollIntervalMilliseconds = 500;
+    private const int StableCountReads = 8;
+    private const int StableCountIntervalMilliseconds = 400;
+    private const int MonthNavClickSettleMilliseconds = 5000;
     private const int PageContentTimeoutMilliseconds = 20000;
     private const int FinalAssertRetryMilliseconds = 30000;
     // The seeding job also writes the bundled demo images into the database, so
@@ -175,6 +178,41 @@ public class RegisterTests
         }
     }
 
+    /// <summary>
+    /// Counts the elements matching the given selector several times and returns the maximum
+    /// observed count. Transient renders only ever show fewer items than the settled state,
+    /// never more, because Blazor applies render batches atomically - so the maximum is the
+    /// reliable count when a read races the reconnecting interactive circuit. The loop exits
+    /// early once two consecutive reads return the same non-zero count: counts can only
+    /// transiently be lower, never partially higher, so a stable non-zero pair means the
+    /// loading state has passed. Pages that stay empty run the full read window.
+    /// </summary>
+    /// <param name="page">The page to read on.</param>
+    /// <param name="selector">The selector whose elements are counted.</param>
+    /// <returns>The maximum count observed across the reads.</returns>
+    private static async Task<int> CountStablyAsync(IPage page, string selector)
+    {
+        var max = 0;
+        var previous = -1;
+        for (var read = 0; read < StableCountReads; read++)
+        {
+            var current = await page.Locator(selector).CountAsync();
+            max = Math.Max(max, current);
+            if (current > 0 && current == previous)
+            {
+                break;
+            }
+
+            previous = current;
+            if (read < StableCountReads - 1)
+            {
+                await Task.Delay(StableCountIntervalMilliseconds);
+            }
+        }
+
+        return max;
+    }
+
     private static async Task<int> CountCookbooksAsync(IPage page)
     {
         await page.GotoAsync($"{GetBaseAddress(page)}/cookbooks");
@@ -183,7 +221,7 @@ public class RegisterTests
         await page.WaitForLoadStateAsync(LoadState.Load);
         // Settled states: the grid with cards or the "no cookbooks" info alert.
         await WaitForSettledContentAsync(page, ".cookbook-grid, .alert-info");
-        return await page.Locator(".cookbook-card").CountAsync();
+        return await CountStablyAsync(page, ".cookbook-card");
     }
 
     private static async Task<int> CountRecipesAsync(IPage page)
@@ -194,7 +232,7 @@ public class RegisterTests
         await page.WaitForLoadStateAsync(LoadState.Load);
         // Settled states: result items or the "no results"/error alert.
         await WaitForSettledContentAsync(page, ".list-group-item, .alert");
-        return await page.Locator(".list-group-item").CountAsync();
+        return await CountStablyAsync(page, ".list-group-item");
     }
 
     private static async Task<int> CountCalendarEventsAsync(IPage page)
@@ -208,37 +246,51 @@ public class RegisterTests
         // Count both card variants: ".recipe-item" needs the per-recipe preview fetch to have
         // completed, while ".event-item" is the fallback card rendered for the same scheduled
         // events when the preview is unavailable (e.g. slow or aborted request on CI).
-        var count = await page.Locator(".recipe-item, .event-item").CountAsync();
+        var count = await CountStablyAsync(page, ".recipe-item, .event-item");
 
         // The demo seeding plans one event per day for the next five days, which can span a
         // month boundary while the page renders a single month at a time - so the next month
         // view is counted as well and both are summed.
-        var monthLabel = page.Locator("xpath=//button[normalize-space()='‹']/following-sibling::div[1]");
-        var previousLabel = await monthLabel.InnerTextAsync();
-        var responseTask = page.WaitForResponseAsync(
-            response => response.Url.Contains("/api/calendar", StringComparison.OrdinalIgnoreCase),
-            new PageWaitForResponseOptions { Timeout = PageContentTimeoutMilliseconds });
-        await page.Locator("button:has-text('›')").First.ClickAsync();
         try
         {
-            await responseTask;
+            var monthLabel = page.Locator("xpath=//button[normalize-space()='‹']/following-sibling::div[1]");
+            var previousLabel = await monthLabel.InnerTextAsync();
+
+            // Clicks dispatched before the interactive circuit is connected are dropped
+            // silently, so the navigation is retried until the label flips or the budget runs
+            // out. The settle window avoids premature re-clicks on a congested circuit that
+            // could advance two months and skip the event-bearing one.
+            var labelDeadline = DateTime.UtcNow.AddMilliseconds(PageContentTimeoutMilliseconds);
+            while (DateTime.UtcNow < labelDeadline && await monthLabel.InnerTextAsync() == previousLabel)
+            {
+                await page.Locator("button:has-text('›')").First.ClickAsync();
+
+                // The label flips to the next month in the same render pass that drops the grid
+                // for the reload, so once it changed, a later-settled grid is guaranteed to show
+                // the new month and not a stale snapshot of the old one.
+                var flipDeadline = DateTime.UtcNow.AddMilliseconds(MonthNavClickSettleMilliseconds);
+                while (DateTime.UtcNow < flipDeadline && await monthLabel.InnerTextAsync() == previousLabel)
+                {
+                    await Task.Delay(PollIntervalMilliseconds);
+                }
+            }
+
+            // Only a genuinely flipped label leads to a second count: counting the same month
+            // again would double-count its events.
+            var navigated = await monthLabel.InnerTextAsync() != previousLabel;
+            if (navigated)
+            {
+                await WaitForSettledContentAsync(page, ".calendar-root, .alert-danger");
+                return count + await CountStablyAsync(page, ".recipe-item, .event-item");
+            }
         }
         catch (TimeoutException)
         {
-            // A missing/failed reload still counts whatever the next month view renders.
+            // The month navigation is best-effort: when the calendar header never renders
+            // (e.g. redirect or error page), the current view is counted alone.
         }
 
-        // The label flips to the next month in the same render pass that drops the grid for
-        // the reload, so once it changed, a later-settled grid is guaranteed to show the new
-        // month and not a stale snapshot of the old one.
-        var labelDeadline = DateTime.UtcNow.AddMilliseconds(PageContentTimeoutMilliseconds);
-        while (await monthLabel.InnerTextAsync() == previousLabel && DateTime.UtcNow < labelDeadline)
-        {
-            await Task.Delay(PollIntervalMilliseconds);
-        }
-
-        await WaitForSettledContentAsync(page, ".calendar-root, .alert-danger");
-        return count + await page.Locator(".recipe-item, .event-item").CountAsync();
+        return count;
     }
 
     private static async Task<int> CountShoppingListItemsAsync(IPage page)
@@ -249,7 +301,7 @@ public class RegisterTests
         await page.WaitForLoadStateAsync(LoadState.Load);
         // Settled state: the shopping list grid renders once loading is done, even when empty.
         await WaitForSettledContentAsync(page, ".shopping-list-grid");
-        return await page.Locator(".shopping-item").CountAsync();
+        return await CountStablyAsync(page, ".shopping-item");
     }
 
     private static class DemoDataWaitHelper
@@ -350,6 +402,7 @@ public class RegisterTests
         /// <param name="Found">Whether a job row exists at all.</param>
         /// <param name="Status">The job status.</param>
         /// <param name="Error">The stored job error.</param>
+        /// <returns>The result.</returns>
         private sealed record SeedJobObservation(bool Found, BackgroundJobStatus? Status, string? Error);
 
         private static async Task<(int Cookbooks, int Recipes, int Calendar, int Shopping)> ReadCountsAsync(IPage page)
