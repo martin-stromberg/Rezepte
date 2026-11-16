@@ -53,35 +53,41 @@
         // event. The delegated listener runs in plain JS and therefore works
         // before the interactive circuit exists - text typed into the
         // prerendered DOM is otherwise known to nobody, because the server only
-        // learns the query from the URL. The snapshot carries the URL it was
-        // typed on so a navigation cannot restore a stale value into the next
-        // page's field.
+        // learns the query from the URL. The snapshot carries the q parameter
+        // it was typed under so it can only be restored while that query is
+        // still displayed - a stale snapshot can never bleed into a different
+        // query's field.
         document.addEventListener('input', (event) => {
             if (event.target && event.target.id === 'search-q') {
-                window.rezepteTypedSearchValue = { url: location.href, value: event.target.value };
+                window.rezepteTypedSearchValue = {
+                    query: new URLSearchParams(location.search).get('q') ?? '',
+                    value: event.target.value
+                };
             }
         }, true);
-        // After-first-render sync for the search input, called from
-        // RecipeSearch.OnAfterRenderAsync. The first call in a document marks
-        // the circuit attach: a typed snapshot restores the user's text over
-        // whatever the attach did to the element (value write or element
-        // replacement) and is consumed so later mounts never see stale text.
-        // Subsequent calls belong to remounts and only fill a still-empty
-        // element with the current query - a field already showing the query
-        // or user text is never touched.
+        // Per-render sync for the search input, called from
+        // RecipeSearch.OnAfterRenderAsync. A snapshot matching the current
+        // query is the user's in-flight text and always wins over framework
+        // writes: the circuit attach, a remount, an element replacement or an
+        // enhanced-navigation patch can each write the q attribute over it at
+        // arbitrary later points, so the restore is enforced on every call -
+        // not consumed after the first. A snapshot for another query is stale
+        // and dropped. Without a snapshot a still-empty element is filled with
+        // the current query; a field already showing text is never touched.
         window.rezepteSyncSearchInput = (id, query) => {
             const el = document.getElementById(id);
             if (!el) {
                 return;
             }
-            if (!window.rezepteSearchAttachSynced) {
-                window.rezepteSearchAttachSynced = true;
-                const snapshot = window.rezepteTypedSearchValue;
-                delete window.rezepteTypedSearchValue;
-                if (snapshot && snapshot.url === location.href) {
-                    el.value = snapshot.value;
+            const snapshot = window.rezepteTypedSearchValue;
+            if (snapshot) {
+                if (snapshot.query === query) {
+                    if (el.value !== snapshot.value) {
+                        el.value = snapshot.value;
+                    }
                     return;
                 }
+                delete window.rezepteTypedSearchValue;
             }
             if (el.value === '') {
                 el.value = query;

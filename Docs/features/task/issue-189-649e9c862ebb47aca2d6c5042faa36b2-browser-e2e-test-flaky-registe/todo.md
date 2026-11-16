@@ -14,4 +14,5 @@ Branch: `task/issue-189-649e9c862ebb47aca2d6c5042faa36b2-browser-e2e-test-flaky-
 | [x] | 6 | Implementierung (Unteragent) | Codeänderungen |
 | [x] | 9 | Code-Review (Unteragent) | `review-code.md` |
 | [x] | 10 | Tests ausführen | `test-results.md` |
-| [ ] | – | Commit + PR gegen staging | – |
+| [x] | – | Commit + PR gegen staging | PR #190 (CI grün) |
+| [x] | – | Folgefix: `InPageSearch_TypedValue_SurvivesInteractiveCircuit` (per-Render-Sync) | `App.razor`, `RecipeSearch.razor` |

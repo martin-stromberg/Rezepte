@@ -24,13 +24,14 @@
        PathBase intact.
        The value attribute always emits the current q. Interactive re-renders whose
        emitted value is unchanged produce no DOM write at all, so they leave typed
-       text alone. The only frame that can clobber it is the prerender->circuit
-       attach, which may write the attribute or replace the element entirely with
-       text the server never saw. OnAfterRenderAsync therefore calls
-       rezepteSyncSearchInput (App.razor): a document-level input listener snapshots
-       the live value before the circuit exists, and the first sync call restores it
-       over whatever the attach did. Remounts in the same document only fill a
-       still-empty field with the current query. *@
+       text alone. But q can still land in the element at several later points:
+       the prerender->circuit attach, a remount, an element replacement or an
+       enhanced-navigation patch may write the attribute or recreate the input
+       with text the server never saw. OnAfterRenderAsync therefore calls
+       rezepteSyncSearchInput (App.razor) after every render: a document-level
+       input listener snapshots the live value before the circuit exists, and the
+       sync restores it whenever it still belongs to the displayed query.
+       Remounts under a different query only fill a still-empty field. *@
     <form class="d-flex flex-grow-1" method="get" role="search">
         <input id="search-q" name="q" class="form-control" placeholder="@Localizer["SearchRecipeInputPlaceholder"]" aria-label="@Localizer["SearchRecipes"]"
                value="@(q ?? string.Empty)" />
@@ -122,23 +123,22 @@ else
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // The attach batch can drop text typed while prerendered: it may write the
-        // value attribute over it or replace the input element entirely, and the
-        // server never saw the typed text. rezepteSyncSearchInput restores the
-        // client-side snapshot on this first call and, on remounts within the same
-        // document, only fills a still-empty element with the current query - a
-        // field already showing the query or user text is never touched.
-        if (firstRender)
+        // Runs after every render, not only the first: the attach batch, a
+        // remount, an element replacement or an enhanced-navigation patch can
+        // write q into the input (or recreate the element) at any later point,
+        // and a one-shot restore could only repair the very first clobber.
+        // rezepteSyncSearchInput restores the client-side typed-text snapshot
+        // whenever it still belongs to the current query and otherwise only
+        // fills a still-empty element - a field already showing the query or
+        // user text is never touched.
+        try
         {
-            try
-            {
-                await JS.InvokeVoidAsync("rezepteSyncSearchInput", "search-q", q ?? string.Empty);
-            }
-            catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
-            {
-                // cosmetic assist only - a lost call leaves whatever the frame wrote, never corrupts it
-                Logger.LogDebug(ex, "Search field sync skipped: JS interop unavailable");
-            }
+            await JS.InvokeVoidAsync("rezepteSyncSearchInput", "search-q", q ?? string.Empty);
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+        {
+            // cosmetic assist only - a lost call is retried on the next render
+            Logger.LogDebug(ex, "Search field sync skipped: JS interop unavailable");
         }
     }
 
