@@ -31,7 +31,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
         _context.Services.AddLocalization();
         _context.Services.AddSingleton<ILogger<RecipeSearch>>(NullLogger<RecipeSearch>.Instance);
         _context.Services.AddSingleton<NavigationManager>(_navigationManager);
-        // The component calls rezepteSyncSearchInput on first render; without an
+        // The component calls rezepteSyncSearchInput after every render; without an
         // explicit setup, loose mode accepts any invocation.
         _context.JSInterop.Mode = JSRuntimeMode.Loose;
     }
@@ -222,12 +222,13 @@ public sealed class RecipeSearchComponentTests : IDisposable
     }
 
     /// <summary>
-    /// OnAfterRenderAsync asks the JS sync to reconcile the search input once
-    /// per mount: it restores a typed value snapshot over whatever the circuit
-    /// attach did, and fills a still-empty field with the current query.
+    /// OnAfterRenderAsync asks the JS sync to reconcile the search input after
+    /// every render: it restores a typed value snapshot over whatever a later
+    /// framework write (attach, remount, element replacement, enhanced
+    /// navigation) did, and fills a still-empty field with the current query.
     /// </summary>
     [Fact]
-    public void SearchField_OnFirstRender_CallsJsSyncWithCurrentQuery()
+    public void SearchField_OnAfterRender_CallsJsSyncWithCurrentQuery()
     {
         Authorize();
         var service = RegisterRecipeService();
