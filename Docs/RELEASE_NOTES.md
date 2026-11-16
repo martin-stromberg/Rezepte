@@ -7,6 +7,7 @@
 
 ## What's New
 
+- A search term typed into the search field on the recipe search page is no longer reset while the page is still loading or the result list refreshes in the background (e.g. when paging); a freshly inserted search field is filled with the current query.
 - All recipe import entry points now run through a single execution path; URL imports store the source URL on the recipe so a repeated import of the same URL updates the existing recipe instead of creating a duplicate.
 - Source-installed plugins are installed into versioned directories `plugins/<Name>@<ReleaseTag>/` instead of replacing the previous plugin folder in place.
 - New install state file `plugins/.install-state.json` tracks the effective plugin version per plugin; directories that cannot be deleted (e.g. locked assemblies) are marked and retried at startup and on the next update.
@@ -23,6 +24,7 @@
 
 ## Neuerungen
 
+- Ein in das Suchfeld der Rezeptsuche eingetippter Begriff geht nicht mehr verloren, während die Seite noch lädt oder die Trefferliste im Hintergrund aktualisiert wird (z. B. beim Blättern); ein neu eingesetztes Suchfeld wird mit der aktuellen Suche befüllt.
 - Alle Einstiege des Rezeptimports laufen nun über denselben Ausführungspfad; URL-Importe speichern die Quell-URL auf dem Rezept, sodass ein erneuter Import derselben URL das bestehende Rezept aktualisiert statt ein Duplikat anzulegen.
 - Quelleninstallierte Plugins werden in versionsbezogene Verzeichnisse `plugins/<Name>@<ReleaseTag>/` installiert, statt den bisherigen Plugin-Ordner an Ort und Stelle zu ersetzen.
 - Neue Zustandsdatei `plugins/.install-state.json` führt die wirksame Plugin-Version je Plugin; nicht löschbare Verzeichnisse (z. B. gesperrte Assemblies) werden markiert und beim Start sowie beim nächsten Update erneut versucht.

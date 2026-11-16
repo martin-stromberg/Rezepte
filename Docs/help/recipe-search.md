@@ -8,6 +8,8 @@ Geben Sie einen Suchbegriff in das Suchfeld ein und starten Sie die Suche. Die E
 
 Auf der Ergebnisseite können Sie den Suchbegriff über das dortige Suchfeld anpassen und die Suche mit der Schaltfläche `Suchen` erneut starten. Lassen Sie das Suchfeld leer, werden alle eigenen Rezepte aufgelistet.
 
+Ein eingetippter Suchbegriff bleibt im Suchfeld erhalten — auch während die Seite noch lädt oder die Trefferliste im Hintergrund aktualisiert wird, etwa beim Blättern in der Seitennavigation. Er wird nicht auf den zuletzt gesuchten Begriff zurückgesetzt; erst ein neues Absenden der Suche ändert den gesuchten Begriff.
+
 Beispiel: Die Suche nach `Honig` findet ein vorhandenes Rezept wie `Honig - Senf - Sojamarinade`, wenn dieses Rezept zu Ihrem Benutzerkonto gehoert.
 
 ## Seitennavigation

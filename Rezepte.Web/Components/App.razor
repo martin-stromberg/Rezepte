@@ -49,6 +49,44 @@
                 element.click();
             }
         };
+        // Snapshots the live value of the recipe search input on every input
+        // event. The delegated listener runs in plain JS and therefore works
+        // before the interactive circuit exists - text typed into the
+        // prerendered DOM is otherwise known to nobody, because the server only
+        // learns the query from the URL. The snapshot carries the URL it was
+        // typed on so a navigation cannot restore a stale value into the next
+        // page's field.
+        document.addEventListener('input', (event) => {
+            if (event.target && event.target.id === 'search-q') {
+                window.rezepteTypedSearchValue = { url: location.href, value: event.target.value };
+            }
+        }, true);
+        // After-first-render sync for the search input, called from
+        // RecipeSearch.OnAfterRenderAsync. The first call in a document marks
+        // the circuit attach: a typed snapshot restores the user's text over
+        // whatever the attach did to the element (value write or element
+        // replacement) and is consumed so later mounts never see stale text.
+        // Subsequent calls belong to remounts and only fill a still-empty
+        // element with the current query - a field already showing the query
+        // or user text is never touched.
+        window.rezepteSyncSearchInput = (id, query) => {
+            const el = document.getElementById(id);
+            if (!el) {
+                return;
+            }
+            if (!window.rezepteSearchAttachSynced) {
+                window.rezepteSearchAttachSynced = true;
+                const snapshot = window.rezepteTypedSearchValue;
+                delete window.rezepteTypedSearchValue;
+                if (snapshot && snapshot.url === location.href) {
+                    el.value = snapshot.value;
+                    return;
+                }
+            }
+            if (el.value === '') {
+                el.value = query;
+            }
+        };
     </script>
 </body>
 

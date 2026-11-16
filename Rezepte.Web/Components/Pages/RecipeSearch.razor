@@ -12,15 +12,25 @@
 @inject NavigationManager Nav
 @inject ILogger<Rezepte.Web.Components.Pages.RecipeSearch> Logger
 @inject IStringLocalizer<UiStrings> Localizer
+@inject IJSRuntime JS
 
 <PageTitle>@Localizer["RecipeSearchPageTitle"]</PageTitle>
 
 <div class="mb-4 d-flex align-items-start gap-3">
     @* Plain GET form without @onsubmit or @bind: the browser submits the live input
        value, so the search works before/without the interactive circuit and the typed
-       text can never be overwritten by a re-render of a controlled two-way binding.
-       No action attribute - the form posts to the current URL, which keeps any
-       configured PathBase intact. *@
+       text can never be overwritten by a controlled two-way binding. No action
+       attribute - the form posts to the current URL, which keeps any configured
+       PathBase intact.
+       The value attribute always emits the current q. Interactive re-renders whose
+       emitted value is unchanged produce no DOM write at all, so they leave typed
+       text alone. The only frame that can clobber it is the prerender->circuit
+       attach, which may write the attribute or replace the element entirely with
+       text the server never saw. OnAfterRenderAsync therefore calls
+       rezepteSyncSearchInput (App.razor): a document-level input listener snapshots
+       the live value before the circuit exists, and the first sync call restores it
+       over whatever the attach did. Remounts in the same document only fill a
+       still-empty field with the current query. *@
     <form class="d-flex flex-grow-1" method="get" role="search">
         <input id="search-q" name="q" class="form-control" placeholder="@Localizer["SearchRecipeInputPlaceholder"]" aria-label="@Localizer["SearchRecipes"]"
                value="@(q ?? string.Empty)" />
@@ -108,6 +118,29 @@ else
     private int CurrentPage => pageNumber < 1 ? 1 : pageNumber;
     private int CurrentPageSize => pageSize < 1 ? 20 : Math.Min(pageSize, IRecipeService.MaxSearchPageSize);
     private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalItems / (double)CurrentPageSize));
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The attach batch can drop text typed while prerendered: it may write the
+        // value attribute over it or replace the input element entirely, and the
+        // server never saw the typed text. rezepteSyncSearchInput restores the
+        // client-side snapshot on this first call and, on remounts within the same
+        // document, only fills a still-empty element with the current query - a
+        // field already showing the query or user text is never touched.
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("rezepteSyncSearchInput", "search-q", q ?? string.Empty);
+            }
+            catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException or InvalidOperationException)
+            {
+                // cosmetic assist only - a lost call leaves whatever the frame wrote, never corrupts it
+                Logger.LogDebug(ex, "Search field sync skipped: JS interop unavailable");
+            }
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {

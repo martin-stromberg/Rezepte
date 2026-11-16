@@ -20,16 +20,20 @@ namespace Rezepte.Tests.Components;
 public sealed class RecipeSearchComponentTests : IDisposable
 {
     private readonly TestContext _context = new();
-    private readonly PathBaseNavigationManager _navigationManager = new("http://localhost/sub/");
+    private readonly PathBaseNavigationManager _navigationManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RecipeSearchComponentTests"/> class.
     /// </summary>
     public RecipeSearchComponentTests()
     {
+        _navigationManager = new PathBaseNavigationManager("http://localhost/sub/", _context);
         _context.Services.AddLocalization();
         _context.Services.AddSingleton<ILogger<RecipeSearch>>(NullLogger<RecipeSearch>.Instance);
         _context.Services.AddSingleton<NavigationManager>(_navigationManager);
+        // The component calls rezepteSyncSearchInput on first render; without an
+        // explicit setup, loose mode accepts any invocation.
+        _context.JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
     /// <summary>
@@ -157,6 +161,87 @@ public sealed class RecipeSearchComponentTests : IDisposable
     }
 
     /// <summary>
+    /// OnParametersSet emits an updated value attribute when the query parameter changes
+    /// on the same component instance via an in-circuit NavigationManager navigation
+    /// (a SupplyParameterFromQuery value can only be supplied through the manager's URI).
+    /// </summary>
+    [Fact]
+    public void SearchField_WhenQueryParameterChanges_EmitsUpdatedValue()
+    {
+        Authorize();
+        var service = RegisterRecipeService();
+        service.Setup(SearchAsyncSetup())
+            .ReturnsAsync(new RecipeService.SearchResult { Items = Array.Empty<RecipeService.SearchResultItem>(), TotalCount = 0 });
+
+        _navigationManager.NavigateTo("recipes/search?q=a");
+        var cut = _context.RenderComponent<RecipeSearch>();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("#search-q").GetAttribute("value").Should().Be("a");
+        });
+
+        _navigationManager.NavigateTo("recipes/search?q=b");
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("#search-q").GetAttribute("value").Should().Be("b");
+        });
+    }
+
+    /// <summary>
+    /// The value attribute always reflects the query parameter, including on
+    /// re-renders of the same instance where q is unchanged (here via an
+    /// in-circuit page change). Emitting it unconditionally is safe because an
+    /// unchanged emitted value produces no DOM write, and the client-side
+    /// rezepteSyncSearchInput restore - not attribute suppression - protects
+    /// text typed before the circuit attach.
+    /// </summary>
+    [Fact]
+    public void SearchField_WhenQueryParameterUnchanged_KeepsValueAttribute()
+    {
+        Authorize();
+        var service = RegisterRecipeService();
+        service.Setup(SearchAsyncSetup())
+            .ReturnsAsync(new RecipeService.SearchResult { Items = Array.Empty<RecipeService.SearchResultItem>(), TotalCount = 0 });
+
+        _navigationManager.NavigateTo("recipes/search?q=a&page=1");
+        var cut = _context.RenderComponent<RecipeSearch>();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("#search-q").GetAttribute("value").Should().Be("a");
+        });
+
+        _navigationManager.NavigateTo("recipes/search?q=a&page=2");
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("#search-q").GetAttribute("value").Should().Be("a");
+        });
+    }
+
+    /// <summary>
+    /// OnAfterRenderAsync asks the JS sync to reconcile the search input once
+    /// per mount: it restores a typed value snapshot over whatever the circuit
+    /// attach did, and fills a still-empty field with the current query.
+    /// </summary>
+    [Fact]
+    public void SearchField_OnFirstRender_CallsJsSyncWithCurrentQuery()
+    {
+        Authorize();
+        var service = RegisterRecipeService();
+        service.Setup(SearchAsyncSetup())
+            .ReturnsAsync(new RecipeService.SearchResult { Items = Array.Empty<RecipeService.SearchResultItem>(), TotalCount = 0 });
+
+        _navigationManager.NavigateTo("recipes/search?q=abc");
+        _context.RenderComponent<RecipeSearch>();
+
+        _context.JSInterop.VerifyInvoke("rezepteSyncSearchInput")
+            .Arguments.Should().Equal("search-q", "abc");
+    }
+
+    /// <summary>
     /// Dispose logs an in-flight search aborted by the component teardown as superseded
     /// instead of a cancellation failure, because a teardown abort is not a failed
     /// search attempt and must not be misclassified in the diagnostic signal.
@@ -237,9 +322,22 @@ public sealed class RecipeSearchComponentTests : IDisposable
 
     private sealed class PathBaseNavigationManager : NavigationManager
     {
-        public PathBaseNavigationManager(string baseUri)
+        private readonly TestContextBase _testContext;
+
+        public PathBaseNavigationManager(string baseUri, TestContextBase testContext)
         {
+            _testContext = testContext;
             Initialize(baseUri, baseUri);
+        }
+
+        protected override void NavigateToCore(string uri, NavigationOptions options)
+        {
+            var absoluteUri = ToAbsoluteUri(uri).OriginalString;
+            _testContext.Renderer.Dispatcher.InvokeAsync(() =>
+            {
+                Uri = absoluteUri;
+                NotifyLocationChanged(isInterceptedLink: false);
+            });
         }
     }
 
