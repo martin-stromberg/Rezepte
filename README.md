@@ -11,6 +11,7 @@ Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbüchern, 
 - Benutzerregistrierung, Login und Logout mit Cookie-Authentifizierung.
 - Kochbücher mit Sortierung, Detailseiten und mehreren Rezepten.
 - Rezeptverwaltung mit Zutaten, Zubereitungsschritten, Bildern und Beilagen.
+- Öffentliche Links zum Teilen einzelner Rezepte mit zeitlich begrenzter Gültigkeit und anonymer Nur-Lesen-Ansicht.
 - Einkaufsliste, Kalenderansicht und Rezeptsuche.
 - Import aus Backups, Dateien, URLs und unterstützten Webseiten.
 - Plugin-Framework für Rezeptimporte und optionale KI-gestützte Imports.

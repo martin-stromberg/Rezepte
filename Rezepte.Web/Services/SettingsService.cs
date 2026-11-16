@@ -58,6 +58,7 @@ public class SettingsService : ISettingsService
     private const string GlobalMaxPerDayKey = "GlobalMaxRequestsPerDay";
     private const string GlobalDisableOnLimitKey = "GlobalDisableOnLimitReached";
     private const string ShoppingListEditModePrefix = "ShoppingListEditMode:";
+    private const string ShareLinkValidityDaysKey = "ShareLinkValidityDays";
 
     /// <summary>
     /// Gets the global ai enabled async.
@@ -317,6 +318,29 @@ public class SettingsService : ISettingsService
     public async Task SetSecurityTxtSettingsAsync(SecurityTxtSettings settings, CancellationToken ct = default)
     {
         await _securityTxtSettingsService.SetSecurityTxtSettingsAsync(settings, ct);
+    }
+
+    /// <summary>
+    /// Gets the share link validity days async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    public async Task<int> GetShareLinkValidityDaysAsync(CancellationToken ct = default)
+    {
+        var kv = await _db.Set<AppSetting>().FindAsync(new object[] { ShareLinkValidityDaysKey }, ct);
+        if (kv == null) return ISettingsService.DefaultShareLinkValidityDays;
+        if (int.TryParse(kv.Value, out var v) && v >= 1) return v;
+        return ISettingsService.DefaultShareLinkValidityDays;
+    }
+
+    /// <summary>
+    /// Sets the share link validity days async.
+    /// </summary>
+    /// <param name="days">The days parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    public async Task SetShareLinkValidityDaysAsync(int days, CancellationToken ct = default)
+    {
+        await WriteString(ShareLinkValidityDaysKey, days.ToString(), ct);
     }
 
     private async Task WriteString(string key, string value, CancellationToken ct)

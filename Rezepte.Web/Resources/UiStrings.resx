@@ -267,4 +267,31 @@
   <data name="ApplyToSelection" xml:space="preserve"><value>Für Auswahl übernehmen</value></data>
   <data name="ImportSelection" xml:space="preserve"><value>Auswahl importieren</value></data>
   <data name="Confirmation" xml:space="preserve"><value>Bestätigung</value></data>
+  <data name="Share" xml:space="preserve"><value>Teilen</value></data>
+  <data name="ShareDialogTitle" xml:space="preserve"><value>Rezept teilen</value></data>
+  <data name="ShareDialogDescription" xml:space="preserve"><value>Erstelle einen öffentlichen Link. Jeder, der den Link kennt, kann dieses Rezept ohne Anmeldung ansehen.</value></data>
+  <data name="ShareIncludeSideDishes" xml:space="preserve"><value>Beilagen freigeben</value></data>
+  <data name="ShareCreateLink" xml:space="preserve"><value>Link erstellen</value></data>
+  <data name="ShareLinkValidUntil" xml:space="preserve"><value>Gültig bis</value></data>
+  <data name="ShareCopy" xml:space="preserve"><value>Kopieren</value></data>
+  <data name="ShareCopied" xml:space="preserve"><value>Link in die Zwischenablage kopiert.</value></data>
+  <data name="ShareCopyFailed" xml:space="preserve"><value>Der Link konnte nicht kopiert werden.</value></data>
+  <data name="ShareCreateFailed" xml:space="preserve"><value>Der Link konnte nicht erstellt werden.</value></data>
+  <data name="SharedRecipeNotFound" xml:space="preserve"><value>Der Link ist ungültig oder abgelaufen.</value></data>
+  <data name="SharedRecipeSource" xml:space="preserve"><value>Zur Originalquelle des Rezepts</value></data>
+  <data name="SharedRecipeSideDishes" xml:space="preserve"><value>Beilagen</value></data>
+  <data name="SharedRecipeStep" xml:space="preserve"><value>Schritt</value></data>
+  <data name="SharedRecipeTotal" xml:space="preserve"><value>Gesamt</value></data>
+  <data name="SharedRecipeRestNights" xml:space="preserve"><value>Ruhenächte</value></data>
+  <data name="SharedRecipePortions" xml:space="preserve"><value>Portionen</value></data>
+  <data name="PublicLinksSettings" xml:space="preserve"><value>Öffentliche Links</value></data>
+  <data name="ShareLinkValidityDaysLabel" xml:space="preserve"><value>Gültigkeitsdauer in Tagen</value></data>
+  <data name="ShareLinkValidityDaysDescription" xml:space="preserve"><value>Anzahl der Tage, die ein neu erzeugter öffentlicher Link gültig bleibt. Bereits erzeugte Links behalten ihren ursprünglichen Ablaufzeitpunkt.</value></data>
+  <data name="ShareLinkValiditySaved" xml:space="preserve"><value>Einstellung gespeichert.</value></data>
+  <data name="ShareLinkValiditySaveFailed" xml:space="preserve"><value>Die Einstellung konnte nicht gespeichert werden.</value></data>
+  <data name="ShareLinkSettingsLoadFailed" xml:space="preserve"><value>Einstellungen konnten nicht geladen werden.</value></data>
+  <data name="ShareLinkSettingsLoadTimeout" xml:space="preserve"><value>Laden dauert zu lange. Bitte erneut versuchen.</value></data>
+  <data name="ShareLinkSettingsSaveTimeout" xml:space="preserve"><value>Speichern dauert zu lange. Bitte erneut versuchen.</value></data>
+  <data name="UnexpectedError" xml:space="preserve"><value>Ein unerwarteter Fehler ist aufgetreten.</value></data>
+  <data name="SharedRecipeStepUntitled" xml:space="preserve"><value>(ohne Titel)</value></data>
 </root>

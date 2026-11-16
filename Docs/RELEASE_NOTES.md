@@ -7,6 +7,9 @@
 
 ## What's New
 
+- Recipe owners can create a time-limited public link for a recipe from a share dialog on the recipe page and copy it to the clipboard; a checkbox optionally includes the recipe's linked side dishes.
+- Opening a public link (`/share/<token>`) shows a read-only view of the recipe without an account — no app navigation, editing, shopping list, scheduling or favourites; only the recipe's original source page remains linked. Unknown or expired links show a generic error message.
+- Administrators configure the validity period of public links (default 30 days) under “Öffentliche Links” in the settings area; changes apply only to newly created links.
 - A search term typed into the search field on the recipe search page is no longer reset while the page is still loading or the result list refreshes in the background (e.g. when paging); a freshly inserted search field is filled with the current query.
 - All recipe import entry points now run through a single execution path; URL imports store the source URL on the recipe so a repeated import of the same URL updates the existing recipe instead of creating a duplicate.
 - Source-installed plugins are installed into versioned directories `plugins/<Name>@<ReleaseTag>/` instead of replacing the previous plugin folder in place.
@@ -24,6 +27,9 @@
 
 ## Neuerungen
 
+- Besitzer eines Rezepts können über einen Teilen-Dialog auf der Rezeptseite einen zeitlich begrenzten öffentlichen Link erzeugen und in die Zwischenablage kopieren; ein Haken gibt optional die verlinkten Beilagen des Rezepts mit frei.
+- Der Aufruf eines öffentlichen Links (`/share/<token>`) zeigt ohne Benutzerkonto eine reine Leseansicht des Rezepts — ohne App-Navigation, Bearbeiten, Einkaufsliste, Terminplanung oder Favoriten; verlinkt bleibt nur die Originalquelle des Rezepts. Unbekannte oder abgelaufene Links zeigen eine generische Fehlermeldung.
+- Die Gültigkeitsdauer öffentlicher Links (Standard 30 Tage) stellen Administratoren im Einstellungsbereich unter „Öffentliche Links“ ein; die Änderung wirkt nur auf neu erzeugte Links.
 - Ein in das Suchfeld der Rezeptsuche eingetippter Begriff geht nicht mehr verloren, während die Seite noch lädt oder die Trefferliste im Hintergrund aktualisiert wird (z. B. beim Blättern); ein neu eingesetztes Suchfeld wird mit der aktuellen Suche befüllt.
 - Alle Einstiege des Rezeptimports laufen nun über denselben Ausführungspfad; URL-Importe speichern die Quell-URL auf dem Rezept, sodass ein erneuter Import derselben URL das bestehende Rezept aktualisiert statt ein Duplikat anzulegen.
 - Quelleninstallierte Plugins werden in versionsbezogene Verzeichnisse `plugins/<Name>@<ReleaseTag>/` installiert, statt den bisherigen Plugin-Ordner an Ort und Stelle zu ersetzen.

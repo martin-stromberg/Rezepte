@@ -46,6 +46,11 @@
                 }
             </button>
 
+            @* Öffentlichen Link zum Teilen erzeugen *@
+            <button class="btn btn-sm btn-outline-secondary" title="@Localizer["Share"]" @onclick="OpenShareDialog">
+                <span class="bi bi-share" aria-hidden="true"></span>
+            </button>
+
             @if (!string.IsNullOrWhiteSpace(recipe.sourceUri))
             {
                 <a class="btn btn-sm btn-outline-secondary"
@@ -206,6 +211,11 @@ else
                           OnClose="CloseAssignOverlay"
                           OnSaved="OnCookbookAssignmentsSaved" />
 
+<ShareRecipeDialog Show="@showShareDialog"
+                   RecipeId="@Id"
+                   HasSideDishes="@(recipe?.SideDishes?.Count > 0)"
+                   OnClose="CloseShareDialog" />
+
 @if (showCropper)
 {
     <ImageCropper Show="@showCropper"
@@ -244,6 +254,7 @@ else
     private bool showAssignOverlay = false;
     private bool isInAnyCookbook = false;
     private bool showShoppingListDialog = false;
+    private bool showShareDialog = false;
 
     private int TotalMinutes => recipe?.Steps?.Sum(s => s.DurationMinutes) ?? 0;
     private int RestNights => recipe?.Steps?.Count(s => s.RequiresOvernightRest) ?? 0;
@@ -412,6 +423,17 @@ else
     private void OpenAssignOverlay()
     {
         showAssignOverlay = true;
+    }
+
+    private void OpenShareDialog()
+    {
+        showShareDialog = true;
+    }
+
+    private Task CloseShareDialog()
+    {
+        showShareDialog = false;
+        return Task.CompletedTask;
     }
 
     private void OpenShoppingListDialog()

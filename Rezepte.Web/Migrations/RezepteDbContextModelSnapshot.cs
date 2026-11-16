@@ -15,7 +15,7 @@ namespace Rezepte.Web.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
 
             modelBuilder.Entity("Rezepte.Web.Entities.AiRequestLog", b =>
                 {
@@ -457,6 +457,45 @@ namespace Rezepte.Web.Migrations
                     b.ToTable("RecipeIngredients");
                 });
 
+            modelBuilder.Entity("Rezepte.Web.Entities.RecipeShareLink", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IncludeSideDishes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RecipeId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("RecipeShareLinks");
+                });
+
             modelBuilder.Entity("Rezepte.Web.Entities.RecipeSideDish", b =>
                 {
                     b.Property<string>("Id")
@@ -823,6 +862,17 @@ namespace Rezepte.Web.Migrations
                         .HasForeignKey("StepId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Rezepte.Web.Entities.RecipeShareLink", b =>
+                {
+                    b.HasOne("Rezepte.Web.Entities.Recipe", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
                 });
 
             modelBuilder.Entity("Rezepte.Web.Entities.RecipeSideDish", b =>

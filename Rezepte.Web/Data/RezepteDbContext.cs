@@ -109,6 +109,11 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
     /// </summary>
     /// <returns>The result. UserExportFile: The user export file type parameter.</returns>
     public DbSet<UserExportFile> UserExportFiles => Set<UserExportFile>();
+    /// <summary>
+    /// Sets the value.
+    /// </summary>
+    /// <returns>The result. RecipeShareLink: The recipe share link type parameter.</returns>
+    public DbSet<RecipeShareLink> RecipeShareLinks => Set<RecipeShareLink>();
 
     /// <summary>
     /// ons the model creating.
@@ -389,6 +394,20 @@ public class RezepteDbContext(DbContextOptions<RezepteDbContext> options) : DbCo
             b.Property(f => f.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasIndex(f => f.UserId);
             b.HasIndex(f => new { f.UserId, f.CreatedAt });
+        });
+
+        modelBuilder.Entity<RecipeShareLink>(b =>
+        {
+            b.HasKey(l => l.Id);
+            b.Property(l => l.Token).IsRequired().HasMaxLength(64);
+            b.Property(l => l.RecipeId).IsRequired().HasMaxLength(64);
+            b.Property(l => l.UserId).IsRequired().HasMaxLength(64);
+            b.HasOne(l => l.Recipe)
+                .WithMany()
+                .HasForeignKey(l => l.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasIndex(l => l.Token).IsUnique();
+            b.HasIndex(l => l.RecipeId);
         });
     }
 }

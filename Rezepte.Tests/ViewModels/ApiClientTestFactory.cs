@@ -15,9 +15,14 @@ namespace Rezepte.Tests.ViewModels;
 /// </summary>
 internal sealed class ApiClientTestFactory
 {
-    private readonly Func<HttpRequestMessage, HttpResponseMessage> _responseFactory;
+    private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _responseFactory;
 
     public ApiClientTestFactory(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
+        : this(request => Task.FromResult(responseFactory(request)))
+    {
+    }
+
+    public ApiClientTestFactory(Func<HttpRequestMessage, Task<HttpResponseMessage>> responseFactory)
     {
         _responseFactory = responseFactory;
     }
@@ -46,7 +51,7 @@ internal sealed class ApiClientTestFactory
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             owner.Requests.Add(request);
-            return Task.FromResult(owner._responseFactory(request));
+            return owner._responseFactory(request);
         }
     }
 
