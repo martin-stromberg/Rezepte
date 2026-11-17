@@ -26,8 +26,9 @@ Details zur Navigation und zum Ladebalken stehen in [Docs/help/navigation.md](he
 - Kochbücher mit Sortierung, Detailseiten und Zuordnung mehrerer Rezepte.
 - Rezeptverwaltung mit Zutaten, Zubereitungsschritten, Portionsangaben, Bildern und verlinkten Beilagen.
 - Bild-Upload mit Validierung, zugeschnittenen Thumbnails und Grossbildansicht.
+- Öffentliche Links zum Teilen einzelner Rezepte mit zeitlich begrenzter Gültigkeit und anonymer Nur-Lesen-Ansicht.
 
-Details zur Rezeptsuche und zu Beilagen stehen in [Docs/help/recipe-search.md](help/recipe-search.md) und [Docs/help/side-dishes.md](help/side-dishes.md).
+Details zur Rezeptsuche und zu Beilagen stehen in [Docs/help/recipe-search.md](help/recipe-search.md) und [Docs/help/side-dishes.md](help/side-dishes.md). Details zu öffentlichen Links stehen in [Docs/help/public-links.md](help/public-links.md).
 
 ## Planung und Listen
 

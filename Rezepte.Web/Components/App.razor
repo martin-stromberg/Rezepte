@@ -22,6 +22,7 @@
     <script src="js/dragHelpers.js"></script>
     <script src="js/backupRestore.js"></script>
     <script src="js/randomFromCookbooks.js"></script>
+    <script src="js/clipboard.js"></script>
     <!-- Füge im <head> die Cropper.css hinzu -->
     <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet" />
 
@@ -47,6 +48,50 @@
         window.triggerFileInput = (element) => {
             if (element) {
                 element.click();
+            }
+        };
+        // Snapshots the live value of the recipe search input on every input
+        // event. The delegated listener runs in plain JS and therefore works
+        // before the interactive circuit exists - text typed into the
+        // prerendered DOM is otherwise known to nobody, because the server only
+        // learns the query from the URL. The snapshot carries the q parameter
+        // it was typed under so it can only be restored while that query is
+        // still displayed - a stale snapshot can never bleed into a different
+        // query's field.
+        document.addEventListener('input', (event) => {
+            if (event.target && event.target.id === 'search-q') {
+                window.rezepteTypedSearchValue = {
+                    query: new URLSearchParams(location.search).get('q') ?? '',
+                    value: event.target.value
+                };
+            }
+        }, true);
+        // Per-render sync for the search input, called from
+        // RecipeSearch.OnAfterRenderAsync. A snapshot matching the current
+        // query is the user's in-flight text and always wins over framework
+        // writes: the circuit attach, a remount, an element replacement or an
+        // enhanced-navigation patch can each write the q attribute over it at
+        // arbitrary later points, so the restore is enforced on every call -
+        // not consumed after the first. A snapshot for another query is stale
+        // and dropped. Without a snapshot a still-empty element is filled with
+        // the current query; a field already showing text is never touched.
+        window.rezepteSyncSearchInput = (id, query) => {
+            const el = document.getElementById(id);
+            if (!el) {
+                return;
+            }
+            const snapshot = window.rezepteTypedSearchValue;
+            if (snapshot) {
+                if (snapshot.query === query) {
+                    if (el.value !== snapshot.value) {
+                        el.value = snapshot.value;
+                    }
+                    return;
+                }
+                delete window.rezepteTypedSearchValue;
+            }
+            if (el.value === '') {
+                el.value = query;
             }
         };
     </script>

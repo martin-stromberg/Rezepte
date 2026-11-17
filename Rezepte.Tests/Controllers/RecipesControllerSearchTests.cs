@@ -25,7 +25,7 @@ public class RecipesControllerSearchTests
             ? new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, UserId) }, "TestAuth")
             : new ClaimsIdentity();
 
-        var controller = new RecipesController(recipes.Object, Options.Create(new ImageOptions()))
+        var controller = new RecipesController(recipes.Object, new Mock<IRecipeShareService>().Object, Options.Create(new ImageOptions()))
         {
             ControllerContext = new ControllerContext
             {

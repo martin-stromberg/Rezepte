@@ -177,4 +177,22 @@ public interface ISettingsService
     /// <param name="settings">The settings parameter.</param>
     /// <param name="ct">The ct parameter.</param>
     Task SetSecurityTxtSettingsAsync(SecurityTxtSettings settings, CancellationToken ct = default);
+
+    /// <summary>
+    /// The default number of days a newly created share link stays valid.
+    /// </summary>
+    const int DefaultShareLinkValidityDays = 30;
+
+    /// <summary>
+    /// Gets the share link validity days async.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    Task<int> GetShareLinkValidityDaysAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Sets the share link validity days async.
+    /// </summary>
+    /// <param name="days">The days parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    Task SetShareLinkValidityDaysAsync(int days, CancellationToken ct = default);
 }

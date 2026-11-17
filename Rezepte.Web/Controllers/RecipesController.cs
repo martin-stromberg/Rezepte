@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Rezepte.Web.Entities;
+using Rezepte.Web.Extensions;
 using Rezepte.Web.Services;
 using Rezepte.Web.Configuration;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace Rezepte.Web.Controllers;
@@ -16,14 +16,16 @@ namespace Rezepte.Web.Controllers;
 /// recipess the controller.
 /// </summary>
 /// <param name="recipes">The recipes parameter.</param>
+/// <param name="shareService">The share service parameter.</param>
 /// <param name="imageOptions">The image options parameter.</param>
 /// <returns>The result.</returns>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> imageOptions) : ApiControllerBase
+public class RecipesController(IRecipeService recipes, IRecipeShareService shareService, IOptions<ImageOptions> imageOptions) : ApiControllerBase
 {
     private readonly IRecipeService _recipes = recipes;
+    private readonly IRecipeShareService _shareService = shareService;
     private readonly ImageOptions _imageOptions = imageOptions.Value;
 
     /// <summary>
@@ -363,27 +365,7 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
 
         var contentType = string.IsNullOrWhiteSpace(image.ContentType) ? "image/jpeg" : image.ContentType;
 
-        // ETag via SHA256 über die Daten
-        string etag;
-        using (var sha = SHA256.Create())
-        {
-            var hash = sha.ComputeHash(image.Data);
-            etag = "\"" + Convert.ToBase64String(hash) + "\""; // quoted ETag
-        }
-
-        // If-None-Match prüfen
-        if (Request.Headers.TryGetValue("If-None-Match", out var inm) && inm.Any(h => h == etag))
-        {
-            Response.Headers["ETag"] = etag;
-            Response.Headers["Cache-Control"] = $"private, max-age={_imageOptions.CacheMaxAgeSeconds}";
-            return StatusCode(StatusCodes.Status304NotModified);
-        }
-
-        // Cache Header setzen
-        Response.Headers["Cache-Control"] = $"private, max-age={_imageOptions.CacheMaxAgeSeconds}";
-        Response.Headers["ETag"] = etag;
-
-        return File(image.Data, contentType, image.FileName);
+        return this.FileWithETag(image.Data, contentType, image.FileName, _imageOptions.CacheMaxAgeSeconds);
     }
 
     /// <summary>
@@ -545,6 +527,19 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
     /// <param name="Name">The name parameter.</param>
     /// <returns>The result.</returns>
     public record RecipeIngredientDto(string Id, decimal Amount, string? Unit, string Name);
+    /// <summary>
+    /// Creates the share link request.
+    /// </summary>
+    /// <param name="IncludeSideDishes">The include side dishes parameter.</param>
+    /// <returns>The result.</returns>
+    public record CreateShareLinkRequest(bool IncludeSideDishes);
+    /// <summary>
+    /// shares the link response.
+    /// </summary>
+    /// <param name="Token">The token parameter.</param>
+    /// <param name="ExpiresAt">The expires at parameter.</param>
+    /// <returns>The result.</returns>
+    public record ShareLinkResponse(string Token, DateTime ExpiresAt);
 
 
     /// <summary>
@@ -593,6 +588,25 @@ public class RecipesController(IRecipeService recipes, IOptions<ImageOptions> im
 
         var result = new RecipeSearchResponseDto(items, recipes.TotalCount);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Creates the share link.
+    /// </summary>
+    /// <param name="id">The id parameter.</param>
+    /// <param name="request">The request parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    [HttpPost("{id}/share")]
+    public async Task<IActionResult> CreateShareLink(string id, [FromBody] CreateShareLinkRequest request, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var link = await _shareService.CreateShareLinkAsync(userId, id, request.IncludeSideDishes, ct);
+        if (link is null) return NotFound();
+
+        return Ok(new ShareLinkResponse(link.Token, link.ExpiresAt));
     }
 
     // DTOs returned by this controller

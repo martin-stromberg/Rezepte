@@ -14,6 +14,7 @@
 - [Import-Plugins](import-plugins.md) — Plugin-Framework für Rezeptimporte, Pluginverwaltung und Nutzbarkeitsprüfung
 - [Ladeanimation — Konfiguration](loading-bar-configuration.md) — Einrichtung und Konfiguration der Navigations-Ladeanimation
 - [Navigation](navigation.md) — Struktur und Navigation der Anwendung
+- [Öffentliche Links](public-links.md) — Zeitlich begrenzte öffentliche Links zum Teilen einzelner Rezepte
 - [Programmupdates](application-updates.md) — Konfiguration automatischer Updates und Pre-Install-Backups
 - [Rezeptsuche](recipe-search.md) — Funktionen zur Suche und Filterung von Rezepten
 - [security.txt](security-txt/index.md) — Öffentliche RFC-9116-Auslieferung mit Admin-Konfiguration und serverseitiger Canonical-Ableitung je Format

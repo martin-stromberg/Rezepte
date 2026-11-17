@@ -93,7 +93,13 @@ Für jeden Import werden frische Handlerinstanzen aus den aktivierten Plugins er
 3. Weitere Plugins werden danach nicht mehr probiert.
 4. Wenn kein aktiviertes Plugin passt, endet der Import mit der Meldung `No suitable import plugin found for this file or URL.`
 
-Interaktive Importpfade, zum Beispiel KI-Importe mit Bestätigungsdialog, laufen weiterhin über den bestehenden Importdialog. Session-basierte Importabläufe sind an den authentifizierten Benutzer gebunden, der den Import gestartet hat. Status, Bestätigung, Abbruch und Zwischenauswahl können nur für eigene Sessions abgerufen oder gesteuert werden; fremde oder ungültige Session-IDs liefern keine Sessiondetails.
+Alle Import-Einstiege laufen über denselben Ausführungspfad: Egal ob der Import aus dem Rezept-Anlegen-Dialog, von der Kochbuch-Seite (Datei- oder URL-Import) oder über die synchronen API-Endpunkte `POST api/cookbooks/{id}/import` bzw. `POST api/cookbooks/{id}/import-url` (sowie die Varianten ohne Kochbuch) angestossen wird — die Ausführung erfolgt immer über den Import-Orchestrator. Die synchronen Endpunkte starten dabei intern eine Import-Session und warten auf deren Ergebnis; ihr Antwortverhalten bleibt dabei unverändert.
+
+Bei URL-Importen wird die Quell-URI auf dem importierten Rezept als `SourceUri` gespeichert. Ein erneuter Import derselben URL wird dadurch als Duplikat erkannt und aktualisiert das bestehende Rezept, statt ein zweites anzulegen.
+
+Benötigt ein Import eine Benutzerinteraktion — etwa die Auswahl einzelner Rezepte aus einer Sammlung oder eine Bestätigung durch ein interaktives Plugin — kann er über die synchronen Endpunkte nicht ausgeführt werden. Die Anfrage wird dann mit einer Fehlermeldung abgelehnt, die auf die interaktiven `import-session/*`-Endpunkte verweist; solche Importe sind über den bestehenden Importdialog zu starten.
+
+Session-basierte Importabläufe sind an den authentifizierten Benutzer gebunden, der den Import gestartet hat. Status, Bestätigung, Abbruch und Zwischenauswahl können nur für eigene Sessions abgerufen oder gesteuert werden; fremde oder ungültige Session-IDs liefern keine Sessiondetails.
 
 ## Aktueller Umsetzungsstand
 

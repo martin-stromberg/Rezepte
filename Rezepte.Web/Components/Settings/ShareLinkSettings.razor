@@ -1,0 +1,117 @@
+@using Rezepte.Web.Services
+@inject ApiClient Client
+@inject ILogger<Rezepte.Web.Components.Settings.ShareLinkSettings> Logger
+@inject IStringLocalizer<UiStrings> Localizer
+
+@if (isLoading)
+{
+    <div>@Localizer["Loading"]</div>
+}
+else if (!string.IsNullOrWhiteSpace(loadErrorMessage))
+{
+    <div class="alert alert-danger py-2">@loadErrorMessage</div>
+}
+else
+{
+    <section>
+        <h3 class="h6">@Localizer["PublicLinksSettings"]</h3>
+        <p class="text-muted small mb-3">
+            @Localizer["ShareLinkValidityDaysDescription"]
+        </p>
+
+        @if (!string.IsNullOrWhiteSpace(successMessage))
+        {
+            <div class="alert alert-success py-2">@successMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(saveErrorMessage))
+        {
+            <div class="alert alert-danger py-2">@saveErrorMessage</div>
+        }
+
+        <div class="mb-2">
+            <label class="form-label small" for="sharelink-validity-days">@Localizer["ShareLinkValidityDaysLabel"]</label>
+            <input id="sharelink-validity-days" class="form-control form-control-sm" type="number" min="1" @bind="validityDays" disabled="@isSaving" />
+        </div>
+
+        <button class="btn btn-primary btn-sm mt-2" @onclick="SaveAsync" disabled="@isSaving">@Localizer["Save"]</button>
+    </section>
+}
+
+@code {
+    private int validityDays = ISettingsService.DefaultShareLinkValidityDays;
+    private bool isLoading = true;
+    private bool isSaving;
+    private string? loadErrorMessage;
+    private string? saveErrorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        loadErrorMessage = null;
+        try
+        {
+            validityDays = await Client.GetAsync<int>("api/settings/global/sharelinkvalidity");
+        }
+        catch (HttpRequestException)
+        {
+            loadErrorMessage = Localizer["ShareLinkSettingsLoadFailed"];
+        }
+        catch (TaskCanceledException)
+        {
+            loadErrorMessage = Localizer["ShareLinkSettingsLoadTimeout"];
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Loading the share link settings failed");
+            loadErrorMessage = Localizer["UnexpectedError"];
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        isSaving = true;
+        successMessage = null;
+        saveErrorMessage = null;
+        try
+        {
+            var response = await Client.PutAsJsonAsync("api/settings/global/sharelinkvalidity", validityDays);
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = Localizer["ShareLinkValiditySaved"];
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                saveErrorMessage = $"{Localizer["ShareLinkValiditySaveFailed"]} {body}";
+            }
+        }
+        catch (HttpRequestException)
+        {
+            saveErrorMessage = Localizer["ShareLinkValiditySaveFailed"];
+        }
+        catch (TaskCanceledException)
+        {
+            saveErrorMessage = Localizer["ShareLinkSettingsSaveTimeout"];
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Saving the share link settings failed");
+            saveErrorMessage = Localizer["UnexpectedError"];
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}
