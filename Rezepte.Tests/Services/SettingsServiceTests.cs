@@ -598,5 +598,55 @@ public class SettingsServiceTests
 
         result.Should().BeFalse();
     }
+
+    /// <summary>
+    /// Get share link validity days async should return 30 by default when no setting exists.
+    /// </summary>
+    [Fact]
+    public async Task GetShareLinkValidityDaysAsync_ShouldReturn30ByDefault_WhenNoSettingExists()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
+
+        var result = await sut.GetShareLinkValidityDaysAsync(CancellationToken.None);
+
+        result.Should().Be(30);
+    }
+
+    /// <summary>
+    /// Set share link validity days async should persist value.
+    /// </summary>
+    [Fact]
+    public async Task SetShareLinkValidityDaysAsync_ShouldPersistValue()
+    {
+        using var db = CreateDb();
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
+
+        await sut.SetShareLinkValidityDaysAsync(14, CancellationToken.None);
+
+        var read = await sut.GetShareLinkValidityDaysAsync(CancellationToken.None);
+        read.Should().Be(14);
+        (await db.Set<AppSetting>().FindAsync("ShareLinkValidityDays"))!.Value.Should().Be("14");
+    }
+
+    /// <summary>
+    /// Get share link validity days async should return 30 when stored value is invalid.
+    /// </summary>
+    /// <param name="storedValue">The invalid stored setting value.</param>
+    [Theory]
+    [InlineData("not-a-number")]
+    [InlineData("0")]
+    [InlineData("-5")]
+    public async Task GetShareLinkValidityDaysAsync_ShouldReturn30_WhenStoredValueInvalid(string storedValue)
+    {
+        using var db = CreateDb();
+        db.Set<AppSetting>().Add(new AppSetting { Key = "ShareLinkValidityDays", Value = storedValue });
+        await db.SaveChangesAsync();
+        var sut = new SettingsService(db, new SecurityTxtSettingsService(db));
+
+        var result = await sut.GetShareLinkValidityDaysAsync(CancellationToken.None);
+
+        result.Should().Be(30);
+    }
 }
 

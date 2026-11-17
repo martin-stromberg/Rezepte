@@ -187,6 +187,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICookbookService, CookbookService>();
         services.AddScoped<IRecipeService, RecipeService>();
+        services.AddScoped<IRecipeShareService, RecipeShareService>();
         services.AddScoped<IExportService, ExportService>();
         services.AddScoped<IUpdateBackupService, UpdateBackupService>();
         services.AddScoped<IApplicationUpdateSettingsService, ApplicationUpdateSettingsService>();

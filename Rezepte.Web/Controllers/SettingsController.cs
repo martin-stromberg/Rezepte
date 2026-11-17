@@ -148,8 +148,9 @@ public class SettingsController : ApiControllerBase
         var globalMaxHourTask = _settings.GetGlobalMaxRequestsPerHourAsync(ct);
         var globalMaxDayTask = _settings.GetGlobalMaxRequestsPerDayAsync(ct);
         var globalDisableOnLimitTask = _settings.GetGlobalDisableOnLimitReachedAsync(ct);
+        var shareLinkValidityTask = _settings.GetShareLinkValidityDaysAsync(ct);
 
-        await Task.WhenAll(globalTask, globalGoogleTask, globalGeminiTask, globalMaxHourTask, globalMaxDayTask, globalDisableOnLimitTask);
+        await Task.WhenAll(globalTask, globalGoogleTask, globalGeminiTask, globalMaxHourTask, globalMaxDayTask, globalDisableOnLimitTask, shareLinkValidityTask);
 
         return Ok(new
         {
@@ -158,7 +159,8 @@ public class SettingsController : ApiControllerBase
             GlobalGeminiEnabled = globalGeminiTask.Result,
             GlobalMaxRequestsPerHour = globalMaxHourTask.Result,
             GlobalMaxRequestsPerDay = globalMaxDayTask.Result,
-            GlobalDisableOnLimitReached = globalDisableOnLimitTask.Result
+            GlobalDisableOnLimitReached = globalDisableOnLimitTask.Result,
+            ShareLinkValidityDays = shareLinkValidityTask.Result
         });
     }
 
@@ -293,6 +295,36 @@ public class SettingsController : ApiControllerBase
         }
 
         await _settings.SetSecurityTxtSettingsAsync(settings, ct);
+        return NoContent();
+    }
+
+    // Admin: GET share link validity days
+    /// <summary>
+    /// Gets the global share link validity.
+    /// </summary>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    [HttpGet("global/sharelinkvalidity")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetGlobalShareLinkValidity(CancellationToken ct)
+    {
+        var days = await _settings.GetShareLinkValidityDaysAsync(ct);
+        return Ok(days);
+    }
+
+    // Admin: PUT share link validity days
+    /// <summary>
+    /// Sets the global share link validity.
+    /// </summary>
+    /// <param name="days">The days parameter.</param>
+    /// <param name="ct">The ct parameter.</param>
+    /// <returns>The result.</returns>
+    [HttpPut("global/sharelinkvalidity")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SetGlobalShareLinkValidity([FromBody] int days, CancellationToken ct)
+    {
+        if (days <= 0) return BadRequest("Der Wert muss größer als 0 sein.");
+        await _settings.SetShareLinkValidityDaysAsync(days, ct);
         return NoContent();
     }
 }

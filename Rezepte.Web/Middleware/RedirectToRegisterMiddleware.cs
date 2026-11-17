@@ -89,6 +89,11 @@ public class RedirectToRegisterMiddleware
             path.Equals("/.well-known/security.html", StringComparison.OrdinalIgnoreCase))
             return true;
 
+        // Allow anonymous access to public shared-recipe links (segment-safe)
+        if (path.Equals("/share", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/share/", StringComparison.OrdinalIgnoreCase))
+            return true;
+
         // Exclude APIs and framework/static assets
         if (path.StartsWith("/api", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/_blazor", StringComparison.OrdinalIgnoreCase) ||
