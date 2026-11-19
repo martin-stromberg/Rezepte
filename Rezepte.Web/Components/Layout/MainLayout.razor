@@ -6,7 +6,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark app-navbar shadow-sm">
     <div class="container">
-        <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="/">
+        <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="">
             <img src="icons/rezepte_64x64.ico" alt="@Localizer["AppName"]" width="24" height="24" class="me-1" />
             <span>Rezepte</span>
         </a>
@@ -16,19 +16,19 @@
         <div class="collapse navbar-collapse" id="mainNavbar">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <NavLink class="nav-link d-flex align-items-center" href="/cookbooks" title="@Localizer["Cookbooks"]">
+                    <NavLink class="nav-link d-flex align-items-center" href="cookbooks" title="@Localizer["Cookbooks"]">
                         <span class="me-1">📚</span>
                         <span class="d-inline">Kochbücher</span>
                     </NavLink>
                 </li>
                 <li class="nav-item">
-                    <NavLink class="nav-link d-flex align-items-center" href="/calendar" title="@Localizer["Calendar"]">
+                    <NavLink class="nav-link d-flex align-items-center" href="calendar" title="@Localizer["Calendar"]">
                         <span class="me-1">📅</span>
                         <span class="d-inline">Kalender</span>
                     </NavLink>
                 </li>
                 <li class="nav-item">
-                    <NavLink class="nav-link d-flex align-items-center" href="/shopping-list" title="@Localizer["ShoppingList"]">
+                    <NavLink class="nav-link d-flex align-items-center" href="shopping-list" title="@Localizer["ShoppingList"]">
                         <span class="bi bi-cart-check me-1" aria-hidden="true"></span>
                         <span class="d-inline">Einkaufsliste</span>
                     </NavLink>
@@ -50,7 +50,7 @@
                             var roleName = context.User.IsInRole("Admin") ? "Admin" : "Benutzer";
                         }
                         <li class="nav-item">
-                            <NavLink class="nav-link nav-icon-link" href="/settings" title="@Localizer["Settings"]" aria-label="@Localizer["Settings"]">
+                            <NavLink class="nav-link nav-icon-link" href="settings" title="@Localizer["Settings"]" aria-label="@Localizer["Settings"]">
                                 <span class="bi bi-gear-fill" aria-hidden="true"></span>
                                 <span class="nav-mobile-label">Einrichtung</span>
                             </NavLink>
@@ -78,7 +78,7 @@
                     </Authorized>
                     <NotAuthorized>
                         <li class="nav-item">
-                            <NavLink class="nav-link" href="/login">Anmelden</NavLink>
+                            <NavLink class="nav-link" href="login">Anmelden</NavLink>
                         </li>
                     </NotAuthorized>
                 </AuthorizeView>
