@@ -79,6 +79,17 @@ jobs:
             exit 1
           fi
 
+      - name: Restore current CI tooling for asset repair
+        # The repair path above detaches HEAD to the old release tag's commit, which can
+        # predate CI-only infrastructure such as this composite action (e.g. v1.11.0, tagged
+        # 2026-08-15, predates .github/actions/build-and-package, added 2026-09-04 - see
+        # issue #201). The repair only needs to rebuild the APPLICATION at the tagged commit;
+        # the pipeline tooling that does the rebuilding should stay on today's version, so
+        # restore just this one path from the commit that triggered this run rather than the
+        # tagged commit.
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'upload-existing'
+        run: git checkout "${{ github.sha }}" -- .github/actions/build-and-package
+
       - name: Resolve release commit
         # The commit this release's assets should be built from: the triggering commit for a
         # "create" run, or the checked-out release tag's commit for an "upload-existing" repair
