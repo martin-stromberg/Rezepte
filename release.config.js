@@ -27,6 +27,9 @@ const releasePlugins = [
   [
     "@semantic-release/commit-analyzer",
     {
+      // The "conventionalcommits" preset only recognizes lowercase types (feat:, fix:, ...).
+      // "Fix: ..." or "Feat: ..." is NOT recognized and silently contributes no version bump
+      // (discovered 2026-11-19: a PR titled "Fix: ..." produced no release on staging).
       preset: "conventionalcommits"
     }
   ],
