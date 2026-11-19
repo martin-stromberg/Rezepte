@@ -3,10 +3,11 @@
 [![PR CI for Staging](https://img.shields.io/github/actions/workflow/status/martin-stromberg/Rezepte/pr-staging-ci.yml?label=PR%20CI%20for%20Staging)](https://github.com/martin-stromberg/Rezepte/actions)
 [![License](https://img.shields.io/github/license/martin-stromberg/Rezepte)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com)
+[![GitHub Page](https://img.shields.io/badge/GitHub%20Page-martin--stromberg.github.io%2FRezepte-5A1F1F?logo=github)](https://martin-stromberg.github.io/Rezepte/)
 
 Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbüchern, Rezepten, Bildern und geplanten Mahlzeiten. Das Projekt kombiniert eine Blazor-Server-Oberfläche mit JSON/API-Endpunkten, SQLite-Persistenz und optionalen KI-gestützten Importfunktionen.
 
-Einen Überblick mit Screenshots und Download-Links bietet die [GitHub Page des Projekts](https://martin-stromberg.github.io/Rezepte/).
+Einen Überblick mit Screenshots und Download-Links bietet die GitHub Page des Projekts.
 
 ## Funktionsumfang
 
