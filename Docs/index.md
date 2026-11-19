@@ -14,6 +14,7 @@ Diese Dokumentation ergänzt die [README](../README.md) mit detaillierten Inform
 - [Entwickler-Leitfaden](development-guide.md) — lokale Einrichtung von Google-Credentials.
 - [Anforderungskatalog und geplante Erweiterungen](Anforderungskatalog.md)
 - [Abhängigkeiten und Sicherheitsstrategie](dependencies.md)
+- [GitHub Page](github-pages.md) — Struktur, Workflow und Pflege der Präsentationsseite unter `martin-stromberg.github.io/Rezepte/`.
 - [Release-Notes](RELEASE_NOTES.md)
 
 ## Funktionsbereiche

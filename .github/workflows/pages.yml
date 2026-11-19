@@ -1,0 +1,90 @@
+name: Pages
+
+# Builds and validates the static presentation site (site/ sources assembled by
+# scripts/Build-Site.ps1) and deploys it to GitHub Pages.
+#
+# Trigger model matching the staging flow (see Docs/help/github-actions.md):
+#   - pull_request -> staging/main: build + validate only, PRs never deploy
+#   - push -> main:                 build + validate + deploy (same trigger as release.yml)
+#   - workflow_dispatch:            manual re-deploy, e.g. recovery after the one-time
+#                                 Pages activation in the repository settings
+#
+# Notes:
+#   - actions/configure-pages is intentionally not used: it calls the Pages REST API and
+#     would need the `pages` permission in the build job, where it would fail with 403 in
+#     PR runs (Pages is not enabled until a maintainer sets the source). Job-level
+#     permissions keep pages: write + id-token: write confined to the deploy job.
+#   - Pages actions follow their own release cadence; verified latest majors:
+#     upload-pages-artifact v5 (v5.0.0), deploy-pages v5 (v5.0.1).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'Docs/screenshots/**'
+      - 'Rezepte.Web/wwwroot/icons/**'
+      - 'scripts/Build-Site.ps1'
+      - 'scripts/check-site.mjs'
+      - '.github/workflows/pages.yml'
+  pull_request:
+    branches: [staging, main]
+    paths:
+      - 'site/**'
+      - 'Docs/screenshots/**'
+      - 'Rezepte.Web/wwwroot/icons/**'
+      - 'scripts/Build-Site.ps1'
+      - 'scripts/check-site.mjs'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Build site
+        shell: pwsh
+        run: ./scripts/Build-Site.ps1 -OutputDirectory artifacts/pages
+
+      - name: Validate site
+        run: node scripts/check-site.mjs artifacts/pages
+
+      - name: Upload Pages artifact
+        # Runs in PR builds too (no event filter): validates the artifact assembly early.
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: artifacts/pages
+
+  deploy:
+    # Never runs for pull requests; workflow_dispatch is restricted to main by ref_name.
+    if: github.event_name != 'pull_request' && github.ref_name == 'main'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

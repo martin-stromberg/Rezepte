@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rezepte – Kochbücher, Rezepte und Mahlzeiten verwalten</title>
+    <meta name="description" content="Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbüchern, Rezepten, Bildern und geplanten Mahlzeiten – mit Einkaufsliste, Kalender, öffentlichen Links und optionalen KI-Importen.">
+    <link rel="icon" href="assets/icons/rezepte_64x64.ico" sizes="64x64">
+    <link rel="icon" type="image/png" href="assets/icons/rezepte-180x180.png" sizes="180x180">
+    <link rel="apple-touch-icon" href="assets/icons/rezepte-180x180.png">
+    <script>
+        // Applies the stored theme before first paint to avoid a flash of the wrong palette.
+        (function () {
+            var stored = null;
+            try { stored = window.localStorage.getItem('theme'); } catch (e) { /* storage unavailable */ }
+            var theme = (stored === 'light' || stored === 'dark')
+                ? stored
+                : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <link rel="stylesheet" href="assets/css/site.css">
+    <script src="assets/js/theme.js" defer></script>
+    <script src="assets/js/demo.js" defer></script>
+    <noscript>
+        <!-- Without JavaScript the theme toggle cannot work; hide it so it does not
+             appear as a dead control. The prefers-color-scheme CSS fallback keeps
+             the correct light/dark rendering. -->
+        <style>.theme-toggle { display: none; }</style>
+    </noscript>
+</head>
+<body>
+    <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+
+    <header class="site-header">
+        <nav class="navbar container" aria-label="Hauptnavigation">
+            <a class="brand" href="#top">
+                <img src="assets/icons/rezepte-180x180.png" alt="" width="32" height="32">
+                <span>Rezepte</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#screenshots">Screenshots</a></li>
+                <li><a href="#download">Download</a></li>
+                <li><a href="#dokumentation">Dokumentation</a></li>
+                <li><a href="https://github.com/martin-stromberg/Rezepte">GitHub</a></li>
+            </ul>
+            <!-- The accessible name stays constant ("Dunkelmodus"); theme.js sets
+                 aria-pressed for the current state so name and state can never
+                 contradict each other. Until theme.js runs, the generic title
+                 avoids announcing a wrong next action. -->
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Dunkelmodus" title="Farbschema wechseln">
+                <span class="theme-toggle-icon" aria-hidden="true"></span>
+            </button>
+        </nav>
+    </header>
+
+    <main id="inhalt">
+        <section id="top" class="hero">
+            <div class="container hero-grid">
+                <div class="hero-text">
+                    <h1>Rezepte</h1>
+                    <p class="lead">
+                        Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbüchern,
+                        Rezepten, Bildern und geplanten Mahlzeiten – mit Einkaufsliste, Kalender
+                        und optionalen KI-gestützten Importfunktionen.
+                    </p>
+                    <p class="hero-actions">
+                        <a class="btn btn-primary" href="https://github.com/martin-stromberg/Rezepte/releases/latest">Zum Download</a>
+                        <a class="btn btn-outline" href="https://github.com/martin-stromberg/Rezepte">GitHub-Repository</a>
+                    </p>
+                </div>
+                <figure class="hero-figure">
+                    <!-- Optimized WebP variant (site/screenshots/home.webp, generated
+                         from Docs/screenshots/home.png) keeps the eager hero payload
+                         small; the PNG stays as fallback. -->
+                    <picture>
+                        <source srcset="screenshots/home.webp" type="image/webp">
+                        <img src="screenshots/home.png" alt="Startseite der Anwendung Rezepte mit Übersicht über Kochbücher und Rezepte" width="1280" height="900" loading="eager">
+                    </picture>
+                </figure>
+            </div>
+        </section>
+
+        <section id="features" class="section">
+            <div class="container">
+                <h2>Features</h2>
+                <p class="section-intro">Alles rund um die eigene Rezeptsammlung – vom Kochbuch bis zur Einkaufsliste.</p>
+                <div class="card-grid">
+                    <article class="card">
+                        <h3>Kochbücher &amp; Rezepte</h3>
+                        <p>Kochbücher mit Sortierung und Detailseiten; Rezepte mit Zutaten, Zubereitungsschritten, Bildern und Beilagen.</p>
+                    </article>
+                    <article class="card">
+                        <h3>Öffentliche Links</h3>
+                        <p>Einzelne Rezepte per zeitlich begrenztem Link teilen – anonyme Nur-Lesen-Ansicht ganz ohne Konto.</p>
+                    </article>
+                    <article class="card">
+                        <h3>Einkaufsliste &amp; Kalender</h3>
+                        <p>Mahlzeiten im Kalender planen, Rezepte suchen und die Einkaufsliste direkt aus den geplanten Gerichten füllen.</p>
+                    </article>
+                    <article class="card">
+                        <h3>Importe</h3>
+                        <p>Rezepte aus Backups, Dateien, URLs und unterstützten Webseiten importieren – inklusive interaktiver Import-Sessions.</p>
+                    </article>
+                    <article class="card">
+                        <h3>Plugin-Framework &amp; KI</h3>
+                        <p>Erweiterbares Plugin-Framework für Rezeptimporte mit optionalen KI-gestützten Importen aus URLs und Fotos.</p>
+                    </article>
+                    <article class="card">
+                        <h3>Export &amp; Updates</h3>
+                        <p>Export- und Sicherungsfunktionen für die eigene Sammlung sowie eingebaute Programmupdates.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="screenshots" class="section section-alt">
+            <div class="container">
+                <h2>Screenshots</h2>
+                <p class="section-intro">Ein Blick in die Anwendung – aufgenommen nach einer Erstregistrierung mit Demodaten.</p>
+                <figure class="demo-figure">
+                    <!-- The animated tour (screenshots/demo.gif, referenced via
+                         data-animated-src) never autoplays: the static preview
+                         (the optimized screenshots/home.webp) is the default and
+                         demo.js swaps in the GIF only on demand via the button.
+                         A plain <img> is required here — a <picture><source>
+                         would keep overriding the swapped-in GIF. Without
+                         JavaScript or with prefers-reduced-motion: reduce the
+                         button stays hidden, so no dead control appears and
+                         nothing ever animates. -->
+                    <img src="screenshots/home.webp" data-animated-src="screenshots/demo.gif" alt="Rundgang durch die Anwendung Rezepte" width="1280" height="900" loading="lazy">
+                    <figcaption class="demo-actions">
+                        <button id="demo-toggle" class="demo-toggle" type="button" hidden>Demo-Animation starten</button>
+                    </figcaption>
+                </figure>
+                <!-- Every gallery screenshot ships an optimized WebP variant
+                     under site/screenshots/ (generated from the PNGs in
+                     Docs/screenshots/ with Pillow, quality=82); each <picture>
+                     keeps the PNG as fallback. -->
+                <div class="gallery">
+                    <figure class="card">
+                        <picture>
+                            <source srcset="screenshots/recipes.webp" type="image/webp">
+                            <img src="screenshots/recipes.png" alt="Rezeptliste mit Kacheln und Rezeptbildern" width="1280" height="900" loading="lazy">
+                        </picture>
+                        <figcaption>Rezeptübersicht</figcaption>
+                    </figure>
+                    <figure class="card">
+                        <picture>
+                            <source srcset="screenshots/recipe-detail.webp" type="image/webp">
+                            <img src="screenshots/recipe-detail.png" alt="Detailansicht eines Rezepts mit Zutaten und Zubereitungsschritten" width="1280" height="939" loading="lazy">
+                        </picture>
+                        <figcaption>Rezeptdetails</figcaption>
+                    </figure>
+                    <figure class="card">
+                        <picture>
+                            <source srcset="screenshots/cookbooks.webp" type="image/webp">
+                            <img src="screenshots/cookbooks.png" alt="Übersicht der angelegten Kochbücher" width="1280" height="900" loading="lazy">
+                        </picture>
+                        <figcaption>Kochbücher</figcaption>
+                    </figure>
+                    <figure class="card">
+                        <picture>
+                            <source srcset="screenshots/calendar.webp" type="image/webp">
+                            <img src="screenshots/calendar.png" alt="Kalenderansicht mit geplanten Mahlzeiten" width="1280" height="900" loading="lazy">
+                        </picture>
+                        <figcaption>Kalender</figcaption>
+                    </figure>
+                    <figure class="card">
+                        <picture>
+                            <source srcset="screenshots/shopping-list.webp" type="image/webp">
+                            <img src="screenshots/shopping-list.png" alt="Einkaufsliste mit Einträgen aus geplanten Rezepten" width="1280" height="900" loading="lazy">
+                        </picture>
+                        <figcaption>Einkaufsliste</figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
+        <section id="download" class="section">
+            <div class="container">
+                <h2>Download</h2>
+                <p>
+                    Die aktuellen Releases stehen auf GitHub bereit. Jedes Release enthält fertige Pakete
+                    für Windows (<code>release-win-x64.zip</code>) und Linux (<code>release-linux-x64.zip</code>).
+                </p>
+                <p class="hero-actions">
+                    <a class="btn btn-primary" href="https://github.com/martin-stromberg/Rezepte/releases/latest">Neuestes Release</a>
+                    <a class="btn btn-outline" href="https://github.com/martin-stromberg/Rezepte/releases">Alle Releases</a>
+                </p>
+                <p>
+                    Zur Einrichtung siehe die
+                    <a href="https://github.com/martin-stromberg/Rezepte/blob/main/Docs/install.md">Installationsanleitung</a>.
+                </p>
+            </div>
+        </section>
+
+        <section id="dokumentation" class="section section-alt">
+            <div class="container">
+                <h2>Dokumentation</h2>
+                <p class="section-intro">Ausführliche Informationen zu Funktionen, Installation und Betrieb:</p>
+                <ul class="doc-links">
+                    <li><a href="https://github.com/martin-stromberg/Rezepte/blob/main/Docs/features.md">Funktionsumfang</a> – vollständige Übersicht der unterstützten Features</li>
+                    <li><a href="https://github.com/martin-stromberg/Rezepte/blob/main/Docs/install.md">Installationsanleitung</a> – Schritt für Schritt zum eigenen Server</li>
+                    <li><a href="https://github.com/martin-stromberg/Rezepte/blob/main/Docs/index.md">Dokumentationsübersicht</a> – alle Dokumente im Repository</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <p>Rezepte – Open Source unter der <a href="https://github.com/martin-stromberg/Rezepte/blob/main/LICENSE">MIT-Lizenz</a>.</p>
+            <p><a href="https://github.com/martin-stromberg/Rezepte">github.com/martin-stromberg/Rezepte</a></p>
+        </div>
+    </footer>
+</body>
+</html>
