@@ -7,6 +7,7 @@
 
 ## What's New
 
+- The project now ships a GitHub Pages presentation site at `https://martin-stromberg.github.io/Rezepte/` (maintained from `site/`, deployed via the `pages.yml` workflow) with a responsive light/dark design, feature overview, screenshots, download links and documentation references.
 - Recipe owners can create a time-limited public link for a recipe from a share dialog on the recipe page and copy it to the clipboard; a checkbox optionally includes the recipe's linked side dishes.
 - Opening a public link (`/share/<token>`) shows a read-only view of the recipe without an account — no app navigation, editing, shopping list, scheduling or favourites; only the recipe's original source page remains linked. Unknown or expired links show a generic error message.
 - Administrators configure the validity period of public links (default 30 days) under “Öffentliche Links” in the settings area; changes apply only to newly created links.
@@ -27,6 +28,7 @@
 
 ## Neuerungen
 
+- Das Projekt bringt nun eine GitHub-Page-Präsentationsseite unter `https://martin-stromberg.github.io/Rezepte/` mit (gepflegt aus `site/`, Deployment über den Workflow `pages.yml`) – responsiv, mit heller und dunkler Darstellung, Feature-Übersicht, Screenshots, Download-Links und Dokumentationsverweisen.
 - Besitzer eines Rezepts können über einen Teilen-Dialog auf der Rezeptseite einen zeitlich begrenzten öffentlichen Link erzeugen und in die Zwischenablage kopieren; ein Haken gibt optional die verlinkten Beilagen des Rezepts mit frei.
 - Der Aufruf eines öffentlichen Links (`/share/<token>`) zeigt ohne Benutzerkonto eine reine Leseansicht des Rezepts — ohne App-Navigation, Bearbeiten, Einkaufsliste, Terminplanung oder Favoriten; verlinkt bleibt nur die Originalquelle des Rezepts. Unbekannte oder abgelaufene Links zeigen eine generische Fehlermeldung.
 - Die Gültigkeitsdauer öffentlicher Links (Standard 30 Tage) stellen Administratoren im Einstellungsbereich unter „Öffentliche Links“ ein; die Änderung wirkt nur auf neu erzeugte Links.

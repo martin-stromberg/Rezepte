@@ -6,6 +6,8 @@
 
 Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbüchern, Rezepten, Bildern und geplanten Mahlzeiten. Das Projekt kombiniert eine Blazor-Server-Oberfläche mit JSON/API-Endpunkten, SQLite-Persistenz und optionalen KI-gestützten Importfunktionen.
 
+Einen Überblick mit Screenshots und Download-Links bietet die [GitHub Page des Projekts](https://martin-stromberg.github.io/Rezepte/).
+
 ## Funktionsumfang
 
 - Benutzerregistrierung, Login und Logout mit Cookie-Authentifizierung.
@@ -74,6 +76,8 @@ Bei einem framework-abhängigen Publish (`--self-contained false`) müssen auf d
 
 ## Weitere Informationen
 
+- [GitHub Page (Projekt-Präsentation)](https://martin-stromberg.github.io/Rezepte/)
+- [GitHub Page — Pflege und Deployment](Docs/github-pages.md)
 - [Projektübersicht und Funktionsumfang](Docs/features.md)
 - [Projektstruktur](Docs/project-structure.md)
 - [Konfiguration](Docs/configuration.md)
