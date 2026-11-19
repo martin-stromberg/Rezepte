@@ -48,7 +48,7 @@ Nach einem erfolgreichen Lauf startet `.github/workflows/staging-to-main-promoti
 
 ## Quellenprüfung für main
 
-Der Workflow `.github/workflows/verify-pr-source.yml` verhindert, dass Pull Requests von anderen Branches als `staging` nach `main` geöffnet werden. PRs aus `main` selbst (Rücksync) laufen gegen `staging` und werden durch `pr.yml` abgedeckt.
+Der Workflow `.github/workflows/verify-pr-source.yml` verhindert, dass Pull Requests von anderen Branches als `staging` nach `main` geöffnet werden. PRs aus `main` selbst (Rücksync) laufen gegen `staging` und werden durch `pr-staging-ci.yml` abgedeckt.
 
 ## Synchronisation staging mit main
 
@@ -56,7 +56,7 @@ Der Workflow `.github/workflows/sync-staging-with-main.yml` startet nach jedem P
 
 ## Release-Build
 
-Der Workflow `.github/workflows/release.yml` startet, wenn ein Pull Request gegen `main` geschlossen und tatsaechlich gemergt wurde. Geschlossene, nicht gemergte Pull Requests loesen keinen Release-Build aus.
+Der Workflow `.github/workflows/release.yml` startet bei jedem Push auf `main` sowie bei gepushten Tags im Muster `v*.*.*`. Da nur PRs aus `staging` nach `main` gelangen, entspricht ein Push auf `main` faktisch dem Merge des Promotion-PRs. `scripts/resolve-release-version.mjs` klassifiziert den Lauf anschließend als automatisches Release (Branch-Push), manuelles Release (Tag-Push) oder Asset-Reparatur.
 
 Der Release-Job checkt den Merge-Commit aus, baut die Anwendung sowie beide Testprojekte, fuehrt Tests aus, publisht `Rezepte.Web` framework-abhängig für `net10.0` und `linux-x64` und erstellt daraus `release.zip`. Zusätzlich erzeugt `scripts/Export-ImportContract.ps1` ein separates Import-Contract-ZIP mit `contract-export.json`, Dateihashes, ZIP-SHA-256-Metadaten und ApiCompat-Baseline-DLLs. Web-ZIP und Contract-ZIP werden als getrennte GitHub-Actions-Artefakte hochgeladen.
 
@@ -82,3 +82,19 @@ Die Versionierung basiert auf Git-Tags im Format `vMAJOR.MINOR.PATCH`.
 - Andere Commit-Typen erzeugen keinen neuen SemVer-Tag.
 
 Bei einer neuen SemVer-Version erstellt der Workflow zusätzlich einen GitHub Release mit `release.zip`, dem Import-Contract-ZIP und `contract-export.metadata.json` als Assets. Für nicht SemVer-relevante Merges werden trotzdem Actions-Artefakte mit Version und Merge-Commit im Namen abgelegt.
+
+## GitHub Pages
+
+Der Workflow `.github/workflows/pages.yml` baut die statische Präsentationsseite (Quellen unter `site/`, assembliert durch `scripts/Build-Site.ps1` nach `artifacts/pages`) und liefert sie über GitHub Pages unter `https://martin-stromberg.github.io/Rezepte/` aus.
+
+| Trigger | Verhalten |
+|---|---|
+| `pull_request` -> `staging`/`main` | Job `build` (Assemblieren + `check-site.mjs`-Validierung + `upload-pages-artifact`). Kein Deploy – PRs deployen nie. |
+| `push` -> `main` | `build` + `deploy` (deckungsgleich mit `release.yml`; die Seite folgt dem Release-Stand). |
+| `workflow_dispatch` | Manuelles Re-Deploy auf `main`, u. a. als Recovery nach der Pages-Aktivierung. |
+
+Ein `paths`-Filter auf `site/**`, `Docs/screenshots/**`, `Rezepte.Web/wwwroot/icons/**`, die beiden Skripte und die Workflow-Datei verhindert Laeufe bei seitenfremden Aenderungen.
+
+Permissions sind gestaffelt: Top-Level `contents: read`; nur der `deploy`-Job deklariert `contents: read`, `pages: write` und `id-token: write` und läuft im Environment `github-pages`. `actions/configure-pages` wird bewusst nicht verwendet – die Action bräuchte die `pages`-Permission bereits im Build-Job und würde in PR-Läufen mit 403 scheitern, solange Pages nicht aktiviert ist.
+
+**Einmalige Voraussetzung (Maintainer-Schritt):** In den Repository-Einstellungen muss unter Settings -> Pages -> Build and deployment die Source auf "GitHub Actions" stehen. War das beim ersten Lauf auf `main` noch nicht geschehen, schlägt `deploy-pages` mit "Pages site not found" fehl; Recovery = Settings-Schritt nachholen und den Workflow per `workflow_dispatch` erneut starten. Details und Pflegeprozess: [GitHub Page](../github-pages.md).
