@@ -66,6 +66,18 @@ Log.Information("Application starting. Version: {Version}", ApplicationVersion.C
 // Apply migrations / ensure database (extension handles logging/errors)
 await app.ApplyDatabaseMigrationsAsync();
 
+// Optional PathBase support for deployments that put this application behind a reverse
+// proxy under a URL sub-path (e.g. https://example.com/rezepte/) instead of its own
+// domain/subdomain root. Configured via the "PathBase" configuration key; defaults to
+// unset, which is a no-op and keeps the existing domain-root deployment unchanged.
+// Registered first so that routing/endpoint matching further down the pipeline already
+// sees the stripped path.
+var pathBase = app.Configuration["PathBase"];
+if (!string.IsNullOrWhiteSpace(pathBase))
+{
+    app.UsePathBase(pathBase);
+}
+
 // Error handling
 if (app.Environment.IsDevelopment())
 {
