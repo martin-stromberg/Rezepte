@@ -174,14 +174,14 @@ public class RecipeShareService : IRecipeShareService
                         .OrderByDescending(i => i.CreatedAt)
                         .Select(i => ImageUrl(link.Token, i.Id))
                         .FirstOrDefault(),
-                    $"/share/{link.Token}/sidedish/{sd.SideDishRecipeId}"))
+                    $"share/{link.Token}/sidedish/{sd.SideDishRecipeId}"))
                 .ToList()
             : new List<SharedSideDishView>();
 
         return new SharedRecipeView(recipe.Title, recipe.Description, recipe.Portions, recipe.Uri, imageUrls, steps, sideDishes);
     }
 
-    private static string ImageUrl(string token, string imageId) => $"/api/share/{token}/image/{imageId}";
+    private static string ImageUrl(string token, string imageId) => $"api/share/{token}/image/{imageId}";
 
     private static string GenerateToken()
     {

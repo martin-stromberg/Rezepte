@@ -240,7 +240,7 @@ else
 
     private void CreateRecipe()
     {
-        Nav.NavigateTo($"/recipes/new?cookbookId={Id}");
+        Nav.NavigateTo($"recipes/new?cookbookId={Id}");
     }
 
     private void OpenAddExistingDialog()
@@ -401,7 +401,7 @@ else
         else
         {
             // navigate normally
-            Nav.NavigateTo($"/recipes/{recipeId}");
+            Nav.NavigateTo($"recipes/{recipeId}");
         }
     }
 

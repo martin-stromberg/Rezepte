@@ -93,7 +93,7 @@ else
         {
             var res = await Api.Http.DeleteAsync($"api/cookbooks/{book.Id}");
             if (!res.IsSuccessStatusCode) { isError = true; message = "Löschen fehlgeschlagen."; return; }
-            Nav.NavigateTo("/cookbooks");
+            Nav.NavigateTo("cookbooks");
         }
         catch { isError = true; message = "Löschen fehlgeschlagen."; }
         finally { isBusy = false; }
