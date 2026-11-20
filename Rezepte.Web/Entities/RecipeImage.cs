@@ -38,5 +38,5 @@ public class RecipeImage
     /// <summary>
     /// Represents the public class.
     /// </summary>
-    public string Url => $"/api/recipes/{RecipeId}/image/{Id}";
+    public string Url => $"api/recipes/{RecipeId}/image/{Id}";
 }
