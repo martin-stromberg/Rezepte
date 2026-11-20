@@ -51,7 +51,7 @@ public class RedirectToRegisterMiddleware
         {
             if (!path.Equals("/register", StringComparison.OrdinalIgnoreCase))
             {
-                context.Response.Redirect("/register");
+                context.Response.Redirect(context.Request.PathBase + "/register");
                 return Task.FromResult(true);
             }
         }
@@ -68,7 +68,7 @@ public class RedirectToRegisterMiddleware
         if (!isAuthenticated && !path.Equals("/login", StringComparison.OrdinalIgnoreCase))
         {
             // Direkter Zugriff auf /register ist nicht erlaubt, wenn Benutzer existieren
-            context.Response.Redirect("/login");
+            context.Response.Redirect(context.Request.PathBase + "/login");
             return Task.FromResult(true);
         }
         return Task.FromResult(false);

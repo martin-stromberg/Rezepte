@@ -6,6 +6,7 @@ using Rezepte.Web.ViewModels;
 using Rezepte.Web;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Extensions;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using msTools.Updater;
@@ -77,6 +78,19 @@ if (!string.IsNullOrWhiteSpace(pathBase))
 {
     app.UsePathBase(pathBase);
 }
+
+// Reads X-Forwarded-Proto/-For from the reverse proxy so Request.Scheme/RemoteIp reflect
+// the real client instead of the proxy's own loopback connection. Trust is limited to
+// loopback: the reverse proxy runs on the same host, and this application's port is also
+// reachable directly (not only through the proxy), so trusting more than loopback here
+// would let anyone with direct network access to this port spoof these headers.
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
+};
+forwardedHeadersOptions.KnownProxies.Add(System.Net.IPAddress.Loopback);
+forwardedHeadersOptions.KnownProxies.Add(System.Net.IPAddress.IPv6Loopback);
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Error handling
 if (app.Environment.IsDevelopment())

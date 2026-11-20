@@ -195,7 +195,7 @@ else
 
         try
         {
-            var resp = await Client.Http.GetFromJsonAsync<ApiCalendarResponse>($"/api/calendar?from={fromUtc:o}&to={toUtc:o}");
+            var resp = await Client.Http.GetFromJsonAsync<ApiCalendarResponse>($"api/calendar?from={fromUtc:o}&to={toUtc:o}");
             if (resp?.items != null)
             {
                 foreach (var it in resp.items)
@@ -225,7 +225,7 @@ else
         {
             try
             {
-                var dto = await Client.Http.GetFromJsonAsync<RecipePreviewDto>($"/api/recipes/{rid}");
+                var dto = await Client.Http.GetFromJsonAsync<RecipePreviewDto>($"api/recipes/{rid}");
                 if (dto != null) recipePreviews[rid] = dto;
             }
             catch (Exception ex)
@@ -296,7 +296,7 @@ else
 
     private async Task Delete(string eventId)
     {
-        await Client.Http.DeleteAsync($"/api/calendar/{eventId}");
+        await Client.Http.DeleteAsync($"api/calendar/{eventId}");
         await LoadMonthAsync(currentMonthStart);
     }
 

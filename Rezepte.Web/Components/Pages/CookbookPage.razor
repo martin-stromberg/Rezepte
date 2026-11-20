@@ -15,7 +15,7 @@
 <h5 class="mb-3 d-flex align-items-center justify-content-between">
     <span>@(book?.Name ?? "Kochbuch")</span>
     <div class="btn-group">
-        <a class="btn btn-sm btn-outline-secondary" href="/cookbooks/@Id/edit" title="@Localizer["Edit"]">✏️</a>
+        <a class="btn btn-sm btn-outline-secondary" href="cookbooks/@Id/edit" title="@Localizer["Edit"]">✏️</a>
 
         <button type="button" class="btn btn-sm btn-primary" @onclick="OpenCreateDialog" title="@Localizer["AddRecipe"]">
             ＋
@@ -240,7 +240,7 @@ else
 
     private void CreateRecipe()
     {
-        Nav.NavigateTo($"/recipes/new?cookbookId={Id}");
+        Nav.NavigateTo($"recipes/new?cookbookId={Id}");
     }
 
     private void OpenAddExistingDialog()
@@ -401,7 +401,7 @@ else
         else
         {
             // navigate normally
-            Nav.NavigateTo($"/recipes/{recipeId}");
+            Nav.NavigateTo($"recipes/{recipeId}");
         }
     }
 

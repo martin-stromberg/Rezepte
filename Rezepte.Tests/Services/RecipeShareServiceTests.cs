@@ -139,7 +139,7 @@ public class RecipeShareServiceTests
         view.Steps.Should().ContainSingle();
         view.Steps[0].Ingredients.Should().ContainSingle(i => i.Name == "Mehl");
         view.ImageUrls.Should().ContainSingle()
-            .Which.Should().Be($"/api/share/{link.Token}/image/{recipe.Images.Single().Id}");
+            .Which.Should().Be($"api/share/{link.Token}/image/{recipe.Images.Single().Id}");
     }
 
     /// <summary>
@@ -218,8 +218,8 @@ public class RecipeShareServiceTests
         var entry = view.SideDishes[0];
         entry.RecipeId.Should().Be(sideDish.Id);
         entry.Title.Should().Be("Beilage");
-        entry.Url.Should().Be($"/share/{link.Token}/sidedish/{sideDish.Id}");
-        entry.ImageUrl.Should().Be($"/api/share/{link.Token}/image/{sideDish.Images.Single().Id}");
+        entry.Url.Should().Be($"share/{link.Token}/sidedish/{sideDish.Id}");
+        entry.ImageUrl.Should().Be($"api/share/{link.Token}/image/{sideDish.Images.Single().Id}");
     }
 
     /// <summary>
