@@ -226,7 +226,7 @@ else
     {
         if (newPage < 1) newPage = 1;
         if (newPage > TotalPages) newPage = TotalPages;
-        Nav.NavigateTo($"/recipes/search?q={Uri.EscapeDataString(q ?? string.Empty)}&page={newPage}&pageSize={CurrentPageSize}");
+        Nav.NavigateTo($"recipes/search?q={Uri.EscapeDataString(q ?? string.Empty)}&page={newPage}&pageSize={CurrentPageSize}");
     }
 
     // view model used by the page (mapped from the service result)

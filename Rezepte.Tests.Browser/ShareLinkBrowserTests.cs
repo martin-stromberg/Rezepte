@@ -188,7 +188,7 @@ public class ShareLinkBrowserTests
         await using var anonymousPage = await pageObject.OpenAnonymousPageAsync($"/share/{token}");
         try
         {
-            var image = anonymousPage.Locator("img[src*='/api/share/']").First;
+            var image = anonymousPage.Locator("img[src*='api/share/']").First;
             await image.WaitForAsync(new LocatorWaitForOptions { Timeout = 10000 });
             (await image.EvaluateAsync<int>("img => img.naturalWidth")).Should().BeGreaterThan(0);
         }

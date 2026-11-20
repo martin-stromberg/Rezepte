@@ -120,7 +120,7 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
         // Genuinely bypassing it would require re-verifying loading-bar timing against a live
         // browser run, which is out of scope for this CI migration.
 #pragma warning disable CS0612
-        await Page.ClickAsync($"a[href='{href}']", new PageClickOptions { NoWaitAfter = true });
+        await Page.ClickAsync($"a[href='{href.TrimStart('/')}']", new PageClickOptions { NoWaitAfter = true });
 #pragma warning restore CS0612
     }
 

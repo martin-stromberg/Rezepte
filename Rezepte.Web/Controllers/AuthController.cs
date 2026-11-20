@@ -89,7 +89,7 @@ public class AuthController(IUserService userService) : ControllerBase
         // When form post: redirect to login instead of returning JSON
         if (Request.HasFormContentType)
         {
-            return LocalRedirect("/login");
+            return LocalRedirect(Request.PathBase + "/login");
         }
 
         return Ok(new AuthResponse(user.Id, user.Username, user.Email));
@@ -105,6 +105,6 @@ public class AuthController(IUserService userService) : ControllerBase
 
     private LocalRedirectResult RedirectToRegisterError(string message)
     {
-        return LocalRedirect($"/register?error={Uri.EscapeDataString(message)}");
+        return LocalRedirect($"{Request.PathBase}/register?error={Uri.EscapeDataString(message)}");
     }
 }
