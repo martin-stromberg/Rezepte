@@ -195,8 +195,8 @@ else
 
     private bool IsNew => string.IsNullOrWhiteSpace(Id);
     private string CancelHref => IsNew
-        ? (!string.IsNullOrWhiteSpace(CookbookId) ? $"/cookbooks/{CookbookId}" : "/cookbooks")
-        : $"/recipes/{Id}";
+        ? (!string.IsNullOrWhiteSpace(CookbookId) ? $"cookbooks/{CookbookId}" : "cookbooks")
+        : $"recipes/{Id}";
 
     private bool isLoading = true;
     private bool isBusy;

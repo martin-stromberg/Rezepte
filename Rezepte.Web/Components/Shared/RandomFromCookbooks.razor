@@ -53,7 +53,7 @@ else if (!isLoading && items is not null && items.Count > 0)
                 }
                 else
                 {
-                    <a class="recipe-card small-card" href="@($"/recipes/{it.Recipe.Id}")" title="@it.Recipe.Title">
+                    <a class="recipe-card small-card" href="@($"recipes/{it.Recipe.Id}")" title="@it.Recipe.Title">
                         @if (!string.IsNullOrWhiteSpace(it.Recipe.ImageUrl))
                         {
                             <img src="@it.Recipe.ImageUrl" alt="@($"{Localizer["ImageFor"]} {it.Recipe.Title}")" />

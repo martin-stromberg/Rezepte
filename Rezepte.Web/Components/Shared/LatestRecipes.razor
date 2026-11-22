@@ -28,7 +28,7 @@
         <div class="recipe-grid">
             @foreach (var recipe in recipes)
             {
-                <a class="recipe-card" href="@($"/recipes/{recipe.Id}")" title="@recipe.Title">
+                <a class="recipe-card" href="@($"recipes/{recipe.Id}")" title="@recipe.Title">
                     @if (!string.IsNullOrWhiteSpace(recipe.ImageUrl))
                     {
                         <img src="@recipe.ImageUrl" alt="@($"{Localizer["ImageFor"]} {recipe.Title}")" />
