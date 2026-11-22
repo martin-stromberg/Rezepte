@@ -1,0 +1,7 @@
+root = true
+
+# Line endings are normalized to LF via .gitattributes (eol=lf); pin the same
+# here so `dotnet format` produces/verifies LF on every platform (Windows
+# would otherwise default to CRLF and fail verification on LF checkouts).
+[*]
+end_of_line = lf
