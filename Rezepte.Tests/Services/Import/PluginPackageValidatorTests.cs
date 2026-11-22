@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Rezepte.Tests.TestHelpers;
 using Rezepte.Web.Services.Import.Plugins;
 using System.IO.Compression;
 using Xunit;
@@ -73,10 +74,7 @@ public sealed class PluginPackageValidatorTests
 
         public void Dispose()
         {
-            if (Directory.Exists(Root))
-            {
-                Directory.Delete(Root, recursive: true);
-            }
+            TempDirectoryCleanup.DeleteBestEffort(Root);
         }
     }
 }

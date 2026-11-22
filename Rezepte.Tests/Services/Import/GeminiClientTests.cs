@@ -41,7 +41,7 @@ public class GeminiClientTests
         }
         finally
         {
-            File.Delete(serviceAccountPath);
+            TempDirectoryCleanup.DeleteFileBestEffort(serviceAccountPath);
         }
     }
 
@@ -87,7 +87,7 @@ public class GeminiClientTests
         }
         finally
         {
-            File.Delete(serviceAccountPath);
+            TempDirectoryCleanup.DeleteFileBestEffort(serviceAccountPath);
         }
     }
 

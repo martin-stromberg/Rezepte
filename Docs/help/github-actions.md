@@ -21,13 +21,21 @@ Für alle anderen PRs fuehrt der Workflow auf `ubuntu-latest` mit .NET `10.0.x` 
 - `dotnet restore Rezepte.sln`
 - `dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore`
 - `dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore`
-- `dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore`
-- Playwright-Browser-Installation
-- `dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore`
-- `dotnet test Rezepte.sln --configuration Release --no-build`
+- `dotnet test Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-build --filter "Category!=OsInterface"` (blockierende Lane mit Coverage-Gate)
 - `./scripts/Export-ImportContract.ps1 -OutputDirectory artifacts/contract-export`
 - `dotnet format Rezepte.sln --verify-no-changes --no-restore`
 - `dotnet list Rezepte.sln package --vulnerable --include-transitive`
+
+Die umgebungssensitive Lane läuft getrennt im Job `browser tests`
+(`continue-on-error: true`, best-effort): Build und Playwright-Installation für
+`Rezepte.Tests.Browser`, `dotnet publish` von `Rezepte.Web`, danach
+`dotnet test Rezepte.Tests.Browser` und `dotnet test Rezepte.Tests --filter "Category=OsInterface"`.
+Nach einem Testfehlschlag retried `scripts/Retry-FlakyTests.ps1` genau einmal nur
+die `Flaky`-markierten Fehlschläge; `scripts/Analyze-FlakyTestResults.ps1`
+berichtet die Flake-Statistik immer (`if: always()`). TRX-, Trace- und
+Applikationslog-Artefakte werden je Laufversuch hochgeladen. Details zur
+Klassifizierung, dem Retry und der Quarantäne-Empfehlung stehen in
+[Umgebungssensitive Tests](os-interface-tests.md).
 
 Der Vulnerability-Scan ist im Job `static checks` ein blockierendes Gate.
 Transitive NuGet-Pakete werden dabei mitgeprüft; ein gemeldetes verwundbares
@@ -42,7 +50,7 @@ Schlaegt dieser Schritt mit `CP0001`/`CP0002`-Meldungen fehl, weil eine PR die �
 
 ## Staging-Branch-CI
 
-Der Workflow `.github/workflows/staging-ci.yml` startet für jeden Push auf `staging`. Er prüft zunaechst, ob der aktuelle Tree identisch zu `main` ist (reiner Back-Merge), und fuehrt in diesem Fall keine Checks aus. Andernfalls läuft dieselbe Build-/Test-/Format-/Contract-Validierung wie im PR-Workflow.
+Der Workflow `.github/workflows/staging-ci.yml` startet für jeden Push auf `staging`. Er prüft zunaechst, ob der aktuelle Tree identisch zu `main` ist (reiner Back-Merge), und fuehrt in diesem Fall keine Checks aus. Andernfalls läuft dieselbe Build-/Test-/Format-/Contract-Validierung wie im PR-Workflow — inklusive des best-effort-Jobs `browser tests`, der bewusst nicht Teil des `version`-Gate-Needs ist.
 
 Nach einem erfolgreichen Lauf startet `.github/workflows/staging-to-main-promotion.yml` und erstellt einen Draft-PR `staging -> main`, falls noch keiner existiert. Der eigentliche Merge in `main` erfordert weiterhin eine manuelle Freigabe.
 

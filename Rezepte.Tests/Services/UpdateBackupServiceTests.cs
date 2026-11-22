@@ -4,6 +4,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Rezepte.Tests.TestHelpers;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Services;
 using Xunit;
@@ -171,10 +172,7 @@ public sealed class UpdateBackupServiceTests : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (Directory.Exists(_contentRoot))
-        {
-            Directory.Delete(_contentRoot, recursive: true);
-        }
+        TempDirectoryCleanup.DeleteBestEffort(_contentRoot);
     }
 
     private sealed class RecordingExportService(byte[] payload) : IExportService

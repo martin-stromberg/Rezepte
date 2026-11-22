@@ -90,6 +90,7 @@ StyleCopReport.xml
 *.tmp_proj
 *_wpftmp.csproj
 *.log
+!changes.log
 *.tlog
 *.vspscc
 *.vssscc
@@ -415,3 +416,9 @@ Rezepte.Web/google.gemini.api-key.json
 
 # Runtime plugin install state managed by PluginDirectoryRegistry
 /Rezepte.Web/plugins/
+
+# Playwright traces written deterministically at the repository root by the browser tests
+/playwright-traces/
+
+# Per-attempt child-process logs written by RezepteAppFixture (uploaded as CI artifacts)
+/browser-app-logs/

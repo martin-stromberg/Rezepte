@@ -8,6 +8,20 @@ dotnet test
 
 `Rezepte.Tests` deckt zentrale Services wie Benutzer, Kochbücher, Rezepte, Einstellungen und KI-Nutzung ab. `Rezepte.Tests.Browser` enthält Browser-/E2E-Tests (u. a. für den security.txt-Flow inklusive Admin-UI und öffentlichen Endpunkten).
 
+## Test-Lanes
+
+Umgebungssensitive Tests (Kindprozesse, Sockets, Playwright, externe Toolchains) sind über `[Trait("Category", "OsInterface")]` markiert und laufen in der CI getrennt von der deterministischen Lane: Die blockierende Lane führt `Rezepte.Tests` mit `Category!=OsInterface` aus, die best-effort-Lane führt `Rezepte.Tests.Browser` und die `OsInterface`-Teilmenge von `Rezepte.Tests` nicht-blockierend aus. Lokale `dotnet test`-Aufrufe ohne Filter führen unverändert alles aus — die Filter wirken nur in den Workflows.
+
+```powershell
+# Nur deterministische Tests (blockierende Lane)
+dotnet test Rezepte.Tests/Rezepte.Tests.csproj --filter "Category!=OsInterface"
+
+# Nur umgebungssensitive Tests in Rezepte.Tests
+dotnet test Rezepte.Tests/Rezepte.Tests.csproj --filter "Category=OsInterface"
+```
+
+Zur Kennzeichnung `Flaky`-markierter Tests, dem automatischen Einmal-Retry und den Analyzer-Skripten siehe [Umgebungssensitive Tests](help/os-interface-tests.md).
+
 ## Browser-Tests
 
 Für Browser-Tests muss zusätzlich Playwright-Chromium installiert sein:

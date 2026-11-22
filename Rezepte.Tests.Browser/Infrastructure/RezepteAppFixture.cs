@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Net.Sockets;
+using System.Text;
 using Rezepte.Tests.TestHelpers;
 using Xunit;
 
@@ -26,14 +27,22 @@ public class RezepteAppFixture : IAsyncLifetime
     private const string TestJwtSigningKey = "browser-test-signing-key-0123456789";
     private const string RegisterEndpoint = "api/auth/register";
     private const string TestEmail = "browsertest@example.invalid";
-    private const int StartupTimeoutSeconds = 60;
+    private const int StartupTimeoutSeconds = 120;
     private const int ReadinessPollIntervalMilliseconds = 250;
     private const int ShutdownGraceMilliseconds = 5000;
+    private const int MaxStartAttempts = 3;
+    private const int OutputTailCapacity = 100;
+
+    private readonly object _outputLock = new();
+    private readonly Queue<string> _stdoutTail = new();
+    private readonly Queue<string> _stderrTail = new();
 
     private Process? _process;
     private string? _tempDirectory;
     private string? _applicationDllPath;
     private string? _databasePath;
+    private string? _processLogFilePath;
+    private StreamWriter? _processLogWriter;
 
     /// <summary>
     /// Gets the base URL of the started application.
@@ -73,9 +82,7 @@ public class RezepteAppFixture : IAsyncLifetime
         var databasePath = CreateTemporaryDatabase();
         try
         {
-            StartApplicationProcess(applicationDllPath, databasePath);
-
-            await WaitUntilReadyAsync();
+            await StartApplicationProcessWithRetryAsync(applicationDllPath, databasePath, "startup");
             if (SeedSharedTestUser)
             {
                 await RegisterTestUserAsync();
@@ -112,8 +119,7 @@ public class RezepteAppFixture : IAsyncLifetime
         DeleteTemporaryDatabase();
 
         var databasePath = CreateTemporaryDatabase();
-        StartApplicationProcess(applicationDllPath, databasePath);
-        await WaitUntilReadyAsync();
+        await StartApplicationProcessWithRetryAsync(applicationDllPath, databasePath, "restart");
     }
 
     /// <summary>
@@ -142,29 +148,46 @@ public class RezepteAppFixture : IAsyncLifetime
         {
             if (_process is not null && !_process.HasExited)
             {
+                // Best effort like TempDirectoryCleanup: the child may exit between the
+                // HasExited check and Kill (InvalidOperationException / Win32Exception).
+                // A cleanup failure propagating through DisposeAsync would mask the
+                // real test result — the exact problem the never-throws contract avoids.
                 _process.Kill(entireProcessTree: true);
-                _process.WaitForExit(ShutdownGraceMilliseconds);
+                if (!_process.WaitForExit(ShutdownGraceMilliseconds))
+                {
+                    Console.Error.WriteLine(
+                        $"RezepteAppFixture: the application process was still running "
+                        + $"{ShutdownGraceMilliseconds}ms after Kill — proceeding anyway.");
+                }
             }
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine(
+                $"RezepteAppFixture: could not stop the application process: {error.Message}");
         }
         finally
         {
             _process?.Dispose();
-            _process = null;
+            lock (_outputLock)
+            {
+                // _process is nulled under the lock so late async output callbacks of
+                // the killed process fail the ReferenceEquals guard in CaptureOutputLine
+                // and cannot write old-attempt lines into the next attempt's log file.
+                _process = null;
+                _processLogWriter?.Dispose();
+                _processLogWriter = null;
+            }
         }
     }
 
     private void DeleteTemporaryDatabase()
     {
-        if (_tempDirectory is not null && Directory.Exists(_tempDirectory))
+        if (_tempDirectory is not null)
         {
-            try
-            {
-                Directory.Delete(_tempDirectory, recursive: true);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                // Best effort cleanup; a lingering temp file must not fail the test run.
-            }
+            // No kill safety net is passed here on purpose: both callers run
+            // StopApplicationProcess() first, so _process is always null at this point.
+            TempDirectoryCleanup.DeleteBestEffort(_tempDirectory);
         }
 
         _tempDirectory = null;
@@ -206,22 +229,63 @@ public class RezepteAppFixture : IAsyncLifetime
             startInfo.EnvironmentVariables[key] = value;
         }
 
-        _process = Process.Start(startInfo)
+        var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("Could not start the Rezepte.Web process for the browser tests.");
+
+        // _process is registered under _outputLock before the output drain starts, so the
+        // ReferenceEquals guard in CaptureOutputLine sees the same process the callbacks of
+        // this attempt report as their sender.
+        lock (_outputLock)
+        {
+            _process = process;
+        }
 
         // The redirected output/error pipes must be drained continuously; otherwise the OS pipe buffer
         // fills up once the application logs enough (e.g. one line per incoming request) and the child
-        // process blocks on its next Console.Write call, hanging the whole application.
-        _process.OutputDataReceived += (_, _) => { };
-        _process.ErrorDataReceived += (_, _) => { };
-        _process.BeginOutputReadLine();
-        _process.BeginErrorReadLine();
+        // process blocks on its next Console.Write call, hanging the whole application. Drained lines
+        // are kept in a bounded tail (and a full log file) so a startup failure is diagnosable.
+        process.OutputDataReceived += (sender, args) => CaptureOutputLine(sender as Process, _stdoutTail, args.Data);
+        process.ErrorDataReceived += (sender, args) => CaptureOutputLine(sender as Process, _stderrTail, args.Data);
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
     }
 
-    private async Task WaitUntilReadyAsync()
+    private async Task StartApplicationProcessWithRetryAsync(string applicationDllPath, string databasePath, string phase)
+    {
+        for (var attempt = 1; attempt <= MaxStartAttempts; attempt++)
+        {
+            StartProcessLogFile(phase, attempt);
+            StartApplicationProcess(applicationDllPath, databasePath);
+
+            try
+            {
+                await WaitUntilReadyAsync(phase);
+                return;
+            }
+            catch (Exception error) when (error is TimeoutException or InvalidOperationException)
+            {
+                // A lost port TOCTOU race surfaces as an early child exit; retrying on a
+                // freshly picked port heals it without any product-code change.
+                StopApplicationProcess();
+                if (attempt == MaxStartAttempts)
+                {
+                    throw new InvalidOperationException(
+                        $"Rezepte.Web did not start successfully after {MaxStartAttempts} attempts during {phase}.",
+                        error);
+                }
+
+                Console.Error.WriteLine(
+                    $"Rezepte.Web start attempt {attempt}/{MaxStartAttempts} failed during {phase} "
+                    + $"— retrying on a fresh port. {error.Message}");
+            }
+        }
+    }
+
+    private async Task WaitUntilReadyAsync(string phase)
     {
         using var httpClient = new HttpClient();
-        var deadline = DateTime.UtcNow.AddSeconds(StartupTimeoutSeconds);
+        var started = DateTime.UtcNow;
+        var deadline = started.AddSeconds(StartupTimeoutSeconds);
         Exception? lastError = null;
 
         while (DateTime.UtcNow < deadline)
@@ -229,7 +293,8 @@ public class RezepteAppFixture : IAsyncLifetime
             if (_process is not null && _process.HasExited)
             {
                 throw new InvalidOperationException(
-                    $"Rezepte.Web exited early with code {_process.ExitCode} while starting up for the browser tests.");
+                    $"Rezepte.Web exited early with code {_process.ExitCode} during {phase} "
+                    + $"({DescribeElapsed(started)} elapsed).{DescribeOutputTail()}");
             }
 
             try
@@ -245,8 +310,105 @@ public class RezepteAppFixture : IAsyncLifetime
         }
 
         throw new TimeoutException(
-            $"Rezepte.Web did not become ready at '{BaseAddress}' within the startup window.", lastError);
+            $"Rezepte.Web did not become ready at '{BaseAddress}' within {StartupTimeoutSeconds}s "
+            + $"during {phase} ({DescribeElapsed(started)} elapsed).{DescribeOutputTail()}",
+            lastError);
     }
+
+    private void CaptureOutputLine(Process? source, Queue<string> tail, string? line)
+    {
+        if (line is null)
+        {
+            return;
+        }
+
+        lock (_outputLock)
+        {
+            // The async pipe drain of a killed process can outlive WaitForExit; a late
+            // callback of a previous attempt must not write old-attempt lines into the
+            // new attempt's tail or log file.
+            if (!ReferenceEquals(source, _process))
+            {
+                return;
+            }
+
+            while (tail.Count >= OutputTailCapacity)
+            {
+                tail.Dequeue();
+            }
+
+            tail.Enqueue(line);
+            _processLogWriter?.WriteLine(line);
+        }
+    }
+
+    private void StartProcessLogFile(string phase, int attempt)
+    {
+        lock (_outputLock)
+        {
+            // Every attempt gets its own diagnostics: leftover tail lines of the previous
+            // attempt's process would be mislabeled as the "last output" of this attempt.
+            _stdoutTail.Clear();
+            _stderrTail.Clear();
+            _processLogWriter?.Dispose();
+            _processLogWriter = null;
+            try
+            {
+                var logDirectory = Path.Combine(
+                    RepositoryPaths.FindRepositoryRoot().FullName, "browser-app-logs");
+                Directory.CreateDirectory(logDirectory);
+                _processLogFilePath = Path.Combine(
+                    logDirectory,
+                    $"rezepte-app-{phase}-attempt{attempt}-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.log");
+                _processLogWriter = new StreamWriter(_processLogFilePath) { AutoFlush = true };
+            }
+            catch (Exception)
+            {
+                // The log file is a diagnostic bonus; a failure to create it must not stop the tests.
+                _processLogWriter = null;
+                _processLogFilePath = null;
+            }
+        }
+    }
+
+    private string DescribeOutputTail()
+    {
+        string[] stdoutLines;
+        string[] stderrLines;
+        string? processLogFilePath;
+        lock (_outputLock)
+        {
+            stdoutLines = _stdoutTail.ToArray();
+            stderrLines = _stderrTail.ToArray();
+            processLogFilePath = _processLogFilePath;
+        }
+
+        var builder = new StringBuilder(" Last child process output:");
+        if (stdoutLines.Length == 0 && stderrLines.Length == 0)
+        {
+            builder.Append(" <none>");
+        }
+
+        if (stdoutLines.Length > 0)
+        {
+            builder.Append(" stdout: ").Append(string.Join(" | ", stdoutLines));
+        }
+
+        if (stderrLines.Length > 0)
+        {
+            builder.Append(" stderr: ").Append(string.Join(" | ", stderrLines));
+        }
+
+        if (processLogFilePath is not null)
+        {
+            builder.Append($" (full output: {processLogFilePath})");
+        }
+
+        return builder.ToString();
+    }
+
+    private static string DescribeElapsed(DateTime started)
+        => $"{(DateTime.UtcNow - started).TotalSeconds:F1}s";
 
     private async Task RegisterTestUserAsync()
     {

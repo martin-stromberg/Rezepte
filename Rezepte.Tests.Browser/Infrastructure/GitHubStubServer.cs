@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -14,9 +16,12 @@ namespace Rezepte.Tests.Browser.Infrastructure;
 /// </summary>
 public sealed class GitHubStubServer : IDisposable
 {
+    private static readonly TimeSpan ShutdownWaitTimeout = TimeSpan.FromSeconds(5);
+
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly Task _acceptLoop;
+    private readonly ConcurrentBag<Task> _handlerTasks = new();
 
     // Written by the test thread, read by handler threads. volatile guarantees that a handler
     // never sees a stale body/status combination; the body is always written before the status.
@@ -97,9 +102,22 @@ public sealed class GitHubStubServer : IDisposable
     {
         _shutdown.Cancel();
         _listener.Stop();
+        var stopwatch = Stopwatch.StartNew();
         try
         {
-            _acceptLoop.Wait(TimeSpan.FromSeconds(5));
+            // Wait for the accept loop first: a client accepted between _listener.Stop()
+            // and the loop's exit still enqueues its handler into _handlerTasks, so a
+            // snapshot taken earlier would miss it. Once the loop has exited the bag is
+            // final, and all in-flight handlers are awaited within the same total
+            // budget; a handler that keeps running after teardown would hit disposed state.
+            if (_acceptLoop.Wait(ShutdownWaitTimeout))
+            {
+                var remaining = ShutdownWaitTimeout - stopwatch.Elapsed;
+                if (remaining > TimeSpan.Zero)
+                {
+                    Task.WaitAll(_handlerTasks.ToArray(), remaining);
+                }
+            }
         }
         catch (AggregateException)
         {
@@ -131,7 +149,7 @@ public sealed class GitHubStubServer : IDisposable
                 break;
             }
 
-            _ = HandleClientAsync(client);
+            _handlerTasks.Add(HandleClientAsync(client));
         }
     }
 

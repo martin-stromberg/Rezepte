@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Rezepte.Tests.TestHelpers;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
 using Rezepte.Web.Services;
@@ -46,10 +47,7 @@ public sealed class ExportCleanupServiceTests : IDisposable
     public void Dispose()
     {
         _db.Dispose();
-        if (Directory.Exists(_contentRoot))
-        {
-            Directory.Delete(_contentRoot, recursive: true);
-        }
+        TempDirectoryCleanup.DeleteBestEffort(_contentRoot);
     }
 
     /// <summary>

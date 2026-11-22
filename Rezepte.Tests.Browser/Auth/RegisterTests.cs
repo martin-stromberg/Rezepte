@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Playwright;
 using Rezepte.Tests.Browser.Auth;
 using Rezepte.Tests.Browser.Infrastructure;
+using Rezepte.Tests.TestHelpers;
 using Rezepte.Web.Services.BackgroundJobs;
 using Rezepte.Web.Services.BackgroundJobs.Handlers;
 using Xunit;
@@ -13,6 +14,7 @@ namespace Rezepte.Tests.Browser;
 /// Browser tests for the registration flow with and without demo data.
 /// </summary>
 [Collection(RegisterTestCollection.Name)]
+[Trait(TestCategories.Category, TestCategories.OsInterface)]
 public class RegisterTests
 {
     private const string Password = "DemoTest!123";
