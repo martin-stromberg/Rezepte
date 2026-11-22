@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Rezepte.Tests.Browser.Infrastructure;
+using Rezepte.Tests.TestHelpers;
 using Xunit;
 
 namespace Rezepte.Tests.Browser;
@@ -8,6 +9,7 @@ namespace Rezepte.Tests.Browser;
 /// Browser tests for the per-source manual update check in the plugin settings panel.
 /// </summary>
 [Collection(PluginSettingsTestCollection.Name)]
+[Trait(TestCategories.Category, TestCategories.OsInterface)]
 public class PluginSettingsBrowserTests
 {
     private const string Owner = "e2eowner";

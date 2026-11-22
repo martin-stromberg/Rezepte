@@ -1,6 +1,7 @@
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Rezepte.Tests.TestHelpers;
 using Rezepte.Web.Services.Import.Plugins;
 
 namespace Rezepte.Tests.Services.Import;
@@ -59,19 +60,7 @@ public abstract class PluginDirectoryRegistryTestsBase
         /// <inheritdoc />
         public void Dispose()
         {
-            if (Directory.Exists(Root))
-            {
-                try
-                {
-                    Directory.Delete(Root, recursive: true);
-                }
-                catch (IOException)
-                {
-                }
-                catch (UnauthorizedAccessException)
-                {
-                }
-            }
+            TempDirectoryCleanup.DeleteBestEffort(Root);
         }
     }
 }

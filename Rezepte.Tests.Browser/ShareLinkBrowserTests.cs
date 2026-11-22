@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Playwright;
 using Rezepte.Tests.Browser.Infrastructure;
+using Rezepte.Tests.TestHelpers;
 using Xunit;
 
 namespace Rezepte.Tests.Browser;
@@ -11,6 +12,7 @@ namespace Rezepte.Tests.Browser;
 /// and the admin can configure the link validity in the settings.
 /// </summary>
 [Collection(BrowserTestCollection.Name)]
+[Trait(TestCategories.Category, TestCategories.OsInterface)]
 public class ShareLinkBrowserTests
 {
     private readonly PlaywrightBrowserFixture _browserFixture;

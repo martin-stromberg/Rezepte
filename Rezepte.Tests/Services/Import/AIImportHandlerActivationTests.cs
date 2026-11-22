@@ -75,7 +75,7 @@ public class AIImportHandlerActivationTests
         }
         finally
         {
-            File.Delete(serviceAccountPath);
+            TempDirectoryCleanup.DeleteFileBestEffort(serviceAccountPath);
         }
     }
 

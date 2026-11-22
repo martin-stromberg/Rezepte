@@ -44,7 +44,7 @@ public class SettingsCredentialAvailabilityTests
         }
         finally
         {
-            File.Delete(serviceAccountPath);
+            TempDirectoryCleanup.DeleteFileBestEffort(serviceAccountPath);
         }
     }
 

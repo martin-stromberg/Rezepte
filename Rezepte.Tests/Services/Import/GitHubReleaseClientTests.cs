@@ -1,6 +1,7 @@
 using System.Net;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
+using Rezepte.Tests.TestHelpers;
 using Rezepte.Web.Configuration;
 using Rezepte.Web.Services.Import.Plugins;
 using Xunit;
@@ -65,10 +66,7 @@ public sealed class GitHubReleaseClientTests
         }
         finally
         {
-            if (File.Exists(targetPath))
-            {
-                File.Delete(targetPath);
-            }
+            TempDirectoryCleanup.DeleteFileBestEffort(targetPath);
         }
     }
 

@@ -145,7 +145,7 @@ public class GoogleCredentialsProviderTests
         }
         finally
         {
-            File.Delete(tempFilePath);
+            TempDirectoryCleanup.DeleteFileBestEffort(tempFilePath);
         }
     }
 
@@ -242,7 +242,7 @@ public class GoogleCredentialsProviderTests
         }
         finally
         {
-            File.Delete(tempFilePath);
+            TempDirectoryCleanup.DeleteFileBestEffort(tempFilePath);
         }
     }
 

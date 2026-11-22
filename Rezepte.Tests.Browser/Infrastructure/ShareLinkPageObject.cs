@@ -210,6 +210,7 @@ public sealed class ShareLinkPageObject : BrowserPageObjectBase
     public async Task<IPage> OpenAnonymousPageAsync(string pathOrUrl)
     {
         var context = await Browser.NewContextAsync();
+        context.SetDefaultNavigationTimeout(BrowserTimeouts.NavigationTimeoutMilliseconds);
         var page = await context.NewPageAsync();
         var url = pathOrUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
             ? pathOrUrl
@@ -226,6 +227,7 @@ public sealed class ShareLinkPageObject : BrowserPageObjectBase
     public async Task<int> GetAnonymousStatusAsync(string pathOrUrl)
     {
         var context = await Browser.NewContextAsync();
+        context.SetDefaultNavigationTimeout(BrowserTimeouts.NavigationTimeoutMilliseconds);
         try
         {
             var url = pathOrUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)

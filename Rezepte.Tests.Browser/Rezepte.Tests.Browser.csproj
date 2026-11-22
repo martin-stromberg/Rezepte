@@ -27,6 +27,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Rezepte.Tests\TestHelpers\RepositoryPaths.cs" Link="TestHelpers\RepositoryPaths.cs" />
+    <Compile Include="..\Rezepte.Tests\TestHelpers\TestCategories.cs" Link="TestHelpers\TestCategories.cs" />
+    <Compile Include="..\Rezepte.Tests\TestHelpers\TempDirectoryCleanup.cs" Link="TestHelpers\TempDirectoryCleanup.cs" />
+    <Compile Include="..\Rezepte.Tests\TestHelpers\FlakyConventionTests.cs" Link="TestHelpers\FlakyConventionTests.cs" />
   </ItemGroup>
 
   <Target Name="PublishRezepteWebForBrowserTests" AfterTargets="ResolveProjectReferences" Inputs="..\Rezepte.Web\bin\$(Configuration)\$(TargetFramework)\Rezepte.Web.dll" Outputs="..\Rezepte.Web\bin\$(Configuration)\$(TargetFramework)\publish\Rezepte.Web.dll">

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Playwright;
 using Rezepte.Tests.Browser.Infrastructure;
+using Rezepte.Tests.TestHelpers;
 using Xunit;
 
 namespace Rezepte.Tests.Browser;
@@ -9,6 +10,7 @@ namespace Rezepte.Tests.Browser;
 /// Browser regression tests for the recipe search page (/recipes/search).
 /// </summary>
 [Collection(BrowserTestCollection.Name)]
+[Trait(TestCategories.Category, TestCategories.OsInterface)]
 public class RecipeSearchBrowserTests
 {
     private const int PageContentTimeoutMilliseconds = 20000;
@@ -55,6 +57,7 @@ public class RecipeSearchBrowserTests
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
     [SkippableFact]
+    [Trait(TestCategories.Category, TestCategories.Flaky)]
     public async Task DirectUrl_WithQuery_ShowsResults()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);

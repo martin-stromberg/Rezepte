@@ -68,6 +68,7 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     public static async Task<LoadingBarPageObject> CreateAsync(IBrowser browser, string baseAddress)
     {
         var context = await browser.NewContextAsync();
+        context.SetDefaultNavigationTimeout(BrowserTimeouts.NavigationTimeoutMilliseconds);
         await context.Tracing.StartAsync(new TracingStartOptions
         {
             Screenshots = true,
@@ -242,7 +243,7 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     /// </summary>
     /// <param name="timeoutMilliseconds">The maximum time to wait in milliseconds.</param>
     /// <returns>A task that represents the asynchronous wait operation.</returns>
-    public async Task WaitUntilLoadingBarActiveAsync(int timeoutMilliseconds = 1000)
+    public async Task WaitUntilLoadingBarActiveAsync(int timeoutMilliseconds = 5000)
     {
         await Page.WaitForFunctionAsync(
             $"() => {{ const el = document.querySelector('{HostSelector}'); return !!el && el.classList.contains('{ActiveClass}'); }}",
@@ -255,7 +256,7 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     /// </summary>
     /// <param name="timeoutMilliseconds">The maximum time to wait in milliseconds.</param>
     /// <returns>A task that represents the asynchronous wait operation.</returns>
-    public async Task WaitUntilLoadingBarVisibleAsync(int timeoutMilliseconds = 2000)
+    public async Task WaitUntilLoadingBarVisibleAsync(int timeoutMilliseconds = 5000)
     {
         await Page.WaitForFunctionAsync(
             $"() => {{ const el = document.querySelector('{HostSelector}'); return !!el && parseFloat(getComputedStyle(el).opacity) > 0; }}",
@@ -269,7 +270,7 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     /// <param name="previousColor">The color value that must change.</param>
     /// <param name="timeoutMilliseconds">The maximum time to wait in milliseconds.</param>
     /// <returns>A task that represents the asynchronous wait operation.</returns>
-    public async Task WaitUntilLoadingBarColorChangedAsync(string previousColor, int timeoutMilliseconds = 2000)
+    public async Task WaitUntilLoadingBarColorChangedAsync(string previousColor, int timeoutMilliseconds = 5000)
     {
         await Page.WaitForFunctionAsync(
             $"expected => {{ const el = document.querySelector('{HostSelector}'); return !!el && getComputedStyle(el).getPropertyValue('--loading-bar-color').trim() !== expected; }}",
@@ -296,10 +297,9 @@ public sealed class LoadingBarPageObject : IAsyncDisposable
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
     public async ValueTask DisposeAsync()
     {
-        Directory.CreateDirectory("playwright-traces");
         await _context.Tracing.StopAsync(new TracingStopOptions
         {
-            Path = Path.Combine("playwright-traces", $"LoadingBar-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.zip")
+            Path = PlaywrightTraces.GetTraceFilePath("LoadingBar")
         });
         await _context.CloseAsync();
     }

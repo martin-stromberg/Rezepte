@@ -18,3 +18,4 @@
 - [Programmupdates](application-updates.md) — Konfiguration automatischer Updates und Pre-Install-Backups
 - [Rezeptsuche](recipe-search.md) — Funktionen zur Suche und Filterung von Rezepten
 - [security.txt](security-txt/index.md) — Öffentliche RFC-9116-Auslieferung mit Admin-Konfiguration und serverseitiger Canonical-Ableitung je Format
+- [Umgebungssensitive Tests](os-interface-tests.md) — Test-Lanes, OsInterface-/Flaky-Traits, Einmal-Retry und Flake-Statistik

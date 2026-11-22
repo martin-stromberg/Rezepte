@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Rezepte.Tests.TestHelpers;
 using Rezepte.Web.Data;
 using Rezepte.Web.Entities;
 using Rezepte.Web.Services.Import.Plugins;
@@ -84,19 +85,7 @@ public sealed class PluginManagerTests
         }
         finally
         {
-            if (Directory.Exists(pluginFolder))
-            {
-                try
-                {
-                    Directory.Delete(pluginFolder, recursive: true);
-                }
-                catch (UnauthorizedAccessException)
-                {
-                }
-                catch (IOException)
-                {
-                }
-            }
+            TempDirectoryCleanup.DeleteBestEffort(pluginFolder);
         }
     }
 
@@ -168,6 +157,7 @@ public sealed class PluginManagerTests
     /// Initialize async should load published external chefkoch plugin without adjacent contract assembly.
     /// </summary>
     [Fact]
+    [Trait(TestCategories.Category, TestCategories.OsInterface)]
     public async Task InitializeAsync_ShouldLoadPublishedExternalChefkochPluginWithoutAdjacentContractAssembly()
     {
         if (!PluginWorkspace.ExternalPluginRepositoryExists())
@@ -202,6 +192,7 @@ public sealed class PluginManagerTests
     /// Initialize async should load all published external online plugins without adjacent contract assembly.
     /// </summary>
     [Fact]
+    [Trait(TestCategories.Category, TestCategories.OsInterface)]
     public async Task InitializeAsync_ShouldLoadAllPublishedExternalOnlinePluginsWithoutAdjacentContractAssembly()
     {
         if (!PluginWorkspace.ExternalPluginRepositoryExists())
@@ -679,7 +670,7 @@ public sealed class PluginManagerTests
         public static PluginWorkspace CreateWithoutPluginRoot()
         {
             var workspace = new PluginWorkspace(Path.Combine(Path.GetTempPath(), "rezepte-plugin-tests", Guid.NewGuid().ToString("N")));
-            Directory.Delete(workspace.PluginRoot, recursive: true);
+            TempDirectoryCleanup.DeleteBestEffort(workspace.PluginRoot);
             return workspace;
         }
 
@@ -692,19 +683,7 @@ public sealed class PluginManagerTests
 
         public void Dispose()
         {
-            if (Directory.Exists(ContentRoot))
-            {
-                try
-                {
-                    Directory.Delete(ContentRoot, recursive: true);
-                }
-                catch (UnauthorizedAccessException)
-                {
-                }
-                catch (IOException)
-                {
-                }
-            }
+            TempDirectoryCleanup.DeleteBestEffort(ContentRoot);
         }
 
         public void CopyOutputAssembly(string fileName, string targetDirectory)

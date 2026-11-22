@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
+using Rezepte.Tests.TestHelpers;
 using Rezepte.Web;
 
 namespace Rezepte.Tests.TestSupport;
@@ -48,9 +49,6 @@ public class SqliteFileWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         SqliteConnection.ClearAllPools();
-        if (File.Exists(_databasePath))
-        {
-            File.Delete(_databasePath);
-        }
+        TempDirectoryCleanup.DeleteFileBestEffort(_databasePath);
     }
 }

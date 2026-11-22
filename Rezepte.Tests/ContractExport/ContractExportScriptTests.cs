@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using FluentAssertions;
+using Rezepte.Tests.TestHelpers;
 using Xunit;
 
 namespace Rezepte.Tests.ContractExport;
@@ -11,6 +12,7 @@ namespace Rezepte.Tests.ContractExport;
 /// <summary>
 /// Class representing the contract export script tests.
 /// </summary>
+[Trait(TestCategories.Category, TestCategories.OsInterface)]
 public sealed class ContractExportScriptTests
 {
     private const string ContractVersion = "0.3.0";
@@ -460,8 +462,7 @@ public sealed class ContractExportScriptTests
         }
         finally
         {
-            if (Directory.Exists(profileRoot))
-                Directory.Delete(profileRoot, true);
+            TempDirectoryCleanup.DeleteBestEffort(profileRoot);
         }
     }
 
@@ -542,8 +543,7 @@ public sealed class ContractExportScriptTests
 
         public void Dispose()
         {
-            if (Directory.Exists(_path))
-                Directory.Delete(_path, true);
+            TempDirectoryCleanup.DeleteBestEffort(_path);
         }
     }
 }

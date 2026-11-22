@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Rezepte.Tests.Browser.Infrastructure;
+using Rezepte.Tests.TestHelpers;
 using Xunit;
 
 namespace Rezepte.Tests.Browser;
@@ -8,6 +9,7 @@ namespace Rezepte.Tests.Browser;
 /// Browser tests that verify the security.txt endpoint and its settings panel behavior.
 /// </summary>
 [Collection(BrowserTestCollection.Name)]
+[Trait(TestCategories.Category, TestCategories.OsInterface)]
 public class SecurityTxtBrowserTests
 {
     private readonly PlaywrightBrowserFixture _browserFixture;
