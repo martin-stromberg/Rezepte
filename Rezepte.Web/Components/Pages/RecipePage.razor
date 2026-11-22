@@ -32,7 +32,7 @@
             <button class="btn btn-sm btn-outline-secondary" title="@Localizer["AddIngredientsToShoppingList"]" @onclick="OpenShoppingListDialog">
                 <span class="bi bi-cart-plus" aria-hidden="true"></span>
             </button>
-            <a class="btn btn-sm btn-outline-secondary" href="/recipes/@Id/edit" title="@Localizer["Edit"]">✏️</a>
+            <a class="btn btn-sm btn-outline-secondary" href="recipes/@Id/edit" title="@Localizer["Edit"]">✏️</a>
 
             @* Favoriten / Zuordnungen zu Kochbüchern *@
             <button class="btn btn-sm btn-outline-secondary" title="@Localizer["AssignRecipeToCookbooks"]" @onclick="OpenAssignOverlay">
@@ -220,7 +220,7 @@ else
 {
     <ImageCropper Show="@showCropper"
                   ImageDataUrl="@cropDataUrl"
-                  UploadUrl="@($"/api/recipes/{Id}/image")"
+                  UploadUrl="@($"api/recipes/{Id}/image")"
                   OnUploaded="OnCroppedUploaded"
                   OnCancel="CloseCropper" />
 }

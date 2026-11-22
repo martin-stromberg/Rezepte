@@ -308,7 +308,7 @@ else
                     if (obj is not null && obj.TryGetValue("id", out var id))
                     {
                         // Force full navigation to ensure the Router renders the view page
-                        Nav.NavigateTo($"/recipes/{id}", forceLoad: true);
+                        Nav.NavigateTo($"recipes/{id}", forceLoad: true);
                     }
                     else
                     {
@@ -353,7 +353,7 @@ else
                 if (res.IsSuccessStatusCode)
                 {
                     // Force full navigation so the RecipePage is shown instead of the edit form
-                    Nav.NavigateTo($"/recipes/{Id}", forceLoad: true);
+                    Nav.NavigateTo($"recipes/{Id}", forceLoad: true);
                 }
                 else
                 {
@@ -372,7 +372,7 @@ else
     {
         if (IsNew)
         {
-            Nav.NavigateTo("/");
+            Nav.NavigateTo("");
             return;
         }
 
@@ -390,7 +390,7 @@ else
                 errorMessage = "Rezept konnte nicht gelöscht werden.";
                 return;
             }
-            Nav.NavigateTo("/");
+            Nav.NavigateTo("");
         }
         catch (Exception ex)
         {

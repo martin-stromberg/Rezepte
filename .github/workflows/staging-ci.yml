@@ -1,9 +1,7 @@
 name: Pre-Release
 
-# Filename stays staging-ci.yml (only the display name changes to "Pre-Release") - see
-# ci-target-schema.md section 3. staging-to-main-promotion.yml's workflow_run trigger
-# references this display name, not the filename; both were updated together in the same
-# commit so the promotion chain never briefly points at a name that no longer exists.
+# Filename stays staging-ci.yml even though the display name is "Pre-Release" - see
+# ci-target-schema.md section 3.
 #
 # Job structure changed to the cross-project hybrid model (section 4.2/4.3): static-checks
 # and build-and-test now run in parallel (no needs: between them), followed by version and

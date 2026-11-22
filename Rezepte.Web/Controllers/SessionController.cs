@@ -32,7 +32,7 @@ public class SessionController : ControllerBase
         var user = await users.LoginAsync(dto.Username, dto.Password, ct);
         if (user is null)
         {
-            return LocalRedirect("/login?error=1");
+            return LocalRedirect(Request.PathBase + "/login?error=1");
         }
 
         // Website auth cookie
@@ -56,7 +56,7 @@ public class SessionController : ControllerBase
         // Issue API token (JWT) and cache by user; include role claim if present
         tokens.CreateToken(user.Id, user.Username, user.IsAdmin);
 
-        return LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl);
+        return LocalRedirect(Request.PathBase + (string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl));
     }
 
     /// <summary>
@@ -70,7 +70,7 @@ public class SessionController : ControllerBase
     public async Task<IActionResult> Logout([FromServices] ITokenService tokens, [FromQuery] string? returnUrl)
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/login" : returnUrl);
+        return LocalRedirect(Request.PathBase + (string.IsNullOrWhiteSpace(returnUrl) ? "/login" : returnUrl));
     }
 
     /// <summary>

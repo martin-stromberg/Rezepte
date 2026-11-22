@@ -30,7 +30,7 @@ public sealed class SharedRecipePageTests : IDisposable
         Description: "Line one",
         Portions: 4,
         SourceUri: "https://example.com/source",
-        ImageUrls: ["/api/share/token-abc/image/img-1"],
+        ImageUrls: ["api/share/token-abc/image/img-1"],
         Steps: [new SharedStepView("Mischen", "Alles verrühren", 10, false, [new SharedIngredientView(1m, "Tasse", "Mehl")])],
         SideDishes: sideDishes ?? []);
 
@@ -48,7 +48,7 @@ public sealed class SharedRecipePageTests : IDisposable
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("Shared Cake"));
         cut.Markup.Should().Contain("Mehl");
         cut.Markup.Should().Contain("Alles verrühren");
-        cut.Find("img").GetAttribute("src").Should().Be("/api/share/token-abc/image/img-1");
+        cut.Find("img").GetAttribute("src").Should().Be("api/share/token-abc/image/img-1");
         cut.Find("a[href=\"https://example.com/source\"]").Should().NotBeNull();
     }
 
@@ -58,7 +58,7 @@ public sealed class SharedRecipePageTests : IDisposable
     [Fact]
     public void RendersSideDishLinks_PointingToSharedSideDishRoute()
     {
-        var view = CreateView([new SharedSideDishView("side-1", "Salat", 2, "/api/share/token-abc/image/img-2", "/share/token-abc/sidedish/side-1")]);
+        var view = CreateView([new SharedSideDishView("side-1", "Salat", 2, "api/share/token-abc/image/img-2", "share/token-abc/sidedish/side-1")]);
         _shareService.Setup(s => s.GetSharedRecipeAsync("token-abc", It.IsAny<CancellationToken>()))
             .ReturnsAsync(view);
 
@@ -66,7 +66,7 @@ public sealed class SharedRecipePageTests : IDisposable
 
         cut.WaitForAssertion(() =>
         {
-            var link = cut.Find("a[href=\"/share/token-abc/sidedish/side-1\"]");
+            var link = cut.Find("a[href=\"share/token-abc/sidedish/side-1\"]");
             link.TextContent.Should().Contain("Salat");
         });
     }
