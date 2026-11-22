@@ -55,7 +55,7 @@ else
                      @ondragleave="() => OnDragLeave(item.Id)"
                      @ondrop="() => OnDrop(item.Id)">
                     <a class="cookbook-card @(dragOverId == item.Id ? "drag-over" : null) @(isDragging ? "no-pointer" : null)"
-                       href="@($"/cookbooks/{item.Id}")" title="@item.Name">
+                       href="@($"cookbooks/{item.Id}")" title="@item.Name">
                         @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                         {
                             <img src="@item.ImageUrl" alt="@Localizer["LastRecipeIn"] @item.Name" />

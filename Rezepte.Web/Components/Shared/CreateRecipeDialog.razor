@@ -259,8 +259,8 @@
         {
             // navigate to create page with cookbookId if provided
             var target = string.IsNullOrWhiteSpace(_cookbookId)
-                ? "/recipes/new?cookbookId="
-                : $"/recipes/new?cookbookId={Uri.EscapeDataString(_cookbookId)}";
+                ? "recipes/new?cookbookId="
+                : $"recipes/new?cookbookId={Uri.EscapeDataString(_cookbookId)}";
             Navigation.NavigateTo(target);
             await CloseAsync(new DialogResult(true, null, null));
         }
