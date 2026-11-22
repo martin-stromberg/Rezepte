@@ -79,7 +79,7 @@ else
                     }
 
                     <a class="recipe-card"
-                       href="@(!isMultiSelecting ? $"/recipes/{recipe.Id}" : null)"
+                       href="@(!isMultiSelecting ? $"recipes/{recipe.Id}" : null)"
                        @onclick="(e) => OnCardClick(e, recipe.Id)"
                        @onclick:preventDefault="isMultiSelecting"
                        @onclick:stopPropagation="isMultiSelecting"

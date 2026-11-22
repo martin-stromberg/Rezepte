@@ -85,7 +85,7 @@ else
                                         {
                                             <div class="recipe-item position-relative d-flex gap-3 align-items-start p-2 mb-2">
                                                 @* stretched link: whole card clickable, buttons still usable *@
-                                                <a class="stretched-link" href="@($"/recipes/{preview.Id}")" aria-label="@Localizer["ViewRecipe"]"></a>
+                                                <a class="stretched-link" href="@($"recipes/{preview.Id}")" aria-label="@Localizer["ViewRecipe"]"></a>
 
                                                 @if (!string.IsNullOrWhiteSpace(preview.ImageUrl))
                                                 {
