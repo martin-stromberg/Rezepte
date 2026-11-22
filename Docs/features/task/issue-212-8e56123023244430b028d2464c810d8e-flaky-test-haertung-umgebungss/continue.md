@@ -9,10 +9,14 @@ Commit/Push/PR (für `staging-ci.yml`: nach Merge auf `staging`) ausführbar ist
 
 - [ ] Task 37 — CI-Verifikation: mindestens drei grüne Komplettläufe in
   `pr-staging-ci.yml` **und** `staging-ci.yml` (Akzeptanzkriterium 10).
-  Extern verankert: `pr-staging-ci.yml` läuft auf dem PR gegen `staging`
-  (Wiederholungen über `gh run rerun`/Nach-Pushes möglich), `staging-ci.yml`
-  erst nach dem Merge auf `staging`. Beleg: `gh pr checks` bzw.
-  `gh run list --workflow staging-ci.yml`.
+  - `pr-staging-ci.yml` auf PR #221: **3/3 grüne Komplettläufe nachgewiesen**
+    (Run 45056050985, Attempts 1–3 — inkl. neuem `browser tests`-Job mit
+    Browser-Suite + OsInterface-Subset, korrekt übersprungenem Retry-Step und
+    ausgeführtem Analyze-Step; attempt-eindeutige TRX-/Trace-/Log-Artefakte).
+  - `staging-ci.yml`: ausstehend — läuft ausschließlich auf Push nach
+    `staging`, also erst nach dem Merge des PR. Nach dem Merge sind mindestens
+    drei grüne Läufe via `gh run list --workflow staging-ci.yml` zu belegen
+    (notfalls über `gh run rerun`).
 
 ## Code-Review-Befunde
 
