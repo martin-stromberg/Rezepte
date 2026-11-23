@@ -1,0 +1,62 @@
+name: Architecture and Security Review
+
+# Scheduled review-issue generator: creates the recurring architecture and security
+# review issue (body starts with the @softwarewerkstatt mention, which triggers the
+# external analysis automation). The shared composite action
+# ./.github/actions/create-review-issue only creates the issue when no open issue
+# with the review-architecture-security label exists, so a cycle is never duplicated;
+# once the predecessor is closed, the next run creates a fresh issue.
+#
+# The schedule (and workflow_dispatch) only runs on the default branch main - on
+# staging and task branches this workflow stays inert until it is promoted.
+on:
+  schedule:
+    # Monthly on the 1st at 06:00 UTC, staggered one hour before the yearly
+    # compliance run, since both fall due on January 1st.
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: review-architecture-security
+  cancel-in-progress: true
+
+jobs:
+  create-review-issue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Local composite actions require the checked-out workflow state on the runner.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Create review issue
+        uses: ./.github/actions/create-review-issue
+        with:
+          label-name: review-architecture-security
+          label-color: "D93F0B"
+          label-description: Scheduled architecture and security review issue
+          issue-title: "[Review] Architektur- und Sicherheitsreview"
+          issue-title-date-format: yyyy-MM
+          issue-body: |
+            @softwarewerkstatt
+
+            Bitte führe ein Architektur- und Sicherheitsreview durch.
+
+            Prüfe insbesondere:
+
+            - Neue Sicherheitsrisiken in verwendeten Frameworks und Bibliotheken
+            - Bekannte Schwachstellen (CVEs) in NuGet-Abhängigkeiten
+            - Neue Empfehlungen für ASP.NET Core, Blazor, .NET und verwandte Technologien
+            - Änderungen bei Authentifizierung und Autorisierung
+            - Neue oder inzwischen bevorzugte Design Patterns
+            - Veraltete, abgekündigte oder problematische APIs
+            - Verbesserungsmöglichkeiten hinsichtlich Wartbarkeit, Erweiterbarkeit und Testbarkeit
+            - Aktuelle Empfehlungen zu Logging, Telemetrie und Monitoring
+            - Relevante Erkenntnisse aus der Community, Microsoft-Dokumentation und Sicherheitsmeldungen
+
+            Erstelle eine priorisierte Liste konkreter Handlungsempfehlungen.

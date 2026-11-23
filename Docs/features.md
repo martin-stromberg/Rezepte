@@ -57,6 +57,7 @@ Details zu security.txt stehen in [Docs/help/security-txt/index.md](help/securit
 ## CI/CD
 
 - GitHub Actions für Pull-Request-Prüfungen auf `staging`, automatische Promotion- und Sync-PRs sowie automatisierte Release-Artefakte.
+- Zeitgesteuerte Review-Workflows, die monatlich, wöchentlich und jährlich Review-Issues mit `@softwarewerkstatt`-Erwähnung erzeugen und Duplikate über offene Issues desselben Review-Typs vermeiden.
 - Getrennte Test-Lanes: deterministische Tests blockierend, umgebungssensitive Tests (`Category=OsInterface`) als best-effort-Job mit Einmal-Retry für `Flaky`-markierte Tests und Flake-Statistik-Report.
 - Nutzungs- und KI-Limits über Einstellungen und Protokollierung.
 
