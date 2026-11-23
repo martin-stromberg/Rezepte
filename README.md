@@ -71,7 +71,7 @@ Details zu Testprojekten, Browser-Tests mit Playwright und dem NuGet-Sicherheits
 
 ## Deployment
 
-[Docs/install.md](Docs/install.md) ist die verbindliche Schritt-für-Schritt-Anleitung für Publish, Runtime-Prüfung und systemd-Betrieb auf Linux.
+[Docs/install.md](Docs/install.md) ist die verbindliche Schritt-für-Schritt-Anleitung für Publish, Runtime-Prüfung und systemd-Betrieb auf Linux. Sie deckt beide Betriebsarten ab: eigenständig (ohne Reverse-Proxy) und hinter einem Reverse-Proxy mit TLS-Terminierung.
 
 Bei einem framework-abhängigen Publish (`--self-contained false`) müssen auf dem Server die passenden .NET-10-Shared-Frameworks für `Microsoft.NETCore.App` und `Microsoft.AspNetCore.App` installiert sein. Wenn die Server-Runtime nicht verlässlich bereitsteht, sollte stattdessen die in `Docs/install.md` dokumentierte self-contained Alternative verwendet werden.
 
