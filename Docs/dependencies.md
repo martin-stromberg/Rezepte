@@ -25,6 +25,7 @@ keine verbleibenden verwundbaren Pakete.
 - Es wird keine direkte `PackageReference` auf `SQLitePCLRaw.lib.e_sqlite3` ergänzt. Die sichere transitive Version wird über das kompatible EF-Core-/SQLite-Update bezogen.
 - Direkte Paketupdates sind projektbezogen zu prüfen. Nach jedem Update sind Restore, Build, Tests und der Vulnerability-Scan für die gesamte Solution auszuführen.
 - `NU1903` wird nicht per Projektdatei unterdrückt. Der Security-Scan bleibt ein blockierender CI-Schritt.
+- Neben dem blockierenden Security-Gate und dem wöchentlichen `security-scan.yml`-Lauf erzeugt der Workflow `.github/workflows/review-nuget-packages.yml` wöchentlich ein NuGet-Prüf-Issue (Updates, Schwachstellen, Pflegezustand, Breaking Changes) mit `@softwarewerkstatt`-Prüfauftrag; Details stehen in [help/github-actions.md](help/github-actions.md).
 - Die Nutzung von SQLite bleibt bestehen; ein Datenbank- oder Providerwechsel waere eine fachliche Architekturentscheidung und ist nicht Teil des .NET-10-Upgrades.
 
 ## Risikoakzeptanz

@@ -1,0 +1,63 @@
+name: NuGet Package Review
+
+# Scheduled review-issue generator: creates the recurring NuGet package review issue
+# (body starts with the @softwarewerkstatt mention, which triggers the external
+# analysis automation). The shared composite action
+# ./.github/actions/create-review-issue only creates the issue when no open issue
+# with the review-nuget-check label exists, so a cycle is never duplicated;
+# once the predecessor is closed, the next run creates a fresh issue.
+#
+# The schedule (and workflow_dispatch) only runs on the default branch main - on
+# staging and task branches this workflow stays inert until it is promoted.
+on:
+  schedule:
+    # Weekly on Tuesday 05:00 UTC, staggered against the existing weekly
+    # security-scan.yml run (Monday 04:00 UTC) so the two do not collide.
+    - cron: '0 5 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: review-nuget-check
+  cancel-in-progress: true
+
+jobs:
+  create-review-issue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Local composite actions require the checked-out workflow state on the runner.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Create review issue
+        uses: ./.github/actions/create-review-issue
+        with:
+          label-name: review-nuget-check
+          label-color: "1D76DB"
+          label-description: Scheduled NuGet package review issue
+          issue-title: "[Review] NuGet-Paketprüfung"
+          issue-title-date-format: yyyy-MM-dd
+          issue-body: |
+            @softwarewerkstatt
+
+            Bitte analysiere alle verwendeten NuGet-Pakete.
+
+            Prüfe:
+
+            - Verfügbare Updates
+            - Security-Updates
+            - Pakete mit bekannt gewordenen Schwachstellen
+            - Veraltete oder nicht mehr gepflegte Pakete
+            - Empfohlene Nachfolgepakete
+            - Mögliche Breaking Changes bei Updates
+
+            Erstelle konkrete Update-Empfehlungen inklusive Risikobewertung.
+
+            Setze die unbedenklichen Empfehlungen (niedriges bis mittleres Risiko)
+            direkt in einem Pull Request um. Risikoreiche oder aufgeschobene
+            Empfehlungen dokumentiere im PR-Body bzw. als eigenes Folge-Issue.

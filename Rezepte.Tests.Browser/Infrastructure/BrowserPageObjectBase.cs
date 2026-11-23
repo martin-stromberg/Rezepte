@@ -52,6 +52,7 @@ public abstract class BrowserPageObjectBase : IAsyncDisposable
     protected static async Task<(IBrowserContext Context, IPage Page)> CreateTracedPageAsync(IBrowser browser)
     {
         var context = await browser.NewContextAsync();
+        context.SetDefaultNavigationTimeout(BrowserTimeouts.NavigationTimeoutMilliseconds);
         await context.Tracing.StartAsync(new TracingStartOptions
         {
             Screenshots = true,
@@ -133,10 +134,9 @@ public abstract class BrowserPageObjectBase : IAsyncDisposable
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
     public async ValueTask DisposeAsync()
     {
-        Directory.CreateDirectory("playwright-traces");
         await _context.Tracing.StopAsync(new TracingStopOptions
         {
-            Path = Path.Combine("playwright-traces", $"{_traceFilePrefix}-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.zip")
+            Path = PlaywrightTraces.GetTraceFilePath(_traceFilePrefix)
         });
         await _context.CloseAsync();
     }

@@ -61,7 +61,7 @@ GOOGLE_GEMINI_API_KEY=...
 GOOGLE_APPLICATION_CREDENTIALS=/etc/rezepte/secrets/google.application-credentials.json
 ```
 
-Der Pfad aus `GOOGLE_APPLICATION_CREDENTIALS` muss für den systemd-User lesbar sein, zum Beispiel für `User=www-data` aus `Docs/install.md`.
+Der Pfad aus `GOOGLE_APPLICATION_CREDENTIALS` muss für den systemd-User lesbar sein, zum Beispiel für `User=rezepte` aus `Docs/install.md`.
 
 ## Verhalten ohne Credentials
 

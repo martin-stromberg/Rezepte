@@ -124,30 +124,17 @@ jobs:
       - name: Build tests
         run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
 
-      - name: Build browser tests
-        run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
-
-      - name: Install Playwright browsers
-        run: |
-          PLAYWRIGHT_SCRIPT=$(find Rezepte.Tests.Browser/bin/Release -name "playwright.ps1" | head -n 1)
-          if [ -z "$PLAYWRIGHT_SCRIPT" ]; then
-            echo "playwright.ps1 not found under Rezepte.Tests.Browser/bin/Release - did the browser test build succeed?" >&2
-            exit 1
-          fi
-          pwsh "$PLAYWRIGHT_SCRIPT" install --with-deps chromium
-
-      - name: Publish application for browser tests
-        run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
-
       - name: Test
-        # Gate 4: unit + browser tests, with coverage collection feeding the threshold check
-        # below (ci-target-schema.md section 4.5). Rezepte has no best-effort test category
-        # (unlike FinanceManager/Softwareschmiede's OsInterface split) - both test projects are
-        # blocking here, matching the previous "verify" job's behavior.
+        # Gate 4: the deterministic lane only - Rezepte.Tests minus the OsInterface-marked
+        # subset, with coverage collection feeding the threshold check below
+        # (ci-target-schema.md section 4.5). The environment-sensitive lane (browser tests
+        # + OsInterface subset) runs in the separate best-effort browser-tests job, so an
+        # environment-caused failure can no longer block the PR.
         run: >
-          dotnet test Rezepte.sln --configuration Release --no-build
+          dotnet test Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-build
+          --filter "Category!=OsInterface"
           --collect:"XPlat Code Coverage"
-          --logger "trx;LogFileName=test-results.trx"
+          --logger "trx;LogFileName=test-results-a${{ github.run_attempt }}.trx"
           --logger "console;verbosity=normal"
 
       - name: Install ReportGenerator
@@ -212,23 +199,130 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-pr
+          name: test-results-pr-a${{ github.run_attempt }}
           path: |
             Rezepte.Tests/TestResults/*.trx
-            Rezepte.Tests.Browser/TestResults/*.trx
+          retention-days: 14
+
+  browser-tests:
+    name: browser tests
+    needs: detect-backmerge
+    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+    # Best-effort lane (Docs/help/os-interface-tests.md): the browser suite runs real
+    # Chromium against an out-of-process Kestrel app plus a TcpListener stub and is
+    # environment-sensitive by construction, so a failure must not block the PR.
+    # Job-level continue-on-error keeps the failure visible as a red job signal while
+    # the workflow result stays green; Docs/help/os-interface-tests.md documents the
+    # `gh run rerun --job <id>` rule that applies to this job only.
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Rezepte.sln
+
+      - name: Build application and plugins
+        # Rezepte.Web must be built before the test projects: the AI plugin projects
+        # reference Rezepte.Web.dll via a HintPath (documented build-order trap).
+        run: dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore
+
+      - name: Build browser tests
+        run: dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore
+
+      - name: Install Playwright browsers
+        run: |
+          PLAYWRIGHT_SCRIPT=$(find Rezepte.Tests.Browser/bin/Release -name "playwright.ps1" | head -n 1)
+          if [ -z "$PLAYWRIGHT_SCRIPT" ]; then
+            echo "playwright.ps1 not found under Rezepte.Tests.Browser/bin/Release - did the browser test build succeed?" >&2
+            exit 1
+          fi
+          pwsh "$PLAYWRIGHT_SCRIPT" install --with-deps chromium
+
+      - name: Publish application for browser tests
+        id: publish
+        run: dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore
+
+      - name: Test (browser)
+        run: >
+          dotnet test Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-build
+          --logger "trx;LogFileName=test-results-browser-a${{ github.run_attempt }}.trx"
+          --logger "console;verbosity=normal"
+
+      - name: Test (OsInterface subset)
+        # Runs even after a browser-test failure, but not after a build/publish failure
+        # (--no-build would have nothing to test then anyway).
+        if: ${{ !cancelled() && steps.publish.outcome == 'success' }}
+        run: >
+          dotnet test Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-build
+          --filter "Category=OsInterface"
+          --logger "trx;LogFileName=test-results-os-interface-a${{ github.run_attempt }}.trx"
+          --logger "console;verbosity=normal"
+
+      - name: Retry flaky tests once
+        # if: failure() is deliberately broad: on a build failure or missing TRX the script
+        # reports "no flaky failures" and exits 0, so the original failing step stays the
+        # leading signal. Persistent flaky failures make this step fail - the job still
+        # stays non-blocking via job-level continue-on-error.
+        if: failure()
+        shell: pwsh
+        run: |
+          $exitCode = 0
+          & scripts/Retry-FlakyTests.ps1 -TestProject Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj -PrimaryTrx Rezepte.Tests.Browser/TestResults/test-results-browser-a${{ github.run_attempt }}.trx -Configuration Release
+          if ($LASTEXITCODE -ne 0) { $exitCode = $LASTEXITCODE }
+          & scripts/Retry-FlakyTests.ps1 -TestProject Rezepte.Tests/Rezepte.Tests.csproj -PrimaryTrx Rezepte.Tests/TestResults/test-results-os-interface-a${{ github.run_attempt }}.trx -Configuration Release
+          if ($LASTEXITCODE -ne 0) { $exitCode = $LASTEXITCODE }
+          exit $exitCode
+
+      - name: Analyze flaky test results
+        # Pure visibility report over this run's TestResults directories (always exit 0);
+        # quarantine candidates are recommended via ::warning:: annotation.
+        if: always()
+        shell: pwsh
+        run: |
+          & scripts/Analyze-FlakyTestResults.ps1 -Path Rezepte.Tests/TestResults, Rezepte.Tests.Browser/TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-browser-pr-a${{ github.run_attempt }}
+          path: |
+            Rezepte.Tests.Browser/TestResults/test-results-browser*.trx
+            Rezepte.Tests/TestResults/test-results-os-interface*.trx
           retention-days: 14
 
       - name: Upload Playwright traces
-        # LoadingBarPageObject/SecurityTxtPageObject write a Screenshots+Snapshots+Sources
-        # trace per test to playwright-traces/{Name}.zip (relative to the repo root, since the
-        # Test step above runs dotnet test from there). Uploaded unconditionally (if: always())
-        # so a failed run leaves real diagnostic evidence (open the .zip with
+        # The page objects write a Screenshots+Snapshots+Sources trace per test to
+        # playwright-traces/{Name}.zip at the repository root (deterministic via
+        # PlaywrightTraces/RepositoryPaths). Uploaded unconditionally (if: always()) so a
+        # failed run leaves real diagnostic evidence (open the .zip with
         # `npx playwright show-trace <file>.zip`) instead of only a bare pass/fail count.
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-traces-pr
+          name: playwright-traces-pr-a${{ github.run_attempt }}
           path: playwright-traces/
+          retention-days: 14
+
+      - name: Upload application logs
+        # Full child-process output captured by RezepteAppFixture (browser-app-logs/) -
+        # the TimeoutException tail only holds the last lines, the files hold everything.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-app-logs-pr-a${{ github.run_attempt }}
+          path: browser-app-logs/
           retention-days: 14
 
   no-pending-backmerge:

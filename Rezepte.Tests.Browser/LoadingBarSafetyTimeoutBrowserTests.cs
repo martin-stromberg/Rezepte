@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Rezepte.Tests.Browser.Infrastructure;
+using Rezepte.Tests.TestHelpers;
 using Xunit;
 
 namespace Rezepte.Tests.Browser;
@@ -8,6 +9,7 @@ namespace Rezepte.Tests.Browser;
 /// Browser tests that verify the loading bar safety timeout hides the bar for hanging navigations.
 /// </summary>
 [Collection(BrowserTestCollection.Name)]
+[Trait(TestCategories.Category, TestCategories.OsInterface)]
 public class LoadingBarSafetyTimeoutBrowserTests : IClassFixture<LoadingBarSafetyTimeoutBrowserTests.ShortMaxVisibleDurationFixture>
 {
     private readonly PlaywrightBrowserFixture _browserFixture;

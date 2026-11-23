@@ -72,11 +72,14 @@ public sealed class ExportCleanupHostedServiceTests
     [Fact]
     public async Task StartAsync_ShouldCheckImmediatelyOnStartup()
     {
-        _cleanup.Setup(c => c.IsCleanupDueAsync(It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        var cleanupChecked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _cleanup.Setup(c => c.IsCleanupDueAsync(It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
+            .Callback(() => cleanupChecked.TrySetResult())
+            .ReturnsAsync(false);
         var sut = CreateSut();
 
         await sut.StartAsync(CancellationToken.None);
-        await Task.Delay(100);
+        await cleanupChecked.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await sut.StopAsync(CancellationToken.None);
 
         _cleanup.Verify(c => c.IsCleanupDueAsync(It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);

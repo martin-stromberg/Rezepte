@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Rezepte.Tests.Browser.Infrastructure;
+using Rezepte.Tests.TestHelpers;
 using Rezepte.Web.Configuration;
 using Xunit;
 
@@ -9,6 +10,7 @@ namespace Rezepte.Tests.Browser;
 /// Browser tests that verify the loading bar color is chosen from the configured palette.
 /// </summary>
 [Collection(BrowserTestCollection.Name)]
+[Trait(TestCategories.Category, TestCategories.OsInterface)]
 public class LoadingBarColorBrowserTests
 {
     private static readonly IReadOnlyList<string> ConfiguredPalette = LoadingBarOptions.DefaultColors;

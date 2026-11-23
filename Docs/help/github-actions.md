@@ -21,13 +21,21 @@ Für alle anderen PRs fuehrt der Workflow auf `ubuntu-latest` mit .NET `10.0.x` 
 - `dotnet restore Rezepte.sln`
 - `dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore`
 - `dotnet build Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-restore`
-- `dotnet build Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-restore`
-- Playwright-Browser-Installation
-- `dotnet publish Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore`
-- `dotnet test Rezepte.sln --configuration Release --no-build`
+- `dotnet test Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-build --filter "Category!=OsInterface"` (blockierende Lane mit Coverage-Gate)
 - `./scripts/Export-ImportContract.ps1 -OutputDirectory artifacts/contract-export`
 - `dotnet format Rezepte.sln --verify-no-changes --no-restore`
 - `dotnet list Rezepte.sln package --vulnerable --include-transitive`
+
+Die umgebungssensitive Lane läuft getrennt im Job `browser tests`
+(`continue-on-error: true`, best-effort): Build und Playwright-Installation für
+`Rezepte.Tests.Browser`, `dotnet publish` von `Rezepte.Web`, danach
+`dotnet test Rezepte.Tests.Browser` und `dotnet test Rezepte.Tests --filter "Category=OsInterface"`.
+Nach einem Testfehlschlag retried `scripts/Retry-FlakyTests.ps1` genau einmal nur
+die `Flaky`-markierten Fehlschläge; `scripts/Analyze-FlakyTestResults.ps1`
+berichtet die Flake-Statistik immer (`if: always()`). TRX-, Trace- und
+Applikationslog-Artefakte werden je Laufversuch hochgeladen. Details zur
+Klassifizierung, dem Retry und der Quarantäne-Empfehlung stehen in
+[Umgebungssensitive Tests](os-interface-tests.md).
 
 Der Vulnerability-Scan ist im Job `static checks` ein blockierendes Gate.
 Transitive NuGet-Pakete werden dabei mitgeprüft; ein gemeldetes verwundbares
@@ -42,7 +50,7 @@ Schlaegt dieser Schritt mit `CP0001`/`CP0002`-Meldungen fehl, weil eine PR die �
 
 ## Staging-Branch-CI
 
-Der Workflow `.github/workflows/staging-ci.yml` startet für jeden Push auf `staging`. Er prüft zunaechst, ob der aktuelle Tree identisch zu `main` ist (reiner Back-Merge), und fuehrt in diesem Fall keine Checks aus. Andernfalls läuft dieselbe Build-/Test-/Format-/Contract-Validierung wie im PR-Workflow.
+Der Workflow `.github/workflows/staging-ci.yml` startet für jeden Push auf `staging`. Er prüft zunaechst, ob der aktuelle Tree identisch zu `main` ist (reiner Back-Merge), und fuehrt in diesem Fall keine Checks aus. Andernfalls läuft dieselbe Build-/Test-/Format-/Contract-Validierung wie im PR-Workflow — inklusive des best-effort-Jobs `browser tests`, der bewusst nicht Teil des `version`-Gate-Needs ist.
 
 Nach einem erfolgreichen Lauf startet `.github/workflows/staging-to-main-promotion.yml` und erstellt einen Draft-PR `staging -> main`, falls noch keiner existiert. Der eigentliche Merge in `main` erfordert weiterhin eine manuelle Freigabe.
 
@@ -53,6 +61,26 @@ Der Workflow `.github/workflows/verify-pr-source.yml` verhindert, dass Pull Requ
 ## Synchronisation staging mit main
 
 Der Workflow `.github/workflows/sync-staging-with-main.yml` startet nach jedem Push auf `main` und erstellt einen PR `main -> staging`, falls `staging` hinter `main` zurückliegt. Dies hält die Release-Tags und History auf `staging` konsistent. Der Sync-PR sollte mit "Create a merge commit" gemergt werden.
+
+## Zeitgesteuerte Review-Workflows
+
+Drei Workflows erzeugen zu festen Intervallen Review-Issues, deren Body mit einer `@softwarewerkstatt`-Erwähnung beginnt; die Erwähnung stößt die externe Analyse- und Bearbeitungsautomatik des Accounts an. Die Workflows führen die Reviews nicht selbst durch.
+
+| Workflow | Zeitplan (UTC) | Typ-Label | Zweck |
+|---|---|---|---|
+| `.github/workflows/review-architecture-security.yml` | `'0 6 1 * *'` — monatlich am 1., 06:00 | `review-architecture-security` | Architektur- und Sicherheitsreview |
+| `.github/workflows/review-nuget-packages.yml` | `'0 5 * * 2'` — wöchentlich dienstags, 05:00 | `review-nuget-check` | NuGet-Paketprüfung |
+| `.github/workflows/review-compliance.yml` | `'0 7 1 1 *'` — jährlich am 1. Januar, 07:00 | `review-compliance` | Compliance- und Copyright-Review |
+
+Alle drei Workflows nutzen die gemeinsame Composite Action `.github/actions/create-review-issue`, damit die Sequenz „Label sicherstellen → Duplikatprüfung → Issue erzeugen" nur einmal existiert. Der Ablauf pro Lauf:
+
+- Das Typ-Label wird idempotent per `gh label create ... --force` angelegt (Muster der `automated-*`-Labels).
+- `gh issue list --state open --label <Typ-Label>` prueft auf offene Issues desselben Review-Typs. Bei einem Treffer wird kein neues Issue angelegt; der Lauf endet erfolgreich mit einer protokollierten Nicht-Erstellung (Duplikatvermeidung). Erst wenn der Vorgänger geschlossen ist, erzeugt der nächste Zyklus ein neues Issue.
+- Das erzeugte Issue trägt einen Titel mit Zyklus-Datum (`[Review] <Bezeichnung> – <Datum>`), das Typ-Label und als Body den jeweiligen Prüfauftrag mit `@softwarewerkstatt` als erster Zeile.
+
+Die Stunden sind gestaffelt, weil am 1. Januar Monats- und Jahreslauf zusammenfallen; der wöchentliche Lauf liegt auf Dienstag, gestaffelt zum bestehenden wöchentlichen Vulnerability-Scan `.github/workflows/security-scan.yml` (montags 04:00 UTC, `schedule` + `workflow_dispatch`), der ebenfalls zeitgesteuert läuft und bisher der einzige Cron-Workflow war.
+
+Alle drei Workflows bieten zusätzlich `workflow_dispatch` für manuelle Anläufe. Wichtig: `schedule`- und `workflow_dispatch`-Trigger wirken nur auf dem Default-Branch `main` — die Workflows werden erst nach der Promotion `staging -> main` aktiv; die Verifikation erfolgt danach per `workflow_dispatch`-Probelauf (erster Lauf erzeugt Label und Issue, ein sofortiger Zweitlauf protokolliert die Duplikatvermeidung).
 
 ## Release-Build
 

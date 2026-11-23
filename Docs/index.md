@@ -9,7 +9,7 @@ Diese Dokumentation ergänzt die [README](../README.md) mit detaillierten Inform
 - [Konfiguration](configuration.md) — alle wichtigen `appsettings.json`-Einstellungen.
 - [Sicherheit und Datenschutz](security.md) — Sicherheitsmassnahmen und Datenmodell.
 - [Tests und Qualitätssicherung](testing.md) — Testprojekte, Browser-Tests und NuGet-Sicherheitscheck.
-- [Installationsanleitung](install.md) — manuelles Deployment auf Linux mit systemd.
+- [Installationsanleitung](install.md) — manuelles Deployment auf Linux mit systemd: eigenständig oder hinter einem Reverse-Proxy.
 - [Deployment-Leitfaden](deployment-guide.md) — Google-Credentials und Production-Setup.
 - [Entwickler-Leitfaden](development-guide.md) — lokale Einrichtung von Google-Credentials.
 - [Anforderungskatalog und geplante Erweiterungen](Anforderungskatalog.md)

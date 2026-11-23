@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Rezepte.Tests.Browser.Infrastructure;
+using Rezepte.Tests.TestHelpers;
 using Xunit;
 
 namespace Rezepte.Tests.Browser;
@@ -8,6 +9,7 @@ namespace Rezepte.Tests.Browser;
 /// Browser tests that verify the loading bar behavior for navigation and interactive forms.
 /// </summary>
 [Collection(BrowserTestCollection.Name)]
+[Trait(TestCategories.Category, TestCategories.OsInterface)]
 public class LoadingBarFormNavigationBrowserTests
 {
     private readonly PlaywrightBrowserFixture _browserFixture;
@@ -66,7 +68,9 @@ public class LoadingBarFormNavigationBrowserTests
         await pageObject.SubmitInteractiveShoppingListItemAsync("Testzutat");
 
         // There is no positive signal to poll for here: the bar must never activate, so a
-        // deterministic wait is used before checking that it never did.
+        // deterministic wait is used before checking that it never did. Fixed waits without
+        // a pollable signal are the documented exception of the flaky-test hardening
+        // convention (Docs/help/os-interface-tests.md).
         await pageObject.Page.WaitForTimeoutAsync(500);
 
         (await pageObject.IsLoadingBarActiveAsync()).Should().BeFalse();

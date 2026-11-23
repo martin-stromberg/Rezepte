@@ -53,6 +53,7 @@ public class DeploymentDocumentationTests
     /// Framework dependent linux publish should produce documented entrypoint and runtime frameworks.
     /// </summary>
     [Fact]
+    [Trait(TestCategories.Category, TestCategories.OsInterface)]
     public void FrameworkDependentLinuxPublish_ShouldProduceDocumentedEntrypointAndRuntimeFrameworks()
     {
         var repositoryRoot = RepositoryPaths.FindRepositoryRoot();
@@ -99,10 +100,7 @@ public class DeploymentDocumentationTests
         }
         finally
         {
-            if (Directory.Exists(publishDirectory))
-            {
-                Directory.Delete(publishDirectory, recursive: true);
-            }
+            TempDirectoryCleanup.DeleteBestEffort(publishDirectory);
         }
     }
 

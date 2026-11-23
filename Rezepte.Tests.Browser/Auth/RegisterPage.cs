@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using Rezepte.Tests.Browser.Infrastructure;
 
 namespace Rezepte.Tests.Browser.Auth;
 
@@ -40,6 +41,7 @@ public sealed class RegisterPage : IAsyncDisposable
     public static async Task<RegisterPage> CreateAsync(IBrowser browser, string baseAddress)
     {
         var context = await browser.NewContextAsync();
+        context.SetDefaultNavigationTimeout(BrowserTimeouts.NavigationTimeoutMilliseconds);
         await context.Tracing.StartAsync(new TracingStartOptions
         {
             Screenshots = true,
@@ -136,10 +138,9 @@ public sealed class RegisterPage : IAsyncDisposable
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
     public async ValueTask DisposeAsync()
     {
-        Directory.CreateDirectory("playwright-traces");
         await _context.Tracing.StopAsync(new TracingStopOptions
         {
-            Path = Path.Combine("playwright-traces", $"Register-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.zip")
+            Path = PlaywrightTraces.GetTraceFilePath("Register")
         });
         await _context.CloseAsync();
     }
