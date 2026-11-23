@@ -1,0 +1,62 @@
+name: Compliance and Copyright Review
+
+# Scheduled review-issue generator: creates the recurring compliance and copyright
+# review issue (body starts with the @softwarewerkstatt mention, which triggers the
+# external analysis automation). The shared composite action
+# ./.github/actions/create-review-issue only creates the issue when no open issue
+# with the review-compliance label exists, so a cycle is never duplicated;
+# once the predecessor is closed, the next run creates a fresh issue.
+#
+# The schedule (and workflow_dispatch) only runs on the default branch main - on
+# staging and task branches this workflow stays inert until it is promoted.
+on:
+  schedule:
+    # Yearly on January 1st at 07:00 UTC, staggered one hour after the monthly
+    # architecture/security run, since both fall due on January 1st.
+    - cron: '0 7 1 1 *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: review-compliance
+  cancel-in-progress: true
+
+jobs:
+  create-review-issue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Local composite actions require the checked-out workflow state on the runner.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Create review issue
+        uses: ./.github/actions/create-review-issue
+        with:
+          label-name: review-compliance
+          label-color: "5319E7"
+          label-description: Scheduled compliance and copyright review issue
+          issue-title: "[Review] Compliance- und Copyright-Review"
+          issue-title-date-format: yyyy
+          issue-body: |
+            @softwarewerkstatt
+
+            Bitte führe das jährliche Compliance-Review durch.
+
+            Prüfe:
+
+            - Copyright-Hinweise im Quellcode
+            - Copyright-Angaben auf Webseiten
+            - Copyright-Angaben in About-Dialogen
+            - Impressum
+            - Datenschutzerklärung
+            - Drittanbieter-Lizenzen
+            - Open-Source-Verpflichtungen
+            - Unternehmens- und Kontaktinformationen
+            - App-Store-Metadaten (falls vorhanden)
+
+            Erstelle konkrete Änderungsvorschläge und liste erkannte Risiken oder Handlungsbedarfe auf.

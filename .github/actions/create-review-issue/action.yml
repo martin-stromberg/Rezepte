@@ -1,0 +1,63 @@
+name: Create review issue
+
+description: >
+  Ensures the given review-type label exists, checks whether an open issue with that
+  label is already present and creates a new review issue only when none exists - so
+  a review cycle is never duplicated while a closed predecessor starts a new cycle.
+  The issue title is suffixed with the current UTC date, formatted via
+  issue-title-date-format, so each issue stays attributable to its cycle. Shared by
+  the three scheduled review workflows (review-architecture-security.yml,
+  review-nuget-packages.yml, review-compliance.yml), so this "ensure label -> dedupe
+  -> create issue" sequence only exists once instead of being duplicated between them.
+
+inputs:
+  label-name:
+    description: Name of the review-type label; created if missing and used as the deduplication key.
+    required: true
+  label-color:
+    description: Hex color without '#' used when the label has to be created.
+    required: true
+  label-description:
+    description: Description used when the label has to be created.
+    required: true
+  issue-title:
+    description: Issue title prefix; the formatted cycle date is appended after an en dash.
+    required: true
+  issue-title-date-format:
+    description: pwsh Get-Date format string for the cycle suffix (e.g. 'yyyy-MM', 'yyyy-MM-dd' or 'yyyy').
+    required: true
+  issue-body:
+    description: Full markdown issue body; forwarded via the ISSUE_BODY environment variable to keep the multiline German text free of quoting issues.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Ensure review label exists
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh label create "${{ inputs.label-name }}" --color "${{ inputs.label-color }}" --description "${{ inputs.label-description }}" --force -R ${{ github.repository }}
+        if ($LASTEXITCODE -ne 0) { throw "gh label create failed with exit code $LASTEXITCODE" }
+      shell: pwsh
+
+    - name: Create review issue
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ISSUE_BODY: ${{ inputs.issue-body }}
+      run: |
+        $json = gh issue list -R ${{ github.repository }} --state open --label "${{ inputs.label-name }}" --json number
+        if ($LASTEXITCODE -ne 0) { throw "gh issue list failed with exit code $LASTEXITCODE" }
+        $existing = @($json | ConvertFrom-Json)
+        if ($existing.Count -eq 0) {
+          $cycle = (Get-Date).ToUniversalTime().ToString("${{ inputs.issue-title-date-format }}")
+          gh issue create `
+            -R ${{ github.repository }} `
+            --title "${{ inputs.issue-title }} – $cycle" `
+            --body $env:ISSUE_BODY `
+            --label "${{ inputs.label-name }}"
+          if ($LASTEXITCODE -ne 0) { throw "gh issue create failed with exit code $LASTEXITCODE" }
+        } else {
+          Write-Host "An open review issue with label '${{ inputs.label-name }}' already exists (#$($existing[0].number)) - skipping creation."
+        }
+      shell: pwsh

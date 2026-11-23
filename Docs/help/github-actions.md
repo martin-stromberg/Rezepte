@@ -62,6 +62,26 @@ Der Workflow `.github/workflows/verify-pr-source.yml` verhindert, dass Pull Requ
 
 Der Workflow `.github/workflows/sync-staging-with-main.yml` startet nach jedem Push auf `main` und erstellt einen PR `main -> staging`, falls `staging` hinter `main` zurückliegt. Dies hält die Release-Tags und History auf `staging` konsistent. Der Sync-PR sollte mit "Create a merge commit" gemergt werden.
 
+## Zeitgesteuerte Review-Workflows
+
+Drei Workflows erzeugen zu festen Intervallen Review-Issues, deren Body mit einer `@softwarewerkstatt`-Erwähnung beginnt; die Erwähnung stößt die externe Analyse- und Bearbeitungsautomatik des Accounts an. Die Workflows führen die Reviews nicht selbst durch.
+
+| Workflow | Zeitplan (UTC) | Typ-Label | Zweck |
+|---|---|---|---|
+| `.github/workflows/review-architecture-security.yml` | `'0 6 1 * *'` — monatlich am 1., 06:00 | `review-architecture-security` | Architektur- und Sicherheitsreview |
+| `.github/workflows/review-nuget-packages.yml` | `'0 5 * * 2'` — wöchentlich dienstags, 05:00 | `review-nuget-check` | NuGet-Paketprüfung |
+| `.github/workflows/review-compliance.yml` | `'0 7 1 1 *'` — jährlich am 1. Januar, 07:00 | `review-compliance` | Compliance- und Copyright-Review |
+
+Alle drei Workflows nutzen die gemeinsame Composite Action `.github/actions/create-review-issue`, damit die Sequenz „Label sicherstellen → Duplikatprüfung → Issue erzeugen" nur einmal existiert. Der Ablauf pro Lauf:
+
+- Das Typ-Label wird idempotent per `gh label create ... --force` angelegt (Muster der `automated-*`-Labels).
+- `gh issue list --state open --label <Typ-Label>` prueft auf offene Issues desselben Review-Typs. Bei einem Treffer wird kein neues Issue angelegt; der Lauf endet erfolgreich mit einer protokollierten Nicht-Erstellung (Duplikatvermeidung). Erst wenn der Vorgänger geschlossen ist, erzeugt der nächste Zyklus ein neues Issue.
+- Das erzeugte Issue trägt einen Titel mit Zyklus-Datum (`[Review] <Bezeichnung> – <Datum>`), das Typ-Label und als Body den jeweiligen Prüfauftrag mit `@softwarewerkstatt` als erster Zeile.
+
+Die Stunden sind gestaffelt, weil am 1. Januar Monats- und Jahreslauf zusammenfallen; der wöchentliche Lauf liegt auf Dienstag, gestaffelt zum bestehenden wöchentlichen Vulnerability-Scan `.github/workflows/security-scan.yml` (montags 04:00 UTC, `schedule` + `workflow_dispatch`), der ebenfalls zeitgesteuert läuft und bisher der einzige Cron-Workflow war.
+
+Alle drei Workflows bieten zusätzlich `workflow_dispatch` für manuelle Anläufe. Wichtig: `schedule`- und `workflow_dispatch`-Trigger wirken nur auf dem Default-Branch `main` — die Workflows werden erst nach der Promotion `staging -> main` aktiv; die Verifikation erfolgt danach per `workflow_dispatch`-Probelauf (erster Lauf erzeugt Label und Issue, ein sofortiger Zweitlauf protokolliert die Duplikatvermeidung).
+
 ## Release-Build
 
 Der Workflow `.github/workflows/release.yml` startet bei jedem Push auf `main` sowie bei gepushten Tags im Muster `v*.*.*`. Da nur PRs aus `staging` nach `main` gelangen, entspricht ein Push auf `main` faktisch dem Merge des Promotion-PRs. `scripts/resolve-release-version.mjs` klassifiziert den Lauf anschließend als automatisches Release (Branch-Push), manuelles Release (Tag-Push) oder Asset-Reparatur.
