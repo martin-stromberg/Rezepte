@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 
 const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/;
 const NEXT_RELEASE_PATTERN = /The next release version is\s+(\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)/i;
+const IMPORT_CONTRACT_VERSION_PATTERN = /<ImportContractVersion>([^<]+)<\/ImportContractVersion>/;
 // "main" and the "1.x" maintenance branch trigger an automatic release here ("1.x" is a
 // semantic-release range-pattern branch name, so fixes there stay inside the 1.x version
 // line). staging pushes are handled entirely by staging-ci.yml ("Pre-Release") and never
@@ -62,7 +63,7 @@ export function classifyWorkflowRef({ refType, refName }) {
 export function readImportContractVersion(repoRoot = process.cwd()) {
   const propsPath = resolve(repoRoot, "Directory.Build.props");
   const props = readFileSync(propsPath, "utf8");
-  const match = props.match(/<ImportContractVersion>([^<]+)<\/ImportContractVersion>/);
+  const match = props.match(IMPORT_CONTRACT_VERSION_PATTERN);
   if (!match) {
     throw new Error(`Could not read <ImportContractVersion> from '${propsPath}'.`);
   }
@@ -291,7 +292,7 @@ function tagCanProduceExpectedAssets(tag, expectedContractVersion) {
     return false;
   }
 
-  const match = propsResult.stdout.match(/<ImportContractVersion>([^<]+)<\/ImportContractVersion>/);
+  const match = propsResult.stdout.match(IMPORT_CONTRACT_VERSION_PATTERN);
   if (!match || match[1].trim() !== expectedContractVersion) {
     return false;
   }
@@ -437,9 +438,16 @@ export async function resolveReleaseVersion(environment = process.env, dependenc
   // Directory.Build.props (via readImportContractVersion in expectedReleaseAssetNames);
   // the repairability filter must test candidates against that same value.
   const expectedContractVersion = effects.readImportContractVersion();
-  const incomplete = incompleteReleases(await effects.listGitHubReleases({ repository, token }), effects)
-    .filter((release) => effects.tagIsAncestorOfHead(release.tag_name))
+  const ancestorIncomplete = incompleteReleases(await effects.listGitHubReleases({ repository, token }), effects)
+    .filter((release) => effects.tagIsAncestorOfHead(release.tag_name));
+  const incomplete = ancestorIncomplete
     .filter((release) => effects.tagCanProduceExpectedAssets(release.tag_name, expectedContractVersion));
+  const unrepairable = ancestorIncomplete.filter((release) => !incomplete.includes(release));
+  if (unrepairable.length > 0) {
+    effects.log(
+      `skipping permanently unrepairable release(s): ${unrepairable.map((release) => release.tag_name).join(", ")}`
+    );
+  }
   if (incomplete.length >= 1) {
     const release = incomplete[0];
     return emit(repairRelease({ release, kind: releaseRef.kind }), `release '${release.tag_name}' is missing its asset`);
