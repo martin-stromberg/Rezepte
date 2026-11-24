@@ -1,19 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarningsAsErrors>CS1591</WarningsAsErrors>
+    <!-- Microsoft.Extensions.* assemblies are framework-provided under net11.0; the explicit
+         references are kept for clarity, so the NU1510 advisory is suppressed. -->
+    <NoWarn>$(NoWarn);NU1510</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="Microsoft.Extensions.Logging" />
     <ProjectReference Include="..\Rezepte.Import.Abstractions\Rezepte.Import.Abstractions.csproj" />
     <PackageReference Include="Google.Cloud.Vision.V1" Version="3.8.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.15" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.15" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="11.0.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(RezepteWebReferencePath)' != ''">
     <Reference Include="Rezepte.Web">

@@ -582,8 +582,9 @@ Invoke-ContractBuild "Rezepte.Import.PluginSdk/Rezepte.Import.PluginSdk.csproj"
 $baselineRoot = Join-Path $exportRoot "baselines/$ContractVersion"
 [System.IO.Directory]::CreateDirectory($baselineRoot) | Out-Null
 foreach ($projectName in @("Rezepte.Import.Abstractions", "Rezepte.Import.PluginSdk")) {
-    $dllPath = Join-Path $exportRoot "$projectName/bin/Release/net10.0/$projectName.dll"
-    if (-not [System.IO.File]::Exists($dllPath)) {
+    $dllPath = Get-ChildItem -Path (Join-Path $exportRoot "$projectName/bin/Release/*/$projectName.dll") -File |
+        Select-Object -First 1 -ExpandProperty FullName
+    if (-not $dllPath -or -not [System.IO.File]::Exists($dllPath)) {
         Fail "baseline assembly was not built: $projectName.dll"
     }
 

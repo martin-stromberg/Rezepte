@@ -30,7 +30,7 @@ public class LoadingBarDisabledBrowserTests : IClassFixture<LoadingBarDisabledBr
     /// Verifies that the loading bar host element is absent when the feature is disabled.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task WhenFeatureDisabled_PageContainsNoLoadingBarElement()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);

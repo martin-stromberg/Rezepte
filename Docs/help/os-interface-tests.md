@@ -8,7 +8,7 @@ ausgeführt und ausgewertet.
 
 Diese Konvention folgt der Softwareschmiede-Blaupause (PR #432), übertragen auf die
 hier bestehende projektweise Trennung (`Rezepte.Tests` deterministisch,
-`Rezepte.Tests.Browser` umgebungssensitiv) und xUnit 2.
+`Rezepte.Tests.Browser` umgebungssensitiv) und `xunit.v3`.
 
 ## Klassifizierungskriterien
 
@@ -86,7 +86,9 @@ Vergaberegeln:
 - `Flaky` wird **nur in Kombination mit `OsInterface`** vergeben — nie in der
   regulären Lane (abgesichert durch `FlakyConventionTests`, der per
   `<Compile Include>`-Link in beiden Testprojekten läuft und jeweils die eigene
-  Assembly scannt; xUnit-2-tauglich via `CustomAttributeData`).
+  Assembly scannt; die Trait-Werte liest er versionsneutral via
+  `CustomAttributeData`, weil `Xunit.TraitAttribute` keinen öffentlichen
+  Trait-Reader bietet).
 - `Flaky` wird nur bei einem **dokumentierten Flake-Ereignis** (konkreter
   CI-/Lokal-Fehlschlag mit Fehlerbild) oder einem Analyzer-Befund aus
   `Analyze-FlakyTestResults.ps1` vergeben — ein gewollter Feedback-Loop statt
@@ -198,11 +200,11 @@ nicht automatisch angelegt. Automatismus und Deduplizierung bleiben ein offener
 Ausbau-Punkt.
 
 Übergangsmechanismus für einen tatsächlichen Quarantäne-Fall: den betroffenen
-Test manuell per `Skip.IfNot` mit Issue-Verweis quarantänieren —
-`Xunit.SkippableFact` wird dafür in `Rezepte.Tests.csproj` beim ersten Fall
-nachgerüstet (das Browser-Projekt referenziert es bereits). Ein Trait-Entzug ist
-der schlechtere Mechanismus: Er würde den Test in die blockierende Lane
-zurückholen.
+Test manuell per `Assert.SkipUnless` mit Issue-Verweis quarantänieren — die
+Laufzeit-Skip-API ist in `xunit.v3` eingebaut und steht in beiden Testprojekten
+zur Verfügung (das früher verwendete `Xunit.SkippableFact`-Paket wurde mit der
+Migration auf `xunit.v3` entfernt). Ein Trait-Entzug ist der schlechtere
+Mechanismus: Er würde den Test in die blockierende Lane zurückholen.
 
 ## Härtungsmaßnahmen der Infrastruktur
 

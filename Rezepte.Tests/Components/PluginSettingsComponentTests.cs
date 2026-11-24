@@ -15,7 +15,7 @@ namespace Rezepte.Tests.Components;
 /// </summary>
 public sealed class PluginSettingsComponentTests : IDisposable
 {
-    private readonly TestContext _context = new();
+    private readonly BunitContext _context = new();
     private readonly Mock<IPluginSettingsService> _service = new();
 
     /// <summary>
@@ -367,7 +367,7 @@ public sealed class PluginSettingsComponentTests : IDisposable
 
     private IRenderedComponent<PluginSettings> Render()
     {
-        var cut = _context.RenderComponent<PluginSettings>();
+        var cut = _context.Render<PluginSettings>();
         cut.WaitForAssertion(() => cut.FindAll("table").Should().NotBeEmpty());
         return cut;
     }

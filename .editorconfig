@@ -5,3 +5,9 @@ root = true
 # would otherwise default to CRLF and fail verification on LF checkouts).
 [*]
 end_of_line = lf
+
+# xunit.v3 suggestion introduced with the 4.x analyzer package; adopting
+# TestContext.Current.CancellationToken across the suite is tracked separately
+# from the .NET 11 platform migration.
+[*.cs]
+dotnet_diagnostic.xUnit1051.severity = suggestion

@@ -14,7 +14,7 @@ namespace Rezepte.Tests.Components;
 /// </summary>
 public sealed class ShareRecipeDialogTests : IDisposable
 {
-    private readonly TestContext _context = new();
+    private readonly BunitContext _context = new();
 
     /// <summary>
     /// Initializes a new instance.
@@ -33,7 +33,7 @@ public sealed class ShareRecipeDialogTests : IDisposable
         var factory = new ApiClientTestFactory(_ => new HttpResponseMessage(HttpStatusCode.OK));
         _context.Services.AddSingleton(factory.Create());
 
-        var cut = _context.RenderComponent<ShareRecipeDialog>(parameters => parameters
+        var cut = _context.Render<ShareRecipeDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.RecipeId, "recipe-1")
             .Add(p => p.HasSideDishes, false));
@@ -50,7 +50,7 @@ public sealed class ShareRecipeDialogTests : IDisposable
         var factory = new ApiClientTestFactory(_ => new HttpResponseMessage(HttpStatusCode.OK));
         _context.Services.AddSingleton(factory.Create());
 
-        var cut = _context.RenderComponent<ShareRecipeDialog>(parameters => parameters
+        var cut = _context.Render<ShareRecipeDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.RecipeId, "recipe-1")
             .Add(p => p.HasSideDishes, true));
@@ -75,7 +75,7 @@ public sealed class ShareRecipeDialogTests : IDisposable
         });
         _context.Services.AddSingleton(factory.Create());
 
-        var cut = _context.RenderComponent<ShareRecipeDialog>(parameters => parameters
+        var cut = _context.Render<ShareRecipeDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.RecipeId, "recipe-1")
             .Add(p => p.HasSideDishes, true));
@@ -102,7 +102,7 @@ public sealed class ShareRecipeDialogTests : IDisposable
         });
         _context.Services.AddSingleton(factory.Create());
 
-        var cut = _context.RenderComponent<ShareRecipeDialog>(parameters => parameters
+        var cut = _context.Render<ShareRecipeDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.RecipeId, "recipe-1"));
 
@@ -124,7 +124,7 @@ public sealed class ShareRecipeDialogTests : IDisposable
         var factory = new ApiClientTestFactory(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError));
         _context.Services.AddSingleton(factory.Create());
 
-        var cut = _context.RenderComponent<ShareRecipeDialog>(parameters => parameters
+        var cut = _context.Render<ShareRecipeDialog>(parameters => parameters
             .Add(p => p.Show, true)
             .Add(p => p.RecipeId, "recipe-1"));
 
