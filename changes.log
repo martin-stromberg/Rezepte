@@ -1,3 +1,10 @@
+## 2026-11-24 — Turnusmäßige NuGet-Paketprüfung und Versions-Updates (Issue #227)
+
+- Alle direkten `Microsoft.*`-Paketreferenzen der `Rezepte.sln` wurden auf den einheitlichen Stand `10.0.15` der .NET-10-Linie angehoben (vorher gemischt `10.0.0`/`10.0.9`/`10.0.11` über sechs `*.csproj`); zusätzlich wurden Test-Pakete aktualisiert: `Microsoft.NET.Test.Sdk` `18.12.0`, `xunit.runner.visualstudio` `4.0.1`, `FluentAssertions` `8.11.0`, `Moq` `4.21.0`, `coverlet.collector` `10.1.1`, `Microsoft.Playwright` `1.65.1` und `Xunit.SkippableFact` `1.5.85`.
+- Aufgeschoben in Folge-Issues: `xunit` → `xunit.v3`, `bunit` 1.x → 2.x und `AngleSharp` → 1.10.x (gekoppelte Test-Stack-Migration, Issue #228) sowie `QuestPDF` → 2026.9.2 (Breaking Changes in den Font-Einstellungen, Issue #229).
+- Verifikation: `dotnet restore`, Solution-Build mit `TreatWarningsAsErrors`, beide Testsuiten (774 + 35 Tests) und `dotnet list Rezepte.sln package --vulnerable --include-transitive` sind befundfrei bzw. grün; `msTools.Updater` bleibt als lokales Paket unverändert und nicht bewertbar.
+- Dokumentation: `Docs/dependencies.md` (Versionsstände `Microsoft.EntityFrameworkCore.Sqlite` `10.0.15`, transitiv `SQLitePCLRaw.lib.e_sqlite3` `2.1.13`, Kopplungsregel `AngleSharp`/`bunit`, aufgeschobene Empfehlungen). Analysebericht: `Docs/features/task/issue-227-dbc4120f07334ed8be42a585c6b7ddaf-review-nuget-paketpruefung-202/analysis-report.md`.
+
 ## 2026-11-23 — Zeitgesteuerte Review-Issue-Workflows (Issue #178)
 
 - Drei neue `schedule`-Workflows unter `.github/workflows/` erzeugen wiederkehrende Review-Issues: `review-architecture-security.yml` (monatlich am 1., 06:00 UTC), `review-nuget-packages.yml` (wöchentlich dienstags, 05:00 UTC) und `review-compliance.yml` (jährlich am 1. Januar, 07:00 UTC); alle zusätzlich per `workflow_dispatch` manuell startbar.
