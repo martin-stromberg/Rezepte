@@ -223,6 +223,7 @@ function createDefaultDependencies() {
     runSemanticReleaseDryRun,
     readImportContractVersion,
     tagIsAncestorOfHead,
+    tagCanProduceExpectedAssets,
     writeOutputs,
     log: console.log
   };
@@ -267,6 +268,40 @@ function tagIsAncestorOfHead(tag) {
     stdio: "ignore"
   });
   return result.status === 0;
+}
+
+// A repair candidate must additionally be able to produce the exact asset set the
+// completeness check expects - otherwise it wedges the repair queue: the release would
+// stay incompleteReleases[0] forever, being rebuilt and re-uploaded uselessly on every
+// push. Two permanent disqualifiers exist in history: (a) the tag's own
+// Directory.Build.props declares a different ImportContractVersion than the one the
+// completeness check derives from HEAD (v1.4.0 carries 0.2.0, so its rebuilt contract
+// asset can never be the expected rezepte-import-contract-<HEAD version>.zip), and
+// (b) the tag's tree lacks scripts/Export-ImportContract.ps1, the script the repair path
+// in release.yml invokes to produce the contract asset (v1.0.0-v1.3.0 predate it -
+// reaching them would fail every run hard, turning each 1.x push red). Any probe failure
+// disqualifies conservatively.
+function tagCanProduceExpectedAssets(tag, expectedContractVersion) {
+  const propsResult = spawnSync(
+    "git",
+    ["show", `refs/tags/${tag}:Directory.Build.props`],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+  );
+  if (propsResult.status !== 0) {
+    return false;
+  }
+
+  const match = propsResult.stdout.match(/<ImportContractVersion>([^<]+)<\/ImportContractVersion>/);
+  if (!match || match[1].trim() !== expectedContractVersion) {
+    return false;
+  }
+
+  const exportScriptResult = spawnSync(
+    "git",
+    ["cat-file", "-e", `refs/tags/${tag}:scripts/Export-ImportContract.ps1`],
+    { stdio: "ignore" }
+  );
+  return exportScriptResult.status === 0;
 }
 
 // semantic-release rejects any next version outside the range a branch may publish. On a
@@ -398,8 +433,13 @@ export async function resolveReleaseVersion(environment = process.env, dependenc
     );
   }
 
+  // The completeness check derives the expected contract-asset version from HEAD's
+  // Directory.Build.props (via readImportContractVersion in expectedReleaseAssetNames);
+  // the repairability filter must test candidates against that same value.
+  const expectedContractVersion = effects.readImportContractVersion();
   const incomplete = incompleteReleases(await effects.listGitHubReleases({ repository, token }), effects)
-    .filter((release) => effects.tagIsAncestorOfHead(release.tag_name));
+    .filter((release) => effects.tagIsAncestorOfHead(release.tag_name))
+    .filter((release) => effects.tagCanProduceExpectedAssets(release.tag_name, expectedContractVersion));
   if (incomplete.length >= 1) {
     const release = incomplete[0];
     return emit(repairRelease({ release, kind: releaseRef.kind }), `release '${release.tag_name}' is missing its asset`);

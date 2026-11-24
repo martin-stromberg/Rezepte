@@ -264,11 +264,23 @@ jobs:
         # recent non-prerelease release (sorted by the tagged commit's created_at) once the
         # flag is cleared - so before the first v2.x exists, a maintenance release cleared
         # here falls back to the previous v1.x release, an accepted trade-off over offering
-        # v2.x consumers a downgrade.
+        # v2.x consumers a downgrade. The PATCH retries briefly against transient API
+        # failures but still fails the step loudly if it never succeeds - a silently stale
+        # Latest flag is worse than a red run.
         if: steps.version.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${{ steps.version.outputs.tag }}"
           release_id="$(gh api "repos/${{ github.repository }}/releases/tags/${tag}" --jq .id)"
-          gh api -X PATCH "repos/${{ github.repository }}/releases/${release_id}" -f make_latest=false
+          for attempt in 1 2 3; do
+            if gh api -X PATCH "repos/${{ github.repository }}/releases/${release_id}" -f make_latest=false; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Clearing the Latest flag on ${tag} failed after ${attempt} attempts." >&2
+              exit 1
+            fi
+            echo "Clearing the Latest flag on ${tag} failed (attempt ${attempt}/3); retrying in 10s." >&2
+            sleep 10
+          done
