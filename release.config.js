@@ -71,7 +71,7 @@ const dryRunPlugins = [
 ];
 
 module.exports = {
-  branches: ["main"],
+  branches: ["main", "1.x"],
   tagFormat: "v${version}",
   plugins: process.env.RESOLVE_DRY_RUN === "true" ? dryRunPlugins : releasePlugins
 };

@@ -9,7 +9,7 @@ name: Release
 
 "on":
   push:
-    branches: [main]
+    branches: [main, 1.x]
     tags: ['v*.*.*']
 
 permissions:
@@ -246,3 +246,18 @@ jobs:
             "${{ steps.contract.outputs.zip_path }}" \
             "${{ steps.contract.outputs.metadata_path }}" \
             --clobber
+
+      - name: Clear Latest flag on maintenance release
+        # Only exists in the 1.x copy of this workflow: GitHub marks the most recently
+        # created non-prerelease release as "Latest", so a maintenance release (e.g.
+        # v1.22.1) published after v2.0.0 would otherwise take over releases/latest and
+        # offer v2.x consumers (including the app updater, which reads update.json from
+        # releases/latest) a downgrade. This step clears the flag on the just-created
+        # release so the newest main-line release stays "Latest".
+        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          release_id="$(gh api "repos/${{ github.repository }}/releases/tags/${tag}" --jq .id)"
+          gh api -X PATCH "repos/${{ github.repository }}/releases/${release_id}" -f make_latest=false

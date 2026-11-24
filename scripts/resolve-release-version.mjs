@@ -18,9 +18,11 @@ import { fileURLToPath } from "node:url";
 
 const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/;
 const NEXT_RELEASE_PATTERN = /The next release version is\s+(\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)/i;
-// Only "main" triggers an automatic release here - staging pushes are handled entirely by
-// staging-ci.yml ("Pre-Release") and never reach this script.
-const AUTOMATIC_RELEASE_BRANCHES = ["main"];
+// "main" and the "1.x" maintenance branch trigger an automatic release here ("1.x" is a
+// semantic-release range-pattern branch name, so fixes there stay inside the 1.x version
+// line). staging pushes are handled entirely by staging-ci.yml ("Pre-Release") and never
+// reach this script.
+const AUTOMATIC_RELEASE_BRANCHES = ["main", "1.x"];
 
 export function parseManualTag(tagName) {
   if (!tagName?.startsWith("v")) {

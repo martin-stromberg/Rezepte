@@ -12,6 +12,7 @@ on:
   pull_request:
     branches:
       - staging
+      - 1.x
     types:
       - opened
       - synchronize
