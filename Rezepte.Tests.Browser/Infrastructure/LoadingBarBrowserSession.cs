@@ -12,8 +12,8 @@ internal static class LoadingBarBrowserSession
         PlaywrightBrowserFixture browserFixture,
         RezepteAppFixture appFixture)
     {
-        Skip.IfNot(browserFixture.BrowsersAvailable, browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(appFixture.ApplicationAvailable, appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(browserFixture.BrowsersAvailable, browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(appFixture.ApplicationAvailable, appFixture.ApplicationUnavailableSkipReason);
 
         var pageObject = await LoadingBarPageObject.CreateAsync(browserFixture.Browser!, appFixture.BaseAddress);
         try

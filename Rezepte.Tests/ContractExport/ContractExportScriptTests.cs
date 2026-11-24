@@ -266,9 +266,9 @@ public sealed class ContractExportScriptTests
     {
         using var temp = new TempDirectory();
         var fakeRepo = CreateFakeRepoWithContractSources(temp);
-        Directory.CreateDirectory(fakeRepo.File("Rezepte.Import.PluginSdk/bin/Release/net10.0"));
+        Directory.CreateDirectory(fakeRepo.File("Rezepte.Import.PluginSdk/bin/Release/net11.0"));
         Directory.CreateDirectory(fakeRepo.File("Rezepte.Import.PluginSdk/obj"));
-        File.WriteAllText(fakeRepo.File("Rezepte.Import.PluginSdk/bin/Release/net10.0/local.dll"), "binary");
+        File.WriteAllText(fakeRepo.File("Rezepte.Import.PluginSdk/bin/Release/net11.0/local.dll"), "binary");
         File.WriteAllText(fakeRepo.File("Rezepte.Import.PluginSdk/obj/project.assets.json"), "{}");
 
         var result = RunExportFromScript(

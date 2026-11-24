@@ -30,7 +30,7 @@ public sealed class PlaywrightBrowserFixture : IAsyncLifetime
     /// Creates the Playwright instance and launches the browser.
     /// </summary>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         try
         {
@@ -49,7 +49,7 @@ public sealed class PlaywrightBrowserFixture : IAsyncLifetime
     /// Closes the browser and disposes the Playwright instance.
     /// </summary>
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Browser is not null)
         {

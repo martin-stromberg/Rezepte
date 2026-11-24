@@ -43,7 +43,7 @@ public class DeploymentDocumentationTests
         var readme = RepositoryPaths.ReadRepositoryFile("README.md");
 
         readme.Should().Contain("Docs/install.md");
-        readme.Should().Contain(".NET-10-Shared-Frameworks");
+        readme.Should().Contain(".NET-11-Shared-Frameworks");
         readme.Should().Contain("Microsoft.NETCore.App");
         readme.Should().Contain("Microsoft.AspNetCore.App");
         readme.Should().Contain("self-contained");
@@ -65,7 +65,7 @@ public class DeploymentDocumentationTests
         try
         {
             var result = RunDotnet(
-                "publish Rezepte.Web -c Release -f net10.0 -r linux-x64 --self-contained false",
+                "publish Rezepte.Web -c Release -f net11.0 -r linux-x64 --self-contained false",
                 repositoryRoot,
                 publishDirectory);
 
@@ -93,10 +93,10 @@ public class DeploymentDocumentationTests
 
             frameworks.Should().Contain(framework =>
                 framework.Name == "Microsoft.NETCore.App" &&
-                framework.Version.StartsWith("10.", StringComparison.Ordinal));
+                framework.Version.StartsWith("11.", StringComparison.Ordinal));
             frameworks.Should().Contain(framework =>
                 framework.Name == "Microsoft.AspNetCore.App" &&
-                framework.Version.StartsWith("10.", StringComparison.Ordinal));
+                framework.Version.StartsWith("11.", StringComparison.Ordinal));
         }
         finally
         {

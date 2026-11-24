@@ -4,7 +4,7 @@ Diese Anleitung dokumentiert, wie die Screenshots und das animierte GIF in der R
 
 ## Voraussetzungen
 
-- [.NET SDK 10](https://dotnet.microsoft.com)
+- [.NET SDK 11](https://dotnet.microsoft.com)
 - [Node.js](https://nodejs.org/) (mind. v18)
 - Chromium-Browser fuer Playwright
 

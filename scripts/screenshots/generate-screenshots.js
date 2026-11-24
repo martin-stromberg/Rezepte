@@ -7,7 +7,43 @@ const http = require('http');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const outputDir = path.join(repoRoot, 'Docs', 'screenshots');
-const appDll = path.join(repoRoot, 'Rezepte.Web', 'bin', 'Release', 'net10.0', 'publish', 'Rezepte.Web.dll');
+const releaseDir = path.join(repoRoot, 'Rezepte.Web', 'bin', 'Release');
+const appDll = (() => {
+  if (fs.existsSync(releaseDir)) {
+    // Collect every TFM folder that contains a published Rezepte.Web.dll. Several
+    // candidates can exist after a target-framework migration (e.g. a stale net10.0
+    // publish next to net11.0); pick the highest TFM version deterministically and
+    // break ties by the publish directory's mtime. Warn on multiple candidates so a
+    // stale selection is never silent.
+    const candidates = fs.readdirSync(releaseDir)
+      .map(tfm => {
+        const publishDir = path.join(releaseDir, tfm, 'publish');
+        const dll = path.join(publishDir, 'Rezepte.Web.dll');
+        if (!fs.existsSync(dll)) {
+          return null;
+        }
+        const tfmMatch = /^net(\d+)\.(\d+)/.exec(tfm);
+        return {
+          dll,
+          version: tfmMatch ? Number(tfmMatch[1]) * 100 + Number(tfmMatch[2]) : -1,
+          mtime: fs.statSync(publishDir).mtimeMs
+        };
+      })
+      .filter(candidate => candidate !== null);
+
+    candidates.sort((a, b) => b.version - a.version || b.mtime - a.mtime);
+    if (candidates.length > 1) {
+      console.warn(
+        `Multiple published builds found (${candidates.map(c => c.dll).join(', ')}); ` +
+        `using the newest TFM publish at ${candidates[0].dll}.`
+      );
+    }
+    if (candidates.length > 0) {
+      return candidates[0].dll;
+    }
+  }
+  return path.join(releaseDir, '<tfm>', 'publish', 'Rezepte.Web.dll');
+})();
 const tempDbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rezepte-screenshots-db-'));
 const tempDb = path.join(tempDbDir, 'rezepte.db');
 

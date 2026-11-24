@@ -34,7 +34,7 @@ public class RecipeSearchBrowserTests
     /// A search submitted through the navigation bar shows the seeded recipe in the result list.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task NavbarSearch_ShowsSeededRecipe()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
@@ -56,7 +56,7 @@ public class RecipeSearchBrowserTests
     /// covering the prerender/SSR path of the page.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     [Trait(TestCategories.Category, TestCategories.Flaky)]
     public async Task DirectUrl_WithQuery_ShowsResults()
     {
@@ -79,7 +79,7 @@ public class RecipeSearchBrowserTests
     /// A search without matches shows the no-results alert and not the failure alert.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task Search_WithoutMatches_ShowsNoSearchResults()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
@@ -97,7 +97,7 @@ public class RecipeSearchBrowserTests
     /// With more results than the page size, the next-page button moves to the second page.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task Pagination_NextPage_ShowsPageTwo()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
@@ -133,7 +133,7 @@ public class RecipeSearchBrowserTests
     /// Submitting the in-page search form updates the result list.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task InPageSearch_Submit_UpdatesResultList()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
@@ -207,7 +207,7 @@ public class RecipeSearchBrowserTests
     /// circuit transition and a full interactive render cycle on the same instance.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task InPageSearch_TypedValue_SurvivesInteractiveCircuit()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
@@ -251,7 +251,7 @@ public class RecipeSearchBrowserTests
     /// synchronizes the in-page search field to the new query (new-mount path).
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task NavbarSearch_WhileOnSearchPage_UpdatesSearchField()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);

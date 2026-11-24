@@ -6,7 +6,7 @@ Der Datenexport wird in den Einstellungen unter "Datenexport" gestartet. Die Anw
 
 Waehrend der Erstellung zeigt die Oberflaeche den aktuellen Fortschritt an. Sobald der Job erfolgreich abgeschlossen ist, erscheint die Exportdatei in der Tabelle "Gespeicherte Exporte". Ueber die Tabelle kann die Datei heruntergeladen oder geloescht werden. Falls der Export fehlschlaegt, wird der Fehlerstatus in der Oberflaeche angezeigt.
 
-Optional koennen Bilder und Rezept-PDFs in den Export aufgenommen werden. Bei grossen Datenmengen kann die Erstellung dadurch laenger dauern.
+Optional koennen Bilder und Rezept-PDFs in den Export aufgenommen werden. Bei grossen Datenmengen kann die Erstellung dadurch laenger dauern. Die PDFs werden mit einer fest eingebundenen Schrift erzeugt und haengen daher nicht von den auf dem Server installierten Schriften ab; Umlaute und Emoji in Rezepttexten werden dargestellt, Zeichen ausserhalb des abgedeckten Zeichenvorrats erscheinen als Platzhalter.
 
 ## Gesamtexport fuer Administratoren
 

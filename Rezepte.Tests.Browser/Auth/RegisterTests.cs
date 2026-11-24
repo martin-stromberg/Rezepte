@@ -51,11 +51,11 @@ public class RegisterTests
     /// Verifies that registering with demo data creates cookbooks, recipes, calendar events and shopping list items.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task Register_WithDemoData_CreatesDemoData()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         // The application only allows access to /register while no user exists, so the app
         // is restarted against an empty database before exercising the registration flow.
@@ -95,11 +95,11 @@ public class RegisterTests
     /// Verifies that registering without demo data leaves the lists empty.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task Register_WithoutDemoData_LeavesListsEmpty()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         // See Register_WithDemoData_CreatesDemoData for why the empty-database restart is needed.
         await _appFixture.RestartWithEmptyDatabaseAsync();

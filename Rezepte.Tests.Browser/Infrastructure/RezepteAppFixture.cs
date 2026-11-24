@@ -69,7 +69,7 @@ public class RezepteAppFixture : IAsyncLifetime
     /// Starts the published web application, waits until it is reachable, and registers the test user.
     /// </summary>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var applicationDllPath = ResolveApplicationDllPath();
         if (applicationDllPath is null)
@@ -126,11 +126,11 @@ public class RezepteAppFixture : IAsyncLifetime
     /// Stops the application process and deletes the temporary database.
     /// </summary>
     /// <returns>A completed task.</returns>
-    public virtual Task DisposeAsync()
+    public virtual ValueTask DisposeAsync()
     {
         StopApplicationProcess();
         DeleteTemporaryDatabase();
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
     /// <summary>

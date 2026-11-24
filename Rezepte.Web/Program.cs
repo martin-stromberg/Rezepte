@@ -17,6 +17,20 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure logging (Serilog via extension)
 builder.ConfigureSerilog();
 
+// Central QuestPDF setup (license, deterministic bundled font chain, deployed emoji fallback)
+var questPdfFonts = QuestPdfConfiguration.Configure();
+if (!questPdfFonts.EmojiFallbackRegistered)
+{
+    // A missing Fonts deployment (e.g. a packaging error) would otherwise only surface
+    // as failed or tofu-rendered PDF exports; log the root cause at startup.
+    Log.Warning(
+        questPdfFonts.FontsDirectoryExists
+            ? "QuestPDF fonts directory {FontsDirectory} exists, but the emoji fallback font '{EmojiFallbackFontFamily}' is not registered; emoji in PDF exports may render as placeholder glyphs."
+            : "QuestPDF fonts directory {FontsDirectory} is missing; the emoji fallback font '{EmojiFallbackFontFamily}' was not registered and PDF exports may fail or render emoji as placeholder glyphs.",
+        questPdfFonts.FontsDirectory,
+        QuestPdfConfiguration.EmojiFallbackFontFamily);
+}
+
 builder.UseAutoUpdate(autoUpdate =>
 {
     autoUpdate.BindConfiguration("ApplicationUpdates");

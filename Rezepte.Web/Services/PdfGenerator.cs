@@ -30,7 +30,6 @@ public class PdfGenerator : IPdfGenerator
     {
         _db = db;
         _logger = logger;
-        QuestPDF.Settings.License = LicenseType.Community;
     }
 
     /// <summary>
@@ -100,7 +99,7 @@ public class PdfGenerator : IPdfGenerator
                 page.Size(PageSizes.A4);
                 page.Margin(25);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(12));
+                page.DefaultTextStyle(x => x.FontSize(12).FontFamily("Lato", "Noto Emoji"));
 
                 page.Header().Element(ComposeHeader);
                 page.Content().Element(ComposeContent);

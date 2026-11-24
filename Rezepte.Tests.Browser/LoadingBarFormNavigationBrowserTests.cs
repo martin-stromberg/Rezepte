@@ -30,7 +30,7 @@ public class LoadingBarFormNavigationBrowserTests
     /// Verifies that submitting the navigation search shows the loading bar.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task SearchSubmit_ShowsLoadingBar()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
@@ -56,7 +56,7 @@ public class LoadingBarFormNavigationBrowserTests
     /// Verifies that an interactive form submit without navigation does not activate the loading bar.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task InteractiveFormSubmitWithoutNavigation_DoesNotActivateLoadingBar()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);

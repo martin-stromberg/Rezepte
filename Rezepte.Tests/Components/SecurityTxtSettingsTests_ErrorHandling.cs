@@ -15,7 +15,7 @@ namespace Rezepte.Tests.Components;
 /// </summary>
 public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
 {
-    private readonly TestContext _context = new();
+    private readonly BunitContext _context = new();
 
     /// <summary>
     /// Initializes a new instance.
@@ -34,7 +34,7 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
         var apiClient = CreateApiClient(_ => throw new HttpRequestException("boom-load"));
         _context.Services.AddSingleton(apiClient);
 
-        var cut = _context.RenderComponent<Rezepte.Web.Components.Settings.SecurityTxtSettings>();
+        var cut = _context.Render<Rezepte.Web.Components.Settings.SecurityTxtSettings>();
 
         cut.WaitForAssertion(() =>
         {
@@ -74,7 +74,7 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
         });
 
         _context.Services.AddSingleton(apiClient);
-        var cut = _context.RenderComponent<Rezepte.Web.Components.Settings.SecurityTxtSettings>();
+        var cut = _context.Render<Rezepte.Web.Components.Settings.SecurityTxtSettings>();
 
         cut.WaitForAssertion(() => cut.Find("#securitytxt-enabled"));
         cut.Find("button.btn.btn-primary").Click();
@@ -109,7 +109,7 @@ public sealed class SecurityTxtSettingsTests_ErrorHandling : IDisposable
         });
         _context.Services.AddSingleton(apiClient);
 
-        var cut = _context.RenderComponent<Rezepte.Web.Components.Settings.SecurityTxtSettings>();
+        var cut = _context.Render<Rezepte.Web.Components.Settings.SecurityTxtSettings>();
 
         cut.WaitForAssertion(() => cut.Find("#securitytxt-enabled"));
         cut.FindAll("#securitytxt-canonical").Should().ContainSingle();

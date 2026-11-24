@@ -501,7 +501,7 @@ public sealed class PluginManagerTests
 
         if (IsCodeCoverageCollectorAttached())
         {
-            // The in-process coverlet.core data collector retains references to every assembly it observes,
+            // An attached coverlet collector retains references to every assembly it instruments,
             // which keeps collectible AssemblyLoadContexts from unloading regardless of product behavior.
             return;
         }
@@ -515,8 +515,37 @@ public sealed class PluginManagerTests
 
     private static bool IsCodeCoverageCollectorAttached()
     {
+        // Under xunit.v3's self-executing runner the "XPlat Code Coverage" collector embeds a
+        // Coverlet.Core.Instrumentation.Tracker type into every instrumented assembly instead of
+        // loading a "coverlet.core" assembly into the test host. The tracker retains references
+        // to the instrumented modules, so collectible AssemblyLoadContexts cannot unload when it
+        // is present regardless of product behavior.
         return AppDomain.CurrentDomain.GetAssemblies()
-            .Any(a => string.Equals(a.GetName().Name, "coverlet.core", StringComparison.OrdinalIgnoreCase));
+            .Any(HasEmbeddedCoverletTracker);
+    }
+
+    private static bool HasEmbeddedCoverletTracker(System.Reflection.Assembly assembly)
+    {
+        static bool IsCoverletTrackerType(System.Type? type) =>
+            type?.FullName?.StartsWith("Coverlet.Core.Instrumentation", StringComparison.Ordinal) == true;
+
+        try
+        {
+            return assembly.GetTypes().Any(t => IsCoverletTrackerType(t));
+        }
+        catch (System.Reflection.ReflectionTypeLoadException ex)
+        {
+            // GetTypes() failed only partially: the successfully loaded types are still
+            // available in ex.Types, so the tracker check must inspect them instead of
+            // reporting a false-negative "no tracker" for an instrumented assembly.
+            return ex.Types.Any(IsCoverletTrackerType);
+        }
+        catch (NotSupportedException)
+        {
+            // Dynamic assemblies cannot enumerate types and cannot contain the
+            // compiled-in tracker this guard looks for.
+            return false;
+        }
     }
 
     /// <summary>

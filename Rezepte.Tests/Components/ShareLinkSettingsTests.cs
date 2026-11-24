@@ -13,7 +13,7 @@ namespace Rezepte.Tests.Components;
 /// </summary>
 public sealed class ShareLinkSettingsTests : IDisposable
 {
-    private readonly TestContext _context = new();
+    private readonly BunitContext _context = new();
 
     /// <summary>
     /// Initializes a new instance.
@@ -32,7 +32,7 @@ public sealed class ShareLinkSettingsTests : IDisposable
         var factory = new ApiClientTestFactory(_ => ApiClientTestFactory.Json(HttpStatusCode.OK, "5"));
         _context.Services.AddSingleton(factory.Create());
 
-        var cut = _context.RenderComponent<ShareLinkSettings>();
+        var cut = _context.Render<ShareLinkSettings>();
 
         cut.WaitForAssertion(() => cut.Find("#sharelink-validity-days"));
         cut.Find("#sharelink-validity-days").GetAttribute("value").Should().Be("5");
@@ -57,7 +57,7 @@ public sealed class ShareLinkSettingsTests : IDisposable
         });
         _context.Services.AddSingleton(factory.Create());
 
-        var cut = _context.RenderComponent<ShareLinkSettings>();
+        var cut = _context.Render<ShareLinkSettings>();
         cut.WaitForAssertion(() => cut.Find("#sharelink-validity-days"));
 
         cut.Find("#sharelink-validity-days").Change("14");
@@ -82,7 +82,7 @@ public sealed class ShareLinkSettingsTests : IDisposable
                 : new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("invalid") });
         _context.Services.AddSingleton(factory.Create());
 
-        var cut = _context.RenderComponent<ShareLinkSettings>();
+        var cut = _context.Render<ShareLinkSettings>();
         cut.WaitForAssertion(() => cut.Find("#sharelink-validity-days"));
 
         cut.Find("button.btn-primary").Click();

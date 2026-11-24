@@ -34,11 +34,11 @@ public class ShareLinkBrowserTests
     /// visitor sees the recipe without the application navigation.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task Owner_CanShareRecipe_AndAnonymousVisitorSeesReadOnlyRecipe()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await ShareLinkPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -69,11 +69,11 @@ public class ShareLinkBrowserTests
     /// Verifies that a link shared with the side dish flag exposes the direct side dish page.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task ShareWithSideDishes_AnonymousVisitorCanOpenSideDishPage()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await ShareLinkPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -107,11 +107,11 @@ public class ShareLinkBrowserTests
     /// side dish page.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task ShareWithoutSideDishes_SideDishPageIsDenied()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await ShareLinkPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -147,11 +147,11 @@ public class ShareLinkBrowserTests
     /// Verifies that an unknown token shows the generic error state to anonymous visitors.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task UnknownToken_ShowsGenericError()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await ShareLinkPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
 
@@ -171,11 +171,11 @@ public class ShareLinkBrowserTests
     /// Verifies that the shared image endpoint serves the recipe image to anonymous visitors.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task SharedImage_IsServedToAnonymousVisitors()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await ShareLinkPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -204,11 +204,11 @@ public class ShareLinkBrowserTests
     /// Verifies that the admin sees the public links settings entry and can persist the validity.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task Admin_CanConfigureShareLinkValidityViaUi()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await ShareLinkPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -223,11 +223,11 @@ public class ShareLinkBrowserTests
     /// Verifies that a regular user does not see the public links settings entry.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task RegularUser_DoesNotSeePublicLinksSettings()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         const string RegularUsername = "sharelink-nonadmin";
         const string RegularPassword = "NonAdmin!456";

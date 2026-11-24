@@ -31,7 +31,7 @@ public class LoadingBarSafetyTimeoutBrowserTests : IClassFixture<LoadingBarSafet
     /// when the target navigation never completes.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task WhenNavigationNeverCompletes_HidesBarAfterMaxVisibleDuration()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
