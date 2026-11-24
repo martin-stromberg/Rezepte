@@ -1,0 +1,69 @@
+  Wiederherzustellende Projekte werden ermittelt...
+  Alle Projekte sind für die Wiederherstellung auf dem neuesten Stand.
+  Rezepte.Import.Abstractions -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Import.Abstractions\bin\Debug\net10.0\Rezepte.Import.Abstractions.dll
+  Rezepte.Web -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Web\bin\Debug\net10.0\Rezepte.Web.dll
+  Rezepte.Import.Abstractions -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Import.Abstractions\bin\Debug\net10.0\Rezepte.Import.Abstractions.dll
+  Rezepte.Import.Plugins.Backup -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Import.Plugins.Backup\bin\Debug\net10.0\Rezepte.Import.Plugins.Backup.dll
+  Rezepte.Import.Plugins.AIFoto -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Import.Plugins.AIFoto\bin\Debug\net10.0\Rezepte.Import.Plugins.AIFoto.dll
+  Rezepte.Import.Plugins.AIUrl -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Import.Plugins.AIUrl\bin\Debug\net10.0\Rezepte.Import.Plugins.AIUrl.dll
+  Rezepte.Import.Abstractions -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Import.Abstractions\bin\Debug\net10.0\Rezepte.Import.Abstractions.dll
+  Rezepte.Web -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Web\bin\Debug\net10.0\Rezepte.Web.dll
+  Rezepte.Web -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Web\bin\Debug\net10.0\publish\
+  Rezepte.Tests.Browser -> D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Tests.Browser\bin\Debug\net10.0\Rezepte.Tests.Browser.dll
+Testlauf für "D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\Rezepte.Tests.Browser\bin\Debug\net10.0\Rezepte.Tests.Browser.dll" (.NETCoreApp,Version=v10.0)
+Insgesamt 1 Testdateien stimmten mit dem angegebenen Muster überein.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.15)
+[xUnit.net 00:00:00.33]   Discovering: Rezepte.Tests.Browser
+[xUnit.net 00:00:00.43]   Discovered:  Rezepte.Tests.Browser
+[xUnit.net 00:00:00.45]   Starting:    Rezepte.Tests.Browser
+     Warning:
+     The component "Fluent Assertions" is governed by the rules defined in the Xceed License Agreement and
+     the Xceed Fluent Assertions Community License. You may use Fluent Assertions free of charge for
+     non-commercial use only. An active subscription is required to use Fluent Assertions for commercial use.
+     Please contact Xceed Sales mailto:sales@xceed.com to acquire a subscription at a very low cost.
+     A paid commercial license supports the development and continued increasing support of
+     Fluent Assertions users under both commercial and community licenses. Help us
+     keep Fluent Assertions at the forefront of unit testing.
+     For more information, visit https://xceed.com/products/unit-testing/fluent-assertions/
+  Bestanden Rezepte.Tests.TestHelpers.FlakyConventionTests.FlakyMarkedTests_AlwaysCarryOsInterface [53 ms]
+  Bestanden Rezepte.Tests.Browser.ShareLinkBrowserTests.ShareWithSideDishes_AnonymousVisitorCanOpenSideDishPage [5 s]
+  Bestanden Rezepte.Tests.Browser.ShareLinkBrowserTests.ShareWithoutSideDishes_SideDishPageIsDenied [748 ms]
+  Bestanden Rezepte.Tests.Browser.ShareLinkBrowserTests.Admin_CanConfigureShareLinkValidityViaUi [976 ms]
+  Bestanden Rezepte.Tests.Browser.ShareLinkBrowserTests.SharedImage_IsServedToAnonymousVisitors [682 ms]
+  Bestanden Rezepte.Tests.Browser.ShareLinkBrowserTests.Owner_CanShareRecipe_AndAnonymousVisitorSeesReadOnlyRecipe [1 s]
+  Bestanden Rezepte.Tests.Browser.ShareLinkBrowserTests.UnknownToken_ShowsGenericError [187 ms]
+  Bestanden Rezepte.Tests.Browser.ShareLinkBrowserTests.RegularUser_DoesNotSeePublicLinksSettings [494 ms]
+  Bestanden Rezepte.Tests.Browser.PluginSettingsBrowserTests.MissingPlugin_CanBeRemoved [10 s]
+  Bestanden Rezepte.Tests.Browser.SecurityTxtBrowserTests.RegularUser_DoesNotSeeSecurityTxtMenuItemInSettings [453 ms]
+  Bestanden Rezepte.Tests.Browser.SecurityTxtBrowserTests.GetSecurityTxt_ReturnsNotFound_WhenDisabled [606 ms]
+  Bestanden Rezepte.Tests.Browser.PluginSettingsBrowserTests.CheckButton_IsDisabled_WithReason_WhenSourceDeactivated [915 ms]
+  Bestanden Rezepte.Tests.Browser.SecurityTxtBrowserTests.Admin_CanConfigureSecurityTxtViaUi_AndContentAppearsInPublicEndpoint [662 ms]
+  Bestanden Rezepte.Tests.Browser.PluginSettingsBrowserTests.CheckButton_WhenReleaseAlreadyInstalled_ShowsNoUpdate [902 ms]
+  Bestanden Rezepte.Tests.Browser.SecurityTxtBrowserTests.GetSecurityTxt_ReturnsOk_WithoutAuthentication_WhenEnabled [603 ms]
+  Bestanden Rezepte.Tests.Browser.PluginSettingsBrowserTests.CheckButton_WithoutPat_ShowsLocalizedError_AndUpdatesStatus [963 ms]
+  Bestanden Rezepte.Tests.Browser.RecipeSearchBrowserTests.Pagination_NextPage_ShowsPageTwo [798 ms]
+  Bestanden Rezepte.Tests.Browser.RecipeSearchBrowserTests.InPageSearch_TypedValue_SurvivesInteractiveCircuit [522 ms]
+  Bestanden Rezepte.Tests.Browser.PluginSettingsBrowserTests.PluginSettings_ShowsInfoText_AndCheckButtonWithTooltip [992 ms]
+  Bestanden Rezepte.Tests.Browser.RecipeSearchBrowserTests.Search_WithoutMatches_ShowsNoSearchResults [400 ms]
+  Bestanden Rezepte.Tests.Browser.RecipeSearchBrowserTests.NavbarSearch_WhileOnSearchPage_UpdatesSearchField [482 ms]
+TempDirectoryCleanup: 'C:\Users\Martin\AppData\Local\Temp\rezepte-browser-tests-lovxfuya.upq' could not be deleted after 5 attempts: The process cannot access the file 'rezepte-browser-test.db' because it is being used by another process.
+  Bestanden Rezepte.Tests.Browser.RecipeSearchBrowserTests.NavbarSearch_ShowsSeededRecipe [442 ms]
+  Bestanden Rezepte.Tests.Browser.RecipeSearchBrowserTests.InPageSearch_Submit_UpdatesResultList [496 ms]
+  Bestanden Rezepte.Tests.Browser.RecipeSearchBrowserTests.DirectUrl_WithQuery_ShowsResults [374 ms]
+  Bestanden Rezepte.Tests.Browser.LoadingBarVisibilityBrowserTests.LinkClick_WithDelayedResponse_MakesLoadingBarVisible [436 ms]
+  Bestanden Rezepte.Tests.Browser.LoadingBarVisibilityBrowserTests.AfterNavigationCompleted_HidesLoadingBar [1 s]
+  Bestanden Rezepte.Tests.Browser.LoadingBarVisibilityBrowserTests.LinkClick_WithDelayedResponse_ActivatesLoadingBar [397 ms]
+  Bestanden Rezepte.Tests.Browser.LoadingBarSafetyTimeoutBrowserTests.WhenNavigationNeverCompletes_HidesBarAfterMaxVisibleDuration [1 s]
+  Bestanden Rezepte.Tests.Browser.LoadingBarFormNavigationBrowserTests.SearchSubmit_ShowsLoadingBar [438 ms]
+  Bestanden Rezepte.Tests.Browser.LoadingBarFormNavigationBrowserTests.InteractiveFormSubmitWithoutNavigation_DoesNotActivateLoadingBar [1 s]
+  Bestanden Rezepte.Tests.Browser.LoadingBarDisabledBrowserTests.WhenFeatureDisabled_PageContainsNoLoadingBarElement [519 ms]
+  Bestanden Rezepte.Tests.Browser.LoadingBarColorBrowserTests.SecondClickDuringRunningAnimation_ChangesColor [446 ms]
+  Bestanden Rezepte.Tests.Browser.LoadingBarColorBrowserTests.LinkClick_UsesColorFromConfiguredPalette [447 ms]
+  Bestanden Rezepte.Tests.Browser.RegisterTests.Register_WithoutDemoData_LeavesListsEmpty [35 s]
+[xUnit.net 00:00:53.82]   Finished:    Rezepte.Tests.Browser
+  Bestanden Rezepte.Tests.Browser.RegisterTests.Register_WithDemoData_CreatesDemoData [14 s]
+
+Der Testlauf war erfolgreich.
+Gesamtzahl Tests: 35
+     Bestanden: 35
+ Gesamtzeit: 55,0155 Sekunden

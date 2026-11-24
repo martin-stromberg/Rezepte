@@ -1,0 +1,26 @@
+  Wiederherzustellende Projekte werden ermittelt...
+  Alle Projekte sind für die Wiederherstellung auf dem neuesten Stand.
+
+Die folgenden Quellen wurden verwendet:
+   D:\Repositories\softwareschmiede\dbc4120f-0733-4ed8-be42-a585c6b7ddaf\lib\nuget
+   https://api.nuget.org/v3/index.json
+   C:\Program Files (x86)\Microsoft SDKs\NuGetPackages\
+
+Für das angegebene Projekt "Rezepte.Web" liegen gemäß den aktuellen Quellen keine veralteten Pakete vor.
+Für das Projekt "Rezepte.Tests" liegen die folgenden veralteten Pakete vor
+   [net10.0]: 
+   Paket oberster Ebene      Angefordert   Aufgelöst   Ursache(n)   Alternative      
+   > xunit                   2.9.3         2.9.3       Legacy       xunit.v3 >= 0.0.0
+
+Für das angegebene Projekt "Rezepte.Import.Abstractions" liegen gemäß den aktuellen Quellen keine veralteten Pakete vor.
+Für das angegebene Projekt "Rezepte.Tests.PluginFixture" liegen gemäß den aktuellen Quellen keine veralteten Pakete vor.
+Für das angegebene Projekt "Rezepte.Import.Plugins.Backup" liegen gemäß den aktuellen Quellen keine veralteten Pakete vor.
+Für das angegebene Projekt "Rezepte.Import.Plugins.AIFoto" liegen gemäß den aktuellen Quellen keine veralteten Pakete vor.
+Für das angegebene Projekt "Rezepte.Import.Plugins.AIUrl" liegen gemäß den aktuellen Quellen keine veralteten Pakete vor.
+Für das angegebene Projekt "Rezepte.Import.PluginSdk" liegen gemäß den aktuellen Quellen keine veralteten Pakete vor.
+Für das Projekt "Rezepte.Tests.Browser" liegen die folgenden veralteten Pakete vor
+   [net10.0]: 
+   Paket oberster Ebene      Angefordert   Aufgelöst   Ursache(n)   Alternative      
+   > xunit                   2.9.3         2.9.3       Legacy       xunit.v3 >= 0.0.0
+
+Für das angegebene Projekt "Rezepte.Updater.TestHost" liegen gemäß den aktuellen Quellen keine veralteten Pakete vor.
