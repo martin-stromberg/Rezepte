@@ -269,6 +269,19 @@ function tagIsAncestorOfHead(tag) {
   return result.status === 0;
 }
 
+// semantic-release rejects any next version outside the range a branch may publish. On a
+// maintenance branch like 1.x that range ends at the latest release published from main,
+// so before the first v2.x exists the allowed range is empty (e.g. ">=1.22.0 <1.22.0") and
+// EVERY releasable commit pushed here fails the dry-run with EINVALIDNEXTVERSION - even
+// though the commit is only deferred: once main publishes v2.0.0 the range opens (<2.0.0)
+// and the next push on this branch releases it. Detect the empty-range case so the caller
+// can treat it as "no release" instead of a hard failure; a genuine out-of-range commit
+// (non-empty range, e.g. a BREAKING change resolving to 2.0.0 on this line) still fails.
+function isEmptyMaintenanceRangeRejection(output) {
+  const match = output.match(/EINVALIDNEXTVERSION[\s\S]*?`>=(\d+\.\d+\.\d+) <(\d+\.\d+\.\d+)`/);
+  return match != null && match[1] === match[2];
+}
+
 function releaseOutputs({ released, reason, version = "", tag = "", kind, action = "none" }) {
   return {
     released: String(released),
@@ -344,7 +357,19 @@ export async function resolveReleaseVersion(environment = process.env, dependenc
     );
   }
 
-  const version = parseNextReleaseVersion(effects.runSemanticReleaseDryRun());
+  let dryRunOutput;
+  try {
+    dryRunOutput = effects.runSemanticReleaseDryRun();
+  } catch (error) {
+    if (!isEmptyMaintenanceRangeRejection(error.message ?? "")) {
+      throw error;
+    }
+
+    effects.log(
+      "Semantic Release reports an empty publishable range for this maintenance line - treating as no-release for now."
+    );
+  }
+  const version = dryRunOutput == null ? null : parseNextReleaseVersion(dryRunOutput);
   if (version) {
     const tag = `v${version}`;
     const existingRelease = await effects.getGitHubRelease({ repository, tag, token });
