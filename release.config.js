@@ -7,8 +7,9 @@ const path = require("node:path");
 // Softwareschmiede's release.config.js, the concrete reference implementation this file
 // follows). That avoids @semantic-release/github creating its own GitHub release/tag from a
 // staging push - staging-ci.yml's own gh CLI call fully owns the RC pre-release lifecycle
-// instead, and only actual pushes/tags on main go through semantic-release's full publish
-// pipeline below.
+// instead, and only actual pushes/tags on main and the "1.x" maintenance line go through
+// semantic-release's full publish pipeline below ("1.x" is a range-pattern branch name, so
+// releases cut from it stay inside the v1.x version line).
 
 // Rezepte publishes multiple assets per release (linux/win zips, the update manifest, and the
 // import-plugin contract export), so - like FinanceManager - RELEASE_ASSET_PATHS carries a

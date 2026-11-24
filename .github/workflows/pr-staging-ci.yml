@@ -41,6 +41,17 @@ jobs:
       - name: Check whether this PR is a pure back-merge from main
         id: check
         run: |
+          # Back-merge detection only applies to PRs targeting staging - the automated
+          # back-merge PRs created by sync-staging-with-main.yml always target staging. For
+          # a PR targeting 1.x, a merge of main into the PR head is never a staging
+          # back-merge; treating it as one would skip all CI for exactly the wrong change
+          # (the newer .NET 11 line flowing unchecked into the .NET 10 maintenance line).
+          if [[ "${{ github.event.pull_request.base.ref }}" != "staging" ]]; then
+            echo "is_backmerge=false" >> "$GITHUB_OUTPUT"
+            echo "Base branch is not staging - back-merge detection skipped."
+            exit 0
+          fi
+
           git fetch origin main:refs/remotes/origin/main --no-tags
 
           main_sha="$(git rev-parse origin/main)"
@@ -329,12 +340,15 @@ jobs:
   no-pending-backmerge:
     name: no pending backmerge
     needs: detect-backmerge
-    if: needs.detect-backmerge.outputs.is_backmerge != 'true'
+    if: github.event.pull_request.base.ref == 'staging' && needs.detect-backmerge.outputs.is_backmerge != 'true'
     # Third gate, running in parallel with static-checks and build-and-test: while an
     # automated back-merge PR (main -> staging, created by sync-staging-with-main.yml)
     # is still open, no other PR may merge into staging. Merging here first would
     # change staging underneath the back-merge and leave it stale or conflicted -
-    # the back-merge always goes first.
+    # the back-merge always goes first. Scoped to base.ref == 'staging': the gate only
+    # guards the staging back-merge order, and an open main -> staging back-merge PR is
+    # a routine, potentially long-lived state that must never block an unrelated PR
+    # against the 1.x maintenance line.
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -222,6 +222,7 @@ function createDefaultDependencies() {
     remoteTagExists,
     runSemanticReleaseDryRun,
     readImportContractVersion,
+    tagIsAncestorOfHead,
     writeOutputs,
     log: console.log
   };
@@ -252,6 +253,20 @@ function incompleteReleases(releases, dependencies) {
     const version = releaseVersion(release);
     return version && !releaseHasExpectedAsset(release, dependencies);
   });
+}
+
+// Restricts repair candidates to releases whose tag is reachable from the pushed commit.
+// The repo-wide scan in incompleteReleases predates the second release line: on this 1.x
+// branch an incomplete v2.x release would be checked out and rebuilt with dotnet-version
+// 10.0.x, which cannot compile the .NET 11 code (guaranteed NETSDK1045) and would leave
+// every no-version push on 1.x red. Ancestor-reachability keeps this branch strictly on
+// its own v1.x line. Any check failure (tag ref missing locally, git error) disqualifies
+// the candidate - an unverifiable repair must not run here.
+function tagIsAncestorOfHead(tag) {
+  const result = spawnSync("git", ["merge-base", "--is-ancestor", `refs/tags/${tag}`, "HEAD"], {
+    stdio: "ignore"
+  });
+  return result.status === 0;
 }
 
 function releaseOutputs({ released, reason, version = "", tag = "", kind, action = "none" }) {
@@ -358,7 +373,8 @@ export async function resolveReleaseVersion(environment = process.env, dependenc
     );
   }
 
-  const incomplete = incompleteReleases(await effects.listGitHubReleases({ repository, token }), effects);
+  const incomplete = incompleteReleases(await effects.listGitHubReleases({ repository, token }), effects)
+    .filter((release) => effects.tagIsAncestorOfHead(release.tag_name));
   if (incomplete.length >= 1) {
     const release = incomplete[0];
     return emit(repairRelease({ release, kind: releaseRef.kind }), `release '${release.tag_name}' is missing its asset`);

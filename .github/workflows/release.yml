@@ -252,9 +252,20 @@ jobs:
         # created non-prerelease release as "Latest", so a maintenance release (e.g.
         # v1.22.1) published after v2.0.0 would otherwise take over releases/latest and
         # offer v2.x consumers (including the app updater, which reads update.json from
-        # releases/latest) a downgrade. This step clears the flag on the just-created
-        # release so the newest main-line release stays "Latest".
-        if: steps.version.outputs.released == 'true' && steps.version.outputs.release_action == 'create'
+        # releases/latest) a downgrade. This step clears the flag on the release this run
+        # touched so the newest main-line release stays "Latest". The condition covers
+        # both release actions: an "upload-existing" repair can continue an aborted
+        # "create" run whose release already carried the Latest flag - without this, that
+        # release would keep the badge forever (once repaired it no longer appears in the
+        # incomplete-releases scan, and "create" never fires for the same tag again). The
+        # 1.x tag-reachability scope in resolve-release-version.mjs guarantees every
+        # release this pipeline produces or repairs belongs to the v1.x line, so no tag
+        # check is needed here. Note: GitHub recomputes releases/latest to the next-most-
+        # recent non-prerelease release (sorted by the tagged commit's created_at) once the
+        # flag is cleared - so before the first v2.x exists, a maintenance release cleared
+        # here falls back to the previous v1.x release, an accepted trade-off over offering
+        # v2.x consumers a downgrade.
+        if: steps.version.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
