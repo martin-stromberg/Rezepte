@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="5d4c6325-312f-48e9-b2c9-6136eac1d038" name="Martin@DESKTOP-CM8OBSG 2026-11-27 07:06:53" runUser="DESKTOP-CM8OBSG\Martin" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-11-27T07:06:53.2883488+01:00" queuing="2026-11-27T07:06:53.2883493+01:00" start="2026-11-27T07:06:36.1510244+01:00" finish="2026-11-27T07:06:58.4956567+01:00" />
+  <TestSettings name="default" id="be5d6090-bcdd-4f7e-80d8-7c37aaa52155">
+    <Deployment runDeploymentRoot="Martin_DESKTOP-CM8OBSG_2026-11-27_07_06_53" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="33554a50-5c15-4cfc-abce-354f53a8b433" testId="eeadd528-47cd-d0a5-c7db-eb9afc111f62" testName="Rezepte.Tests.Browser.PluginSettingsBrowserTests.CheckButton_WhenReleaseAlreadyInstalled_ShowsNoUpdate" computerName="DESKTOP-CM8OBSG" duration="00:00:00.9530000" startTime="2026-11-27T07:06:55.4075306+01:00" endTime="2026-11-27T07:06:56.3608331+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="33554a50-5c15-4cfc-abce-354f53a8b433" />
+    <UnitTestResult executionId="a0bdb4fb-f927-44ac-a62f-d01b2ba79c6c" testId="4b62ff80-130c-faf6-84c7-1a9fc87d94a0" testName="Rezepte.Tests.Browser.PluginSettingsBrowserTests.MissingPlugin_CanBeRemoved" computerName="DESKTOP-CM8OBSG" duration="00:00:10.8640000" startTime="2026-11-27T07:06:42.3868910+01:00" endTime="2026-11-27T07:06:53.2638927+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a0bdb4fb-f927-44ac-a62f-d01b2ba79c6c" />
+    <UnitTestResult executionId="f6e30ff1-c050-4d08-86fe-a67fbf707e24" testId="fae0d5c5-84b5-bab0-2c1f-99217087da39" testName="Rezepte.Tests.Browser.PluginSettingsBrowserTests.PluginSettings_ShowsInfoText_AndCheckButtonWithTooltip" computerName="DESKTOP-CM8OBSG" duration="00:00:00.8880000" startTime="2026-11-27T07:06:54.5181557+01:00" endTime="2026-11-27T07:06:55.4067011+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f6e30ff1-c050-4d08-86fe-a67fbf707e24" />
+    <UnitTestResult executionId="10a8efd9-614f-4a25-b43b-ce00107f586f" testId="d1c0ad70-46a6-4f10-0905-d5c229ea2e30" testName="Rezepte.Tests.Browser.PluginSettingsBrowserTests.CheckButton_WithoutPat_ShowsLocalizedError_AndUpdatesStatus" computerName="DESKTOP-CM8OBSG" duration="00:00:01.2420000" startTime="2026-11-27T07:06:53.2745633+01:00" endTime="2026-11-27T07:06:54.5170102+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="10a8efd9-614f-4a25-b43b-ce00107f586f" />
+    <UnitTestResult executionId="4ce131f2-77d2-4b50-a52d-fea7aceb65da" testId="5ac756ad-fd12-078c-9059-c7594c14f9b5" testName="Rezepte.Tests.Browser.PluginSettingsBrowserTests.CheckButton_IsDisabled_WithReason_WhenSourceDeactivated" computerName="DESKTOP-CM8OBSG" duration="00:00:00.8840000" startTime="2026-11-27T07:06:56.3619130+01:00" endTime="2026-11-27T07:06:57.2466075+01:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4ce131f2-77d2-4b50-a52d-fea7aceb65da" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Rezepte.Tests.Browser.PluginSettingsBrowserTests.PluginSettings_ShowsInfoText_AndCheckButtonWithTooltip" storage="d:\repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\rezepte.tests.browser\bin\release\net11.0\rezepte.tests.browser.dll" id="fae0d5c5-84b5-bab0-2c1f-99217087da39">
+      <Execution id="f6e30ff1-c050-4d08-86fe-a67fbf707e24" />
+      <TestMethod codeBase="D:\Repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\Rezepte.Tests.Browser\bin\Release\net11.0\Rezepte.Tests.Browser.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Rezepte.Tests.Browser.PluginSettingsBrowserTests" name="PluginSettings_ShowsInfoText_AndCheckButtonWithTooltip" />
+    </UnitTest>
+    <UnitTest name="Rezepte.Tests.Browser.PluginSettingsBrowserTests.CheckButton_IsDisabled_WithReason_WhenSourceDeactivated" storage="d:\repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\rezepte.tests.browser\bin\release\net11.0\rezepte.tests.browser.dll" id="5ac756ad-fd12-078c-9059-c7594c14f9b5">
+      <Execution id="4ce131f2-77d2-4b50-a52d-fea7aceb65da" />
+      <TestMethod codeBase="D:\Repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\Rezepte.Tests.Browser\bin\Release\net11.0\Rezepte.Tests.Browser.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Rezepte.Tests.Browser.PluginSettingsBrowserTests" name="CheckButton_IsDisabled_WithReason_WhenSourceDeactivated" />
+    </UnitTest>
+    <UnitTest name="Rezepte.Tests.Browser.PluginSettingsBrowserTests.CheckButton_WhenReleaseAlreadyInstalled_ShowsNoUpdate" storage="d:\repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\rezepte.tests.browser\bin\release\net11.0\rezepte.tests.browser.dll" id="eeadd528-47cd-d0a5-c7db-eb9afc111f62">
+      <Execution id="33554a50-5c15-4cfc-abce-354f53a8b433" />
+      <TestMethod codeBase="D:\Repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\Rezepte.Tests.Browser\bin\Release\net11.0\Rezepte.Tests.Browser.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Rezepte.Tests.Browser.PluginSettingsBrowserTests" name="CheckButton_WhenReleaseAlreadyInstalled_ShowsNoUpdate" />
+    </UnitTest>
+    <UnitTest name="Rezepte.Tests.Browser.PluginSettingsBrowserTests.MissingPlugin_CanBeRemoved" storage="d:\repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\rezepte.tests.browser\bin\release\net11.0\rezepte.tests.browser.dll" id="4b62ff80-130c-faf6-84c7-1a9fc87d94a0">
+      <Execution id="a0bdb4fb-f927-44ac-a62f-d01b2ba79c6c" />
+      <TestMethod codeBase="D:\Repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\Rezepte.Tests.Browser\bin\Release\net11.0\Rezepte.Tests.Browser.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Rezepte.Tests.Browser.PluginSettingsBrowserTests" name="MissingPlugin_CanBeRemoved" />
+    </UnitTest>
+    <UnitTest name="Rezepte.Tests.Browser.PluginSettingsBrowserTests.CheckButton_WithoutPat_ShowsLocalizedError_AndUpdatesStatus" storage="d:\repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\rezepte.tests.browser\bin\release\net11.0\rezepte.tests.browser.dll" id="d1c0ad70-46a6-4f10-0905-d5c229ea2e30">
+      <Execution id="10a8efd9-614f-4a25-b43b-ce00107f586f" />
+      <TestMethod codeBase="D:\Repositories\softwareschmiede\f321cfdb-0c9b-4ec1-8fc3-0789610d8ffd\Rezepte.Tests.Browser\bin\Release\net11.0\Rezepte.Tests.Browser.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Rezepte.Tests.Browser.PluginSettingsBrowserTests" name="CheckButton_WithoutPat_ShowsLocalizedError_AndUpdatesStatus" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="eeadd528-47cd-d0a5-c7db-eb9afc111f62" executionId="33554a50-5c15-4cfc-abce-354f53a8b433" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4b62ff80-130c-faf6-84c7-1a9fc87d94a0" executionId="a0bdb4fb-f927-44ac-a62f-d01b2ba79c6c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fae0d5c5-84b5-bab0-2c1f-99217087da39" executionId="f6e30ff1-c050-4d08-86fe-a67fbf707e24" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d1c0ad70-46a6-4f10-0905-d5c229ea2e30" executionId="10a8efd9-614f-4a25-b43b-ce00107f586f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5ac756ad-fd12-078c-9059-c7594c14f9b5" executionId="4ce131f2-77d2-4b50-a52d-fea7aceb65da" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Ergebnisse nicht in einer Liste" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Alle geladenen Ergebnisse" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="5" executed="5" passed="5" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v4.0.1+0f7d528729 (64-bit .NET 11.0.0)&#xD;
+[xUnit.net 00:00:00.72]   Discovering: Rezepte.Tests.Browser&#xD;
+[xUnit.net 00:00:00.90]   Discovered:  Rezepte.Tests.Browser&#xD;
+[xUnit.net 00:00:01.04]   Starting:    Rezepte.Tests.Browser&#xD;
+TempDirectoryCleanup: 'C:\Users\Martin\AppData\Local\Temp\rezepte-browser-tests-cdx4ydpu.gkp' could not be deleted after 5 attempts: The process cannot access the file 'rezepte-browser-test.db' because it is being used by another process.&#xD;
+[xUnit.net 00:00:21.51]   Finished:    Rezepte.Tests.Browser (ID = '431ee0816519ad4cc4b3edc70c7628727b224107043b7d8297f870bd752bdfe3')&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>
