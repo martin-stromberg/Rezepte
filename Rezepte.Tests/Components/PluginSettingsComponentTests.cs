@@ -15,7 +15,7 @@ namespace Rezepte.Tests.Components;
 /// </summary>
 public sealed class PluginSettingsComponentTests : IDisposable
 {
-    private readonly TestContext _context = new();
+    private readonly BunitContext _context = new();
     private readonly Mock<IPluginSettingsService> _service = new();
 
     /// <summary>
@@ -120,6 +120,28 @@ public sealed class PluginSettingsComponentTests : IDisposable
         cut.WaitForAssertion(() =>
         {
             cut.Find(".alert-danger").TextContent.Should().Contain("Für die private Quelle ist kein PAT hinterlegt.");
+        });
+    }
+
+    /// <summary>
+    /// A failed result with the work directory error constant is mapped to the localized message
+    /// instead of the generic failure detail.
+    /// </summary>
+    [Fact]
+    public void CheckSourceAsync_ShowsLocalizedWorkDirectoryError()
+    {
+        WithSources(Source());
+        _service.Setup(s => s.CheckSourceForUpdatesAsync("src-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.WorkDirectoryUnavailable));
+        var cut = Render();
+
+        CheckButton(cut).Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var alert = cut.Find(".alert-danger").TextContent;
+            alert.Should().Contain("Das Arbeitsverzeichnis für die Plugin-Aktualisierung konnte nicht angelegt werden.");
+            alert.Should().NotContain(PluginUpdateCheckErrors.WorkDirectoryUnavailable);
         });
     }
 
@@ -367,7 +389,7 @@ public sealed class PluginSettingsComponentTests : IDisposable
 
     private IRenderedComponent<PluginSettings> Render()
     {
-        var cut = _context.RenderComponent<PluginSettings>();
+        var cut = _context.Render<PluginSettings>();
         cut.WaitForAssertion(() => cut.FindAll("table").Should().NotBeEmpty());
         return cut;
     }

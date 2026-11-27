@@ -7,7 +7,7 @@ Diese Anleitung beschreibt das manuelle Deployment der Anwendung auf einem Linux
 
 Die beiden Pfade sind Alternativen — wähle genau einen. Alle Schritte, die beide Betriebsarten gemeinsam haben, stehen in den [Gemeinsamen Schritten](#gemeinsame-schritte); danach folgst du entweder [Pfad A](#pfad-a-eigenständiger-betrieb-ohne-reverse-proxy) oder [Pfad B](#pfad-b-betrieb-hinter-einem-reverse-proxy-caddy).
 
-Die Anleitung verwendet **Ubuntu Server 24.04 LTS auf x86_64** als Referenzplattform; die Anwendung zielt auf `net10.0` und wird typischerweise für `linux-x64` veröffentlicht. Debian 12 und neuer funktionieren mit angepassten Paketbefehlen: Dort ist für .NET 10 der Microsoft-Feed (`packages.microsoft.com/config/debian/12`) einzurichten, die Paketquelle für Caddy wird analog der Caddy-Dokumentation hinterlegt, und die Firewall-Beispiele (`ufw`) sind ggf. durch das dort verwendete Werkzeug zu ersetzen.
+Die Anleitung verwendet **Ubuntu Server 24.04 LTS auf x86_64** als Referenzplattform; die Anwendung zielt auf `net11.0` und wird typischerweise für `linux-x64` veröffentlicht. Debian 12 und neuer funktionieren mit angepassten Paketbefehlen: Dort ist für .NET 11 ggf. eine geeignete Paketquelle einzurichten (siehe den offiziellen Installationsweg in Schritt 1), die Paketquelle für Caddy wird analog der Caddy-Dokumentation hinterlegt, und die Firewall-Beispiele (`ufw`) sind ggf. durch das dort verwendete Werkzeug zu ersetzen.
 
 In dieser Anleitung werden folgende Vorgabewerte verwendet; passe sie bei Bedarf einheitlich an:
 
@@ -24,14 +24,14 @@ In dieser Anleitung werden folgende Vorgabewerte verwendet; passe sie bei Bedarf
 
 ### 1. Runtime auf dem Server prüfen
 
-Bei einem framework-abhängigen Publish (`--self-contained false`) müssen die passenden .NET-10-Shared-Frameworks auf dem Zielserver installiert sein. Auf Ubuntu 24.04 liegt .NET 10 im eingebauten Ubuntu-Feed — ein separater Microsoft-Feed ist nicht nötig (und für Ubuntu auch nicht verfügbar). Installiere die ASP.NET-Core-Runtime auf dem Server:
+Bei einem framework-abhängigen Publish (`--self-contained false`) müssen die passenden .NET-11-Shared-Frameworks auf dem Zielserver installiert sein. Der dokumentierte Referenzweg ist das **self-contained Publish** (siehe Schritt 2) — es erfordert keine Runtime auf dem Server und ist unabhängig davon, ob die Distribution bereits .NET-11-Pakete bereitstellt.
 
-```bash
-sudo apt update
-sudo apt install aspnetcore-runtime-10.0
-```
+Soll framework-abhängig deployed werden, gilt der offizielle .NET-Installationsweg von Microsoft:
 
-Auf einem Server genügt die ASP.NET-Core-Runtime; wer das volle SDK benötigt, kann stattdessen das Metapaket `dotnet10` installieren.
+- **Installationsdokumentation/Distro-Feed:** Folge der Microsoft-Anleitung „Install .NET on Linux" für deine Distribution (`learn.microsoft.com/dotnet/core/install/linux`). Stellt der Paketfeed deiner Distribution die Runtime bereit, installiere die ASP.NET-Core-Runtime über den Paketmanager — unter Debian/Ubuntu-Derivaten heißt das Paket in der Regel `aspnetcore-runtime-11.0` (nur falls im Distro-Feed verfügbar; die Verfügbarkeit einzelner .NET-Versionen unterscheidet sich je nach Distribution und Release).
+- **`dotnet-install`-Skript:** Alternativ installiert das offizielle Skript (`dot.net/v1/dotnet-install.sh`) die Runtime ohne Paketmanager, z. B. `dotnet-install.sh --channel 11.0 --runtime aspnetcore`.
+
+Auf einem Server genügt die ASP.NET-Core-Runtime; das volle SDK wird nur benötigt, wenn auf dem Server selbst gebaut werden soll.
 
 Prüfe die installierte Runtime vor dem Ausrollen:
 
@@ -39,29 +39,29 @@ Prüfe die installierte Runtime vor dem Ausrollen:
 dotnet --info
 ```
 
-In der Ausgabe müssen beide Shared Frameworks in einer passenden .NET-10-Version vorhanden sein:
+In der Ausgabe müssen beide Shared Frameworks in einer passenden .NET-11-Version vorhanden sein:
 
 - `Microsoft.NETCore.App`
 - `Microsoft.AspNetCore.App`
 
-Framework-Assemblies wie `System.Runtime.Serialization.Primitives.dll` müssen bei einem framework-abhängigen Publish nicht im Publish-Verzeichnis liegen. Sie werden aus dem installierten .NET-Shared-Framework des Servers geladen. Fehlt dort eine passende .NET-10-Runtime, kann die Anwendung beim Rendern von Blazor-Komponenten mit `System.IO.FileNotFoundException` abbrechen.
+Framework-Assemblies wie `System.Runtime.Serialization.Primitives.dll` müssen bei einem framework-abhängigen Publish nicht im Publish-Verzeichnis liegen. Sie werden aus dem installierten .NET-Shared-Framework des Servers geladen. Fehlt dort eine passende .NET-11-Runtime, kann die Anwendung beim Rendern von Blazor-Komponenten mit `System.IO.FileNotFoundException` abbrechen.
 
 Bei einem self-contained Publish (`--self-contained true`) ist keine .NET-Runtime auf dem Server erforderlich — Schritt 1 kann dann übersprungen werden.
 
 ### 2. Publish erzeugen
 
-Erzeuge das Publish auf einer Maschine mit .NET-10-SDK (z. B. deinem Entwicklungsrechner oder der Build-Umgebung).
+Erzeuge das Publish auf einer Maschine mit .NET-11-SDK (z. B. deinem Entwicklungsrechner oder der Build-Umgebung).
 
-Verwende framework-abhängiges Deployment, wenn der Server die passenden .NET-10-Shared-Frameworks verlässlich bereitstellt:
+Verwende framework-abhängiges Deployment, wenn der Server die passenden .NET-11-Shared-Frameworks verlässlich bereitstellt:
 
 ```powershell
-dotnet publish Rezepte.Web -c Release -f net10.0 -r linux-x64 --self-contained false
+dotnet publish Rezepte.Web -c Release -f net11.0 -r linux-x64 --self-contained false
 ```
 
-Wenn die Server-Runtime nicht kontrollierbar, nicht aktualisierbar oder unklar ist, verwende stattdessen ein self-contained Publish:
+Wenn die Server-Runtime nicht kontrollierbar, nicht aktualisierbar oder unklar ist, verwende stattdessen ein self-contained Publish (Referenzweg):
 
 ```powershell
-dotnet publish Rezepte.Web -c Release -f net10.0 -r linux-x64 --self-contained true
+dotnet publish Rezepte.Web -c Release -f net11.0 -r linux-x64 --self-contained true
 ```
 
 ### 3. Dateien auf den Server übertragen

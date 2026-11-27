@@ -8,7 +8,12 @@ Das Repository enthält Workflows für den zweistufigen Staging-Flow.
 - Nach erfolgreicher CI auf `staging` wird automatisch ein Draft-PR `staging -> main` erstellt.
 - Nur PRs aus `staging` sind nach `main` erlaubt.
 - Nach jedem Merge/Push auf `main` wird ein Sync-PR `main -> staging` erstellt, damit Release-Tags auf `staging` erreichbar bleiben.
-- `main` bleibt für stabile Releases und erzeugt `release.zip`.
+- `main` bleibt für stabile Releases und erzeugt die self-contained Artefakte `release-linux-x64.zip` und `release-win-x64.zip`.
+- `1.x` ist die Maintenance-Linie für den letzten .NET-10-Stand. Abzweigpunkt ist `bf108b7` (Promotion #231, letzter .NET-10-Stand von `main` vor der .NET-11-Migration; `v1.22.0` ist von dort erreichbar). Der Branch-Name folgt dem semantic-release-Range-Muster `1.x` und trägt den Versionsbereich implizit — Fixes bleiben innerhalb der `1.x`-Versionslinie (`fix:` → `v1.22.x`, `feat:` → `v1.23.0`, sobald die Range publizierbar ist — siehe unten; ein Major-Sprung verlässt die Range und wird dort nicht erzeugt).
+
+Auf `1.x` läuft derselbe volle `release.yml`-Pfad wie auf `main` (Push-Trigger dort um `1.x` erweitert, `release.config.js` und `scripts/resolve-release-version.mjs` kennen den Branch, `pr-staging-ci.yml` deckt Fix-PRs gegen `1.x` ab). Die `1.x`-Kopie von `release.yml` enthält zusätzlich den Abschluss-Step „Clear Latest flag on maintenance release", der neu erzeugten Maintenance-Releases das GitHub-„Latest"-Flag entzieht (`make_latest=false`) — sonst würde ein zeitlich nach `v2.0.0` veröffentlichtes `v1.x`-Release `releases/latest` übernehmen und `v2.x`-Installationen sowie dem Updater ein Downgrade anbieten. Fixes fließen nicht nach `main`/`staging` zurück (kein Backport-Automatismus; `verify-pr-source.yml` lässt ohnehin nur `staging -> main` zu). Empfehlung an den Maintainer: `1.x` analog zu `main`/`staging` per Branch-Protection zu schützen.
+
+Bis zum ersten `v2.0.0`-Release auf `main` ist die auf `1.x` publizierbare Range leer: semantic-release lehnt jede nächste Version oberhalb des höchsten `main`-Releases ab, und `resolve-release-version.mjs` behandelt genau diesen Leer-Range-Fall als „no-release" statt als Fehler. Releasierbare Commits (`fix:`, `feat:`) auf `1.x` werden daher vorerst **aufgeschoben** — ein Push endet grün, ohne ein Release zu erzeugen; das Maintenance-Release entsteht erst beim ersten `1.x`-Push, nachdem `v2.0.0` auf `main` erschienen ist und die Range dadurch geöffnet wurde.
 
 ## Pull-Request-Prüfung auf staging
 
@@ -16,7 +21,7 @@ Der Workflow `.github/workflows/pr-staging-ci.yml` startet für Pull Requests ge
 
 Reine Back-Merge-PRs (`main -> staging`) erkennt der Job `detect-backmerge` und alle weiteren Checks werden übersprungen. Solange ein automatisierter Back-Merge-PR `main -> staging` offen ist, schlägt der Job `no pending backmerge` für reguläre PRs fehl — der Back-Merge wird immer zuerst gemergt, damit er nicht durch einen dazwischengemergten Feature-PR veraltet oder konfliktbehaftet wird.
 
-Für alle anderen PRs fuehrt der Workflow auf `ubuntu-latest` mit .NET `10.0.x` diese Prüfungen aus:
+Für alle anderen PRs fuehrt der Workflow auf `ubuntu-latest` mit .NET `11.0.x` diese Prüfungen aus:
 
 - `dotnet restore Rezepte.sln`
 - `dotnet build Rezepte.Web/Rezepte.Web.csproj --configuration Release --no-restore`
@@ -84,9 +89,9 @@ Alle drei Workflows bieten zusätzlich `workflow_dispatch` für manuelle Anläuf
 
 ## Release-Build
 
-Der Workflow `.github/workflows/release.yml` startet bei jedem Push auf `main` sowie bei gepushten Tags im Muster `v*.*.*`. Da nur PRs aus `staging` nach `main` gelangen, entspricht ein Push auf `main` faktisch dem Merge des Promotion-PRs. `scripts/resolve-release-version.mjs` klassifiziert den Lauf anschließend als automatisches Release (Branch-Push), manuelles Release (Tag-Push) oder Asset-Reparatur.
+Der Workflow `.github/workflows/release.yml` startet bei jedem Push auf `main` sowie bei gepushten Tags im Muster `v*.*.*` — in der `1.x`-Kopie des Workflows zusätzlich bei Push auf `1.x` (siehe Abschnitt „Branch-Modell"). Da nur PRs aus `staging` nach `main` gelangen, entspricht ein Push auf `main` faktisch dem Merge des Promotion-PRs. `scripts/resolve-release-version.mjs` klassifiziert den Lauf anschließend als automatisches Release (Branch-Push), manuelles Release (Tag-Push) oder Asset-Reparatur.
 
-Der Release-Job checkt den Merge-Commit aus, baut die Anwendung sowie beide Testprojekte, fuehrt Tests aus, publisht `Rezepte.Web` framework-abhängig für `net10.0` und `linux-x64` und erstellt daraus `release.zip`. Zusätzlich erzeugt `scripts/Export-ImportContract.ps1` ein separates Import-Contract-ZIP mit `contract-export.json`, Dateihashes, ZIP-SHA-256-Metadaten und ApiCompat-Baseline-DLLs. Web-ZIP und Contract-ZIP werden als getrennte GitHub-Actions-Artefakte hochgeladen.
+Der Release-Job checkt den Merge-Commit aus, baut die Anwendung sowie beide Testprojekte und fuehrt die Tests aus. Die Composite Action `.github/actions/build-and-package` publisht `Rezepte.Web` anschließend self-contained für `net11.0` je einmal für `linux-x64` und `win-x64` (jeweils inklusive `plugins/`-Ausgabe und `release-metadata.json`) und erstellt daraus die Artefakte `release-linux-x64.zip` und `release-win-x64.zip` sowie das `update.json`-Update-Manifest mit SHA-256-, Größen- und Asset-URL-Angaben. Zusätzlich erzeugt `scripts/Export-ImportContract.ps1` ein separates Import-Contract-ZIP mit `contract-export.json`, Dateihashes, ZIP-SHA-256-Metadaten und ApiCompat-Baseline-DLLs. Release-ZIPs, `update.json` und Contract-ZIP werden als getrennte GitHub-Actions-Artefakte hochgeladen.
 
 Vor den Browser-Tests installiert der Release-Workflow die Playwright-Abhängigkeiten für Chromium über das beim Build von `Rezepte.Tests.Browser` erzeugte `playwright.ps1`-Skript. Ausserdem wird `Rezepte.Web` vorab ohne runtime-spezifisches Ausgabeziel veröffentlicht, damit die Browser-Testfixture den erwarteten Publish-Output findet.
 
@@ -95,7 +100,7 @@ Die Release-Tests werden projektweise gestartet:
 - `dotnet test Rezepte.Tests/Rezepte.Tests.csproj --configuration Release --no-build`
 - `dotnet test Rezepte.Tests.Browser/Rezepte.Tests.Browser.csproj --configuration Release --no-build`
 
-Der Release-Workflow übergibt keine gebauten Testassemblies als freie Argumente an den Testrunner. Dadurch bleibt der Testaufruf mit dem .NET-10-Testrunner kompatibel und `Rezepte.Tests.Browser.dll` wird nicht als ungültiges Kommandozeilenargument interpretiert.
+Der Release-Workflow übergibt keine gebauten Testassemblies als freie Argumente an den Testrunner. Dadurch bleibt der Testaufruf mit dem .NET-11-Testrunner kompatibel und `Rezepte.Tests.Browser.dll` wird nicht als ungültiges Kommandozeilenargument interpretiert.
 
 Das Contract-ZIP ist für externe Import-Plugin-Repositories credential-frei abrufbar, sobald es als Release-Asset veröffentlicht wurde. Die Release-Notizen nennen `contractVersion`, `sourceCommit`, ZIP-SHA-256, den Contract-Assetnamen und die konkrete URL `https://github.com/<owner>/<repo>/releases/download/<tag>/rezepte-import-contract-<contractVersion>.zip`. Dieselbe URL wird in der als Release-Asset veröffentlichten `contract-export.metadata.json` als `artifactUrl` ergaenzt. Actions-Artefakte aus nicht taggenden Merges bleiben CI-Artefakte und sind nicht der dokumentierte credential-freie Plugin-Importpfad. Ein normaler Plugin-Build laedt diesen Stand nicht automatisch herunter; Updates werden im Plugin-Repository manuell mit konkreter Artefakt-URL und erwartetem ZIP-SHA-256 ausgefuehrt.
 
@@ -109,7 +114,7 @@ Die Versionierung basiert auf Git-Tags im Format `vMAJOR.MINOR.PATCH`.
 - `type!:` oder `BREAKING CHANGE:` erhoeht die Major-Version.
 - Andere Commit-Typen erzeugen keinen neuen SemVer-Tag.
 
-Bei einer neuen SemVer-Version erstellt der Workflow zusätzlich einen GitHub Release mit `release.zip`, dem Import-Contract-ZIP und `contract-export.metadata.json` als Assets. Für nicht SemVer-relevante Merges werden trotzdem Actions-Artefakte mit Version und Merge-Commit im Namen abgelegt.
+Bei einer neuen SemVer-Version erstellt der Workflow zusätzlich einen GitHub Release mit `release-linux-x64.zip`, `release-win-x64.zip`, `update.json`, dem Import-Contract-ZIP und `contract-export.metadata.json` als Assets. Für nicht SemVer-relevante Merges werden trotzdem Actions-Artefakte mit Version und Merge-Commit im Namen abgelegt.
 
 ## GitHub Pages
 

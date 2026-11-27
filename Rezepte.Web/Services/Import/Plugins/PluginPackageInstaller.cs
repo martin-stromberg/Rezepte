@@ -6,9 +6,10 @@ namespace Rezepte.Web.Services.Import.Plugins;
 /// <param name="environment">The environment parameter.</param>
 /// <param name="pluginManager">The plugin manager parameter.</param>
 /// <param name="directoryRegistry">The directory registry parameter.</param>
+/// <param name="workspaceProvider">The workspace provider parameter.</param>
 /// <param name="logger">The logger parameter.</param>
 /// <returns>The result.</returns>
-public sealed class PluginPackageInstaller(IHostEnvironment environment, IPluginManager pluginManager, IPluginDirectoryRegistry directoryRegistry, ILogger<PluginPackageInstaller> logger) : IPluginPackageInstaller
+public sealed class PluginPackageInstaller(IHostEnvironment environment, IPluginManager pluginManager, IPluginDirectoryRegistry directoryRegistry, IPluginWorkspaceProvider workspaceProvider, ILogger<PluginPackageInstaller> logger) : IPluginPackageInstaller
 {
     private static readonly SemaphoreSlim InstallLock = new(1, 1);
 
@@ -242,7 +243,7 @@ public sealed class PluginPackageInstaller(IHostEnvironment environment, IPlugin
 
     private InstallBackup BackupDirectory(string target)
     {
-        var backupPath = Path.Combine(Path.GetTempPath(), "rezepte-plugin-backup", Guid.NewGuid().ToString("N"));
+        var backupPath = workspaceProvider.CreateWorkDirectory("rezepte-plugin-backup");
         try
         {
             CopyDirectory(target, backupPath);

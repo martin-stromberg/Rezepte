@@ -15,6 +15,7 @@ Die wichtigsten Einstellungen liegen in `Rezepte.Web/appsettings.json` und könn
 | `AI:Simulate`, `AI:EnableCache`, `AI:CacheDurationHours` | Optionale Einstellungen für KI-Importe und Caching. |
 | `GoogleCredentials:ServiceAccountFilePath`, `GoogleCredentials:GeminiApiKey` | Fallback für Google-Credentials, wenn die Umgebungsvariablen `GOOGLE_APPLICATION_CREDENTIALS` bzw. `GOOGLE_GEMINI_API_KEY` nicht gesetzt sind. |
 | `PluginUpdates:GitHubApiBaseUrl`, `PluginUpdates:TimeoutSeconds`, `PluginUpdates:UserAgent` | Serverseitige GitHub-Kommunikation für die Update-Prüfung konfigurierter Pluginquellen (automatisch beim Start und manuell je Quelle). |
+| `PluginUpdates:WorkDirectory` | Optionales Basisverzeichnis für die temporären Arbeitsverzeichnisse der Plugin-Aktualisierung (Download, Paketprüfung, Install-Backup). Hat Vorrang vor dem System-Temp-Verzeichnis und dem Fallback `plugins/.work` unter dem Anwendungsverzeichnis; Standard: nicht gesetzt. |
 | `UpdateBackups:Directory`, `UpdateBackups:RetentionCount` | Zielverzeichnis und Aufbewahrungsanzahl für automatische Backups vor Programmupdates. |
 | `UpdateBackups:IncludeImages`, `UpdateBackups:IncludePdf`, `UpdateBackups:SystemInitiatorUserId` | Umfang und technischer Initiator der Update-Backups. |
 | `ApplicationUpdates:*` | Steuerung der eingebundenen `msTools.Updater`-Programmupdates, inklusive Quelle, Downloadpfad, automatischem Download und automatischer Installation. |

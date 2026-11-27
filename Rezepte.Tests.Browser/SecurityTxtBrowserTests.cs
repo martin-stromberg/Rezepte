@@ -30,11 +30,11 @@ public class SecurityTxtBrowserTests
     /// Verifies that the public security.txt endpoint returns HTTP 200 when the feature is enabled.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task GetSecurityTxt_ReturnsOk_WithoutAuthentication_WhenEnabled()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await SecurityTxtPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -53,11 +53,11 @@ public class SecurityTxtBrowserTests
     /// Verifies that the public security.txt endpoint returns HTTP 404 when the feature is disabled.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task GetSecurityTxt_ReturnsNotFound_WhenDisabled()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await SecurityTxtPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -75,11 +75,11 @@ public class SecurityTxtBrowserTests
     /// contact appears in the public endpoint.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task Admin_CanConfigureSecurityTxtViaUi_AndContentAppearsInPublicEndpoint()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await SecurityTxtPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -102,11 +102,11 @@ public class SecurityTxtBrowserTests
     /// Verifies that a regular user does not see the security.txt menu item in the settings panel.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task RegularUser_DoesNotSeeSecurityTxtMenuItemInSettings()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         const string RegularUsername = "securitytxt-nonadmin";
         const string RegularPassword = "NonAdmin!456";

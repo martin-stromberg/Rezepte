@@ -19,7 +19,7 @@ namespace Rezepte.Tests.Components;
 /// </summary>
 public sealed class RecipeSearchComponentTests : IDisposable
 {
-    private readonly TestContext _context = new();
+    private readonly BunitContext _context = new();
     private readonly PathBaseNavigationManager _navigationManager;
 
     /// <summary>
@@ -48,7 +48,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
         service.Setup(SearchAsyncSetup())
             .ThrowsAsync(new OperationCanceledException("boom-cancelled"));
 
-        var cut = _context.RenderComponent<RecipeSearch>();
+        var cut = _context.Render<RecipeSearch>();
 
         cut.WaitForAssertion(() =>
         {
@@ -69,7 +69,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
         service.Setup(SearchAsyncSetup())
             .ThrowsAsync(new InvalidOperationException("boom-request"));
 
-        var cut = _context.RenderComponent<RecipeSearch>();
+        var cut = _context.Render<RecipeSearch>();
 
         cut.WaitForAssertion(() =>
         {
@@ -84,10 +84,10 @@ public sealed class RecipeSearchComponentTests : IDisposable
     [Fact]
     public void RunSearchAsync_WhenUnauthenticated_ShowsSearchFailed()
     {
-        _context.AddTestAuthorization().SetNotAuthorized();
+        _context.AddAuthorization().SetNotAuthorized();
         var service = RegisterRecipeService();
 
-        var cut = _context.RenderComponent<RecipeSearch>();
+        var cut = _context.Render<RecipeSearch>();
 
         cut.WaitForAssertion(() =>
         {
@@ -107,7 +107,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
         service.Setup(SearchAsyncSetup())
             .ReturnsAsync(new RecipeService.SearchResult { Items = Array.Empty<RecipeService.SearchResultItem>(), TotalCount = 0 });
 
-        var cut = _context.RenderComponent<RecipeSearch>();
+        var cut = _context.Render<RecipeSearch>();
 
         cut.WaitForAssertion(() =>
         {
@@ -142,7 +142,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
                 TotalCount = 1
             });
 
-        var cut = _context.RenderComponent<RecipeSearch>();
+        var cut = _context.Render<RecipeSearch>();
 
         cut.WaitForAssertion(() =>
         {
@@ -174,7 +174,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
             .ReturnsAsync(new RecipeService.SearchResult { Items = Array.Empty<RecipeService.SearchResultItem>(), TotalCount = 0 });
 
         _navigationManager.NavigateTo("recipes/search?q=a");
-        var cut = _context.RenderComponent<RecipeSearch>();
+        var cut = _context.Render<RecipeSearch>();
 
         cut.WaitForAssertion(() =>
         {
@@ -206,7 +206,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
             .ReturnsAsync(new RecipeService.SearchResult { Items = Array.Empty<RecipeService.SearchResultItem>(), TotalCount = 0 });
 
         _navigationManager.NavigateTo("recipes/search?q=a&page=1");
-        var cut = _context.RenderComponent<RecipeSearch>();
+        var cut = _context.Render<RecipeSearch>();
 
         cut.WaitForAssertion(() =>
         {
@@ -236,7 +236,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
             .ReturnsAsync(new RecipeService.SearchResult { Items = Array.Empty<RecipeService.SearchResultItem>(), TotalCount = 0 });
 
         _navigationManager.NavigateTo("recipes/search?q=abc");
-        _context.RenderComponent<RecipeSearch>();
+        _context.Render<RecipeSearch>();
 
         _context.JSInterop.VerifyInvoke("rezepteSyncSearchInput")
             .Arguments.Should().Equal("search-q", "abc");
@@ -264,7 +264,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
                 return new RecipeService.SearchResult();
             });
 
-        var cut = _context.RenderComponent<RecipeSearch>();
+        var cut = _context.Render<RecipeSearch>();
         await searchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         // Dispose the component directly so the teardown cancellation is triggered, then
@@ -296,7 +296,7 @@ public sealed class RecipeSearchComponentTests : IDisposable
 
     private void Authorize()
     {
-        var auth = _context.AddTestAuthorization();
+        var auth = _context.AddAuthorization();
         auth.SetAuthorized("testuser");
         auth.SetClaims(new Claim(ClaimTypes.NameIdentifier, "user-1"));
     }
@@ -323,9 +323,9 @@ public sealed class RecipeSearchComponentTests : IDisposable
 
     private sealed class PathBaseNavigationManager : NavigationManager
     {
-        private readonly TestContextBase _testContext;
+        private readonly BunitContext _testContext;
 
-        public PathBaseNavigationManager(string baseUri, TestContextBase testContext)
+        public PathBaseNavigationManager(string baseUri, BunitContext testContext)
         {
             _testContext = testContext;
             Initialize(baseUri, baseUri);

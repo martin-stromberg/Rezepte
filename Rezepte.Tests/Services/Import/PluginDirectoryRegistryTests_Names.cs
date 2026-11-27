@@ -49,6 +49,7 @@ public sealed class PluginDirectoryRegistryTests_Names : PluginDirectoryRegistry
     [InlineData("Name")]
     [InlineData("@v1")]
     [InlineData("Name@")]
+    [InlineData(".work")]
     public void TryParseVersionedDirectoryName_ShouldReturnFalse_WhenNameIsNotVersioned(string directoryName)
     {
         using var workspace = new TempWorkspace();

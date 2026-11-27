@@ -14,7 +14,7 @@ namespace Rezepte.Tests.Components;
 /// </summary>
 public class LoadingBarRenderingTests : IDisposable
 {
-    private readonly TestContext _context = new();
+    private readonly BunitContext _context = new();
 
     /// <summary>
     /// Render when enabled renders host element with indicator.
@@ -101,7 +101,7 @@ public class LoadingBarRenderingTests : IDisposable
         serviceMock.Setup(service => service.GetSettings()).Returns(settings);
         _context.Services.AddSingleton(serviceMock.Object);
 
-        return _context.RenderComponent<LoadingBar>();
+        return _context.Render<LoadingBar>();
     }
 
     private static LoadingBarSettings CreateSettings(

@@ -34,7 +34,7 @@ public sealed class PluginSettingsAppFixture : RezepteAppFixture
     /// application cannot issue requests against an already stopped stub.
     /// </summary>
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
-    public override async Task DisposeAsync()
+    public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
         _gitHubStub.Dispose();

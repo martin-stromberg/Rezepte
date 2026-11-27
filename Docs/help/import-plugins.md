@@ -22,6 +22,16 @@ Aus dem neuesten veröffentlichten GitHub-Release wird ein ZIP-Asset geladen. De
 
 Das Paket wird vor der Installation in einem temporaeren Verzeichnis geprüft. Nur erkannte Plugin-Unterverzeichnisse und zulässige Inhalte werden übernommen. Austausch und produktiver Reload laufen koordiniert: neue Imports werden währenddessen gesperrt, laufende Handler werden nicht parallel zum Dateiaustausch unterbrochen, und nachfolgende Imports sehen erst den neu initialisierten Pluginbestand. Bei Kopier-, Installations- oder Reloadfehlern wird der bisherige Pluginbestand wiederhergestellt. Der Status der Quelle zeigt den letzten erfolgreichen Release, den letzten Fehler und den Zeitpunkt der letzten Prüfung; Reloadstatus, Reloadzeitpunkt und Reloadfehler bleiben in der Releasehistorie nachvollziehbar.
 
+### Arbeitsverzeichnisse der Plugin-Aktualisierung
+
+Download, Paketprüfung und die Sicherung des bisherigen Plugin-Verzeichnisses laufen in temporären Arbeitsverzeichnissen, die je Prüflauf frisch unter einem beschreibbaren Basisverzeichnis angelegt werden. Eine bereits vorhandene Verzeichnisstruktur wird dabei nicht vorausgesetzt; fehlende Zwischenebenen werden automatisch erzeugt.
+
+Das Basisverzeichnis wird in einer festen Reihenfolge gewählt: zuerst ein optional konfiguriertes Verzeichnis (`PluginUpdates:WorkDirectory`), danach das Temp-Verzeichnis des Systems und zuletzt `plugins/.work` unter dem Anwendungsverzeichnis, das die Anwendung ohnehin verwaltet und beschreibt. Verwendet wird der erste Kandidat, in dem sich das Arbeitsverzeichnis anlegen lässt.
+
+Kann in keinem dieser Verzeichnisse geschrieben werden, schlägt die Update-Prüfung mit der Meldung `Das Arbeitsverzeichnis für die Plugin-Aktualisierung konnte nicht angelegt werden.` fehl; der technische Grund steht im Anwendungslog.
+
+Verwaiste Arbeitsverzeichnisse unter `plugins/.work` — etwa Reste eines abgebrochenen Laufs — räumt die Anwendung best-effort auf, sobald sie nachweislich älter als einen Tag sind und nicht von einer laufenden Prüfung verwendet werden. `plugins/.work` wird bei der Plugin-Erkennung nicht als Plugin-Verzeichnis ausgewertet.
+
 ### Versionsverzeichnisse quelleninstallierter Plugins
 
 Installationen aus GitHub-Pluginquellen ersetzen den bisherigen Plugin-Ordner nicht mehr an Ort und Stelle. Jede installierte Release-Version liegt in einem eigenen Verzeichnis unter `plugins`, dessen Name aus dem Plugin-Verzeichnisnamen und dem Release-Tag gebildet wird: `plugins/<Name>@<ReleaseTag>/`. Pro Plugin lädt die Erkennung nur die jeweils wirksame Version; Verzeichnisse älterer Versionen werden beim koordinierten Austausch entfernt.
@@ -149,6 +159,10 @@ Das externe Plugin-Repository aktualisiert den Vertrag manuell über eine konkre
 Ein normaler Plugin-Build laedt keinen neuen Vertragsstand herunter. Nach einem manuellen Update prüft das Plugin-Repository ZIP-SHA-256, Manifestfelder, Dateiliste, Datei-SHA-256 und den isolierten Build des importierten Workspaces. Die Baseline-DLLs `Rezepte.Import.Abstractions.dll` und `Rezepte.Import.PluginSdk.dll` sind demselben `contractVersion`-/`sourceCommit`-Stand zugeordnet und dienen als Referenz für `Microsoft.DotNet.ApiCompat.Tool`.
 
 Historische ApiCompat-Vergleiche werden hart, sobald passende gespeicherte Referenzen im Hauptrepository abgelegt sind. Erwartet wird die Struktur `contract-baselines/import-contract/<semver>/Rezepte.Import.Abstractions.dll` und `contract-baselines/import-contract/<semver>/Rezepte.Import.PluginSdk.dll`. Das Exportskript kann mit `-ApiCompatBaselineVersion <semver>` auf eine konkrete gespeicherte Baseline festgelegt werden. Ohne diesen Parameter wählt es automatisch die neueste gespeicherte SemVer-Baseline, deren Version nicht über der aktuellen Contract-Version liegt. Ohne passende gespeicherte Baseline wird der Vergleich im Skript sowie in den Workflows explizit als übersprungen protokolliert.
+
+### Framework-Linie der Anwendung (.NET 10 / .NET 11)
+
+Die Anwendung läuft ab Release `v2.0.0` auf .NET 11. Für .NET 10 gebaute Import-Plugins werden von der .NET-11-Anwendung **nicht** geladen — sie erscheinen in der Pluginverwaltung mit Fehlerstatus. Externe Plugin-Betreiber müssen ihre Plugins daher für .NET 11 neu bauen und neu veröffentlichen; das Plugin-Repository `martin-stromberg/Rezepte.Plugins` richtet für diesen Schritt eine eigene .NET-10-Maintenance-Linie ein (analog zum `1.x`-Branch des Hauptrepositorys, siehe Abschnitt „Branch-Modell" in [GitHub Actions](github-actions.md); die Anlage ist über das Folge-Issue [martin-stromberg/Rezepte.Plugins#23](https://github.com/martin-stromberg/Rezepte.Plugins/issues/23) festgelegt). Installationen, die selbst auf der .NET-10-Linie der Anwendung bleiben (Maintenance-Releases `v1.x`), verwenden weiterhin die für .NET 10 gebauten Plugin-Releases.
 
 ### Öffentliche API im Plugin-Vertrag ändern (Breaking-Change-Workflow)
 

@@ -398,6 +398,7 @@ else
             PluginUpdateCheckErrors.NoZipAsset => Localizer["PluginCheckNoZipAsset"],
             PluginUpdateCheckErrors.ValidationFailed => Localizer["PluginCheckValidationFailed"],
             PluginUpdateCheckErrors.RateLimited => Localizer["PluginCheckRateLimited"],
+            PluginUpdateCheckErrors.WorkDirectoryUnavailable => Localizer["PluginCheckWorkDirectoryUnavailable"],
             not null => $"{Localizer["PluginCheckFailed"]} ({error})",
             _ => Localizer["PluginCheckFailed"]
         };

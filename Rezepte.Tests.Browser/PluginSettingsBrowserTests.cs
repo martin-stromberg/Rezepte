@@ -37,11 +37,11 @@ public class PluginSettingsBrowserTests
     /// button with a localized tooltip for a newly added source.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task PluginSettings_ShowsInfoText_AndCheckButtonWithTooltip()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await PluginSettingsPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -60,11 +60,11 @@ public class PluginSettingsBrowserTests
     /// localized failure alert and updates the status cell with the error and check timestamps.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task CheckButton_WithoutPat_ShowsLocalizedError_AndUpdatesStatus()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await PluginSettingsPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -88,11 +88,11 @@ public class PluginSettingsBrowserTests
     /// explains the reason.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task CheckButton_IsDisabled_WithReason_WhenSourceDeactivated()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         await using var pageObject = await PluginSettingsPageObject.CreateAsync(_browserFixture.Browser!, _appFixture.BaseAddress);
         await pageObject.LoginAsync(RezepteAppFixture.TestUsername, RezepteAppFixture.TestPassword);
@@ -112,11 +112,11 @@ public class PluginSettingsBrowserTests
     /// "Kein Update gefunden." through a success alert.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task CheckButton_WhenReleaseAlreadyInstalled_ShowsNoUpdate()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         _appFixture.GitHubStub.RespondWithRelease(releaseId: 777, tagName: "v9.9.9", assetId: 4242, assetName: "plugin.zip");
 
@@ -141,11 +141,11 @@ public class PluginSettingsBrowserTests
     /// tooltip and that clicking it removes the row and shows the localized success alert.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task MissingPlugin_CanBeRemoved()
     {
-        Skip.IfNot(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
-        Skip.IfNot(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
+        Assert.SkipUnless(_browserFixture.BrowsersAvailable, _browserFixture.UnavailableReason ?? "Playwright Chromium browser is not installed.");
+        Assert.SkipUnless(_appFixture.ApplicationAvailable, _appFixture.ApplicationUnavailableSkipReason);
 
         const string PluginId = "e2e.missing-plugin";
         const string DisplayName = "E2E Missing Plugin";

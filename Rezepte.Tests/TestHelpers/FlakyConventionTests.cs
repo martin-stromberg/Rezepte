@@ -9,7 +9,7 @@ namespace Rezepte.Tests.TestHelpers;
 /// combined with <c>OsInterface</c> — a violation would push a retry-eligible test
 /// into the blocking lane. The class is compiled into both test assemblies via a
 /// <c>&lt;Compile Include&gt;</c> link and scans whichever assembly it runs in.
-/// Trait values are read through <see cref="CustomAttributeData"/> because xUnit 2's
+/// Trait values are read through <see cref="CustomAttributeData"/> because the xUnit
 /// <c>TraitAttribute</c> is sealed and exposes no public trait-reader API.
 /// </summary>
 public sealed class FlakyConventionTests

@@ -46,4 +46,9 @@ public static class PluginUpdateCheckErrors
     /// The GitHub API rate limit was reached.
     /// </summary>
     public const string RateLimited = "GitHub rate limit reached.";
+
+    /// <summary>
+    /// No temporary work directory could be created for the update check.
+    /// </summary>
+    public const string WorkDirectoryUnavailable = "A temporary work directory could not be created.";
 }

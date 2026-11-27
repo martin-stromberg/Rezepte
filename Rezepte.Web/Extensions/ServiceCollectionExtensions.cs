@@ -204,6 +204,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportedRecipePersister, ImportedRecipePersister>();
         services.AddSingleton<IPluginManager, PluginManager>();
         services.AddSingleton<IPluginDirectoryRegistry, PluginDirectoryRegistry>();
+        services.AddSingleton<IPluginWorkspaceProvider, PluginWorkspaceProvider>();
         services.AddHostedService<PluginStartupService>();
         services.AddHostedService<PluginUpdateHostedService>();
         services.AddSingleton<IApplicationUpdatePreInstallHandler, ApplicationUpdatePreInstallHandler>();

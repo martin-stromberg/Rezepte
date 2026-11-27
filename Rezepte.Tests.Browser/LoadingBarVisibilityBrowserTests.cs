@@ -30,7 +30,7 @@ public class LoadingBarVisibilityBrowserTests
     /// Verifies that the loading bar becomes active after a delayed navigation link click.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task LinkClick_WithDelayedResponse_ActivatesLoadingBar()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
@@ -47,7 +47,7 @@ public class LoadingBarVisibilityBrowserTests
     /// Verifies that the loading bar becomes visible after a delayed navigation link click.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task LinkClick_WithDelayedResponse_MakesLoadingBarVisible()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
@@ -64,7 +64,7 @@ public class LoadingBarVisibilityBrowserTests
     /// Verifies that the loading bar hides again after a delayed navigation completes.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task AfterNavigationCompleted_HidesLoadingBar()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);

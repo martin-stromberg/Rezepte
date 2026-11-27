@@ -2,7 +2,7 @@
 
 [![PR CI for Staging](https://img.shields.io/github/actions/workflow/status/martin-stromberg/Rezepte/pr-staging-ci.yml?label=PR%20CI%20for%20Staging)](https://github.com/martin-stromberg/Rezepte/actions)
 [![License](https://img.shields.io/github/license/martin-stromberg/Rezepte)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com)
+[![.NET](https://img.shields.io/badge/.NET-11.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com)
 [![GitHub Page](https://img.shields.io/badge/GitHub%20Page-martin--stromberg.github.io%2FRezepte-5A1F1F?logo=github)](https://martin-stromberg.github.io/Rezepte/)
 
 Rezepte ist eine deutschsprachige Webanwendung zur Verwaltung von Kochbüchern, Rezepten, Bildern und geplanten Mahlzeiten. Das Projekt kombiniert eine Blazor-Server-Oberfläche mit JSON/API-Endpunkten, SQLite-Persistenz und optionalen KI-gestützten Importfunktionen.
@@ -30,7 +30,7 @@ Die folgenden Screenshots zeigen die Anwendung nach einer Erstregistrierung mit 
 
 ## Tech-Stack
 
-- .NET 10
+- .NET 11
 - ASP.NET Core / Blazor Server mit Interactive Server Components
 - Entity Framework Core mit SQLite
 - xUnit, FluentAssertions, Moq und EF-Core InMemory für Tests
@@ -40,7 +40,7 @@ Die folgenden Screenshots zeigen die Anwendung nach einer Erstregistrierung mit 
 
 ## Voraussetzungen
 
-- .NET SDK 10 oder neuer
+- .NET SDK 11 oder neuer
 - Für den Standardbetrieb keine externe Datenbank; SQLite wird lokal verwendet.
 - Optional für KI-Funktionen: Gemini API-Key und bei Fotoimporten zusätzlich ein Google-Service-Account für Vision.
 
@@ -73,7 +73,7 @@ Details zu Testprojekten, Browser-Tests mit Playwright und dem NuGet-Sicherheits
 
 [Docs/install.md](Docs/install.md) ist die verbindliche Schritt-für-Schritt-Anleitung für Publish, Runtime-Prüfung und systemd-Betrieb auf Linux. Sie deckt beide Betriebsarten ab: eigenständig (ohne Reverse-Proxy) und hinter einem Reverse-Proxy mit TLS-Terminierung.
 
-Bei einem framework-abhängigen Publish (`--self-contained false`) müssen auf dem Server die passenden .NET-10-Shared-Frameworks für `Microsoft.NETCore.App` und `Microsoft.AspNetCore.App` installiert sein. Wenn die Server-Runtime nicht verlässlich bereitsteht, sollte stattdessen die in `Docs/install.md` dokumentierte self-contained Alternative verwendet werden.
+Bei einem framework-abhängigen Publish (`--self-contained false`) müssen auf dem Server die passenden .NET-11-Shared-Frameworks für `Microsoft.NETCore.App` und `Microsoft.AspNetCore.App` installiert sein. Wenn die Server-Runtime nicht verlässlich bereitsteht, sollte stattdessen die in `Docs/install.md` dokumentierte self-contained Alternative verwendet werden.
 
 ## Weitere Informationen
 
@@ -92,3 +92,4 @@ Bei einem framework-abhängigen Publish (`--self-contained false`) müssen auf d
 - [Anforderungskatalog](Docs/Anforderungskatalog.md)
 - [Abhängigkeiten und Sicherheitsstrategie](Docs/dependencies.md)
 - [Release-Notes](Docs/RELEASE_NOTES.md)
+- [Änderungsprotokoll](changes.log)

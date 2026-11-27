@@ -13,7 +13,7 @@ namespace Rezepte.Tests.Components;
 /// </summary>
 public sealed class SharedRecipePageTests : IDisposable
 {
-    private readonly TestContext _context = new();
+    private readonly BunitContext _context = new();
     private readonly Mock<IRecipeShareService> _shareService = new();
 
     /// <summary>
@@ -43,7 +43,7 @@ public sealed class SharedRecipePageTests : IDisposable
         _shareService.Setup(s => s.GetSharedRecipeAsync("token-abc", It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateView());
 
-        var cut = _context.RenderComponent<SharedRecipePage>(parameters => parameters.Add(p => p.Token, "token-abc"));
+        var cut = _context.Render<SharedRecipePage>(parameters => parameters.Add(p => p.Token, "token-abc"));
 
         cut.WaitForAssertion(() => cut.Markup.Should().Contain("Shared Cake"));
         cut.Markup.Should().Contain("Mehl");
@@ -62,7 +62,7 @@ public sealed class SharedRecipePageTests : IDisposable
         _shareService.Setup(s => s.GetSharedRecipeAsync("token-abc", It.IsAny<CancellationToken>()))
             .ReturnsAsync(view);
 
-        var cut = _context.RenderComponent<SharedRecipePage>(parameters => parameters.Add(p => p.Token, "token-abc"));
+        var cut = _context.Render<SharedRecipePage>(parameters => parameters.Add(p => p.Token, "token-abc"));
 
         cut.WaitForAssertion(() =>
         {
@@ -80,7 +80,7 @@ public sealed class SharedRecipePageTests : IDisposable
         _shareService.Setup(s => s.GetSharedRecipeAsync("bad-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync((SharedRecipeView?)null);
 
-        var cut = _context.RenderComponent<SharedRecipePage>(parameters => parameters.Add(p => p.Token, "bad-token"));
+        var cut = _context.Render<SharedRecipePage>(parameters => parameters.Add(p => p.Token, "bad-token"));
 
         cut.WaitForAssertion(() => cut.Find(".alert-warning"));
         cut.Markup.Should().Contain("ungültig oder abgelaufen");
@@ -95,7 +95,7 @@ public sealed class SharedRecipePageTests : IDisposable
         _shareService.Setup(s => s.GetSharedSideDishAsync("token-abc", "side-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateView() with { Title = "Beilage Salat" });
 
-        var cut = _context.RenderComponent<SharedRecipePage>(parameters => parameters
+        var cut = _context.Render<SharedRecipePage>(parameters => parameters
             .Add(p => p.Token, "token-abc")
             .Add(p => p.RecipeId, "side-1"));
 

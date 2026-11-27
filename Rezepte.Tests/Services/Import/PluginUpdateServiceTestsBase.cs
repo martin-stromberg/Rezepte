@@ -65,12 +65,14 @@ public abstract class PluginUpdateServiceTestsBase
     /// <param name="gitHubReleaseClient">The git hub release client parameter.</param>
     /// <param name="installer">The installer parameter.</param>
     /// <param name="secretStore">The secret store parameter.</param>
+    /// <param name="workspaceProvider">The workspace provider parameter.</param>
     /// <returns>The result.</returns>
     protected static PluginUpdateService CreateSut(
         RezepteDbContext db,
         IGitHubReleaseClient gitHubReleaseClient,
         IPluginPackageInstaller? installer = null,
-        ISystemSecretStore? secretStore = null)
+        ISystemSecretStore? secretStore = null,
+        IPluginWorkspaceProvider? workspaceProvider = null)
     {
         return new PluginUpdateService(
             db,
@@ -78,6 +80,7 @@ public abstract class PluginUpdateServiceTestsBase
             secretStore ?? new FakeSecretStore(),
             new FakePackageValidator(),
             installer ?? new FakePackageInstaller(),
+            workspaceProvider ?? new StubWorkspaceProvider(Path.GetTempPath()),
             NullLogger<PluginUpdateService>.Instance);
     }
 

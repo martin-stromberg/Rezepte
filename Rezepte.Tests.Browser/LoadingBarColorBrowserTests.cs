@@ -33,7 +33,7 @@ public class LoadingBarColorBrowserTests
     /// Verifies that a navigation link click shows a loading bar color from the configured palette.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task LinkClick_UsesColorFromConfiguredPalette()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
@@ -52,7 +52,7 @@ public class LoadingBarColorBrowserTests
     /// Verifies that a second click during an already running animation changes the loading bar color.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>
-    [SkippableFact]
+    [Fact]
     public async Task SecondClickDuringRunningAnimation_ChangesColor()
     {
         await using var pageObject = await LoadingBarBrowserSession.StartLoggedInSessionAsync(_browserFixture, _appFixture);
