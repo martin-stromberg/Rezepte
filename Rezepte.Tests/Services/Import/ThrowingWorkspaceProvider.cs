@@ -1,3 +1,5 @@
+using Rezepte.Web.Services.Import.Plugins;
+
 namespace Rezepte.Tests.Services.Import;
 
 /// <summary>
