@@ -6,9 +6,10 @@ namespace Rezepte.Web.Services.Import.Plugins;
 /// plugins the package validator.
 /// </summary>
 /// <param name="pluginManager">The plugin manager parameter.</param>
+/// <param name="workspaceProvider">The workspace provider parameter.</param>
 /// <param name="logger">The logger parameter.</param>
 /// <returns>The result.</returns>
-public sealed class PluginPackageValidator(IPluginManager pluginManager, ILogger<PluginPackageValidator> logger) : IPluginPackageValidator
+public sealed class PluginPackageValidator(IPluginManager pluginManager, IPluginWorkspaceProvider workspaceProvider, ILogger<PluginPackageValidator> logger) : IPluginPackageValidator
 {
     private static readonly HashSet<string> AllowedTopLevelFiles = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -26,8 +27,9 @@ public sealed class PluginPackageValidator(IPluginManager pluginManager, ILogger
     /// <returns>The result.</returns>
     public Task<PluginPackageValidationResult> ValidateAsync(string zipPath, CancellationToken ct = default)
     {
-        var extractRoot = Path.Combine(Path.GetTempPath(), "rezepte-plugin-package", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(extractRoot);
+        // A PluginWorkspaceException propagates deliberately: it is not an IOException, so the
+        // caller receives the well-known error constant instead of a generic extraction failure.
+        var extractRoot = workspaceProvider.CreateWorkDirectory("rezepte-plugin-package");
         try
         {
             using var archive = ZipFile.OpenRead(zipPath);
@@ -106,6 +108,25 @@ public sealed class PluginPackageValidator(IPluginManager pluginManager, ILogger
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return Task.FromResult(PluginPackageValidationResult.Failed($"Could not extract ZIP archive: {ex.Message}", extractRoot));
+        }
+        catch
+        {
+            // Exceptions that propagate (e.g. OperationCanceledException) return no result, so the
+            // caller cannot clean up the extraction directory — remove it here best-effort.
+            TryDeleteDirectory(extractRoot);
+            throw;
+        }
+    }
+
+    private void TryDeleteDirectory(string directory)
+    {
+        try
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Could not delete temporary plugin directory {PluginDirectory}", directory);
         }
     }
 }

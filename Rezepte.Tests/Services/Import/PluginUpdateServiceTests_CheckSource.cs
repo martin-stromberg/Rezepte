@@ -219,4 +219,34 @@ public sealed class PluginUpdateServiceTests_CheckSource : PluginUpdateServiceTe
         updated!.LastError.Should().Be("github unavailable");
         updated.LastErrorAt.Should().NotBeNull();
     }
+
+    /// <summary>
+    /// Check source for updates async should return the work directory error and mark the pending
+    /// release record as failed when the workspace provider cannot create the download work
+    /// directory.
+    /// </summary>
+    [Fact]
+    public async Task CheckSourceForUpdatesAsync_ShouldReturnWorkDirectoryUnavailable_WhenWorkspaceFails()
+    {
+        using var db = CreateDb();
+        var source = AddSource(db);
+        var github = new FakeGitHubReleaseClient(CreateRelease("v1"));
+        var sut = CreateSut(db, github, workspaceProvider: new ThrowingWorkspaceProvider(new PluginWorkspaceException()));
+
+        var result = await sut.CheckSourceForUpdatesAsync(source.Id);
+
+        result.Outcome.Should().Be(PluginUpdateCheckOutcome.Failed);
+        result.Error.Should().Be(PluginUpdateCheckErrors.WorkDirectoryUnavailable);
+        result.ReleaseTag.Should().Be("v1");
+
+        var record = await db.PluginSourceReleases.SingleAsync();
+        record.Status.Should().Be(PluginSourceReleaseStatus.InstallFailed,
+            "a workspace failure after the pending upsert must not leave the record pending without an error");
+        record.Error.Should().Be(PluginUpdateCheckErrors.WorkDirectoryUnavailable);
+
+        var updated = await db.PluginSources.FindAsync(source.Id);
+        updated!.LastError.Should().Be(PluginUpdateCheckErrors.WorkDirectoryUnavailable);
+        updated.LastErrorAt.Should().NotBeNull();
+        github.DownloadCalls.Should().Be(0);
+    }
 }

@@ -12,6 +12,7 @@ namespace Rezepte.Web.Services.Import.Plugins;
 /// <param name="secretStore">The secret store parameter.</param>
 /// <param name="packageValidator">The package validator parameter.</param>
 /// <param name="packageInstaller">The package installer parameter.</param>
+/// <param name="workspaceProvider">The workspace provider parameter.</param>
 /// <param name="logger">The logger parameter.</param>
 /// <returns>The result.</returns>
 public sealed class PluginUpdateService(
@@ -20,6 +21,7 @@ public sealed class PluginUpdateService(
     ISystemSecretStore secretStore,
     IPluginPackageValidator packageValidator,
     IPluginPackageInstaller packageInstaller,
+    IPluginWorkspaceProvider workspaceProvider,
     ILogger<PluginUpdateService> logger) : IPluginUpdateService
 {
     private static readonly SemaphoreSlim CheckGate = new(1, 1);
@@ -168,12 +170,12 @@ public sealed class PluginUpdateService(
 
     private async Task<PluginUpdateCheckResult> DownloadValidateInstallAsync(PluginSource source, PluginSourceRelease record, GitHubReleaseAsset asset, string? token, CancellationToken ct)
     {
-        var workRoot = Path.Combine(Path.GetTempPath(), "rezepte-plugin-download", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(workRoot);
-        var zipPath = Path.Combine(workRoot, asset.Name);
+        string? workRoot = null;
         PluginPackageValidationResult? validation = null;
         try
         {
+            workRoot = workspaceProvider.CreateWorkDirectory("rezepte-plugin-download");
+            var zipPath = Path.Combine(workRoot, asset.Name);
             record.Status = PluginSourceReleaseStatus.Downloading;
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             await gitHubReleaseClient.DownloadAssetAsync(asset, zipPath, token, ct).ConfigureAwait(false);
@@ -249,7 +251,7 @@ public sealed class PluginUpdateService(
                 TryDeleteDirectory(validation.ExtractedRoot);
             }
 
-            if (Directory.Exists(workRoot))
+            if (workRoot is not null && Directory.Exists(workRoot))
             {
                 TryDeleteDirectory(workRoot);
             }

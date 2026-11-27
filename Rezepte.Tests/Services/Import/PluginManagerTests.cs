@@ -404,6 +404,41 @@ public sealed class PluginManagerTests
     }
 
     /// <summary>
+    /// Initialize async should ignore the .work directory below the plugin root: work data lives
+    /// at depth two or deeper, so no top-level assembly exists for discovery to pick up. The
+    /// discovery result before and after placing .work leftovers is compared, because other
+    /// legitimate roots (e.g. the test output plugins directory) may contribute plugin entries.
+    /// </summary>
+    [Fact]
+    public async Task InitializeAsync_ShouldIgnoreWorkDirectory()
+    {
+        using var workspace = PluginWorkspace.Create();
+        await using var scope = CreateServices(workspace.ContentRoot, out var sut).CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<RezepteDbContext>();
+
+        await sut.InitializeAsync();
+        var baselineIds = await db.PluginSettings
+            .AsNoTracking()
+            .Select(p => p.PluginId)
+            .ToListAsync();
+
+        var workRoot = Path.Combine(
+            workspace.PluginRoot,
+            ".work",
+            "rezepte-plugin-download",
+            Guid.NewGuid().ToString("N"));
+        workspace.CopyFixturePlugin(workRoot);
+
+        await sut.InitializeAsync();
+
+        var withWorkIds = await db.PluginSettings
+            .AsNoTracking()
+            .Select(p => p.PluginId)
+            .ToListAsync();
+        withWorkIds.Should().BeEquivalentTo(baselineIds, "assemblies below .work must not produce any discovery entry");
+    }
+
+    /// <summary>
     /// Initialize async should select the current versioned directory.
     /// </summary>
     [Fact]

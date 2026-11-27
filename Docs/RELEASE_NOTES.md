@@ -8,6 +8,7 @@
 
 ## What's New
 
+- Plugin updates: fixed a failure ("Could not find file …") when no temporary work directory could be created; the work directory is now chosen from a configurable path (`PluginUpdates:WorkDirectory`), the system temp directory or a plugins fallback, shows a clear message if all fail, and orphaned work directories are cleaned up automatically.
 - Platform upgrade to .NET 11 for the entire application, including build and release pipeline.
 - Recipe search: fixed a cancellation race that could sporadically show an error instead of results when searches were started in quick succession.
 - More robust PDF export: bundled fonts (Lato with Noto Emoji fallback) make generated PDFs independent of the fonts installed on the server; emojis and special characters in recipes are rendered, and rare unsupported characters no longer cause a missing PDF.
@@ -20,6 +21,7 @@
 
 ## Neuerungen
 
+- Plugin-Aktualisierungen: Fehler („Could not find file …") behoben, der auftrat, wenn kein temporäres Arbeitsverzeichnis angelegt werden konnte; das Arbeitsverzeichnis wird nun aus einem konfigurierbaren Pfad (`PluginUpdates:WorkDirectory`), dem System-Temp-Verzeichnis oder einem Plugins-Fallback gewählt, zeigt bei Totalversagen eine klare Meldung, und verwaiste Arbeitsverzeichnisse werden automatisch aufgeräumt.
 - Plattform-Upgrade auf .NET 11 für die gesamte Anwendung inklusive Build- und Release-Pipeline.
 - Rezeptsuche: Eine Race Condition im Abbruchverhalten wurde behoben, die bei schnell aufeinanderfolgenden Suchen sporadisch einen Fehler statt der Ergebnisse anzeigen konnte.
 - Robusterer PDF-Export: Mitgelieferte Schriftarten (Lato mit Noto-Emoji-Fallback) machen erzeugte PDFs unabhängig von den auf dem Server installierten Schriften; Emojis und Sonderzeichen in Rezepten werden dargestellt, und seltene nicht unterstützte Zeichen führen nicht mehr zu einem fehlenden PDF.

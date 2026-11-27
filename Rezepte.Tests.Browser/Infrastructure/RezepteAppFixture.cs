@@ -66,6 +66,13 @@ public class RezepteAppFixture : IAsyncLifetime
     public string ApplicationUnavailableSkipReason { get; private set; } = "Rezepte.Web is not published.";
 
     /// <summary>
+    /// Gets the directory the application process is started from — the publish output that
+    /// serves as its content root — or <see langword="null"/> before initialization.
+    /// </summary>
+    protected string? ApplicationDirectory =>
+        _applicationDllPath is null ? null : Path.GetDirectoryName(_applicationDllPath);
+
+    /// <summary>
     /// Starts the published web application, waits until it is reachable, and registers the test user.
     /// </summary>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
