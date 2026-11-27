@@ -17,4 +17,10 @@ public sealed class PluginUpdateOptions
     /// Represents the public class.
     /// </summary>
     public string UserAgent { get; set; } = "Rezepte.PluginUpdater";
+
+    /// <summary>
+    /// Optional base directory for the temporary plugin update work directories; takes
+    /// precedence over the system temp directory and the managed plugins fallback.
+    /// </summary>
+    public string? WorkDirectory { get; set; }
 }

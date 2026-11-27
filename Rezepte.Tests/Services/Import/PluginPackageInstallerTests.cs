@@ -286,7 +286,7 @@ public sealed class PluginPackageInstallerTests : PluginDirectoryRegistryTestsBa
         registry.SaveState(state);
         var incomingPlugin = Directory.CreateDirectory(Path.Combine(workspace.Root, "incoming", "PluginA")).FullName;
         await File.WriteAllTextAsync(Path.Combine(incomingPlugin, "PluginA.dll"), "replacement");
-        var backupRoot = Path.Combine(Path.GetTempPath(), "rezepte-plugin-backup");
+        var backupRoot = Path.Combine(workspace.Root, "workspace", "rezepte-plugin-backup");
         var backupsBefore = Directory.Exists(backupRoot) ? Directory.GetDirectories(backupRoot) : [];
         await using var lockedStream = new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.None);
         var sut = CreateInstaller(workspace, new SuccessfulPluginManager());
@@ -299,11 +299,36 @@ public sealed class PluginPackageInstallerTests : PluginDirectoryRegistryTestsBa
         backupsAfter.Should().BeEquivalentTo(backupsBefore, "a failed backup must not leave an orphaned temp directory");
     }
 
-    private static PluginPackageInstaller CreateInstaller(TempWorkspace workspace, IPluginManager pluginManager)
-        => CreateInstaller(workspace, pluginManager, CreateRegistry(workspace));
+    /// <summary>
+    /// Install async should fail with InstallFailed carrying the work directory error constant
+    /// when the workspace provider cannot create the backup directory.
+    /// </summary>
+    [Fact]
+    public async Task InstallAsync_ShouldThrowInstallFailed_WhenBackupWorkspaceUnavailable()
+    {
+        using var workspace = new TempWorkspace();
+        var existing = Directory.CreateDirectory(Path.Combine(workspace.PluginRoot, "PluginA@v1.0")).FullName;
+        await File.WriteAllTextAsync(Path.Combine(existing, "PluginA.dll"), "original");
+        var registry = CreateRegistry(workspace);
+        var state = registry.LoadState();
+        state.Installs.Add(new PluginInstallEntry { BaseName = "PluginA", DirectoryName = "PluginA@v1.0", ReleaseTag = "v1.0", SourceKey = "src" });
+        registry.SaveState(state);
+        var incomingPlugin = Directory.CreateDirectory(Path.Combine(workspace.Root, "incoming", "PluginA")).FullName;
+        await File.WriteAllTextAsync(Path.Combine(incomingPlugin, "PluginA.dll"), "replacement");
+        var sut = CreateInstaller(workspace, new SuccessfulPluginManager(), workspaceProvider: new ThrowingWorkspaceProvider(new PluginWorkspaceException()));
 
-    private static PluginPackageInstaller CreateInstaller(TempWorkspace workspace, IPluginManager pluginManager, IPluginDirectoryRegistry directoryRegistry)
-        => new(new TestHostEnvironment(workspace.Root), pluginManager, directoryRegistry, NullLogger<PluginPackageInstaller>.Instance);
+        var act = () => sut.InstallAsync([incomingPlugin], new PluginPackageInstallOptions("v1.0", "src"));
+
+        var error = await act.Should().ThrowAsync<PluginPackageInstallException>();
+        error.Which.Status.Should().Be(PluginSourceReleaseStatus.InstallFailed);
+        error.Which.Message.Should().Be(PluginUpdateCheckErrors.WorkDirectoryUnavailable);
+    }
+
+    private static PluginPackageInstaller CreateInstaller(TempWorkspace workspace, IPluginManager pluginManager, IPluginWorkspaceProvider? workspaceProvider = null)
+        => CreateInstaller(workspace, pluginManager, CreateRegistry(workspace), workspaceProvider);
+
+    private static PluginPackageInstaller CreateInstaller(TempWorkspace workspace, IPluginManager pluginManager, IPluginDirectoryRegistry directoryRegistry, IPluginWorkspaceProvider? workspaceProvider = null)
+        => new(new TestHostEnvironment(workspace.Root), pluginManager, directoryRegistry, workspaceProvider ?? new StubWorkspaceProvider(Path.Combine(workspace.Root, "workspace")), NullLogger<PluginPackageInstaller>.Instance);
 
     private sealed class FailingPluginManager : IPluginManager
     {

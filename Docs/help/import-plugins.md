@@ -22,6 +22,16 @@ Aus dem neuesten veröffentlichten GitHub-Release wird ein ZIP-Asset geladen. De
 
 Das Paket wird vor der Installation in einem temporaeren Verzeichnis geprüft. Nur erkannte Plugin-Unterverzeichnisse und zulässige Inhalte werden übernommen. Austausch und produktiver Reload laufen koordiniert: neue Imports werden währenddessen gesperrt, laufende Handler werden nicht parallel zum Dateiaustausch unterbrochen, und nachfolgende Imports sehen erst den neu initialisierten Pluginbestand. Bei Kopier-, Installations- oder Reloadfehlern wird der bisherige Pluginbestand wiederhergestellt. Der Status der Quelle zeigt den letzten erfolgreichen Release, den letzten Fehler und den Zeitpunkt der letzten Prüfung; Reloadstatus, Reloadzeitpunkt und Reloadfehler bleiben in der Releasehistorie nachvollziehbar.
 
+### Arbeitsverzeichnisse der Plugin-Aktualisierung
+
+Download, Paketprüfung und die Sicherung des bisherigen Plugin-Verzeichnisses laufen in temporären Arbeitsverzeichnissen, die je Prüflauf frisch unter einem beschreibbaren Basisverzeichnis angelegt werden. Eine bereits vorhandene Verzeichnisstruktur wird dabei nicht vorausgesetzt; fehlende Zwischenebenen werden automatisch erzeugt.
+
+Das Basisverzeichnis wird in einer festen Reihenfolge gewählt: zuerst ein optional konfiguriertes Verzeichnis (`PluginUpdates:WorkDirectory`), danach das Temp-Verzeichnis des Systems und zuletzt `plugins/.work` unter dem Anwendungsverzeichnis, das die Anwendung ohnehin verwaltet und beschreibt. Verwendet wird der erste Kandidat, in dem sich das Arbeitsverzeichnis anlegen lässt.
+
+Kann in keinem dieser Verzeichnisse geschrieben werden, schlägt die Update-Prüfung mit der Meldung `Das Arbeitsverzeichnis für die Plugin-Aktualisierung konnte nicht angelegt werden.` fehl; der technische Grund steht im Anwendungslog.
+
+Verwaiste Arbeitsverzeichnisse unter `plugins/.work` — etwa Reste eines abgebrochenen Laufs — räumt die Anwendung best-effort auf, sobald sie nachweislich älter als einen Tag sind und nicht von einer laufenden Prüfung verwendet werden. `plugins/.work` wird bei der Plugin-Erkennung nicht als Plugin-Verzeichnis ausgewertet.
+
 ### Versionsverzeichnisse quelleninstallierter Plugins
 
 Installationen aus GitHub-Pluginquellen ersetzen den bisherigen Plugin-Ordner nicht mehr an Ort und Stelle. Jede installierte Release-Version liegt in einem eigenen Verzeichnis unter `plugins`, dessen Name aus dem Plugin-Verzeichnisnamen und dem Release-Tag gebildet wird: `plugins/<Name>@<ReleaseTag>/`. Pro Plugin lädt die Erkennung nur die jeweils wirksame Version; Verzeichnisse älterer Versionen werden beim koordinierten Austausch entfernt.

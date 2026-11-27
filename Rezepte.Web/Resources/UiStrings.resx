@@ -185,6 +185,7 @@
   <data name="PluginCheckSourceNotFound" xml:space="preserve"><value>Quelle wurde nicht gefunden.</value></data>
   <data name="PluginCheckSourceNotTrusted" xml:space="preserve"><value>Vertrauen ist nicht bestätigt.</value></data>
   <data name="PluginCheckValidationFailed" xml:space="preserve"><value>Die Plugin-Paketprüfung ist fehlgeschlagen.</value></data>
+  <data name="PluginCheckWorkDirectoryUnavailable" xml:space="preserve"><value>Das Arbeitsverzeichnis für die Plugin-Aktualisierung konnte nicht angelegt werden.</value></data>
   <data name="PluginRemoved" xml:space="preserve"><value>Plugin-Eintrag entfernt.</value></data>
   <data name="PluginRemoveFailed" xml:space="preserve"><value>Plugin-Eintrag konnte nicht entfernt werden: {0}</value></data>
   <data name="PluginSaveFailed" xml:space="preserve"><value>Plugin konnte nicht gespeichert werden: {0}</value></data>

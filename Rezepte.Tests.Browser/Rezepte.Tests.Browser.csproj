@@ -27,6 +27,10 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Rezepte.Web\Rezepte.Web.csproj" />
+    <!-- The update-check browser tests build a real plugin package ZIP from this assembly.
+         Rezepte.Tests.PluginFixture is not usable for that: it contains InvalidHandlerPlugin,
+         which the package validator correctly rejects as incompatible. -->
+    <ProjectReference Include="..\Rezepte.Import.Plugins.Backup\Rezepte.Import.Plugins.Backup.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Rezepte.Tests\TestHelpers\RepositoryPaths.cs" Link="TestHelpers\RepositoryPaths.cs" />

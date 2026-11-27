@@ -124,6 +124,28 @@ public sealed class PluginSettingsComponentTests : IDisposable
     }
 
     /// <summary>
+    /// A failed result with the work directory error constant is mapped to the localized message
+    /// instead of the generic failure detail.
+    /// </summary>
+    [Fact]
+    public void CheckSourceAsync_ShowsLocalizedWorkDirectoryError()
+    {
+        WithSources(Source());
+        _service.Setup(s => s.CheckSourceForUpdatesAsync("src-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(PluginUpdateCheckResult.Failed(PluginUpdateCheckErrors.WorkDirectoryUnavailable));
+        var cut = Render();
+
+        CheckButton(cut).Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            var alert = cut.Find(".alert-danger").TextContent;
+            alert.Should().Contain("Das Arbeitsverzeichnis für die Plugin-Aktualisierung konnte nicht angelegt werden.");
+            alert.Should().NotContain(PluginUpdateCheckErrors.WorkDirectoryUnavailable);
+        });
+    }
+
+    /// <summary>
     /// An exception thrown by the service shows the generic localized failure alert with the
     /// exception message appended as detail.
     /// </summary>

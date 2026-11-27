@@ -27,6 +27,7 @@ public sealed class GitHubStubServer : IDisposable
     // never sees a stale body/status combination; the body is always written before the status.
     private volatile int _latestReleaseStatusCode = 404;
     private volatile string _latestReleaseBody = """{"message":"Not Found"}""";
+    private volatile byte[]? _assetDownloadBody;
     private int _requestCount;
 
     private GitHubStubServer(TcpListener listener)
@@ -59,8 +60,8 @@ public sealed class GitHubStubServer : IDisposable
 
     /// <summary>
     /// Configures the stub to return the given release for every <c>releases/latest</c> request.
-    /// The asset download URL points at the stub itself; it only needs to be present for the
-    /// release parsing, the download endpoint is never exercised by the already-installed path.
+    /// The asset download URL points at the stub itself so a test that exercises the download
+    /// path only needs to configure the binary body via <see cref="RespondWithAssetDownload"/>.
     /// </summary>
     /// <param name="releaseId">The GitHub release id to report.</param>
     /// <param name="tagName">The release tag name to report.</param>
@@ -86,13 +87,25 @@ public sealed class GitHubStubServer : IDisposable
     }
 
     /// <summary>
+    /// Configures the binary body served for every <c>/assets/{id}/download</c> request, so the
+    /// update check can stream a real package file through the download path.
+    /// </summary>
+    /// <param name="body">The raw asset bytes, typically a ZIP archive.</param>
+    public void RespondWithAssetDownload(byte[] body)
+    {
+        _assetDownloadBody = body;
+    }
+
+    /// <summary>
     /// Configures the stub to return 404 for every <c>releases/latest</c> request, simulating a
-    /// repository without a published release.
+    /// repository without a published release. A previously configured asset download body is
+    /// cleared so no test inherits a package configured by another test.
     /// </summary>
     public void RespondNotFound()
     {
         _latestReleaseBody = """{"message":"Not Found"}""";
         _latestReleaseStatusCode = 404;
+        _assetDownloadBody = null;
     }
 
     /// <summary>
@@ -179,13 +192,29 @@ public sealed class GitHubStubServer : IDisposable
                 var path = parts.Length > 1 ? parts[1] : "/";
 
                 var isLatestRelease = path.EndsWith("/releases/latest", StringComparison.Ordinal);
-                var statusCode = isLatestRelease ? _latestReleaseStatusCode : 404;
-                var body = isLatestRelease ? _latestReleaseBody : """{"message":"Not Found"}""";
+                var isAssetDownload = path.StartsWith("/assets/", StringComparison.Ordinal)
+                    && path.EndsWith("/download", StringComparison.Ordinal);
 
-                var bodyBytes = Encoding.UTF8.GetBytes(body);
+                int statusCode;
+                string contentType;
+                byte[] bodyBytes;
+                if (isAssetDownload && _assetDownloadBody is not null)
+                {
+                    statusCode = 200;
+                    contentType = "application/octet-stream";
+                    bodyBytes = _assetDownloadBody;
+                }
+                else
+                {
+                    statusCode = isLatestRelease ? _latestReleaseStatusCode : 404;
+                    contentType = "application/json; charset=utf-8";
+                    var body = isLatestRelease ? _latestReleaseBody : """{"message":"Not Found"}""";
+                    bodyBytes = Encoding.UTF8.GetBytes(body);
+                }
+
                 var reason = statusCode == 200 ? "OK" : "Not Found";
                 var header = $"HTTP/1.1 {statusCode} {reason}\r\n"
-                    + "Content-Type: application/json; charset=utf-8\r\n"
+                    + $"Content-Type: {contentType}\r\n"
                     + $"Content-Length: {bodyBytes.Length}\r\n"
                     + "Connection: close\r\n\r\n";
                 await stream.WriteAsync(Encoding.ASCII.GetBytes(header), _shutdown.Token).ConfigureAwait(false);
